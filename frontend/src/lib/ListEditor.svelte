@@ -6,12 +6,47 @@
     items = $bindable([]),
     placeholder,
     onchange,
-  }: { items: string[] | null; placeholder: string; onchange?: () => void } = $props()
+    uniqueVariants = false,
+  }: {
+    items: string[] | null
+    placeholder: string
+    onchange?: () => void
+    /** Offer "unique only" entries for bases that have uniques. */
+    uniqueVariants?: boolean
+  } = $props()
+
+  const UNIQUE = '|unique'
+  type Option = { value: string; name: string; note: string; unique: boolean }
 
   const list = $derived(items ?? [])
 
   let query = $state('')
-  let results = $state<SearchItem[]>([])
+  let results = $state<Option[]>([])
+
+  function price(r: SearchItem): string {
+    if (r.price_divine && r.price_divine >= 1) return `${r.price_divine >= 10 ? r.price_divine.toFixed(0) : r.price_divine.toFixed(1)} div`
+    if (r.price_exalt) return `${r.price_exalt.toFixed(0)} ex`
+    return ''
+  }
+
+  function toOptions(found: SearchItem[]): Option[] {
+    const out: Option[] = []
+    for (const r of found) {
+      const p = price(r)
+      if (uniqueVariants && r.type === 'base' && r.related_uniques?.length) {
+        out.push({ value: r.name + UNIQUE, name: r.name, unique: true,
+          note: `Sadece Unique${p ? ' · en değerli ' + p : ''}` })
+        out.push({ value: r.name, name: r.name, unique: false, note: 'Tüm nadirlikler' })
+      } else {
+        out.push({ value: r.name, name: r.name, unique: false, note: p ? `${r.category} · ${p}` : r.category })
+      }
+    }
+    return out
+  }
+
+  function label(v: string): { name: string; unique: boolean } {
+    return v.endsWith(UNIQUE) ? { name: v.slice(0, -UNIQUE.length), unique: true } : { name: v, unique: false }
+  }
   let active = $state(0)
   let timer: ReturnType<typeof setTimeout> | undefined
 
@@ -25,7 +60,7 @@
     timer = setTimeout(async () => {
       const found = (await SearchItems(q)) ?? []
       if (query.trim() === q) {
-        results = found.filter((r) => !list.includes(r.name))
+        results = toOptions(found).filter((o) => !list.includes(o.value))
         active = 0
       }
     }, 150)
@@ -54,7 +89,7 @@
       active = (active - 1 + results.length) % results.length
       e.preventDefault()
     } else if (e.key === 'Enter') {
-      add(results[active].name)
+      add(results[active].value)
       e.preventDefault()
     }
   }
@@ -64,7 +99,8 @@
   {#if list.length}
     <div class="tags">
       {#each list as it (it)}
-        <span class="tag">{it}<button type="button" aria-label="{it} kaldır" onclick={() => remove(it)}>×</button></span>
+        {@const l = label(it)}
+        <span class="tag">{l.name}{#if l.unique}<em class="u">Unique</em>{/if}<button type="button" aria-label="{l.name} kaldır" onclick={() => remove(it)}>×</button></span>
       {/each}
     </div>
   {/if}
@@ -72,11 +108,11 @@
     <input bind:value={query} oninput={search} onkeydown={key} {placeholder} spellcheck="false" />
     {#if results.length}
       <ul role="listbox">
-        {#each results as r, i (r.name)}
+        {#each results as r, i (r.value)}
           <li role="option" aria-selected={i === active}>
-            <button type="button" class:active={i === active} onmouseenter={() => (active = i)} onclick={() => add(r.name)}>
-              <span class="name">{r.name}</span>
-              <span class="cat">{r.category}</span>
+            <button type="button" class:active={i === active} onmouseenter={() => (active = i)} onclick={() => add(r.value)}>
+              <span class="name" class:unique={r.unique}>{r.name}</span>
+              <span class="cat">{r.note}</span>
             </button>
           </li>
         {/each}
@@ -166,6 +202,19 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .name.unique {
+    color: #e6893a;
+  }
+  .u {
+    margin-left: 5px;
+    padding: 0 5px;
+    border-radius: 4px;
+    background: rgba(230, 137, 58, 0.18);
+    color: #f0a766;
+    font-style: normal;
+    font-size: 10.5px;
+    font-weight: 600;
   }
   .cat {
     flex: none;

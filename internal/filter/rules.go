@@ -270,11 +270,15 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	if len(cfg.Whitelist) > 0 {
 		var uniqueBases, bases []string
 		for _, raw := range cfg.Whitelist {
-			key := strings.ToLower(strings.TrimSpace(raw))
-			if base, ok := uniqueToBase[key]; ok {
+			item, uniqueOnly := ParseListEntry(raw)
+			if base, ok := uniqueToBase[strings.ToLower(item)]; ok {
 				uniqueBases = append(uniqueBases, base)
-			} else if name, ok := canon(raw); ok {
-				bases = append(bases, name)
+			} else if name, ok := canon(item); ok {
+				if uniqueOnly {
+					uniqueBases = append(uniqueBases, name)
+				} else {
+					bases = append(bases, name)
+				}
 			}
 		}
 		if len(uniqueBases)+len(bases) > 0 {
@@ -338,7 +342,8 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 		if len(bases) > 0 {
 			b.section("6. CHANCE & CRAFTING BASES")
-			b.rule("Show", []string{"Rarity <= Magic"}, "BaseType", bases, styleChance)
+			// Orb of Chance only works on normal items.
+			b.rule("Show", []string{"Rarity == Normal"}, "BaseType", bases, styleChance)
 		}
 	}
 
@@ -452,6 +457,20 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	}
 
 	return strings.Join(b.lines, "\n"), st
+}
+
+// UniqueOnlySuffix marks a list entry that applies to the unique items of a
+// base only, e.g. "Sapphire|unique".
+const UniqueOnlySuffix = "|unique"
+
+// ParseListEntry splits a custom list entry into its item name and whether it
+// is restricted to uniques.
+func ParseListEntry(raw string) (name string, uniqueOnly bool) {
+	raw = strings.TrimSpace(raw)
+	if n, ok := strings.CutSuffix(raw, UniqueOnlySuffix); ok {
+		return strings.TrimSpace(n), true
+	}
+	return raw, false
 }
 
 func chunkSlice(items []string, size int) [][]string {

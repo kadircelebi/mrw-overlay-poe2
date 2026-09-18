@@ -198,3 +198,26 @@ func TestInjectKeepsDollarSigns(t *testing.T) {
 		t.Fatal("block duplicated on re-inject")
 	}
 }
+
+func TestWhitelistUniqueOnlyAndChanceNormal(t *testing.T) {
+	bases := map[string]string{"sapphire": "Sapphire", "heavy belt": "Heavy Belt", "silk robe": "Silk Robe"}
+	cfg := DefaultConfig()
+	cfg.Whitelist = []string{"Sapphire|unique", "Silk Robe"}
+	cfg.ChanceBases = []string{"Heavy Belt"}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), bases)
+
+	if blockContaining(t, out, "Show", "Rarity == Unique", `"Sapphire"`) < 0 {
+		t.Fatal("unique-only whitelist entry must be restricted to uniques")
+	}
+	for _, blk := range strings.Split(out, "\n\n") {
+		if strings.Contains(blk, `"Sapphire"`) && !strings.Contains(blk, "Rarity == Unique") {
+			t.Fatalf("Sapphire shown for all rarities:\n%s", blk)
+		}
+	}
+	if blockContaining(t, out, "Show", `"Silk Robe"`) < 0 {
+		t.Fatal("plain whitelist entry missing")
+	}
+	if blockContaining(t, out, "Rarity == Normal", `"Heavy Belt"`) < 0 || blockContaining(t, out, "Rarity <= Magic", `"Heavy Belt"`) >= 0 {
+		t.Fatal("chance bases must be normal rarity only")
+	}
+}

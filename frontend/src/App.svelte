@@ -291,10 +291,11 @@
       <section class="card">
         <h2>Listeler</h2>
         <h3>Her zaman göster</h3>
-        <ListEditor bind:items={cfg.whitelist} placeholder="Unique, currency veya taban ara…" onchange={() => queueSave()} />
+        <p class="desc">Değerli unique'i olan tabanlar (Mageblood, Headhunter, Voices…) zaten otomatik ve sadece unique olarak gösterilir.</p>
+        <ListEditor bind:items={cfg.whitelist} uniqueVariants placeholder="Unique, currency veya taban ara…" onchange={() => queueSave()} />
         <h3>Her zaman gizle</h3>
         <ListEditor bind:items={cfg.blacklist} placeholder="Gizlenecek eşya ara…" onchange={() => queueSave()} />
-        <h3>Chance tabanları</h3>
+        <h3>Chance tabanları <span class="h3-note">sadece normal nadirlik</span></h3>
         <ListEditor bind:items={cfg.chance_bases} placeholder="Taban veya unique ara…" onchange={() => queueSave()} />
       </section>
 
@@ -504,6 +505,12 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--text-2);
+  }
+  .h3-note {
+    margin-left: 4px;
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 11px;
   }
   .sub-title {
     margin-top: 16px;
