@@ -1,0 +1,88 @@
+:root {
+  --bg: #0e0c10;
+  --surface: #17141a;
+  --surface-2: #1f1b22;
+  --surface-3: #28232b;
+  --line: #2f2931;
+  --line-strong: #3d3540;
+
+  --gold: #c9a45c;
+  --gold-bright: #ecc97c;
+  --gold-dim: #8a7042;
+  --text: #ece5da;
+  --text-2: #b3a99c;
+  --muted: #7f766c;
+
+  --ok: #7cbf6b;
+  --warn: #e0a64a;
+  --bad: #d4605a;
+  --exceptional: #62b6cf;
+
+  --radius: 10px;
+  --radius-sm: 7px;
+  --serif: 'Cinzel', Georgia, serif;
+  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Thin, dark scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 8px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
