@@ -121,6 +121,17 @@ func (l *Limiter) Wait(ctx context.Context) error {
 	}
 }
 
+// Spacing is the steady-state gap between requests within the budget.
+func (l *Limiter) Spacing() time.Duration {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	var d time.Duration
+	for _, r := range l.rules {
+		d = max(d, r.Period/time.Duration(l.allowed(r)))
+	}
+	return d
+}
+
 // NextIn reports how long until the next request could be sent.
 func (l *Limiter) NextIn() time.Duration {
 	l.mu.Lock()

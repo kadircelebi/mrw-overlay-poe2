@@ -53,8 +53,10 @@ type ScanState struct {
 	Keys       int     `json:"keys"` // roughly candidates x 2 (sockets, quality)
 	Scanned    int     `json:"scanned"`
 	Valuable   int     `json:"valuable"`
-	Current    string  `json:"current"`
-	NextInSec  float64 `json:"nextInSec"`
+	Current    string  `json:"current"` // key waiting for its search
+	Last       string  `json:"last"`    // last finished key and result
+	NextAtMs   int64   `json:"nextAtMs"`
+	EtaSec     float64 `json:"etaSec"` // until every base has been scanned once
 }
 
 // State is everything a front end needs to render.
@@ -242,6 +244,7 @@ func (e *Engine) ensureScanner(run bool) {
 		client := trade.NewClient(cfg.LeagueName, float64(cfg.ScanBudgetPct)/100)
 		e.scanner = trade.NewScanner(client, filepath.Join(e.dataDir, "exceptional_scan.json"),
 			func(s string) { e.logf("%s", s) })
+		e.scanner.SetOnChange(e.changed)
 		e.scanLeague = cfg.LeagueName
 	} else {
 		e.scanner.SetBudget(float64(cfg.ScanBudgetPct) / 100)
@@ -395,7 +398,8 @@ func (e *Engine) State() State {
 	if scanner != nil {
 		ss := scanner.Status()
 		s.Scan = ScanState{Enabled: scanning, Candidates: ss.Candidates, Keys: ss.Keys,
-			Scanned: ss.Scanned, Valuable: ss.Valuable, Current: ss.Current, NextInSec: ss.NextInSec}
+			Scanned: ss.Scanned, Valuable: ss.Valuable, Current: ss.Current, Last: ss.Last,
+			NextAtMs: ss.NextAt, EtaSec: ss.EtaSec}
 	}
 	return s
 }

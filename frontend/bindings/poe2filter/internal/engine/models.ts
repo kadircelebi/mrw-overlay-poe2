@@ -32,8 +32,22 @@ export interface ScanState {
     "keys": number;
     "scanned": number;
     "valuable": number;
+
+    /**
+     * key waiting for its search
+     */
     "current": string;
-    "nextInSec": number;
+
+    /**
+     * last finished key and result
+     */
+    "last": string;
+    "nextAtMs": number;
+
+    /**
+     * until every base has been scanned once
+     */
+    "etaSec": number;
 }
 
 /**

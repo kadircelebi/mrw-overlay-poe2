@@ -234,12 +234,21 @@
             <span>{st.scan.scanned} / {st.scan.keys || '—'} tarandı</span>
             <span class="cyan-text">{st.scan.valuable} değerli</span>
           </div>
-          <div class="scan-line muted">
-            {#if st.scan.current}
-              <span class="ellipsis">Son: {st.scan.current}</span>
-            {/if}
-            {#if st.scan.nextInSec > 1}<span class="num">sıradaki {Math.ceil(st.scan.nextInSec)} sn</span>{/if}
-          </div>
+          {#if st.scan.current}
+            <div class="scan-line muted">
+              <span class="ellipsis">Sırada: {st.scan.current}</span>
+              <span class="num">{st.scan.nextAtMs > now + 1000 ? until(st.scan.nextAtMs, now) : 'aranıyor…'}</span>
+            </div>
+          {/if}
+          {#if st.scan.last}
+            <div class="scan-line muted"><span class="ellipsis">Son: {st.scan.last}</span></div>
+          {/if}
+          {#if st.scan.etaSec > 0}
+            <p class="scan-note">
+              Aramalar kotayı korumak için ~{Math.round(st.scan.etaSec / Math.max(1, st.scan.keys - st.scan.scanned))} sn arayla yapılıyor.
+              Tüm tabanların ilk taraması ≈ {until(now + st.scan.etaSec * 1000, now)}; NeverSink'in değerli bulduğu tabanlar önce.
+            </p>
+          {/if}
         {/if}
       </section>
 
@@ -731,6 +740,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .scan-note {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.45;
   }
   .cyan-text {
     color: var(--exceptional);

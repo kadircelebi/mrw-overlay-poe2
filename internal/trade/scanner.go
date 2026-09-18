@@ -72,8 +72,17 @@ type Scanner struct {
 	candidates []Candidate
 	market     *prices.Snapshot
 	hotEx      float64
-	current    string
+	current    string        // key waiting for / in its search
+	last       string        // last finished key with its result
 	wake       chan struct{} // nudges Run when market or candidates arrive
+	onChange   func()        // called after each scan (outside the lock)
+}
+
+// SetOnChange registers a callback run after every scan attempt.
+func (s *Scanner) SetOnChange(f func()) {
+	s.mu.Lock()
+	s.onChange = f
+	s.mu.Unlock()
 }
 
 // NewScanner loads (or starts) the persistent scan state.
@@ -234,8 +243,12 @@ func (s *Scanner) Run(ctx context.Context) {
 		}
 
 		s.mu.Lock()
-		s.current = t.base + " (" + string(t.kind) + ")"
+		s.current = keyLabel(t.base, t.kind, t.min)
+		notify := s.onChange
 		s.mu.Unlock()
+		if notify != nil {
+			notify() // show what is queued and when it runs
+		}
 
 		err := s.scan(ctx, t)
 		if errors.Is(err, context.Canceled) {
@@ -244,7 +257,27 @@ func (s *Scanner) Run(ctx context.Context) {
 		if err != nil {
 			s.logf("[Tarama] %s %s: %v", t.base, t.kind, err)
 		}
+		s.mu.Lock()
+		s.last = s.current
+		switch ks := s.st.Keys[keyOf(t.base, t.kind)]; {
+		case err != nil:
+			s.last += " — hata"
+		case ks == nil:
+			s.last += " — sınıf öğrenildi"
+		case ks.Listings == 0:
+			s.last += " — ilan yok"
+		case ks.Samples == 0:
+			s.last += fmt.Sprintf(" — %d ilan", ks.Listings)
+		default:
+			s.last += fmt.Sprintf(" — %.0f ex", ks.ValueEx)
+		}
+		s.current = ""
+		notify = s.onChange
+		s.mu.Unlock()
 		s.save()
+		if notify != nil {
+			notify()
+		}
 	}
 }
 
@@ -256,11 +289,10 @@ func (s *Scanner) scan(ctx context.Context, t *target) error {
 		q.SetMin("equipment_filters", "rune_sockets", t.min)
 	}
 
-	now := time.Now().UTC()
 	record := func(p prices.ExceptionalPrice, err error) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		ks := &keyState{ExceptionalPrice: p, LastAttempt: now}
+		ks := &keyState{ExceptionalPrice: p, LastAttempt: time.Now().UTC()}
 		if err != nil {
 			// Keep the last good price; only note the failure.
 			if old := s.st.Keys[keyOf(t.base, t.kind)]; old != nil {
@@ -280,7 +312,8 @@ func (s *Scanner) scan(ctx context.Context, t *target) error {
 		}
 		return err
 	}
-	price := prices.ExceptionalPrice{Base: t.base, Kind: t.kind, Min: t.min, Listings: res.Total, ScannedAt: now}
+	// Timestamp the result when the search actually ran, not when it was queued.
+	price := prices.ExceptionalPrice{Base: t.base, Kind: t.kind, Min: t.min, Listings: res.Total, ScannedAt: time.Now().UTC()}
 	if res.Total == 0 || len(res.Result) == 0 {
 		record(price, nil)
 		return nil
@@ -387,6 +420,13 @@ func (s *Scanner) Results() []prices.ExceptionalPrice {
 	return out
 }
 
+func keyLabel(base string, kind prices.ExceptionalKind, min int) string {
+	if kind == prices.KindQuality {
+		return fmt.Sprintf("%s · %%%d+ kalite", base, min)
+	}
+	return fmt.Sprintf("%s · %d soket", base, min)
+}
+
 // Status summarises scanner progress for the UI.
 type Status struct {
 	Candidates int     `json:"candidates"`
@@ -394,15 +434,19 @@ type Status struct {
 	Scanned    int     `json:"scanned"`
 	Valuable   int     `json:"valuable"`
 	Current    string  `json:"current"`
-	NextInSec  float64 `json:"next_in_sec"`
+	Last       string  `json:"last"`
+	NextAt     int64   `json:"next_at"` // unix ms of the next search slot
+	EtaSec     float64 `json:"eta_sec"` // time to scan everything not yet scanned
 }
 
 // Status returns current progress.
 func (s *Scanner) Status() Status {
 	next := s.client.Search.NextIn()
+	spacing := s.client.Search.Spacing()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	st := Status{Candidates: len(s.candidates), Current: s.current, NextInSec: next.Seconds()}
+	st := Status{Candidates: len(s.candidates), Current: s.current, Last: s.last,
+		NextAt: time.Now().Add(next).UnixMilli()}
 	for _, c := range s.candidates {
 		st.Keys++ // quality
 		if class := s.st.Classes[c.Base]; class == "" || ExceptionalSocketMin(class) > 0 {
@@ -416,6 +460,9 @@ func (s *Scanner) Status() Status {
 				st.Valuable++
 			}
 		}
+	}
+	if remaining := st.Keys - st.Scanned; remaining > 0 {
+		st.EtaSec = float64(remaining) * spacing.Seconds()
 	}
 	return st
 }
