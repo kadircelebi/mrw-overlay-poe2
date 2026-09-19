@@ -63,7 +63,7 @@ export interface Config {
     "high_uncut_gems": boolean;
 
     /**
-     * Uncut Support Gems drop constantly; off (the default) hides them.
+     * Uncut Support Gems drop constantly, so they have their own switch.
      */
     "uncut_support_gems": boolean;
     "boss_keys_and_tablets": boolean;
