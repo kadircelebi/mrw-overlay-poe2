@@ -46,6 +46,13 @@ jobs:
         run: npm ci && npm run build
         working-directory: frontend
 
+      # wails3 CLI'si Linux'ta derlenirken GTK/WebKit başlıklarını istiyor;
+      # üretilen exe Windows'a çapraz derlendiği için bunlar yalnızca CLI içindir.
+      - name: wails3 CLI'sinin derleme bağımlılıkları
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgtk-4-dev libwebkitgtk-6.0-dev
+
       - name: Windows kaynakları (ikon + manifest)
         run: |
           go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.23
