@@ -83,7 +83,7 @@ func TestRuleOrderAndSafety(t *testing.T) {
 	valuable := blockContaining(t, out, "Show", "Sockets >= 2", `"Sekhema Sandals"`)
 	cheap := blockContaining(t, out, "Hide", "Sockets >= 2", `"Cavalry Boots"`)
 	unknown := blockContaining(t, out, "Show", "Sockets >= 2", `Class == `, `"Boots"`)
-	blanket := blockContaining(t, out, "Hide", "Rarity <= Rare", `"Boots"`)
+	blanket := blockContaining(t, out, "Hide", "Rarity Normal Magic Rare", `"Boots"`)
 	if !(valuable >= 0 && valuable < cheap && cheap < unknown && unknown < blanket) {
 		t.Fatalf("exceptional order wrong: valuable=%d cheap=%d unknown=%d blanket=%d", valuable, cheap, unknown, blanket)
 	}
@@ -91,10 +91,10 @@ func TestRuleOrderAndSafety(t *testing.T) {
 		t.Fatal("exceptional base with too few listings must not be hidden")
 	}
 
-	if blockContaining(t, out, "Show", "Rarity == Unique", `"Silk Robe"`) < 0 {
+	if blockContaining(t, out, "Show", "Rarity Unique", `"Silk Robe"`) < 0 {
 		t.Fatal("Silk Robe (Temporalis) must be shown")
 	}
-	if blockContaining(t, out, "Hide", "Rarity == Unique", `"Knight Armour"`) < 0 {
+	if blockContaining(t, out, "Hide", "Rarity Unique", `"Knight Armour"`) < 0 {
 		t.Fatal("well-traded cheap unique base should be hidden")
 	}
 	if blockContaining(t, out, "Hide", `"Moulded Mitts"`) >= 0 {
@@ -115,7 +115,7 @@ func TestBlacklistProtectsValuableSibling(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Blacklist = []string{"Cloak of Flame"} // shares Silk Robe with Temporalis
 	out, st := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
-	if blockContaining(t, out, "Hide", "Rarity == Unique", `"Silk Robe"`) >= 0 {
+	if blockContaining(t, out, "Hide", "Rarity Unique", `"Silk Robe"`) >= 0 {
 		t.Fatal("blacklisting a junk unique must not hide Temporalis' base")
 	}
 	if len(st.Warnings) == 0 {
@@ -206,18 +206,18 @@ func TestWhitelistUniqueOnlyAndChanceNormal(t *testing.T) {
 	cfg.ChanceBases = []string{"Heavy Belt"}
 	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), bases)
 
-	if blockContaining(t, out, "Show", "Rarity == Unique", `"Sapphire"`) < 0 {
+	if blockContaining(t, out, "Show", "Rarity Unique", `"Sapphire"`) < 0 {
 		t.Fatal("unique-only whitelist entry must be restricted to uniques")
 	}
 	for _, blk := range strings.Split(out, "\n\n") {
-		if strings.Contains(blk, `"Sapphire"`) && !strings.Contains(blk, "Rarity == Unique") {
+		if strings.Contains(blk, `"Sapphire"`) && !strings.Contains(blk, "Rarity Unique") {
 			t.Fatalf("Sapphire shown for all rarities:\n%s", blk)
 		}
 	}
 	if blockContaining(t, out, "Show", `"Silk Robe"`) < 0 {
 		t.Fatal("plain whitelist entry missing")
 	}
-	if blockContaining(t, out, "Rarity == Normal", `"Heavy Belt"`) < 0 || blockContaining(t, out, "Rarity <= Magic", `"Heavy Belt"`) >= 0 {
+	if blockContaining(t, out, "Rarity Normal", `"Heavy Belt"`) < 0 || blockContaining(t, out, "Rarity Normal Magic", `"Heavy Belt"`) >= 0 {
 		t.Fatal("chance bases must be normal rarity only")
 	}
 }

@@ -235,9 +235,9 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 		if len(uniqueBases)+len(bases) > 0 {
 			b.section("1. USER BLACKLIST (always hidden)")
-			b.rule("Hide", []string{"Rarity == Unique"}, "BaseType", uniqueBases, nil)
-			// Rarity <= Rare: blacklisting a base must not hide uniques on it.
-			b.rule("Hide", []string{"Rarity <= Rare"}, "BaseType", bases, nil)
+			b.rule("Hide", []string{"Rarity Unique"}, "BaseType", uniqueBases, nil)
+			// Normal/Magic/Rare only: blacklisting a base must not hide uniques on it.
+			b.rule("Hide", []string{"Rarity Normal Magic Rare"}, "BaseType", bases, nil)
 		}
 	}
 
@@ -283,7 +283,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 		if len(uniqueBases)+len(bases) > 0 {
 			b.section("3. USER WHITELIST (always shown)")
-			b.rule("Show", []string{"Rarity == Unique"}, "BaseType", uniqueBases, styleMax)
+			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, styleMax)
 			b.rule("Show", nil, "BaseType", bases, styleMax)
 		}
 	}
@@ -327,7 +327,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// ---- 5. valuable unique bases ------------------------------------------
 	if len(valuableUniqueBases) > 0 {
 		b.section("5. VALUABLE UNIQUE BASES (best unique on the base >= threshold)")
-		b.rule("Show", []string{"Rarity == Unique"}, "BaseType", valuableUniqueBases, styleUnique)
+		b.rule("Show", []string{"Rarity Unique"}, "BaseType", valuableUniqueBases, styleUnique)
 	}
 
 	// ---- 6. chance bases ---------------------------------------------------
@@ -343,7 +343,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		if len(bases) > 0 {
 			b.section("6. CHANCE & CRAFTING BASES")
 			// Orb of Chance only works on normal items.
-			b.rule("Show", []string{"Rarity == Normal"}, "BaseType", bases, styleChance)
+			b.rule("Show", []string{"Rarity Normal"}, "BaseType", bases, styleChance)
 		}
 	}
 
@@ -379,24 +379,24 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// ---- 8. rares, jewels, quality, waystones, gems, keys --------------------
 	if cfg.T5Rares {
 		b.section("8.1 TIER 5 RARE EQUIPMENT")
-		b.rule("Show", []string{"Rarity == Rare", "UnidentifiedItemTier >= 5"}, "Class", gearClasses, styleT5Rare)
+		b.rule("Show", []string{"Rarity Rare", "UnidentifiedItemTier >= 5"}, "Class", gearClasses, styleT5Rare)
 	}
 	if cfg.IncludeGear {
 		b.section("8.2 RARE JEWELS")
 		if cfg.T5JewelsOnly {
-			b.rule("Show", []string{`Class == "Jewels"`, "Rarity == Rare", "UnidentifiedItemTier >= 5"}, "", nil,
+			b.rule("Show", []string{`Class == "Jewels"`, "Rarity Rare", "UnidentifiedItemTier >= 5"}, "", nil,
 				&style{font: 42, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
 					beam: "Yellow", icon: "1 Yellow Diamond", sound: "2 300"})
 		} else {
-			b.rule("Show", []string{`Class == "Jewels"`, "Rarity == Rare"}, "", nil,
+			b.rule("Show", []string{`Class == "Jewels"`, "Rarity Rare"}, "", nil,
 				&style{font: 40, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255", icon: "2 Yellow Diamond"})
 		}
-		// Rarity <= Rare: unique jewels follow the unique rules above.
-		b.rule("Hide", []string{`Class == "Jewels"`, "Rarity <= Rare"}, "", nil, nil)
+		// Normal/Magic/Rare only: unique jewels follow the unique rules above.
+		b.rule("Hide", []string{`Class == "Jewels"`, "Rarity Normal Magic Rare"}, "", nil, nil)
 	}
 	if cfg.QualityThreshold > 0 {
 		b.section(fmt.Sprintf("8.3 HIGH QUALITY GEAR (Quality >= %d)", cfg.QualityThreshold))
-		b.rule("Show", []string{"Rarity <= Rare", fmt.Sprintf("Quality >= %d", cfg.QualityThreshold)}, "Class", gearClasses,
+		b.rule("Show", []string{"Rarity Normal Magic Rare", fmt.Sprintf("Quality >= %d", cfg.QualityThreshold)}, "Class", gearClasses,
 			&style{font: 40, text: "255 255 255 255", border: "255 215 0 255", bg: "40 30 0 240", icon: "1 Yellow Diamond"})
 	}
 	if cfg.HighWaystones {
@@ -432,7 +432,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 		sort.Strings(names)
 		b.rule(action, nil, "BaseType", names, dim)
-		b.rule(action, []string{"Rarity == Unique"}, "BaseType", cheapUniqueBases, dim)
+		b.rule(action, []string{"Rarity Unique"}, "BaseType", cheapUniqueBases, dim)
 		for _, g := range exGroups(cheapEx) {
 			sort.Strings(cheapEx[g])
 			b.rule(action, []string{"Corrupted False", "Rarity Normal Magic", exCond(g)}, "BaseType", cheapEx[g], dim)
@@ -453,7 +453,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		st.UnknownExceptOn = true
 
 		b.section("11. HIDE ALL OTHER NORMAL, MAGIC AND RARE EQUIPMENT")
-		b.rule("Hide", []string{"Rarity <= Rare"}, "Class", EquipmentClasses, nil)
+		b.rule("Hide", []string{"Rarity Normal Magic Rare"}, "Class", EquipmentClasses, nil)
 	}
 
 	return strings.Join(b.lines, "\n"), st

@@ -73,3 +73,21 @@ export interface Config {
     "base_filter_preset"?: string;
     "auto_update_interval"?: number;
 }
+
+/**
+ * DivineThemeStyle contains colors and beam effects for the spotlight Divine Orb drop.
+ * Colours are "R G B A" as the filter language expects.
+ */
+export interface DivineThemeStyle {
+    "id": string;
+    "label": string;
+    "bg": string;
+    "text": string;
+    "border": string;
+
+    /**
+     * PlayEffect / minimap icon colour name
+     */
+    "beam": string;
+    "icon": string;
+}

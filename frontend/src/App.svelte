@@ -7,6 +7,8 @@
   import Toggle from './lib/Toggle.svelte'
   import Segmented from './lib/Segmented.svelte'
   import ListEditor from './lib/ListEditor.svelte'
+  import DivinePreview from './lib/DivinePreview.svelte'
+  import type { DivineThemeStyle } from '../bindings/poe2filter/internal/filter/models'
   import { clock, relative, until, money, strictnessNames } from './lib/format'
 
   let meta = $state<Meta | null>(null)
@@ -20,6 +22,7 @@
   let saveTimer: ReturnType<typeof setTimeout> | undefined
   let saveSeq = 0
   let actionError = $state('')
+  let themes = $state<DivineThemeStyle[]>([])
 
   async function refresh() {
     st = await AppService.GetState()
@@ -28,6 +31,7 @@
   onMount(() => {
     ;(async () => {
       meta = await AppService.GetMeta()
+      themes = (await AppService.DivineThemes()) ?? []
       cfg = await AppService.GetConfig()
       await refresh()
     })()
@@ -304,16 +308,12 @@
         <label class="field">
           <span>Görünüm</span>
           <select bind:value={cfg.divine_theme} onchange={() => queueSave()}>
-            <option value="neon_cyan">Neon turkuaz</option>
-            <option value="neon_purple">Neon mor</option>
-            <option value="neon_red">Neon kırmızı</option>
-            <option value="neon_gold">Neon altın</option>
-            <option value="neon_green">Neon yeşil</option>
-            <option value="dark">Koyu zemin</option>
-            <option value="gold">Klasik altın</option>
-            <option value="classic_black">Beyaz / siyah çerçeve</option>
+            {#each themes as t (t.id)}
+              <option value={t.id}>{t.label}</option>
+            {/each}
           </select>
         </label>
+        <DivinePreview theme={themes.find((t) => t.id === cfg!.divine_theme)} />
         <label class="field">
           <span>Ses</span>
           <select bind:value={cfg.divine_sound} onchange={() => queueSave()}>

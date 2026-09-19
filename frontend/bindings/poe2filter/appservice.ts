@@ -26,6 +26,13 @@ import * as insights$0 from "./internal/insights/models.js";
 import * as $models from "./models.js";
 
 /**
+ * DivineThemes lists the Divine Orb highlight styles for the settings preview.
+ */
+export function DivineThemes(): $CancellablePromise<filter$0.DivineThemeStyle[] | null> {
+    return $Call.ByID(2125121575);
+}
+
+/**
  * GetConfig returns the current settings.
  */
 export function GetConfig(): $CancellablePromise<filter$0.Config> {
