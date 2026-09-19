@@ -17,9 +17,10 @@ jobs:
   windows-exe:
     runs-on: ubuntu-latest
     steps:
+      # Etiketten tetiklendiyse etiketli commit, elle tetiklendiyse workflow'un
+      # çalıştığı dal (etiket henüz yoksa release onu bu commit'te oluşturur).
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
 
       - uses: actions/setup-go@v5
@@ -37,6 +38,7 @@ jobs:
         id: ver
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
+          case "$TAG" in v*) ;; *) echo "Etiket v ile başlamalı: $TAG" >&2; exit 1;; esac
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
@@ -78,5 +80,6 @@ jobs:
             gh release upload "$TAG" "$EXE" --clobber
             gh release edit "$TAG" --notes-file "$BODY"
           else
-            gh release create "$TAG" "$EXE" --title "PoE2 Filtre $TAG" --notes-file "$BODY"
+            gh release create "$TAG" "$EXE" --title "PoE2 Filtre $TAG" \
+              --target "${{ github.sha }}" --notes-file "$BODY"
           fi
