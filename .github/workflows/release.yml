@@ -1,0 +1,82 @@
+name: release
+
+# Bir vX.Y.Z etiketi push edildiğinde Windows exe'sini derler ve release'e koyar.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release etiketi (örn. v0.4.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows-exe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Sürümü etiketten al
+        id: ver
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Arayüzü derle
+        run: npm ci && npm run build
+        working-directory: frontend
+
+      - name: Windows kaynakları (ikon + manifest)
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.23
+          cd build && wails3 generate syso -arch amd64 \
+            -icon windows/icon.ico -manifest windows/wails.exe.manifest \
+            -info windows/info.json -out ../wails_windows_amd64.syso
+
+      - name: Exe'yi derle
+        env:
+          CGO_ENABLED: "0"
+          GOOS: windows
+          GOARCH: amd64
+        run: |
+          go build -tags production -trimpath \
+            -ldflags "-w -s -H windowsgui -X main.version=${{ steps.ver.outputs.version }}" \
+            -o "poe2filtre-${{ steps.ver.outputs.tag }}-windows-amd64.exe" .
+
+      - name: Release'i yayınla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          EXE="poe2filtre-$TAG-windows-amd64.exe"
+          SHA=$(sha256sum "$EXE" | cut -d' ' -f1)
+          NOTES=.github/release-notes/$TAG.md
+          BODY=$(mktemp)
+          # Etiket için elle yazılmış not varsa onu kullan; her hâlükârda
+          # dosya özetini ekle (README indirilen exe'nin SHA-256'sını vaat ediyor).
+          if [ -f "$NOTES" ]; then cat "$NOTES" > "$BODY"; fi
+          printf '\n## Dosya özeti\n\n```\n%s  %s\n```\n' "$SHA" "$EXE" >> "$BODY"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$EXE" --clobber
+            gh release edit "$TAG" --notes-file "$BODY"
+          else
+            gh release create "$TAG" "$EXE" --title "PoE2 Filtre $TAG" --notes-file "$BODY"
+          fi
