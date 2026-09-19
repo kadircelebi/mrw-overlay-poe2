@@ -251,3 +251,55 @@ func TestStyleGroupsApplyAndMigrate(t *testing.T) {
 		t.Fatal("default whitelist palette differs from built-in style")
 	}
 }
+
+func TestMediumWhitelistOrder(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.WhitelistMid = []string{"Orb of Alchemy", "Silk Robe|unique"}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+
+	mid := blockContaining(t, out, "Show", `"Orb of Alchemy"`, "MinimapIcon 1 Purple Diamond")
+	hide := blockContaining(t, out, "Hide", `"Orb of Alchemy"`)
+	if mid < 0 || (hide >= 0 && hide < mid) {
+		t.Fatalf("medium list must show a cheap item before it is hidden (mid=%d hide=%d)", mid, hide)
+	}
+	strong := blockContaining(t, out, "Show", "Rarity Unique", `"Silk Robe"`, "PlayEffect Red")
+	midSilk := blockContaining(t, out, "Show", "Rarity Unique", `"Silk Robe"`, "Purple Diamond")
+	if strong < 0 || midSilk < 0 || strong > midSilk {
+		t.Fatalf("a valuable item must keep its stronger highlight (strong=%d mid=%d)", strong, midSilk)
+	}
+}
+
+func TestGroupSounds(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Sounds = map[string]string{
+		GroupDivine: "1", GroupUnique: SoundNone, GroupT5Rare: SoundFilePrefix + "nebu.mp3",
+		GroupChance: "99", "bogus": "2",
+	}
+	cfg.Normalize()
+	if _, ok := cfg.Sounds[GroupChance]; ok {
+		t.Fatal("invalid sound id kept")
+	}
+	if _, ok := cfg.Sounds["bogus"]; ok {
+		t.Fatal("unknown group kept")
+	}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+
+	divine := strings.Split(out, "\n\n")[blockContaining(t, out, `"Divine Orb"`, "SetFontSize 45")]
+	if !strings.Contains(divine, "PlayAlertSound 1 300") || strings.Contains(divine, "PlayAlertSound 6") {
+		t.Fatalf("divine sound 1 not applied:\n%s", divine)
+	}
+	unique := strings.Split(out, "\n\n")[blockContaining(t, out, "Show", "Rarity Unique", `"Silk Robe"`)]
+	if strings.Contains(unique, "AlertSound") {
+		t.Fatalf("silenced group still plays a sound:\n%s", unique)
+	}
+	if blockContaining(t, out, "UnidentifiedItemTier >= 5", `CustomAlertSound "nebu.mp3" 300`) < 0 {
+		t.Fatal("custom sound file not applied")
+	}
+
+	legacy := DefaultConfig()
+	legacy.DivineSound = "nebu.mp3"
+	legacy.Normalize()
+	if legacy.Sounds[GroupDivine] != SoundFilePrefix+"nebu.mp3" || legacy.DivineSound != "" {
+		t.Fatalf("legacy divine sound not migrated: %v", legacy.Sounds)
+	}
+}

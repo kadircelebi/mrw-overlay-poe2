@@ -37,7 +37,8 @@ type style struct {
 	font             int
 	text, border, bg string
 	beam, icon       string
-	sound            string
+	sound            string // PlayAlertSound arguments, e.g. "6 300"
+	custom           string // CustomAlertSound file in the filter folder
 }
 
 type builder struct {
@@ -85,6 +86,9 @@ func (b *builder) rule(action string, conds []string, listKey string, list []str
 			if st.sound != "" {
 				b.add("    PlayAlertSound " + st.sound)
 			}
+			if st.custom != "" {
+				b.add(`    CustomAlertSound "` + st.custom + `" 300`)
+			}
 		}
 		b.add("")
 	}
@@ -98,6 +102,9 @@ func (b *builder) rule(action string, conds []string, listKey string, list []str
 }
 
 var (
+	styleDivine = &style{font: 45, beam: "Cyan", icon: "0 Cyan Star", sound: "6 300"}
+	styleMid    = &style{font: 40, text: "240 220 255 255", border: "180 120 255 255", bg: "70 20 100 230",
+		icon: "1 Purple Diamond", sound: "2 300"}
 	styleMax = &style{font: 45, text: "255 255 255 255", border: "255 215 0 255", bg: "180 0 0 255",
 		beam: "Red", icon: "0 Red Star", sound: "6 300"}
 	styleUnique = &style{font: 44, text: "255 255 255 255", border: "255 100 0 255", bg: "175 40 0 255",
@@ -242,19 +249,10 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	}
 
 	// ---- 2. divine spotlight ----------------------------------------------
-	theme, _ := cfg.Palette(GroupDivine)
+	dp, _ := cfg.Palette(GroupDivine)
 	b.section("2. DIVINE ORB SPOTLIGHT")
-	b.add("Show", `    Class == "Stackable Currency"`, `    BaseType == "Divine Orb"`, "    SetFontSize 45",
-		"    SetTextColor "+theme.TextColor, "    SetBorderColor "+theme.Border,
-		"    SetBackgroundColor "+theme.BgColor, "    PlayEffect "+theme.Beam,
-		"    MinimapIcon 0 "+theme.Beam+" Star", "    PlayAlertSound 6 300")
-	switch s := cfg.DivineSound; {
-	case s == "nebu" || s == "nebu.mp3":
-		b.add(`    CustomAlertSound "nebu.mp3" 300`)
-	case s != "" && s != "auto" && s != "1" && s != "6":
-		b.add(fmt.Sprintf(`    CustomAlertSound "%s" 300`, strings.ReplaceAll(s, `"`, "")))
-	}
-	b.add("")
+	b.rule("Show", []string{`Class == "Stackable Currency"`, `BaseType == "Divine Orb"`}, "", nil,
+		styleDivine.with(dp).withSound(cfg.Sound(GroupDivine)))
 
 	if cfg.HideExalt {
 		b.rule("Hide", []string{`Class == "Stackable Currency"`, `BaseType == "Exalted Orb"`}, "", nil, nil)
@@ -265,24 +263,13 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 
 	// ---- 3. user whitelist ------------------------------------------------
 	if len(cfg.Whitelist) > 0 {
-		var uniqueBases, bases []string
-		for _, raw := range cfg.Whitelist {
-			item, uniqueOnly := ParseListEntry(raw)
-			if base, ok := uniqueToBase[strings.ToLower(item)]; ok {
-				uniqueBases = append(uniqueBases, base)
-			} else if name, ok := canon(item); ok {
-				if uniqueOnly {
-					uniqueBases = append(uniqueBases, name)
-				} else {
-					bases = append(bases, name)
-				}
-			}
-		}
+		uniqueBases, bases := resolveShowList(cfg.Whitelist, uniqueToBase, canon)
 		if len(uniqueBases)+len(bases) > 0 {
 			b.section("3. USER WHITELIST (always shown)")
 			wl, _ := cfg.Palette(GroupWhitelist)
-			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, styleMax.with(wl))
-			b.rule("Show", nil, "BaseType", bases, styleMax.with(wl))
+			wst := styleMax.with(wl).withSound(cfg.Sound(GroupWhitelist))
+			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, wst)
+			b.rule("Show", nil, "BaseType", bases, wst)
 		}
 	}
 
@@ -321,6 +308,9 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			if curPal, custom := cfg.Palette(GroupCurrency); custom {
 				apexStyle, highStyle = apexStyle.with(curPal), highStyle.with(curPal)
 			}
+			if snd := cfg.Sound(GroupCurrency); snd != SoundDefault {
+				apexStyle, highStyle = apexStyle.withSound(snd), highStyle.withSound(snd)
+			}
 			b.add("# --- " + th.Name + " ---")
 			b.rule("Show", nil, "BaseType", apex, apexStyle)
 			b.rule("Show", nil, "BaseType", high, highStyle)
@@ -332,7 +322,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	if len(valuableUniqueBases) > 0 {
 		b.section("5. VALUABLE UNIQUE BASES (best unique on the base >= threshold)")
 		up, _ := cfg.Palette(GroupUnique)
-		b.rule("Show", []string{"Rarity Unique"}, "BaseType", valuableUniqueBases, styleUnique.with(up))
+		b.rule("Show", []string{"Rarity Unique"}, "BaseType", valuableUniqueBases, styleUnique.with(up).withSound(cfg.Sound(GroupUnique)))
 	}
 
 	// ---- 6. chance bases ---------------------------------------------------
@@ -349,7 +339,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			b.section("6. CHANCE & CRAFTING BASES")
 			// Orb of Chance only works on normal items.
 			cp, _ := cfg.Palette(GroupChance)
-			b.rule("Show", []string{"Rarity Normal"}, "BaseType", bases, styleChance.with(cp))
+			b.rule("Show", []string{"Rarity Normal"}, "BaseType", bases, styleChance.with(cp).withSound(cfg.Sound(GroupChance)))
 		}
 	}
 
@@ -379,7 +369,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		for _, g := range exGroups(valuableEx) {
 			sort.Strings(valuableEx[g])
 			b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic Rare", exCond(g)},
-				"BaseType", valuableEx[g], styleExceptional.with(exPal))
+				"BaseType", valuableEx[g], styleExceptional.with(exPal).withSound(cfg.Sound(GroupExceptional)))
 		}
 	}
 
@@ -387,7 +377,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	if cfg.T5Rares {
 		b.section("8.1 TIER 5 RARE EQUIPMENT")
 		tp, _ := cfg.Palette(GroupT5Rare)
-		b.rule("Show", []string{"Rarity Rare", "UnidentifiedItemTier >= 5"}, "Class", gearClasses, styleT5Rare.with(tp))
+		b.rule("Show", []string{"Rarity Rare", "UnidentifiedItemTier >= 5"}, "Class", gearClasses, styleT5Rare.with(tp).withSound(cfg.Sound(GroupT5Rare)))
 	}
 	if cfg.IncludeGear {
 		b.section("8.2 RARE JEWELS")
@@ -427,6 +417,20 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 				beam: "Red", icon: "0 Red Star", sound: "6 300"})
 	}
 
+	// ---- 8.7 medium whitelist -----------------------------------------------
+	// After the valuable sections, so an item that is valuable anyway keeps
+	// its stronger highlight; before the hides, so it is never hidden.
+	if len(cfg.WhitelistMid) > 0 {
+		uniqueBases, bases := resolveShowList(cfg.WhitelistMid, uniqueToBase, canon)
+		if len(uniqueBases)+len(bases) > 0 {
+			mp, _ := cfg.Palette(GroupWhitelistMid)
+			mst := styleMid.with(mp).withSound(cfg.Sound(GroupWhitelistMid))
+			b.section("8.7 USER LIST - MEDIUM HIGHLIGHT")
+			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, mst)
+			b.rule("Show", nil, "BaseType", bases, mst)
+		}
+	}
+
 	// ---- 9. below-threshold items ------------------------------------------
 	if cfg.FilterMode == "hide" || cfg.FilterMode == "dim" {
 		action, dim := "Hide", (*style)(nil)
@@ -455,7 +459,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		// Exceptional items we have not priced (yet) are shown, never hidden.
 		b.section("10. EXCEPTIONAL BASES NOT YET PRICED (shown until scanned)")
 		unk, _ := cfg.Palette(GroupExceptionalUnknown)
-		styleUnk := styleExceptionalUnknown.with(unk)
+		styleUnk := styleExceptionalUnknown.with(unk).withSound(cfg.Sound(GroupExceptionalUnknown))
 		b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic", "Sockets >= 2"}, "Class", trade.SocketClasses(2), styleUnk)
 		b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic", "Sockets >= 3"}, "Class", trade.SocketClasses(3), styleUnk)
 		b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic",
@@ -467,6 +471,24 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	}
 
 	return strings.Join(b.lines, "\n"), st
+}
+
+// resolveShowList splits a show list into bases shown for uniques only (unique
+// names and "|unique" entries) and bases shown for every rarity.
+func resolveShowList(list []string, uniqueToBase map[string]string, canon func(string) (string, bool)) (uniqueBases, bases []string) {
+	for _, raw := range list {
+		item, uniqueOnly := ParseListEntry(raw)
+		if base, ok := uniqueToBase[strings.ToLower(item)]; ok {
+			uniqueBases = append(uniqueBases, base)
+		} else if name, ok := canon(item); ok {
+			if uniqueOnly {
+				uniqueBases = append(uniqueBases, name)
+			} else {
+				bases = append(bases, name)
+			}
+		}
+	}
+	return uniqueBases, bases
 }
 
 // UniqueOnlySuffix marks a list entry that applies to the unique items of a

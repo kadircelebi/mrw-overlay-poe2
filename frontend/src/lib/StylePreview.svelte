@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { StyleGroup, Theme } from '../../bindings/poe2filter/internal/filter/models'
 
-  let { group, theme }: { group: StyleGroup; theme: Theme } = $props()
+  let { group, theme, sound = '' }: { group: StyleGroup; theme: Theme; sound?: string } = $props()
 
   // Filter colours are "R G B A" with alpha 0..255.
   function css(c: string | undefined): string {
@@ -36,7 +36,7 @@
   {/if}
 </div>
 <p class="caption">
-  {group.hasBeam ? `Işın: ${theme.beam}` : 'Işın yok'} · {group.iconShape ? `Minimap: ${theme.beam} ${group.iconShape}` : 'Minimap simgesi yok'}
+  {group.hasBeam ? `Işın: ${theme.beam}` : 'Işın yok'} · {group.iconShape ? `Minimap: ${theme.beam} ${group.iconShape}` : 'Minimap simgesi yok'}{sound ? ` · Ses: ${sound}` : ''}
 </p>
 
 <style>

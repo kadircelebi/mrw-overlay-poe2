@@ -37,12 +37,26 @@ export interface Config {
      * Styles maps a style group id to a theme id (see StyleGroups).
      */
     "styles": { [_ in string]?: string } | null;
-    "divine_sound": string;
+
+    /**
+     * legacy, migrated into sounds
+     */
+    "divine_sound"?: string;
+
+    /**
+     * Sounds maps a style group id to a sound choice (see validSound).
+     */
+    "sounds": { [_ in string]?: string } | null;
     "custom_sound_path": string;
     "hide_exalt": boolean;
     "hide_gold": boolean;
     "filter_name": string;
     "whitelist": string[] | null;
+
+    /**
+     * shown with a medium highlight
+     */
+    "whitelist_mid": string[] | null;
     "blacklist": string[] | null;
     "chance_bases": string[] | null;
     "high_waystones": boolean;
@@ -84,9 +98,9 @@ export interface Config {
 }
 
 /**
- * StyleGroup is a family of highlighted drops whose colours the user can
- * change. Only colours change; size, sound and icon shape stay with the group
- * so the importance ordering of the filter is preserved.
+ * StyleGroup is a family of highlighted drops whose colours and sound the
+ * user can change. Size and icon shape stay with the group so the importance
+ * ordering of the filter is preserved.
  */
 export interface StyleGroup {
     "id": string;
@@ -103,6 +117,11 @@ export interface StyleGroup {
      */
     "default": Theme;
     "allowDefault": boolean;
+
+    /**
+     * PlayAlertSound id, "" = silent
+     */
+    "defaultSound": string;
     "fontSize": number;
     "hasBeam": boolean;
 

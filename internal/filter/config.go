@@ -21,13 +21,16 @@ type Config struct {
 	QualityThreshold int    `json:"quality_threshold"` // 0 = off
 	DivineTheme      string `json:"divine_theme"`      // mirrors styles["divine"]
 	// Styles maps a style group id to a theme id (see StyleGroups).
-	Styles          map[string]string `json:"styles"`
-	DivineSound     string            `json:"divine_sound"`
+	Styles      map[string]string `json:"styles"`
+	DivineSound string            `json:"divine_sound,omitempty"` // legacy, migrated into sounds
+	// Sounds maps a style group id to a sound choice (see validSound).
+	Sounds          map[string]string `json:"sounds"`
 	CustomSoundPath string            `json:"custom_sound_path"`
 	HideExalt       bool              `json:"hide_exalt"`
 	HideGold        bool              `json:"hide_gold"`
 	FilterName      string            `json:"filter_name"`
 	Whitelist       []string          `json:"whitelist"`
+	WhitelistMid    []string          `json:"whitelist_mid"` // shown with a medium highlight
 	Blacklist       []string          `json:"blacklist"`
 	ChanceBases     []string          `json:"chance_bases"`
 	HighWaystones   bool              `json:"high_waystones"`
@@ -67,7 +70,6 @@ func DefaultConfig() Config {
 		T5Rares:           true,
 		T5JewelsOnly:      true,
 		DivineTheme:       "neon_cyan",
-		DivineSound:       "auto",
 		FilterName:        "auto_updated",
 		Whitelist:         []string{"Mirror of Kalandra", "Albino Rhoa Feather"},
 		Blacklist:         []string{},
@@ -156,7 +158,7 @@ func (c *Config) Normalize() {
 	}
 	c.normalizeStyles()
 	// Empty lists serialise as [] rather than null for the UI.
-	for _, l := range []*[]string{&c.Whitelist, &c.Blacklist, &c.ChanceBases} {
+	for _, l := range []*[]string{&c.Whitelist, &c.WhitelistMid, &c.Blacklist, &c.ChanceBases} {
 		if *l == nil {
 			*l = []string{}
 		}

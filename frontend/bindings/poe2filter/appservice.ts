@@ -54,6 +54,14 @@ export function HidePanel(): $CancellablePromise<void> {
 }
 
 /**
+ * ListSounds returns the sound files in the PoE2 filter folder, which is where
+ * the game looks for CustomAlertSound files.
+ */
+export function ListSounds(): $CancellablePromise<string[] | null> {
+    return $Call.ByID(2994670898);
+}
+
+/**
  * OpenDataFolder opens the app's data folder in Explorer.
  */
 export function OpenDataFolder(): $CancellablePromise<void> {
@@ -65,6 +73,13 @@ export function OpenDataFolder(): $CancellablePromise<void> {
  */
 export function OpenGameFolder(): $CancellablePromise<void> {
     return $Call.ByID(1629061476);
+}
+
+/**
+ * PreviewSound plays a sound file from the filter folder.
+ */
+export function PreviewSound(name: string): $CancellablePromise<void> {
+    return $Call.ByID(3555643989, name);
 }
 
 /**

@@ -25,6 +25,8 @@
   let themes = $state<Theme[]>([])
   let groups = $state<StyleGroup[]>([])
   let styleGroup = $state('divine')
+  let sounds = $state<string[]>([])
+  let soundError = $state('')
 
   async function refresh() {
     st = await AppService.GetState()
@@ -35,6 +37,7 @@
       meta = await AppService.GetMeta()
       themes = (await AppService.Themes()) ?? []
       groups = (await AppService.StyleGroups()) ?? []
+      sounds = (await AppService.ListSounds()) ?? []
       cfg = await AppService.GetConfig()
       await refresh()
     })()
@@ -118,6 +121,38 @@
   function customised(g: StyleGroup): boolean {
     const v = styleValue(g)
     return g.allowDefault ? v !== 'default' : v !== g.default.id
+  }
+
+  function setSound(group: string, v: string) {
+    if (!cfg) return
+    const next = { ...(cfg.sounds ?? {}) }
+    if (v) next[group] = v
+    else delete next[group]
+    cfg.sounds = next
+    soundError = ''
+    queueSave()
+  }
+
+  function soundFile(g: StyleGroup): string {
+    const v = cfg?.sounds?.[g.id] ?? ''
+    return v.startsWith('file:') ? v.slice(5) : ''
+  }
+
+  function soundLabel(g: StyleGroup): string {
+    const v = cfg?.sounds?.[g.id] ?? ''
+    if (v === 'none') return 'sessiz'
+    if (v.startsWith('file:')) return v.slice(5)
+    if (v) return `oyun sesi ${v}`
+    return g.defaultSound ? `oyun sesi ${g.defaultSound}` : 'sessiz'
+  }
+
+  async function previewSound(g: StyleGroup) {
+    soundError = ''
+    try {
+      await AppService.PreviewSound(soundFile(g))
+    } catch (e) {
+      soundError = String(e)
+    }
   }
 
   function setStyle(group: string, id: string) {
@@ -321,9 +356,12 @@
 
       <section class="card">
         <h2>Listeler</h2>
-        <h3>Her zaman göster</h3>
+        <h3>Her zaman göster — öne çıkar <span class="h3-note">en güçlü vurgu</span></h3>
         <p class="desc">Değerli unique'i olan tabanlar (Mageblood, Headhunter, Voices…) zaten otomatik ve sadece unique olarak gösterilir.</p>
         <ListEditor bind:items={cfg.whitelist} uniqueVariants placeholder="Unique, currency veya taban ara…" onchange={() => queueSave()} />
+        <h3>Her zaman göster — orta <span class="h3-note">asla gizlenmez, orta vurgu</span></h3>
+        <p class="desc">Eşya zaten değerliyse güçlü vurgusunu korur; değilse bu orta seviye görünümle gösterilir.</p>
+        <ListEditor bind:items={cfg.whitelist_mid} uniqueVariants placeholder="Unique, currency veya taban ara…" onchange={() => queueSave()} />
         <h3>Her zaman gizle</h3>
         <ListEditor bind:items={cfg.blacklist} placeholder="Gizlenecek eşya ara…" onchange={() => queueSave()} />
         <h3>Chance tabanları <span class="h3-note">sadece normal nadirlik</span></h3>
@@ -332,7 +370,7 @@
 
       <section class="card">
         <h2>Görünüm</h2>
-        <p class="desc">Her grubun rengini ayrı seç. Yazı boyutu, ses ve simge şekli grubun önemine göre sabit kalır.</p>
+        <p class="desc">Her grubun rengini ve sesini ayrı seç. Yazı boyutu ve simge şekli grubun önemine göre sabit kalır.</p>
         <div class="groups" role="tablist">
           {#each groups as g (g.id)}
             <button type="button" role="tab" aria-selected={g.id === styleGroup} class:on={g.id === styleGroup} onclick={() => (styleGroup = g.id)}>
@@ -351,16 +389,35 @@
               {/each}
             </select>
           </label>
-          <StylePreview group={selGroup} theme={paletteOf(selGroup)} />
-          {#if selGroup.id === 'divine'}
-            <label class="field">
-              <span>Ses</span>
-              <select bind:value={cfg.divine_sound} onchange={() => queueSave()}>
-                <option value="auto">Oyun sesi 6</option>
-                <option value="1">Oyun sesi 1</option>
-                <option value="nebu.mp3">nebu.mp3 (filtre klasöründe)</option>
+          <label class="field">
+            <span>Ses</span>
+            <span class="sound-row">
+              <select value={cfg.sounds?.[selGroup.id] ?? ''} onchange={(e) => setSound(selGroup.id, e.currentTarget.value)}>
+                <option value="">Varsayılan ({selGroup.defaultSound ? `oyun sesi ${selGroup.defaultSound}` : 'sessiz'})</option>
+                <option value="none">Sessiz</option>
+                {#each ['1', '2', '3', '4', '5', '6'] as n}
+                  <option value={n}>Oyun sesi {n}</option>
+                {/each}
+                {#each sounds as f (f)}
+                  <option value={'file:' + f}>{f}</option>
+                {/each}
               </select>
-            </label>
+              <button
+                type="button"
+                class="play"
+                title={soundFile(selGroup) ? 'Dinle' : 'Oyun sesleri sadece oyunda çalınabilir'}
+                aria-label="Sesi dinle"
+                disabled={!soundFile(selGroup)}
+                onclick={() => previewSound(selGroup)}
+              >
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+              </button>
+            </span>
+          </label>
+          {#if soundError}<p class="error">{soundError}</p>{/if}
+          <StylePreview group={selGroup} theme={paletteOf(selGroup)} sound={soundLabel(selGroup)} />
+          {#if !sounds.length}
+            <p class="desc hint">Kendi sesini kullanmak için bir mp3/wav dosyasını filtre klasörüne koy (Ayarlar'ın altındaki "Filtre klasörü").</p>
           {/if}
         {/if}
       </section>
@@ -579,6 +636,32 @@
     vertical-align: middle;
     border-radius: 50%;
     background: var(--gold-bright);
+  }
+  .sound-row {
+    display: flex;
+    gap: 6px;
+  }
+  .play {
+    width: 34px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--gold-bright);
+  }
+  .play:disabled {
+    color: var(--muted);
+    cursor: default;
+    opacity: 0.5;
+  }
+  .play svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+  .hint {
+    margin-top: 8px;
   }
   .h3-note {
     margin-left: 4px;
