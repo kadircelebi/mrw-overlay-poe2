@@ -3,5 +3,6 @@
 
 export type {
     Config,
-    DivineThemeStyle
+    StyleGroup,
+    Theme
 } from "./models.js";

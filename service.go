@@ -98,8 +98,11 @@ func (s *AppService) GetConfig() filter.Config { return s.eng.Config() }
 // SaveConfig stores new settings and returns them normalised.
 func (s *AppService) SaveConfig(c filter.Config) (filter.Config, error) { return s.eng.SetConfig(c) }
 
-// DivineThemes lists the Divine Orb highlight styles for the settings preview.
-func (s *AppService) DivineThemes() []filter.DivineThemeStyle { return filter.DivineThemeList }
+// Themes lists the selectable colour palettes.
+func (s *AppService) Themes() []filter.Theme { return filter.ThemeList }
+
+// StyleGroups lists the drop groups whose colours can be changed.
+func (s *AppService) StyleGroups() []filter.StyleGroup { return filter.StyleGroups }
 
 // UpdateNow starts a filter update in the background.
 func (s *AppService) UpdateNow() error { return s.eng.UpdateNow() }

@@ -221,3 +221,33 @@ func TestWhitelistUniqueOnlyAndChanceNormal(t *testing.T) {
 		t.Fatal("chance bases must be normal rarity only")
 	}
 }
+
+func TestStyleGroupsApplyAndMigrate(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.DivineTheme = "dark" // legacy field only
+	cfg.Styles = map[string]string{GroupUnique: "neon_green", GroupCurrency: DefaultThemeID, "bogus": "neon_red", GroupT5Rare: "nope"}
+	cfg.Normalize()
+	if cfg.Styles[GroupDivine] != "dark" || cfg.DivineTheme != "dark" {
+		t.Fatalf("divine theme not migrated: %v", cfg.Styles)
+	}
+	if _, ok := cfg.Styles["bogus"]; ok {
+		t.Fatal("unknown group kept")
+	}
+	if _, ok := cfg.Styles[GroupT5Rare]; ok {
+		t.Fatal("unknown theme kept")
+	}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	green := themeByID["neon_green"]
+	if blockContaining(t, out, "Rarity Unique", `"Silk Robe"`, "SetBackgroundColor "+green.BgColor, "PlayEffect Green", "MinimapIcon 0 Green Star") < 0 {
+		t.Fatalf("unique group palette not applied:\n%s", out)
+	}
+	dark := themeByID["dark"]
+	if blockContaining(t, out, `"Divine Orb"`, "SetBackgroundColor "+dark.BgColor) < 0 {
+		t.Fatal("divine palette not applied")
+	}
+	// Defaults reproduce the built-in look exactly.
+	def, _ := DefaultConfig().Palette(GroupWhitelist)
+	if *styleMax.with(def) != *styleMax {
+		t.Fatal("default whitelist palette differs from built-in style")
+	}
+}

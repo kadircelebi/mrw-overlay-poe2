@@ -14,24 +14,26 @@ type Config struct {
 	MinValue     float64 `json:"min_value"`
 	MinValueUnit string  `json:"min_value_unit"` // "exalted", "chaos", "divine"
 
-	FilterMode       string   `json:"filter_mode"` // "hide", "dim", "show_only"
-	IncludeGear      bool     `json:"include_gear"`
-	T5Rares          bool     `json:"t5_rares"`
-	T5JewelsOnly     bool     `json:"t5_jewels_only"`
-	QualityThreshold int      `json:"quality_threshold"` // 0 = off
-	DivineTheme      string   `json:"divine_theme"`
-	DivineSound      string   `json:"divine_sound"`
-	CustomSoundPath  string   `json:"custom_sound_path"`
-	HideExalt        bool     `json:"hide_exalt"`
-	HideGold         bool     `json:"hide_gold"`
-	FilterName       string   `json:"filter_name"`
-	Whitelist        []string `json:"whitelist"`
-	Blacklist        []string `json:"blacklist"`
-	ChanceBases      []string `json:"chance_bases"`
-	HighWaystones    bool     `json:"high_waystones"`
-	HighUncutGems    bool     `json:"high_uncut_gems"`
-	PinnacleKeys     bool     `json:"boss_keys_and_tablets"`
-	LeagueName       string   `json:"league_name"`
+	FilterMode       string `json:"filter_mode"` // "hide", "dim", "show_only"
+	IncludeGear      bool   `json:"include_gear"`
+	T5Rares          bool   `json:"t5_rares"`
+	T5JewelsOnly     bool   `json:"t5_jewels_only"`
+	QualityThreshold int    `json:"quality_threshold"` // 0 = off
+	DivineTheme      string `json:"divine_theme"`      // mirrors styles["divine"]
+	// Styles maps a style group id to a theme id (see StyleGroups).
+	Styles          map[string]string `json:"styles"`
+	DivineSound     string            `json:"divine_sound"`
+	CustomSoundPath string            `json:"custom_sound_path"`
+	HideExalt       bool              `json:"hide_exalt"`
+	HideGold        bool              `json:"hide_gold"`
+	FilterName      string            `json:"filter_name"`
+	Whitelist       []string          `json:"whitelist"`
+	Blacklist       []string          `json:"blacklist"`
+	ChanceBases     []string          `json:"chance_bases"`
+	HighWaystones   bool              `json:"high_waystones"`
+	HighUncutGems   bool              `json:"high_uncut_gems"`
+	PinnacleKeys    bool              `json:"boss_keys_and_tablets"`
+	LeagueName      string            `json:"league_name"`
 
 	// Base filter: a NeverSink strictness (0..6), or a custom file when set.
 	Strictness       int    `json:"strictness"`
@@ -152,6 +154,7 @@ func (c *Config) Normalize() {
 	if c.LeagueName == "" {
 		c.LeagueName = "Forbidden Rites"
 	}
+	c.normalizeStyles()
 	// Empty lists serialise as [] rather than null for the UI.
 	for _, l := range []*[]string{&c.Whitelist, &c.Blacklist, &c.ChanceBases} {
 		if *l == nil {

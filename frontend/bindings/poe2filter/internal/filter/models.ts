@@ -27,7 +27,16 @@ export interface Config {
      * 0 = off
      */
     "quality_threshold": number;
+
+    /**
+     * mirrors styles["divine"]
+     */
     "divine_theme": string;
+
+    /**
+     * Styles maps a style group id to a theme id (see StyleGroups).
+     */
+    "styles": { [_ in string]?: string } | null;
     "divine_sound": string;
     "custom_sound_path": string;
     "hide_exalt": boolean;
@@ -75,19 +84,43 @@ export interface Config {
 }
 
 /**
- * DivineThemeStyle contains colors and beam effects for the spotlight Divine Orb drop.
- * Colours are "R G B A" as the filter language expects.
+ * StyleGroup is a family of highlighted drops whose colours the user can
+ * change. Only colours change; size, sound and icon shape stay with the group
+ * so the importance ordering of the filter is preserved.
  */
-export interface DivineThemeStyle {
+export interface StyleGroup {
+    "id": string;
+    "label": string;
+
+    /**
+     * item name shown in the preview
+     */
+    "sample": string;
+    "defaultLabel": string;
+
+    /**
+     * built-in colours
+     */
+    "default": Theme;
+    "allowDefault": boolean;
+    "fontSize": number;
+    "hasBeam": boolean;
+
+    /**
+     * "" when the group has no minimap icon
+     */
+    "iconShape": string;
+}
+
+/**
+ * Theme is a colour palette for a highlighted drop. Colours are "R G B A" as
+ * the filter language expects; Beam is also used for the minimap icon.
+ */
+export interface Theme {
     "id": string;
     "label": string;
     "bg": string;
     "text": string;
     "border": string;
-
-    /**
-     * PlayEffect / minimap icon colour name
-     */
     "beam": string;
-    "icon": string;
 }

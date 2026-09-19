@@ -26,13 +26,6 @@ import * as insights$0 from "./internal/insights/models.js";
 import * as $models from "./models.js";
 
 /**
- * DivineThemes lists the Divine Orb highlight styles for the settings preview.
- */
-export function DivineThemes(): $CancellablePromise<filter$0.DivineThemeStyle[] | null> {
-    return $Call.ByID(2125121575);
-}
-
-/**
  * GetConfig returns the current settings.
  */
 export function GetConfig(): $CancellablePromise<filter$0.Config> {
@@ -93,6 +86,20 @@ export function SaveConfig(c: filter$0.Config): $CancellablePromise<filter$0.Con
  */
 export function SearchItems(query: string): $CancellablePromise<insights$0.SearchItem[] | null> {
     return $Call.ByID(3116757694, query);
+}
+
+/**
+ * StyleGroups lists the drop groups whose colours can be changed.
+ */
+export function StyleGroups(): $CancellablePromise<filter$0.StyleGroup[] | null> {
+    return $Call.ByID(393237167);
+}
+
+/**
+ * Themes lists the selectable colour palettes.
+ */
+export function Themes(): $CancellablePromise<filter$0.Theme[] | null> {
+    return $Call.ByID(2570218280);
 }
 
 /**

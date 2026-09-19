@@ -7,8 +7,8 @@
   import Toggle from './lib/Toggle.svelte'
   import Segmented from './lib/Segmented.svelte'
   import ListEditor from './lib/ListEditor.svelte'
-  import DivinePreview from './lib/DivinePreview.svelte'
-  import type { DivineThemeStyle } from '../bindings/poe2filter/internal/filter/models'
+  import StylePreview from './lib/StylePreview.svelte'
+  import type { StyleGroup, Theme } from '../bindings/poe2filter/internal/filter/models'
   import { clock, relative, until, money, strictnessNames } from './lib/format'
 
   let meta = $state<Meta | null>(null)
@@ -22,7 +22,9 @@
   let saveTimer: ReturnType<typeof setTimeout> | undefined
   let saveSeq = 0
   let actionError = $state('')
-  let themes = $state<DivineThemeStyle[]>([])
+  let themes = $state<Theme[]>([])
+  let groups = $state<StyleGroup[]>([])
+  let styleGroup = $state('divine')
 
   async function refresh() {
     st = await AppService.GetState()
@@ -31,7 +33,8 @@
   onMount(() => {
     ;(async () => {
       meta = await AppService.GetMeta()
-      themes = (await AppService.DivineThemes()) ?? []
+      themes = (await AppService.Themes()) ?? []
+      groups = (await AppService.StyleGroups()) ?? []
       cfg = await AppService.GetConfig()
       await refresh()
     })()
@@ -98,6 +101,30 @@
     if (st.lastRunAtMs) return { tone: 'ok', title: 'Filtre güncel', sub: `Son güncelleme ${relative(st.lastRunAtMs, now)}` }
     return { tone: 'idle', title: 'Henüz güncellenmedi', sub: '' }
   })
+
+  const selGroup = $derived(groups.find((g) => g.id === styleGroup))
+
+  // Groups without a built-in look (Divine Orb) default to their first theme.
+  function styleValue(g: StyleGroup): string {
+    const v = cfg?.styles?.[g.id]
+    if (v) return v
+    return g.allowDefault ? 'default' : g.default.id
+  }
+
+  function paletteOf(g: StyleGroup): Theme {
+    return themes.find((t) => t.id === cfg?.styles?.[g.id]) ?? g.default
+  }
+
+  function customised(g: StyleGroup): boolean {
+    const v = styleValue(g)
+    return g.allowDefault ? v !== 'default' : v !== g.default.id
+  }
+
+  function setStyle(group: string, id: string) {
+    if (!cfg) return
+    cfg.styles = { ...(cfg.styles ?? {}), [group]: id }
+    queueSave()
+  }
 
   const scanPct = $derived(st && st.scan.keys ? Math.min(1, st.scan.scanned / st.scan.keys) : 0)
 </script>
@@ -304,24 +331,38 @@
       </section>
 
       <section class="card">
-        <h2 lang="en">Divine Orb</h2>
-        <label class="field">
-          <span>Görünüm</span>
-          <select bind:value={cfg.divine_theme} onchange={() => queueSave()}>
-            {#each themes as t (t.id)}
-              <option value={t.id}>{t.label}</option>
-            {/each}
-          </select>
-        </label>
-        <DivinePreview theme={themes.find((t) => t.id === cfg!.divine_theme)} />
-        <label class="field">
-          <span>Ses</span>
-          <select bind:value={cfg.divine_sound} onchange={() => queueSave()}>
-            <option value="auto">Oyun sesi 6</option>
-            <option value="1">Oyun sesi 1</option>
-            <option value="nebu.mp3">nebu.mp3 (filtre klasöründe)</option>
-          </select>
-        </label>
+        <h2>Görünüm</h2>
+        <p class="desc">Her grubun rengini ayrı seç. Yazı boyutu, ses ve simge şekli grubun önemine göre sabit kalır.</p>
+        <div class="groups" role="tablist">
+          {#each groups as g (g.id)}
+            <button type="button" role="tab" aria-selected={g.id === styleGroup} class:on={g.id === styleGroup} onclick={() => (styleGroup = g.id)}>
+              <span lang={g.id === 'divine' ? 'en' : undefined}>{g.label}</span>
+              {#if customised(g)}<i class="custom-dot" title="Özelleştirildi"></i>{/if}
+            </button>
+          {/each}
+        </div>
+        {#if selGroup}
+          <label class="field">
+            <span>Renk</span>
+            <select value={styleValue(selGroup)} onchange={(e) => setStyle(selGroup.id, e.currentTarget.value)}>
+              {#if selGroup.allowDefault}<option value="default">{selGroup.defaultLabel}</option>{/if}
+              {#each themes as t (t.id)}
+                <option value={t.id}>{t.label}</option>
+              {/each}
+            </select>
+          </label>
+          <StylePreview group={selGroup} theme={paletteOf(selGroup)} />
+          {#if selGroup.id === 'divine'}
+            <label class="field">
+              <span>Ses</span>
+              <select bind:value={cfg.divine_sound} onchange={() => queueSave()}>
+                <option value="auto">Oyun sesi 6</option>
+                <option value="1">Oyun sesi 1</option>
+                <option value="nebu.mp3">nebu.mp3 (filtre klasöründe)</option>
+              </select>
+            </label>
+          {/if}
+        {/if}
       </section>
 
       <section class="card">
@@ -505,6 +546,39 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--text-2);
+  }
+  .groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 4px;
+  }
+  .groups button {
+    position: relative;
+    padding: 5px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--text-2);
+    font-size: 12px;
+  }
+  .groups button:hover {
+    color: var(--text);
+    border-color: var(--line-strong);
+  }
+  .groups button.on {
+    border-color: var(--gold-dim);
+    background: var(--surface-3);
+    color: var(--gold-bright);
+  }
+  .custom-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 5px;
+    vertical-align: middle;
+    border-radius: 50%;
+    background: var(--gold-bright);
   }
   .h3-note {
     margin-left: 4px;
