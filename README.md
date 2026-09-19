@@ -9,6 +9,18 @@ Sistem tepsisinde çalışan, NeverSink'in PoE2 filtresini canlı piyasa fiyatla
 
 Filtre `Belgeler\My Games\Path of Exile 2\<isim>.filter` olarak yazılır. Oyun dosyayı kendiliğinden yeniden okumaz: Options → Item Filter → Reload.
 
+## İndirme ve kurulum
+
+1. [Releases](../../releases/latest) sayfasından `poe2filtre-…-windows-amd64.exe` dosyasını indir. Kurulum gerekmez, tek dosya.
+2. Çalıştır. Uygulama sistem tepsisine yerleşir; simgeye tıklayınca panel açılır, sağ tıkla menü.
+3. Açılışta filtreyi yazar. Oyunda Options → Item Filter'dan **auto_updated**'ı seç.
+
+Exe imzasız olduğu için Windows SmartScreen "Windows bilgisayarınızı korudu" uyarısı gösterebilir: **Ek bilgi → Yine de çalıştır**. İndirdiğin dosyanın SHA-256 özeti release notlarında yazar.
+
+Gereksinim: Windows 10/11 ve WebView2 (Windows 11'de yüklü gelir). Ayarlar ve veriler `%APPDATA%\PoE2Filtre` altında tutulur.
+
+Uygulama trade API'sini sadece oyunun kendi rate limit'lerine uyarak ve kotanın bir payıyla kullanır; oyun belleğini okumaz, oyuna girdi göndermez.
+
 ## Derleme
 
 Gerekenler: Go 1.25+, Node 20+, Wails CLI (`go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.23`).
@@ -43,3 +55,7 @@ go run ./cmd/genicon  # simgeleri yeniden çiz
 | `internal/provider` | Fiyat kaynağı zinciri: sunucu (ileride) → yerel → önbellek |
 | `internal/neversink` | NeverSink filtresini indirir, taban listelerini çıkarır |
 | `internal/filter` | Kural üretimi ve enjeksiyon |
+
+## Lisans
+
+MIT, bkz. [LICENSE](LICENSE). NeverSink'in filtresi ayrıca MIT lisanslıdır ve bu repoda dağıtılmaz; uygulama çalışırken [NeverSinkDev/NeverSink-Filter-for-PoE2](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2) reposundan indirir. Fiyat verileri poe.ninja, poe2scout ve resmi trade API'sinden gelir. Bu proje Grinding Gear Games ile bağlantılı değildir.
