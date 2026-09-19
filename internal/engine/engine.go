@@ -106,6 +106,8 @@ type Engine struct {
 	scanCancel context.CancelFunc
 	scanLeague string
 
+	ns nsCache
+
 	snapMu     sync.Mutex
 	snap       *prices.Snapshot
 	validBases map[string]string
@@ -462,7 +464,8 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	}
 
 	e.setStep(0.7, "Kurallar üretiliyor")
-	block, st := filter.GenerateDynamicFilterBlock(cfg, snap, validBases)
+	ns := e.ns.set(basePath, string(baseContent))
+	block, st := filter.GenerateDynamicFilterBlock(cfg, snap, validBases, ns)
 
 	e.setStep(0.85, "Filtre yazılıyor")
 	dest := e.opt.OutPath

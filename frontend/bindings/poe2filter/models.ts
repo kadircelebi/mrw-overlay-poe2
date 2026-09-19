@@ -14,3 +14,16 @@ export interface Meta {
      */
     "testMode": boolean;
 }
+
+/**
+ * StyleOptions are the choices offered in the custom style editor.
+ */
+export interface StyleOptions {
+    "colours": string[] | null;
+    "shapes": string[] | null;
+
+    /**
+     * group -> NeverSink style tag
+     */
+    "preset": { [_ in string]?: string } | null;
+}

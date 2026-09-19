@@ -1,42 +1,24 @@
 <script lang="ts">
-  import type { StyleGroup, Theme } from '../../bindings/poe2filter/internal/filter/models'
+  import type { StyleGroup } from '../../bindings/poe2filter/internal/filter/models'
+  import Swatch from './Swatch.svelte'
+  import { effectCss, shapeNames, colourNames, type Look } from './look'
 
-  let { group, theme, sound = '' }: { group: StyleGroup; theme: Theme; sound?: string } = $props()
+  let { group, look, sound = '' }: { group: StyleGroup; look: Look; sound?: string } = $props()
 
-  // Filter colours are "R G B A" with alpha 0..255.
-  function css(c: string | undefined): string {
-    const [r, g, b, a = 255] = (c ?? '').split(' ').map(Number)
-    return Number.isFinite(r) ? `rgba(${r}, ${g}, ${b}, ${a / 255})` : 'transparent'
-  }
-
-  // In-game beam / minimap colour names.
-  const beamColours: Record<string, string> = {
-    Cyan: '#2fe6f0', Purple: '#b25cff', Red: '#ff3b3b', Yellow: '#ffd23a',
-    Green: '#3be36a', White: '#f4f4f4', Blue: '#4a7dff', Orange: '#ff9a2e', Pink: '#ff6fb5',
-  }
-  const shapes: Record<string, string> = {
-    Star: 'M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 20.9l1.6-7L2 9.2l7.1-.6z',
-    Diamond: 'M12 2l9 10-9 10-9-10z',
-    Circle: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
-  }
-  const beam = $derived(beamColours[theme.beam] ?? '#ccc')
   // In-game font sizes run up to 45; scale them into the panel.
   const fontPx = $derived(Math.round(10 + (group.fontSize / 45) * 8))
+  const beamName = $derived((look.beam || '').split(' ')[0])
 </script>
 
 <div class="stage" aria-label="{group.label} önizlemesi">
-  {#if group.hasBeam}<span class="beam" style="--beam: {beam}"></span>{/if}
-  <span class="label" style="background: {css(theme.bg)}; color: {css(theme.text)}; border-color: {css(theme.border)}; font-size: {fontPx}px"
-    >{group.sample}</span
-  >
-  {#if group.iconShape}
-    <span class="icon" title="Minimap simgesi" style="--beam: {beam}">
-      <svg viewBox="0 0 24 24"><path d={shapes[group.iconShape] ?? shapes.Star} /></svg>
-    </span>
-  {/if}
+  {#if look.beam}<span class="beam" class:temp={look.beam.includes('Temp')} style="--beam: {effectCss(look.beam)}"></span>{/if}
+  <Swatch {look} text={group.sample} large {fontPx} />
 </div>
 <p class="caption">
-  {group.hasBeam ? `Işın: ${theme.beam}` : 'Işın yok'} · {group.iconShape ? `Minimap: ${theme.beam} ${group.iconShape}` : 'Minimap simgesi yok'}{sound ? ` · Ses: ${sound}` : ''}
+  {look.beam ? `Işın: ${colourNames[beamName] ?? beamName}${look.beam.includes('Temp') ? ' (geçici)' : ''}` : 'Işın yok'} ·
+  {look.shape ? `Minimap: ${colourNames[look.icon] ?? look.icon} ${(shapeNames[look.shape] ?? look.shape).toLowerCase()}` : 'Minimap simgesi yok'}{sound
+    ? ` · Ses: ${sound}`
+    : ''}
 </p>
 
 <style>
@@ -45,7 +27,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 14px;
     height: 92px;
     margin-top: 6px;
     padding: 0 10px;
@@ -69,23 +50,8 @@
     opacity: 0.55;
     filter: blur(2px);
   }
-  .label {
-    position: relative;
-    max-width: 100%;
-    padding: 5px 12px;
-    border: 2px solid;
-    font-family: Georgia, 'Times New Roman', serif;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .icon svg {
-    width: 20px;
-    height: 20px;
-    fill: var(--beam);
-    filter: drop-shadow(0 0 4px var(--beam));
+  .beam.temp {
+    opacity: 0.3;
   }
   .caption {
     margin: 6px 0 0;

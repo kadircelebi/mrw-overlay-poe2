@@ -72,7 +72,7 @@ func TestRuleOrderAndSafety(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.MinValue, cfg.MinValueUnit = 10, "exalted"
 	cfg.Blacklist = []string{"Mirror of Kalandra"}
-	out, st := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	out, st := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 
 	black := blockContaining(t, out, "Hide", `"Mirror of Kalandra"`)
 	white := blockContaining(t, out, "Show", `"Mirror of Kalandra"`)
@@ -114,7 +114,7 @@ func TestRuleOrderAndSafety(t *testing.T) {
 func TestBlacklistProtectsValuableSibling(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Blacklist = []string{"Cloak of Flame"} // shares Silk Robe with Temporalis
-	out, st := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	out, st := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 	if blockContaining(t, out, "Hide", "Rarity Unique", `"Silk Robe"`) >= 0 {
 		t.Fatal("blacklisting a junk unique must not hide Temporalis' base")
 	}
@@ -127,7 +127,7 @@ func TestShowOnlyNeverHidesByValue(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.FilterMode = "show_only"
 	cfg.IncludeGear = false
-	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 	for _, blk := range strings.Split(out, "\n\n") {
 		if strings.Contains(blk, "\nHide") || strings.HasPrefix(strings.TrimSpace(blk), "Hide") {
 			if !strings.Contains(blk, "Uncut") {
@@ -204,7 +204,7 @@ func TestWhitelistUniqueOnlyAndChanceNormal(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Whitelist = []string{"Sapphire|unique", "Silk Robe"}
 	cfg.ChanceBases = []string{"Heavy Belt"}
-	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), bases)
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), bases, nil)
 
 	if blockContaining(t, out, "Show", "Rarity Unique", `"Sapphire"`) < 0 {
 		t.Fatal("unique-only whitelist entry must be restricted to uniques")
@@ -236,7 +236,7 @@ func TestStyleGroupsApplyAndMigrate(t *testing.T) {
 	if _, ok := cfg.Styles[GroupT5Rare]; ok {
 		t.Fatal("unknown theme kept")
 	}
-	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 	green := themeByID["neon_green"]
 	if blockContaining(t, out, "Rarity Unique", `"Silk Robe"`, "SetBackgroundColor "+green.BgColor, "PlayEffect Green", "MinimapIcon 0 Green Star") < 0 {
 		t.Fatalf("unique group palette not applied:\n%s", out)
@@ -246,7 +246,7 @@ func TestStyleGroupsApplyAndMigrate(t *testing.T) {
 		t.Fatal("divine palette not applied")
 	}
 	// Defaults reproduce the built-in look exactly.
-	def, _ := DefaultConfig().Palette(GroupWhitelist)
+	def, _ := DefaultConfig().Palette(GroupWhitelist, nil)
 	if *styleMax.with(def) != *styleMax {
 		t.Fatal("default whitelist palette differs from built-in style")
 	}
@@ -255,7 +255,7 @@ func TestStyleGroupsApplyAndMigrate(t *testing.T) {
 func TestMediumWhitelistOrder(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.WhitelistMid = []string{"Orb of Alchemy", "Silk Robe|unique"}
-	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 
 	mid := blockContaining(t, out, "Show", `"Orb of Alchemy"`, "MinimapIcon 1 Purple Diamond")
 	hide := blockContaining(t, out, "Hide", `"Orb of Alchemy"`)
@@ -282,7 +282,7 @@ func TestGroupSounds(t *testing.T) {
 	if _, ok := cfg.Sounds["bogus"]; ok {
 		t.Fatal("unknown group kept")
 	}
-	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 
 	divine := strings.Split(out, "\n\n")[blockContaining(t, out, `"Divine Orb"`, "SetFontSize 45")]
 	if !strings.Contains(divine, "PlayAlertSound 1 300") || strings.Contains(divine, "PlayAlertSound 6") {
@@ -309,7 +309,7 @@ func TestUncutSupportGemsToggle(t *testing.T) {
 	for _, high := range []bool{true, false} {
 		cfg := DefaultConfig()
 		cfg.HighUncutGems, cfg.UncutSupportGems = high, false
-		out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+		out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 		if blockContaining(t, out, "Hide", `BaseType == "Uncut Support Gem"`) < 0 {
 			t.Fatalf("high=%v: uncut support gems must be hidden when the toggle is off", high)
 		}
@@ -320,7 +320,7 @@ func TestUncutSupportGemsToggle(t *testing.T) {
 	// On with the level-20 rule: shown at 20, hidden below.
 	cfg := DefaultConfig()
 	cfg.HighUncutGems, cfg.UncutSupportGems = true, true
-	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 	if blockContaining(t, out, "Show", `"Uncut Support Gem"`, "GemLevel >= 20") < 0 {
 		t.Fatal("level 20 uncut support gems must be shown when the toggle is on")
 	}
@@ -329,8 +329,42 @@ func TestUncutSupportGemsToggle(t *testing.T) {
 	}
 	// On without the level-20 rule: the base filter decides.
 	cfg.HighUncutGems = false
-	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 	if strings.Contains(out, "Uncut") {
 		t.Fatal("no uncut gem rule expected when both toggles allow everything")
+	}
+}
+
+func TestNeverSinkAndCustomThemes(t *testing.T) {
+	ns := map[string]Theme{"apex_stier": {Full: true, BgColor: "255 255 255 255", TextColor: "255 0 0 255",
+		Border: "255 0 0 255", Beam: "Red", Icon: "Red", Shape: "Star"}}
+	cfg := DefaultConfig()
+	cfg.Styles = map[string]string{GroupT5Rare: "ns:apex_stier", GroupExceptionalUnknown: CustomThemeID, GroupUnique: CustomThemeID}
+	cfg.CustomStyles = map[string]CustomStyle{
+		GroupExceptionalUnknown: {Bg: "#102030", Text: "#ffffff", Border: "#ff0000", Icon: "Green", Shape: "Hexagon"},
+		GroupUnique:             {Bg: "red", Text: "#ffffff", Border: "#ff0000"}, // invalid colour
+	}
+	cfg.Normalize()
+	if _, ok := cfg.CustomStyles[GroupUnique]; ok || cfg.Styles[GroupUnique] != "" {
+		t.Fatal("invalid custom style kept")
+	}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, ns)
+
+	// A full theme adds a beam to a group that has none and uses its own icon shape.
+	if blockContaining(t, out, "UnidentifiedItemTier >= 5", "SetBackgroundColor 255 255 255 255", "PlayEffect Red", "MinimapIcon 2 Red Star") < 0 {
+		t.Fatal("NeverSink theme not applied to T5 rares")
+	}
+	if blockContaining(t, out, "Sockets >= 2", `Class == `, "SetBackgroundColor 16 32 48 255", "SetBorderColor 255 0 0 255", "MinimapIcon 1 Green Hexagon") < 0 {
+		t.Fatal("custom theme not applied to unpriced exceptionals")
+	}
+	for _, blk := range strings.Split(out, "\n\n") {
+		if strings.Contains(blk, "16 32 48") && strings.Contains(blk, "PlayEffect") {
+			t.Fatal("custom theme without a beam must not add one")
+		}
+	}
+	// A missing NeverSink tag falls back to the group default.
+	cfg.Styles[GroupT5Rare] = "ns:gone"
+	if p, custom := cfg.Palette(GroupT5Rare, ns); custom || p.BgColor != groupByID[GroupT5Rare].Default.BgColor {
+		t.Fatal("unknown NeverSink tag should fall back to the default")
 	}
 }

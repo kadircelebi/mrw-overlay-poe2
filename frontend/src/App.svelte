@@ -8,6 +8,10 @@
   import Segmented from './lib/Segmented.svelte'
   import ListEditor from './lib/ListEditor.svelte'
   import StylePreview from './lib/StylePreview.svelte'
+  import ThemePicker from './lib/ThemePicker.svelte'
+  import { lookOf, fromHex } from './lib/look'
+  import type { CustomStyle } from '../bindings/poe2filter/internal/filter/models'
+  import type { StyleOptions } from '../bindings/poe2filter/models'
   import type { StyleGroup, Theme } from '../bindings/poe2filter/internal/filter/models'
   import { clock, relative, until, money, strictnessNames } from './lib/format'
 
@@ -23,6 +27,8 @@
   let saveSeq = 0
   let actionError = $state('')
   let themes = $state<Theme[]>([])
+  let nsThemes = $state<Theme[]>([])
+  let styleOptions = $state<StyleOptions>({ colours: [], shapes: [], preset: {} })
   let groups = $state<StyleGroup[]>([])
   let styleGroup = $state('divine')
   let sounds = $state<string[]>([])
@@ -38,6 +44,8 @@
     ;(async () => {
       meta = await AppService.GetMeta()
       themes = (await AppService.Themes()) ?? []
+      nsThemes = (await AppService.NeverSinkThemes()) ?? []
+      styleOptions = (await AppService.StyleOptions()) ?? styleOptions
       groups = (await AppService.StyleGroups()) ?? []
       sounds = (await AppService.ListSounds()) ?? []
       leagues = (await AppService.Leagues()) ?? []
@@ -47,7 +55,10 @@
     const off = Events.On('state', (ev) => {
       const prevRunning = st?.running
       st = ev.data
-      if (prevRunning && !st.running && !st.lastError) dirty = false
+      if (prevRunning && !st.running && !st.lastError) {
+        dirty = false
+        AppService.NeverSinkThemes().then((t) => (nsThemes = t ?? []))
+      }
     })
     const tick = setInterval(() => (now = Date.now()), 1000)
     window.addEventListener('focus', refresh)
@@ -131,7 +142,39 @@
   }
 
   function paletteOf(g: StyleGroup): Theme {
-    return themes.find((t) => t.id === cfg?.styles?.[g.id]) ?? g.default
+    const v = cfg?.styles?.[g.id] ?? ''
+    const cs = cfg?.custom_styles?.[g.id]
+    if (v === 'custom' && cs) {
+      return { id: 'custom', label: 'Özel', full: true, bg: fromHex(cs.bg), text: fromHex(cs.text),
+        border: fromHex(cs.border), beam: cs.beam, icon: cs.icon, shape: cs.shape } as Theme
+    }
+    const pool = v.startsWith('ns:') ? nsThemes : themes
+    return pool.find((t) => t.id === v) ?? g.default
+  }
+
+  function setCustom(group: string, cs: CustomStyle) {
+    if (!cfg) return
+    cfg.custom_styles = { ...(cfg.custom_styles ?? {}), [group]: cs }
+    cfg.styles = { ...(cfg.styles ?? {}), [group]: 'custom' }
+    queueSave()
+  }
+
+  // Every group to the NeverSink style closest in spirit (when present).
+  function applyNeverSink() {
+    if (!cfg) return
+    const next = { ...(cfg.styles ?? {}) }
+    for (const g of groups) {
+      const id = 'ns:' + (styleOptions.preset?.[g.id] ?? '')
+      if (nsThemes.some((t) => t.id === id)) next[g.id] = id
+    }
+    cfg.styles = next
+    queueSave()
+  }
+
+  function resetStyles() {
+    if (!cfg) return
+    cfg.styles = {}
+    queueSave()
   }
 
   function customised(g: StyleGroup): boolean {
@@ -398,7 +441,11 @@
 
       <section class="card">
         <h2>Görünüm</h2>
-        <p class="desc">Her grubun rengini ve sesini ayrı seç. Yazı boyutu ve simge şekli grubun önemine göre sabit kalır.</p>
+        <p class="desc">Her grubun rengini ve sesini ayrı seç: uygulama temaları, NeverSink'in kendi stilleri ya da kendi renklerin.</p>
+        <div class="presets">
+          <button type="button" onclick={applyNeverSink} disabled={!nsThemes.length}>Tümünü NeverSink renklerine çevir</button>
+          <button type="button" onclick={resetStyles}>Varsayılana döndür</button>
+        </div>
         <div class="groups" role="tablist">
           {#each groups as g (g.id)}
             <button type="button" role="tab" aria-selected={g.id === styleGroup} class:on={g.id === styleGroup} onclick={() => (styleGroup = g.id)}>
@@ -408,15 +455,21 @@
           {/each}
         </div>
         {#if selGroup}
-          <label class="field">
-            <span>Renk</span>
-            <select value={styleValue(selGroup)} onchange={(e) => setStyle(selGroup.id, e.currentTarget.value)}>
-              {#if selGroup.allowDefault}<option value="default">{selGroup.defaultLabel}</option>{/if}
-              {#each themes as t (t.id)}
-                <option value={t.id}>{t.label}</option>
-              {/each}
-            </select>
-          </label>
+          <StylePreview group={selGroup} look={lookOf(selGroup, paletteOf(selGroup))} sound={soundLabel(selGroup)} />
+          <div class="picker">
+            <ThemePicker
+              group={selGroup}
+              value={styleValue(selGroup)}
+              {themes}
+              {nsThemes}
+              custom={cfg.custom_styles?.[selGroup.id]}
+              colours={styleOptions.colours ?? []}
+              shapes={styleOptions.shapes ?? []}
+              current={lookOf(selGroup, paletteOf(selGroup))}
+              onselect={(id) => setStyle(selGroup.id, id)}
+              oncustom={(cs) => setCustom(selGroup.id, cs)}
+            />
+          </div>
           <label class="field">
             <span>Ses</span>
             <span class="sound-row">
@@ -443,7 +496,6 @@
             </span>
           </label>
           {#if soundError}<p class="error">{soundError}</p>{/if}
-          <StylePreview group={selGroup} theme={paletteOf(selGroup)} sound={soundLabel(selGroup)} />
           {#if !sounds.length}
             <p class="desc hint">Kendi sesini kullanmak için bir mp3/wav dosyasını filtre klasörüne koy (Ayarlar'ın altındaki "Filtre klasörü").</p>
           {/if}
@@ -666,6 +718,31 @@
     vertical-align: middle;
     border-radius: 50%;
     background: var(--gold-bright);
+  }
+  .presets {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .presets button {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: 11.5px;
+  }
+  .presets button:hover:not(:disabled) {
+    color: var(--gold-bright);
+    border-color: var(--gold-dim);
+  }
+  .presets button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .picker {
+    margin: 10px 0 4px;
   }
   .sound-row {
     display: flex;

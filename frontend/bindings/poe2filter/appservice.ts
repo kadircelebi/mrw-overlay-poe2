@@ -70,6 +70,13 @@ export function ListSounds(): $CancellablePromise<string[] | null> {
 }
 
 /**
+ * NeverSinkThemes lists NeverSink's named styles from the current base filter.
+ */
+export function NeverSinkThemes(): $CancellablePromise<filter$0.Theme[] | null> {
+    return $Call.ByID(3621733729);
+}
+
+/**
  * OpenDataFolder opens the app's data folder in Explorer.
  */
 export function OpenDataFolder(): $CancellablePromise<void> {
@@ -116,6 +123,13 @@ export function SearchItems(query: string): $CancellablePromise<insights$0.Searc
  */
 export function StyleGroups(): $CancellablePromise<filter$0.StyleGroup[] | null> {
     return $Call.ByID(393237167);
+}
+
+/**
+ * StyleOptions lists the colours and minimap shapes allowed in custom styles.
+ */
+export function StyleOptions(): $CancellablePromise<$models.StyleOptions> {
+    return $Call.ByID(2448222331);
 }
 
 /**

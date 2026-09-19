@@ -1,16 +1,87 @@
 package filter
 
-import "strings"
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
 
 // Theme is a colour palette for a highlighted drop. Colours are "R G B A" as
-// the filter language expects; Beam is also used for the minimap icon.
+// the filter language expects (empty = the game's default).
 type Theme struct {
 	ID        string `json:"id"`
 	Label     string `json:"label"`
 	BgColor   string `json:"bg"`
 	TextColor string `json:"text"`
 	Border    string `json:"border"`
-	Beam      string `json:"beam"`
+	Beam      string `json:"beam"`  // PlayEffect, e.g. "Red" or "Purple Temp"
+	Icon      string `json:"icon"`  // minimap icon colour; "" = the beam colour
+	Shape     string `json:"shape"` // minimap icon shape; "" = the group's shape
+	// Full themes (NeverSink and custom) apply beam and icon exactly as given,
+	// adding or removing them; the built-in palettes only recolour the
+	// group's own beam and icon.
+	Full     bool   `json:"full"`
+	Category string `json:"category,omitempty"` // NeverSink section, e.g. "currency"
+	Count    int    `json:"count,omitempty"`    // NeverSink rules using this style
+}
+
+// Theme id prefixes and special ids stored in Config.Styles.
+const (
+	NeverSinkThemePrefix = "ns:"
+	CustomThemeID        = "custom"
+)
+
+// Colours and shapes accepted in custom styles: exactly those NeverSink's
+// PoE2 filter uses, so every value is known to be valid in game.
+var (
+	EffectColours = []string{"Blue", "Brown", "Cyan", "Green", "Grey", "Orange", "Pink", "Purple", "Red", "White", "Yellow"}
+	IconShapes    = []string{"Circle", "Cross", "Diamond", "Hexagon", "Kite", "Pentagon", "Square", "Star", "Triangle", "UpsideDownHouse"}
+)
+
+// CustomStyle is a user-defined look for one group. Colours are "#rrggbb";
+// empty Beam/Icon/Shape mean "none".
+type CustomStyle struct {
+	Bg     string `json:"bg"`
+	Text   string `json:"text"`
+	Border string `json:"border"`
+	Beam   string `json:"beam"`
+	Icon   string `json:"icon"`
+	Shape  string `json:"shape"`
+}
+
+var hexColour = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+func oneOf(v string, list []string) bool {
+	for _, x := range list {
+		if v == x {
+			return true
+		}
+	}
+	return false
+}
+
+func (cs CustomStyle) valid() bool {
+	for _, c := range []string{cs.Bg, cs.Text, cs.Border} {
+		if !hexColour.MatchString(c) {
+			return false
+		}
+	}
+	return (cs.Beam == "" || oneOf(cs.Beam, EffectColours)) &&
+		(cs.Icon == "" || oneOf(cs.Icon, EffectColours)) &&
+		(cs.Shape == "" || oneOf(cs.Shape, IconShapes)) &&
+		(cs.Shape == "" || cs.Icon != "")
+}
+
+func hexToRGBA(h string) string {
+	var r, g, b int
+	fmt.Sscanf(strings.TrimPrefix(h, "#"), "%02x%02x%02x", &r, &g, &b)
+	return fmt.Sprintf("%d %d %d 255", r, g, b)
+}
+
+func (cs CustomStyle) theme() Theme {
+	return Theme{ID: CustomThemeID, Label: "Özel", Full: true,
+		BgColor: hexToRGBA(cs.Bg), TextColor: hexToRGBA(cs.Text), Border: hexToRGBA(cs.Border),
+		Beam: cs.Beam, Icon: cs.Icon, Shape: cs.Shape}
 }
 
 // ThemeList is the ordered list of selectable palettes. Every theme has its
@@ -106,13 +177,41 @@ var groupByID = func() map[string]StyleGroup {
 }()
 
 // Palette returns the colours for a group and whether the user overrode them.
-func (c Config) Palette(group string) (Theme, bool) {
+// ns holds the NeverSink styles of the current base filter (may be nil).
+func (c Config) Palette(group string, ns map[string]Theme) (Theme, bool) {
 	g := groupByID[group]
-	if t, ok := themeByID[c.Styles[group]]; ok {
-		return t, true
+	id := c.Styles[group]
+	switch {
+	case id == CustomThemeID:
+		if cs, ok := c.CustomStyles[group]; ok {
+			return cs.theme(), true
+		}
+	case strings.HasPrefix(id, NeverSinkThemePrefix):
+		if t, ok := ns[strings.TrimPrefix(id, NeverSinkThemePrefix)]; ok {
+			return t, true
+		}
+	default:
+		if t, ok := themeByID[id]; ok {
+			return t, true
+		}
 	}
 	return g.Default, false
 }
+
+// NeverSinkPreset maps each group to the NeverSink style closest in spirit.
+var NeverSinkPreset = map[string]string{
+	GroupDivine:             "apex_stier",
+	GroupCurrency:           "currency_a",
+	GroupWhitelist:          "apex_stier",
+	GroupWhitelistMid:       "currency_c",
+	GroupUnique:             "uniques_a",
+	GroupExceptional:        "exotics_btier",
+	GroupExceptionalUnknown: "exotics_ctier",
+	GroupT5Rare:             "gear_tieredjewellery",
+	GroupChance:             "itemproperty_achancing",
+}
+
+var nsTag = regexp.MustCompile(`^[a-z0-9_]+$`)
 
 // Sound choices: "" (group default), "none", "1".."6" (game sounds) or
 // "file:<name>" for a sound file in the filter folder.
@@ -149,10 +248,22 @@ func (c *Config) normalizeStyles() {
 	if _, ok := c.Styles[GroupDivine]; !ok && c.DivineTheme != "" {
 		c.Styles[GroupDivine] = c.DivineTheme
 	}
+	if c.CustomStyles == nil {
+		c.CustomStyles = map[string]CustomStyle{}
+	}
+	for group, cs := range c.CustomStyles {
+		if _, known := groupByID[group]; !known || !cs.valid() {
+			delete(c.CustomStyles, group)
+		}
+	}
 	for group, id := range c.Styles {
 		g, known := groupByID[group]
 		_, theme := themeByID[id]
-		if !known || !(theme || (id == DefaultThemeID && g.AllowDefault)) {
+		_, custom := c.CustomStyles[group]
+		ok := theme || (id == DefaultThemeID && g.AllowDefault) ||
+			(id == CustomThemeID && custom) ||
+			(strings.HasPrefix(id, NeverSinkThemePrefix) && nsTag.MatchString(strings.TrimPrefix(id, NeverSinkThemePrefix)))
+		if !known || !ok {
 			delete(c.Styles, group)
 		}
 	}
@@ -203,11 +314,33 @@ func (st *style) withSound(v string) *style {
 func (st *style) with(p Theme) *style {
 	s := *st
 	s.text, s.border, s.bg = p.TextColor, p.Border, p.BgColor
+	iconColour := p.Icon
+	if iconColour == "" {
+		iconColour, _, _ = strings.Cut(p.Beam, " ") // "Purple Temp" -> "Purple"
+	}
+	size, shape := "", ""
+	if f := strings.Fields(s.icon); len(f) == 3 {
+		size, shape = f[0], f[2]
+	}
+	if p.Full {
+		s.beam = p.Beam
+		s.icon = ""
+		if p.Shape != "" && iconColour != "" {
+			if size == "" {
+				size = "1"
+			}
+			s.icon = size + " " + iconColour + " " + p.Shape
+		}
+		return &s
+	}
 	if s.beam != "" {
 		s.beam = p.Beam
 	}
-	if f := strings.Fields(s.icon); len(f) == 3 {
-		s.icon = f[0] + " " + p.Beam + " " + f[2]
+	if size != "" {
+		if p.Shape != "" {
+			shape = p.Shape
+		}
+		s.icon = size + " " + iconColour + " " + shape
 	}
 	return &s
 }

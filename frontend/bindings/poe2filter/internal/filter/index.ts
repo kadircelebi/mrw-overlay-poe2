@@ -3,6 +3,7 @@
 
 export type {
     Config,
+    CustomStyle,
     StyleGroup,
     Theme
 } from "./models.js";

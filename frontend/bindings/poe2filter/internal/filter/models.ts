@@ -39,6 +39,11 @@ export interface Config {
     "styles": { [_ in string]?: string } | null;
 
     /**
+     * CustomStyles holds the user's own look for groups set to "custom".
+     */
+    "custom_styles": { [_ in string]?: CustomStyle } | null;
+
+    /**
      * legacy, migrated into sounds
      */
     "divine_sound"?: string;
@@ -103,6 +108,19 @@ export interface Config {
 }
 
 /**
+ * CustomStyle is a user-defined look for one group. Colours are "#rrggbb";
+ * empty Beam/Icon/Shape mean "none".
+ */
+export interface CustomStyle {
+    "bg": string;
+    "text": string;
+    "border": string;
+    "beam": string;
+    "icon": string;
+    "shape": string;
+}
+
+/**
  * StyleGroup is a family of highlighted drops whose colours and sound the
  * user can change. Size and icon shape stay with the group so the importance
  * ordering of the filter is preserved.
@@ -138,7 +156,7 @@ export interface StyleGroup {
 
 /**
  * Theme is a colour palette for a highlighted drop. Colours are "R G B A" as
- * the filter language expects; Beam is also used for the minimap icon.
+ * the filter language expects (empty = the game's default).
  */
 export interface Theme {
     "id": string;
@@ -146,5 +164,36 @@ export interface Theme {
     "bg": string;
     "text": string;
     "border": string;
+
+    /**
+     * PlayEffect, e.g. "Red" or "Purple Temp"
+     */
     "beam": string;
+
+    /**
+     * minimap icon colour; "" = the beam colour
+     */
+    "icon": string;
+
+    /**
+     * minimap icon shape; "" = the group's shape
+     */
+    "shape": string;
+
+    /**
+     * Full themes (NeverSink and custom) apply beam and icon exactly as given,
+     * adding or removing them; the built-in palettes only recolour the
+     * group's own beam and icon.
+     */
+    "full": boolean;
+
+    /**
+     * NeverSink section, e.g. "currency"
+     */
+    "category"?: string;
+
+    /**
+     * NeverSink rules using this style
+     */
+    "count"?: number;
 }

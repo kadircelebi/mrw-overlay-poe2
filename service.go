@@ -15,6 +15,13 @@ import (
 	"poe2filter/internal/insights"
 )
 
+// StyleOptions are the choices offered in the custom style editor.
+type StyleOptions struct {
+	Colours []string          `json:"colours"`
+	Shapes  []string          `json:"shapes"`
+	Preset  map[string]string `json:"preset"` // group -> NeverSink style tag
+}
+
 // Meta is static information for the UI.
 type Meta struct {
 	Version  string `json:"version"`
@@ -100,6 +107,14 @@ func (s *AppService) SaveConfig(c filter.Config) (filter.Config, error) { return
 
 // Themes lists the selectable colour palettes.
 func (s *AppService) Themes() []filter.Theme { return filter.ThemeList }
+
+// NeverSinkThemes lists NeverSink's named styles from the current base filter.
+func (s *AppService) NeverSinkThemes() []filter.Theme { return s.eng.NeverSinkThemes() }
+
+// StyleOptions lists the colours and minimap shapes allowed in custom styles.
+func (s *AppService) StyleOptions() StyleOptions {
+	return StyleOptions{Colours: filter.EffectColours, Shapes: filter.IconShapes, Preset: filter.NeverSinkPreset}
+}
 
 // StyleGroups lists the drop groups whose colours can be changed.
 func (s *AppService) StyleGroups() []filter.StyleGroup { return filter.StyleGroups }

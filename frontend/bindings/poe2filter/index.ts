@@ -7,5 +7,6 @@ export {
 };
 
 export type {
-    Meta
+    Meta,
+    StyleOptions
 } from "./models.js";

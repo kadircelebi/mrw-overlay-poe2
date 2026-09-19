@@ -21,8 +21,10 @@ type Config struct {
 	QualityThreshold int    `json:"quality_threshold"` // 0 = off
 	DivineTheme      string `json:"divine_theme"`      // mirrors styles["divine"]
 	// Styles maps a style group id to a theme id (see StyleGroups).
-	Styles      map[string]string `json:"styles"`
-	DivineSound string            `json:"divine_sound,omitempty"` // legacy, migrated into sounds
+	Styles map[string]string `json:"styles"`
+	// CustomStyles holds the user's own look for groups set to "custom".
+	CustomStyles map[string]CustomStyle `json:"custom_styles"`
+	DivineSound  string                 `json:"divine_sound,omitempty"` // legacy, migrated into sounds
 	// Sounds maps a style group id to a sound choice (see validSound).
 	Sounds          map[string]string `json:"sounds"`
 	CustomSoundPath string            `json:"custom_sound_path"`
