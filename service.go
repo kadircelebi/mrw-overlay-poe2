@@ -104,6 +104,10 @@ func (s *AppService) Themes() []filter.Theme { return filter.ThemeList }
 // StyleGroups lists the drop groups whose colours can be changed.
 func (s *AppService) StyleGroups() []filter.StyleGroup { return filter.StyleGroups }
 
+// Leagues lists the leagues for the picker, live list first, always including
+// the one currently configured.
+func (s *AppService) Leagues() []string { return s.eng.Leagues() }
+
 // UpdateNow starts a filter update in the background.
 func (s *AppService) UpdateNow() error { return s.eng.UpdateNow() }
 

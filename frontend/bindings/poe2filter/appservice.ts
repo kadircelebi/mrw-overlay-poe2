@@ -54,6 +54,14 @@ export function HidePanel(): $CancellablePromise<void> {
 }
 
 /**
+ * Leagues lists the leagues for the picker, live list first, always including
+ * the one currently configured.
+ */
+export function Leagues(): $CancellablePromise<string[] | null> {
+    return $Call.ByID(2782642808);
+}
+
+/**
  * ListSounds returns the sound files in the PoE2 filter folder, which is where
  * the game looks for CustomAlertSound files.
  */

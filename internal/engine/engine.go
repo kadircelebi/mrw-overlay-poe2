@@ -5,6 +5,7 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -61,16 +62,22 @@ type ScanState struct {
 
 // State is everything a front end needs to render.
 type State struct {
-	Running     bool       `json:"running"`
-	Step        string     `json:"step"`
-	Progress    float64    `json:"progress"` // 0..1
-	LastRunAtMs int64      `json:"lastRunAtMs"`
-	NextRunAtMs int64      `json:"nextRunAtMs"` // 0 when auto update is off
-	LastError   string     `json:"lastError"`
-	Last        *RunResult `json:"last"`
-	Scan        ScanState  `json:"scan"`
-	Warnings    []string   `json:"warnings"`
-	Log         []string   `json:"log"`
+	Running     bool    `json:"running"`
+	Step        string  `json:"step"`
+	Progress    float64 `json:"progress"` // 0..1
+	LastRunAtMs int64   `json:"lastRunAtMs"`
+	NextRunAtMs int64   `json:"nextRunAtMs"` // 0 when auto update is off
+	LastError   string  `json:"lastError"`
+	// LastOkAtMs is when the filter was last written; it stays put when a run
+	// fails, so the panel can say the file in the game folder is stale.
+	LastOkAtMs int64 `json:"lastOkAtMs"`
+	// NextRetryAtMs is the automatic retry after a failed run (0 when none).
+	NextRetryAtMs int64      `json:"nextRetryAtMs"`
+	FailCount     int        `json:"failCount"`
+	Last          *RunResult `json:"last"`
+	Scan          ScanState  `json:"scan"`
+	Warnings      []string   `json:"warnings"`
+	Log           []string   `json:"log"`
 }
 
 // Engine owns the pipeline, scanner and schedule.
@@ -86,6 +93,13 @@ type Engine struct {
 	stMu      sync.Mutex
 	st        State
 	lastRunAt time.Time
+	lastOkAt  time.Time
+	retryAt   time.Time // set after a failed run, cleared on success
+	failCount int
+
+	leagueMu  sync.Mutex
+	leagues   []string
+	leaguesAt time.Time
 
 	scanMu     sync.Mutex
 	scanner    *trade.Scanner
@@ -104,6 +118,7 @@ func New(opt Options) *Engine {
 	e := &Engine{opt: opt, dataDir: filepath.Join(opt.Dir, "data"), stop: make(chan struct{})}
 	e.cfg = filter.LoadConfig(e.configPath())
 	_ = e.cfg.Save(e.configPath()) // persist migrated format
+	e.loadLeagues()
 	e.st.Step = "Hazır"
 	return e
 }
@@ -144,6 +159,72 @@ func (e *Engine) Config() filter.Config {
 }
 
 // SetConfig validates, saves and applies new settings.
+// leagueListTTL is how long a fetched league list is considered fresh.
+const leagueListTTL = 6 * time.Hour
+
+type leagueCache struct {
+	FetchedAt time.Time `json:"fetched_at"`
+	Leagues   []string  `json:"leagues"`
+}
+
+func (e *Engine) leaguesPath() string { return filepath.Join(e.dataDir, "leagues.json") }
+
+// loadLeagues restores the last fetched league list, so the picker is populated
+// before (and without) any network call.
+func (e *Engine) loadLeagues() {
+	data, err := os.ReadFile(e.leaguesPath())
+	if err != nil {
+		return
+	}
+	var lc leagueCache
+	if json.Unmarshal(data, &lc) != nil || len(lc.Leagues) == 0 {
+		return
+	}
+	e.leagueMu.Lock()
+	e.leagues, e.leaguesAt = lc.Leagues, lc.FetchedAt
+	e.leagueMu.Unlock()
+}
+
+// refreshLeagues fetches the live league list when the cached one is stale.
+// A failure keeps whatever we already have: the list is a convenience, and the
+// user's own league choice is never touched by it.
+func (e *Engine) refreshLeagues(ctx context.Context) {
+	e.leagueMu.Lock()
+	fresh := len(e.leagues) > 0 && time.Since(e.leaguesAt) < leagueListTTL
+	e.leagueMu.Unlock()
+	if fresh {
+		return
+	}
+	list, err := collector.FetchLeagues(ctx, nil)
+	if err != nil {
+		e.logf("[Uyarı] Lig listesi alınamadı, mevcut liste kullanılıyor: %v", err)
+		return
+	}
+	now := time.Now()
+	e.leagueMu.Lock()
+	e.leagues, e.leaguesAt = list, now
+	e.leagueMu.Unlock()
+	if data, err := json.MarshalIndent(leagueCache{FetchedAt: now, Leagues: list}, "", "  "); err == nil {
+		_ = prices.WriteFileAtomic(e.leaguesPath(), data)
+	}
+	e.changed()
+}
+
+// Leagues returns the leagues on offer: the live list when one was fetched,
+// the built-in list otherwise. It is a suggestion list only — nothing here
+// writes LeagueName, so the user's choice survives an ended league, a renamed
+// one or a failed fetch. Front ends keep the configured league selectable even
+// when this list no longer carries it.
+func (e *Engine) Leagues() []string {
+	e.leagueMu.Lock()
+	list := append([]string(nil), e.leagues...)
+	e.leagueMu.Unlock()
+	if len(list) == 0 {
+		list = append(list, filter.DefaultLeagues...)
+	}
+	return list
+}
+
 func (e *Engine) SetConfig(c filter.Config) (filter.Config, error) {
 	c.Normalize()
 	if err := c.Save(e.configPath()); err != nil {
@@ -199,6 +280,22 @@ func (e *Engine) UpdateNow() error {
 	return nil
 }
 
+// Retry schedule after a failed run: a filter that could not be written is
+// worth another try in minutes, not in AutoUpdateHours hours.
+const (
+	retryFirstDelay = 5 * time.Minute
+	retryMaxDelay   = 30 * time.Minute
+)
+
+// retryDelay backs off 5, 10, 20 then 30 minutes.
+func retryDelay(fails int) time.Duration {
+	d := retryFirstDelay
+	for i := 1; i < fails && d < retryMaxDelay; i++ {
+		d *= 2
+	}
+	return min(d, retryMaxDelay)
+}
+
 func (e *Engine) loop() {
 	if err := e.run(context.Background()); err != nil {
 		e.logf("[HATA] %v", err)
@@ -213,9 +310,15 @@ func (e *Engine) loop() {
 		}
 		cfg := e.Config()
 		e.stMu.Lock()
-		last := e.lastRunAt
+		last, retryAt, fails := e.lastRunAt, e.retryAt, e.failCount
 		e.stMu.Unlock()
-		if cfg.AutoUpdateEnabled && time.Since(last) >= time.Duration(cfg.AutoUpdateHours)*time.Hour {
+		switch {
+		case !retryAt.IsZero() && !time.Now().Before(retryAt):
+			e.logf("Başarısız güncelleme yeniden deneniyor (%d. deneme)", fails+1)
+			if err := e.run(context.Background()); err != nil {
+				e.logf("[HATA] %v", err)
+			}
+		case cfg.AutoUpdateEnabled && time.Since(last) >= time.Duration(cfg.AutoUpdateHours)*time.Hour:
 			e.logf("Zamanlanmış güncelleme (%d saatte bir)", cfg.AutoUpdateHours)
 			if err := e.run(context.Background()); err != nil {
 				e.logf("[HATA] %v", err)
@@ -289,12 +392,24 @@ func (e *Engine) run(ctx context.Context) (err error) {
 		e.st.LastRunAtMs = e.lastRunAt.UnixMilli()
 		if err != nil {
 			e.st.LastError, e.st.Step, e.st.Progress = err.Error(), "Hata", 0
+			e.failCount++
+			e.retryAt = e.lastRunAt.Add(retryDelay(e.failCount))
+		} else {
+			e.failCount, e.retryAt = 0, time.Time{}
+			e.lastOkAt = e.lastRunAt
+			e.st.LastOkAtMs = e.lastOkAt.UnixMilli()
+		}
+		e.st.FailCount = e.failCount
+		e.st.NextRetryAtMs = 0
+		if !e.retryAt.IsZero() {
+			e.st.NextRetryAtMs = e.retryAt.UnixMilli()
 		}
 		e.stMu.Unlock()
 		e.changed()
 	}()
 
 	cfg := e.Config()
+	e.refreshLeagues(ctx)
 	e.setStep(0.1, "NeverSink filtresi hazırlanıyor")
 	basePath, err := e.basePath(ctx, cfg)
 	if err != nil {

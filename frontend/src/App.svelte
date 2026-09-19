@@ -27,9 +27,11 @@
   let styleGroup = $state('divine')
   let sounds = $state<string[]>([])
   let soundError = $state('')
+  let leagues = $state<string[]>([])
 
   async function refresh() {
     st = await AppService.GetState()
+    leagues = (await AppService.Leagues()) ?? leagues
   }
 
   onMount(() => {
@@ -38,6 +40,7 @@
       themes = (await AppService.Themes()) ?? []
       groups = (await AppService.StyleGroups()) ?? []
       sounds = (await AppService.ListSounds()) ?? []
+      leagues = (await AppService.Leagues()) ?? []
       cfg = await AppService.GetConfig()
       await refresh()
     })()
@@ -100,10 +103,23 @@
   const status = $derived.by(() => {
     if (!st) return { tone: 'idle', title: 'Başlatılıyor…', sub: '' }
     if (st.running) return { tone: 'busy', title: 'Güncelleniyor', sub: st.step }
-    if (st.lastError) return { tone: 'bad', title: 'Güncelleme başarısız', sub: st.lastError }
+    if (st.lastError) return { tone: 'bad', title: 'Filtre güncellenemedi', sub: st.lastError }
     if (st.lastRunAtMs) return { tone: 'ok', title: 'Filtre güncel', sub: `Son güncelleme ${relative(st.lastRunAtMs, now)}` }
     return { tone: 'idle', title: 'Henüz güncellenmedi', sub: '' }
   })
+
+  // The configured league is always offered, even if the live list lost it.
+  const leagueOptions = $derived.by(() => {
+    const list = leagues.length ? [...leagues] : []
+    const current = cfg?.league_name ?? ''
+    if (current && !list.some((l) => l.toLowerCase() === current.toLowerCase())) list.push(current)
+    return list
+  })
+  const leagueUnlisted = $derived(
+    !!cfg?.league_name &&
+      leagues.length > 0 &&
+      !leagues.some((l) => l.toLowerCase() === cfg!.league_name.toLowerCase()),
+  )
 
   const selGroup = $derived(groups.find((g) => g.id === styleGroup))
 
@@ -208,11 +224,22 @@
         {#if dirty && !st?.running}
           <p class="notice">Ayarlar değişti. Filtreye yansıması için güncelle.</p>
         {/if}
+        {#if st?.lastError && !st.running}
+          <p class="notice bad">
+            Oyundaki filtre yazılamadı, {st.lastOkAtMs
+              ? `dosya ${relative(st.lastOkAtMs, now)} yazılan hâliyle duruyor`
+              : 'henüz hiç yazılmadı'}. Yeni ayarların oyuna yansıması için güncellemenin başarılı olması gerekir.
+          </p>
+        {/if}
         <button class="primary" class:pulse={dirty} disabled={st?.running} onclick={updateNow}>
-          {st?.running ? 'Güncelleniyor…' : 'Şimdi güncelle'}
+          {st?.running ? 'Güncelleniyor…' : st?.lastError ? 'Tekrar dene' : 'Şimdi güncelle'}
         </button>
         <div class="meta-row">
-          {#if st?.nextRunAtMs && !st.running}
+          {#if st?.running}
+            <span>&nbsp;</span>
+          {:else if st?.nextRetryAtMs}
+            <span>Otomatik tekrar: {clock(st.nextRetryAtMs)} <em>({until(st.nextRetryAtMs, now)})</em></span>
+          {:else if st?.nextRunAtMs}
             <span>Sonraki: {clock(st.nextRunAtMs)} <em>({until(st.nextRunAtMs, now)})</em></span>
           {:else if !cfg.auto_update_enabled}
             <span>Otomatik güncelleme kapalı</span>
@@ -349,6 +376,7 @@
         <h2>Özel kurallar</h2>
         <Toggle bind:checked={cfg.high_waystones} label="T14+ waystone vurgusu" onchange={() => queueSave()} />
         <Toggle bind:checked={cfg.high_uncut_gems} label="Sadece 20. seviye uncut gem" hint="Diğer uncut gem'ler gizlenir" onchange={() => queueSave()} />
+        <Toggle bind:checked={cfg.uncut_support_gems} label="Uncut support gem'leri göster" hint="Kapalıyken hepsi gizlenir; açıkken 20. seviye kuralına uyar" onchange={() => queueSave()} />
         <Toggle bind:checked={cfg.boss_keys_and_tablets} label="Pinnacle anahtarları vurgusu" onchange={() => queueSave()} />
         <Toggle bind:checked={cfg.hide_exalt} label="Exalted Orb'ları gizle" onchange={() => queueSave()} />
         <Toggle bind:checked={cfg.hide_gold} label="Gold'u gizle" onchange={() => queueSave()} />
@@ -452,12 +480,14 @@
         <label class="field">
           <span>Lig</span>
           <select bind:value={cfg.league_name} onchange={() => queueSave()}>
-            <option>Forbidden Rites</option>
-            <option>HC Forbidden Rites</option>
-            <option>Standard</option>
-            <option>Hardcore</option>
+            {#each leagueOptions as l (l)}
+              <option value={l}>{l}</option>
+            {/each}
           </select>
         </label>
+        {#if leagueUnlisted}
+          <p class="desc hint">Bu lig güncel listede yok; seçimin korunuyor, istersen listeden yenisini seç.</p>
+        {/if}
         <label class="field stack">
           <span>Oyundaki filtre adı</span>
           <input bind:value={cfg.filter_name} onchange={() => queueSave()} spellcheck="false" />
@@ -743,6 +773,11 @@
     border: 1px solid rgba(224, 166, 74, 0.25);
     color: var(--warn);
     font-size: 12px;
+  }
+  .notice.bad {
+    background: rgba(226, 92, 92, 0.1);
+    border-color: rgba(226, 92, 92, 0.28);
+    color: var(--bad);
   }
   .primary {
     width: 100%;

@@ -61,6 +61,11 @@ export interface Config {
     "chance_bases": string[] | null;
     "high_waystones": boolean;
     "high_uncut_gems": boolean;
+
+    /**
+     * Uncut Support Gems drop constantly; off (the default) hides them.
+     */
+    "uncut_support_gems": boolean;
     "boss_keys_and_tablets": boolean;
     "league_name": string;
 

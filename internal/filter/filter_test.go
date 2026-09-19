@@ -303,3 +303,34 @@ func TestGroupSounds(t *testing.T) {
 		t.Fatalf("legacy divine sound not migrated: %v", legacy.Sounds)
 	}
 }
+
+func TestUncutSupportGemsToggle(t *testing.T) {
+	// Off (the default): hidden whatever the level-20 rule says.
+	for _, high := range []bool{true, false} {
+		cfg := DefaultConfig()
+		cfg.HighUncutGems, cfg.UncutSupportGems = high, false
+		out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+		if blockContaining(t, out, "Hide", `BaseType == "Uncut Support Gem"`) < 0 {
+			t.Fatalf("high=%v: uncut support gems must be hidden when the toggle is off", high)
+		}
+		if blockContaining(t, out, "Show", `"Uncut Support Gem"`) >= 0 {
+			t.Fatalf("high=%v: uncut support gems must never be shown when the toggle is off", high)
+		}
+	}
+	// On with the level-20 rule: shown at 20, hidden below.
+	cfg := DefaultConfig()
+	cfg.HighUncutGems, cfg.UncutSupportGems = true, true
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	if blockContaining(t, out, "Show", `"Uncut Support Gem"`, "GemLevel >= 20") < 0 {
+		t.Fatal("level 20 uncut support gems must be shown when the toggle is on")
+	}
+	if blockContaining(t, out, "Hide", `"Uncut Support Gem"`) < 0 {
+		t.Fatal("uncut support gems below level 20 must still be hidden")
+	}
+	// On without the level-20 rule: the base filter decides.
+	cfg.HighUncutGems = false
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases)
+	if strings.Contains(out, "Uncut") {
+		t.Fatal("no uncut gem rule expected when both toggles allow everything")
+	}
+}

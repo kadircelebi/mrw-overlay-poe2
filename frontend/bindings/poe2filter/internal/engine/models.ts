@@ -68,6 +68,18 @@ export interface State {
      */
     "nextRunAtMs": number;
     "lastError": string;
+
+    /**
+     * LastOkAtMs is when the filter was last written; it stays put when a run
+     * fails, so the panel can say the file in the game folder is stale.
+     */
+    "lastOkAtMs": number;
+
+    /**
+     * NextRetryAtMs is the automatic retry after a failed run (0 when none).
+     */
+    "nextRetryAtMs": number;
+    "failCount": number;
     "last": RunResult | null;
     "scan": ScanState;
     "warnings": string[] | null;

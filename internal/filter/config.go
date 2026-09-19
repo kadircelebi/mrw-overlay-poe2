@@ -35,8 +35,10 @@ type Config struct {
 	ChanceBases     []string          `json:"chance_bases"`
 	HighWaystones   bool              `json:"high_waystones"`
 	HighUncutGems   bool              `json:"high_uncut_gems"`
-	PinnacleKeys    bool              `json:"boss_keys_and_tablets"`
-	LeagueName      string            `json:"league_name"`
+	// Uncut Support Gems drop constantly, so they have their own switch.
+	UncutSupportGems bool   `json:"uncut_support_gems"`
+	PinnacleKeys     bool   `json:"boss_keys_and_tablets"`
+	LeagueName       string `json:"league_name"`
 
 	// Base filter: a NeverSink strictness (0..6), or a custom file when set.
 	Strictness       int    `json:"strictness"`
@@ -60,6 +62,10 @@ type Config struct {
 	LegacyIntervalMn int     `json:"auto_update_interval,omitempty"`
 }
 
+// DefaultLeagues is the built-in league list: the fallback for the picker
+// when the live list cannot be fetched, and the source of the default league.
+var DefaultLeagues = []string{"Forbidden Rites", "HC Forbidden Rites", "Standard", "Hardcore"}
+
 // DefaultConfig returns the recommended out-of-the-box settings.
 func DefaultConfig() Config {
 	return Config{
@@ -77,7 +83,7 @@ func DefaultConfig() Config {
 		HighWaystones:     true,
 		HighUncutGems:     true,
 		PinnacleKeys:      true,
-		LeagueName:        "Forbidden Rites",
+		LeagueName:        DefaultLeagues[0],
 		Strictness:        3,
 		ExceptionalScan:   true,
 		ScanBudgetPct:     40,
@@ -154,7 +160,7 @@ func (c *Config) Normalize() {
 		c.FilterName = "auto_updated"
 	}
 	if c.LeagueName == "" {
-		c.LeagueName = "Forbidden Rites"
+		c.LeagueName = DefaultLeagues[0]
 	}
 	c.normalizeStyles()
 	// Empty lists serialise as [] rather than null for the UI.

@@ -403,12 +403,25 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			&style{font: 42, text: "255 255 255 255", border: "255 0 0 255", bg: "120 0 0 240",
 				beam: "Red", icon: "1 Red Square", sound: "2 300"})
 	}
-	if cfg.HighUncutGems {
-		b.section("8.5 UNCUT GEMS (level 20 only)")
-		b.rule("Show", []string{`BaseType == "Uncut Skill Gem" "Uncut Spirit Gem"`, "GemLevel >= 20"}, "", nil,
-			&style{font: 42, text: "80 255 160 255", border: "0 255 130 255", bg: "5 50 20 255",
-				beam: "Green", icon: "1 Green Triangle", sound: "2 300"})
-		b.rule("Hide", []string{`BaseType == "Uncut Skill Gem" "Uncut Spirit Gem" "Uncut Support Gem"`}, "", nil, nil)
+	// Support gems are their own toggle: they drop far more often than skill
+	// and spirit gems, so they are hidden unless explicitly asked for.
+	if cfg.HighUncutGems || !cfg.UncutSupportGems {
+		gems := []string{`"Uncut Skill Gem"`, `"Uncut Spirit Gem"`}
+		if cfg.UncutSupportGems {
+			gems = append(gems, `"Uncut Support Gem"`)
+		}
+		if cfg.HighUncutGems {
+			b.section("8.5 UNCUT GEMS (level 20 only)")
+			b.rule("Show", []string{"BaseType == " + strings.Join(gems, " "), "GemLevel >= 20"}, "", nil,
+				&style{font: 42, text: "80 255 160 255", border: "0 255 130 255", bg: "5 50 20 255",
+					beam: "Green", icon: "1 Green Triangle", sound: "2 300"})
+			b.rule("Hide", []string{"BaseType == " + strings.Join(gems, " ")}, "", nil, nil)
+		} else {
+			b.section("8.5 UNCUT GEMS")
+		}
+		if !cfg.UncutSupportGems {
+			b.rule("Hide", []string{`BaseType == "Uncut Support Gem"`}, "", nil, nil)
+		}
 	}
 	if cfg.PinnacleKeys {
 		b.section("8.6 PINNACLE KEYS")
