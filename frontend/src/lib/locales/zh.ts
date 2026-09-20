@@ -100,7 +100,7 @@ export const zh: Record<string, string> = {
   'look.soundNone': '靜音',
   'look.soundGame': '遊戲音效 {0}',
   'look.play': '試聽',
-  'look.playGameOnly': '遊戲音效只能在遊戲中播放',
+  'look.gameSoundNote': '1–6 號音效屬於 Path of Exile 本身，只能在遊戲中聽到。',
   'look.playAria': '試聽音效',
   'look.soundHint': '若要使用自己的音效，請把 mp3/wav 檔放進過濾器資料夾（設定最下方的「過濾器資料夾」）。',
 

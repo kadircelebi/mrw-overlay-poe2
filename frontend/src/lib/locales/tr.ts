@@ -103,7 +103,7 @@ export const tr: Record<string, string> = {
   'look.soundNone': 'Sessiz',
   'look.soundGame': 'Oyun sesi {0}',
   'look.play': 'Dinle',
-  'look.playGameOnly': 'Oyun sesleri sadece oyunda çalınabilir',
+  'look.gameSoundNote': '1–6 arası sesler oyunun kendi sesleri; yalnızca oyunda duyulur.',
   'look.playAria': 'Sesi dinle',
   'look.soundHint':
     'Kendi sesini kullanmak için bir mp3/wav dosyasını filtre klasörüne koy (Ayarlar\'ın altındaki "Filtre klasörü").',

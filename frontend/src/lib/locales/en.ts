@@ -113,7 +113,7 @@ export const en: Record<string, string> = {
   'look.soundNone': 'Silent',
   'look.soundGame': 'Game sound {0}',
   'look.play': 'Play',
-  'look.playGameOnly': 'Game sounds can only play in game',
+  'look.gameSoundNote': 'Game sounds 1–6 belong to Path of Exile and can only be heard in game.',
   'look.playAria': 'Play the sound',
   'look.soundHint':
     'To use your own sound, put an mp3/wav file in the filter folder ("Filter folder" at the bottom of Settings).',

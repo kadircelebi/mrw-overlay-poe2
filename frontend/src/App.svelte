@@ -225,6 +225,13 @@
     return v.startsWith('file:') ? v.slice(5) : ''
   }
 
+  // Sounds 1-6 are the game's own; nothing outside the game can play them.
+  function soundIsGame(g: StyleGroup): boolean {
+    const v = cfg?.sounds?.[g.id] ?? ''
+    if (v === 'none' || v.startsWith('file:')) return false
+    return v !== '' || !!g.defaultSound
+  }
+
   function soundLabel(g: StyleGroup): string {
     const v = cfg?.sounds?.[g.id] ?? ''
     if (v === 'none') return t('look.soundDefaultSilent')
@@ -527,18 +534,22 @@
                   <option value={'file:' + f}>{f}</option>
                 {/each}
               </select>
-              <button
-                type="button"
-                class="play"
-                title={soundFile(selGroup) ? t('look.play') : t('look.playGameOnly')}
-                aria-label={t('look.playAria')}
-                disabled={!soundFile(selGroup)}
-                onclick={() => previewSound(selGroup)}
-              >
-                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-              </button>
+              {#if soundFile(selGroup)}
+                <button
+                  type="button"
+                  class="play"
+                  title={t('look.play')}
+                  aria-label={t('look.playAria')}
+                  onclick={() => previewSound(selGroup)}
+                >
+                  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                </button>
+              {/if}
             </span>
           </label>
+          {#if soundIsGame(selGroup)}
+            <p class="desc hint">{t('look.gameSoundNote')}</p>
+          {/if}
           {#if soundError}<p class="error">{soundError}</p>{/if}
           {#if !sounds.length}
             <p class="desc hint">{t('look.soundHint')}</p>
@@ -808,11 +819,6 @@
     border-radius: var(--radius-sm);
     background: var(--bg);
     color: var(--gold-bright);
-  }
-  .play:disabled {
-    color: var(--muted);
-    cursor: default;
-    opacity: 0.5;
   }
   .play svg {
     width: 14px;
