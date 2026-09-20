@@ -13,7 +13,7 @@ Fiyatlar nereden gelir:
 
 - **Unique'ler** (poe.ninja): bir tabandaki en değerli unique eşiği geçiyorsa taban gösterilir; tek ilana dayanan fiyatlar gizleme sebebi olmaz.
 - **Currency ve toplu eşyalar** (poe2scout): eşiğin altındakiler gizlenir veya soluklaştırılır.
-- **Exceptional tabanlar** (resmi trade API): fazladan soketli veya %21+ kaliteli tabanlar arka planda, trade kotasının küçük bir payıyla fiyatlanır.
+- **Exceptional tabanlar** (resmi trade API): fazladan soketli veya %21+ kaliteli tabanlar arka planda, trade kotasının küçük bir payıyla fiyatlanır. *İleride bu tarama tek bir sunucu üzerinden yapılacak; uygulama fiyatları hazır alacak, kimse kendi kotasını harcamayacak.*
 - **NeverSink** (MIT): seçtiğin strictness her güncellemede GitHub'dan indirilir, kurallar onun ilk bölümünden önce eklenir. Yani NeverSink'in tüm işi korunur, üstüne senin fiyat kuralların biner.
 
 Uygulama oyun belleğini okumaz, oyuna girdi göndermez; yalnızca herkese açık fiyat kaynaklarını kullanır ve sonucu bir metin dosyasına yazar.
@@ -36,6 +36,7 @@ Gereksinim: Windows 10/11 ve WebView2 (Windows 11'de yüklü gelir). Ayarlar ve 
 - **Oyun filtreyi kendiliğinden yeniden okumaz.** Her güncellemeden sonra oyunda Options → Item Filter → **Reload** demen gerekir.
 - Exceptional taban taraması arka planda, yavaş yavaş ilerler: trade API'sinin kotasını zorlamamak için saatler sürer ve uygulama açık kaldıkça birikir. Panel ilk tam taramanın tahmini süresini gösterir. İlk gün eksik sonuç görmen normaldir; fiyatı bilinmeyen exceptional tabanlar gizlenmez, gösterilir.
 - Sonraki güncellemeler varsayılan olarak 4 saatte bir kendiliğinden yapılır.
+- **Yol haritası:** exceptional taraması ileride tek bir sunucuda toplanacak ve fiyatlar oradan dağıtılacak. O zaman ilk gün beklemesi de, trade kotası paylaşımı da ortadan kalkacak; şimdilik tarama her kullanıcının kendi makinesinde çalışıyor (sonuçları Ayarlar → Trade taraması'ndan dosyayla paylaşabilirsin).
 
 ## Ayarlar
 
@@ -64,6 +65,8 @@ Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için g
 **Filtrede hiçbir değişiklik göremiyorum.** İki adım da gerekli: uygulamada güncelleme, oyunda Options → Item Filter → Reload. Oyunu yeniden başlatmak gerekmez.
 
 **Oyun açıkken çalışır mı?** Evet, tepside durur. Oyun belleğine dokunmaz, tuş/fare göndermez; sadece bir metin dosyası yazar.
+
+**Tarama neden bu kadar uzun sürüyor?** Trade API'sinin kotasını zorlamamak için aramalar seyrek yapılıyor ve taranacak taban sayısı yüksek. Kalıcı çözüm yolda: tarama tek bir sunucuda yapılıp fiyatlar dağıtılacak, uygulama da onları hazır alacak. O güne kadar bir arkadaşının tarama sonuçlarını içe aktarman en hızlı yol.
 
 **Trade taraması hesabımı riske atar mı?** Uygulama trade API'sini giriş yapmadan, oyunun ilan ettiği rate limit'lere uyarak ve kotanın yalnızca bir payıyla kullanır. Bu kota trade sitesini kendin kullanırken de ortaktır; aynı anda çok arama yapıyorsan tarama payını düşürebilirsin.
 
