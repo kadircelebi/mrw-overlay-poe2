@@ -1,0 +1,213 @@
+export const en: Record<string, string> = {
+  // Header
+  'app.title': 'PoE2 Filter',
+  'header.settings': 'Settings',
+  'header.back': 'Back',
+  'header.hide': 'Hide panel',
+  'save.saving': 'saving…',
+  'save.saved': 'saved',
+  'save.error': 'could not save',
+
+  // Status card
+  'status.starting': 'Starting…',
+  'status.updating': 'Updating',
+  'status.failed': 'Filter update failed',
+  'status.fresh': 'Filter up to date',
+  'status.never': 'Not updated yet',
+  'status.lastUpdate': 'Last update {0}',
+  'status.dirty': 'Settings changed. Update to apply them to the filter.',
+  'status.writeFailed':
+    'The filter in the game folder could not be written, {0}. New settings reach the game only after a successful update.',
+  'status.fileFrom': 'the file is still the one written {0}',
+  'status.fileNever': 'it has never been written',
+  'button.updating': 'Updating…',
+  'button.retry': 'Try again',
+  'button.updateNow': 'Update now',
+  'meta.autoRetry': 'Auto retry: {0}',
+  'meta.next': 'Next: {0}',
+  'meta.autoOff': 'Automatic update is off',
+  'meta.reload': 'In game: Item Filter → Reload',
+
+  // Threshold
+  'threshold.title': 'Value threshold',
+  'threshold.hide': 'Items below this value are hidden.',
+  'threshold.dim': 'Items below this value are dimmed.',
+  'threshold.show': 'Items below this value are still shown.',
+
+  // Base filter
+  'base.title': 'NeverSink base',
+  'base.soft': 'Soft',
+  'base.strict': 'Strict',
+  'base.uber': 'Uber+',
+  'mode.title': 'Items below the threshold',
+  'mode.hide': 'Hide',
+  'mode.dim': 'Dim',
+  'mode.show': 'Show',
+
+  // Exceptional scan
+  'scan.toggle': 'Exceptional scan',
+  'scan.hint': 'Prices bases with extra sockets or 21%+ quality from trade',
+  'scan.scanned': '{0} / {1} scanned',
+  'scan.valuable': '{0} valuable',
+  'scan.next': 'Next: {0}',
+  'scan.searching': 'searching…',
+  'scan.last': 'Last: {0}',
+  'scan.note':
+    'Searches run about every {0} s to protect the quota. First pass over every base ≈ {1}; the bases NeverSink rates highly go first.',
+
+  // Summary
+  'stats.currency': 'currency',
+  'stats.uniqueBases': 'unique bases',
+  'stats.exceptional': 'exceptional',
+  'stats.caption': 'highlighted above the threshold · 1 div = {0} ex',
+
+  // Gear
+  'gear.title': 'Equipment',
+  'gear.strict': 'Strict equipment filter',
+  'gear.strictHint': 'Hides ordinary weapons and armour',
+  'gear.t5': 'Tier 5 rare equipment',
+  'gear.t5Hint': 'Unidentified rares of tier 5 are always shown',
+  'gear.t5JewelsOnly': 'T5 only for rare jewels',
+  'gear.quality': 'Show high quality gear',
+  'gear.qualityOff': 'Off',
+
+  // Custom rules
+  'rules.title': 'Custom rules',
+  'rules.waystones': 'Highlight T14+ waystones',
+  'rules.uncut20': 'Level 20 uncut gems only',
+  'rules.uncut20Hint': 'Other uncut gems are hidden',
+  'rules.uncutSupport': 'Show uncut support gems',
+  'rules.uncutSupportHint': 'Off hides them all; on they follow the level 20 rule',
+  'rules.pinnacle': 'Highlight pinnacle keys',
+  'rules.hideExalt': 'Hide Exalted Orbs',
+  'rules.hideGold': 'Hide Gold',
+
+  // Lists
+  'lists.title': 'Lists',
+  'lists.showTop': 'Always show — spotlight',
+  'lists.showTopNote': 'strongest highlight',
+  'lists.showTopDesc':
+    'Bases carrying a valuable unique (Mageblood, Headhunter, Voices…) are already handled automatically, and only as the unique.',
+  'lists.showMid': 'Always show — medium',
+  'lists.showMidNote': 'never hidden, medium highlight',
+  'lists.showMidDesc':
+    'An item that is already valuable keeps its strong highlight; otherwise it gets this medium look.',
+  'lists.hide': 'Always hide',
+  'lists.chance': 'Chance bases',
+  'lists.chanceNote': 'normal rarity only',
+  'lists.searchItem': 'Search a unique, currency or base…',
+  'lists.searchHide': 'Search an item to hide…',
+  'lists.searchBase': 'Search a base or unique…',
+
+  // Appearance
+  'look.title': 'Appearance',
+  'look.desc':
+    "Pick a colour and a sound per group: the app's own themes, NeverSink's styles or your own colours.",
+  'look.applyNeverSink': 'Use NeverSink colours everywhere',
+  'look.reset': 'Reset to default',
+  'look.customised': 'Customised',
+  'look.sound': 'Sound',
+  'look.soundDefault': 'Default ({0})',
+  'look.soundDefaultGame': 'game sound {0}',
+  'look.soundDefaultSilent': 'silent',
+  'look.soundNone': 'Silent',
+  'look.soundGame': 'Game sound {0}',
+  'look.play': 'Play',
+  'look.playGameOnly': 'Game sounds can only play in game',
+  'look.playAria': 'Play the sound',
+  'look.soundHint':
+    'To use your own sound, put an mp3/wav file in the filter folder ("Filter folder" at the bottom of Settings).',
+
+  // Theme picker
+  'picker.appThemes': 'App themes',
+  'picker.nsThemes': 'NeverSink themes',
+  'picker.nsEmpty': 'NeverSink styles appear after the first update.',
+  'picker.default': 'Default',
+  'picker.tabApp': 'App',
+  'picker.custom': 'Custom',
+  'picker.background': 'Background',
+  'picker.text': 'Text',
+  'picker.border': 'Border',
+  'picker.beam': 'Beam',
+  'picker.icon': 'Icon',
+  'picker.shape': 'Shape',
+  'picker.noShape': 'No shape',
+  'picker.noBeam': 'No beam',
+
+  // Preview
+  'preview.aria': '{0} preview',
+  'preview.sample': 'Sample item',
+  'preview.beam': 'Beam: {0}',
+  'preview.beamTemp': 'Beam: {0} (temporary)',
+  'preview.noBeam': 'No beam',
+  'preview.minimap': 'Minimap: {0} {1}',
+  'preview.noMinimap': 'No minimap icon',
+  'preview.soundSuffix': ' · Sound: {0}',
+
+  // Auto update
+  'auto.title': 'Automatic update',
+  'auto.enable': 'Update on start and at a regular interval',
+  'auto.hours': '{0} h',
+  'auto.notify': 'Show a notification after each update',
+
+  // Trade scan
+  'trade.title': 'Trade scan',
+  'trade.desc': 'The trade search quota (600 / 6 hours) is shared with your own searches on the trade site.',
+  'trade.budget': '{0}% of the quota',
+
+  // General
+  'general.title': 'General',
+  'general.language': 'Language',
+  'general.languageAuto': 'System language ({0})',
+  'general.league': 'League',
+  'general.leagueUnlisted':
+    'This league is not in the current list; your choice is kept, pick a new one if you like.',
+  'general.filterName': 'Filter name in game',
+  'general.customBase': 'Custom base filter (NeverSink when empty)',
+  'general.customBasePlaceholder': 'C:\\…\\myfilter.filter',
+  'general.priceServer': 'Price server (future)',
+
+  // Footer actions
+  'actions.filterFolder': 'Filter folder',
+  'actions.dataFolder': 'Data folder',
+  'actions.quit': 'Quit',
+  'footer.testMode': ' · test mode',
+
+  // List editor
+  'editor.uniqueOnly': 'Unique only',
+  'editor.uniqueOnlyTop': 'Unique only · best {0}',
+  'editor.allRarities': 'All rarities',
+  'editor.remove': 'remove {0}',
+
+  // Relative time
+  'time.never': 'never',
+  'time.justNow': 'just now',
+  'time.minsAgo': '{0} min ago',
+  'time.hoursAgo': '{0} h {1} min ago',
+  'time.secs': '{0} s',
+  'time.mins': '{0} min',
+  'time.hours': '{0} h {1} min',
+
+  // Minimap icon shapes and colours
+  'shape.Star': 'Star',
+  'shape.Diamond': 'Diamond',
+  'shape.Circle': 'Circle',
+  'shape.Square': 'Square',
+  'shape.Triangle': 'Triangle',
+  'shape.Hexagon': 'Hexagon',
+  'shape.Pentagon': 'Pentagon',
+  'shape.Cross': 'Cross',
+  'shape.Kite': 'Kite',
+  'shape.UpsideDownHouse': 'Upside-down house',
+  'colour.Blue': 'Blue',
+  'colour.Brown': 'Brown',
+  'colour.Cyan': 'Cyan',
+  'colour.Green': 'Green',
+  'colour.Grey': 'Grey',
+  'colour.Orange': 'Orange',
+  'colour.Pink': 'Pink',
+  'colour.Purple': 'Purple',
+  'colour.Red': 'Red',
+  'colour.White': 'White',
+  'colour.Yellow': 'Yellow',
+}

@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"poe2filter/internal/i18n"
 	"poe2filter/internal/prices"
 )
 
@@ -126,11 +127,11 @@ func SearchItems(s *prices.Snapshot, validBases map[string]string) []SearchItem 
 	}
 	for _, base := range validBases {
 		related := baseUniques[strings.ToLower(base)]
-		cat := "Crafting Tabanı"
+		cat := i18n.T("insights.crafting")
 		var maxEx float64
 		if s != nil {
 			if ub, ok := s.UniqueBases[base]; ok {
-				cat, maxEx = "Chance & Crafting Tabanı", ub.MaxEx
+				cat, maxEx = i18n.T("insights.chanceCrafting"), ub.MaxEx
 			}
 		}
 		add(SearchItem{Name: base, Category: cat, Type: "base", BaseType: base,

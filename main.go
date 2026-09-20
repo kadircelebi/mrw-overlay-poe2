@@ -16,6 +16,7 @@ import (
 	"poe2filter/internal/assets"
 	"poe2filter/internal/engine"
 	"poe2filter/internal/filter"
+	"poe2filter/internal/i18n"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
@@ -36,12 +37,16 @@ func defaultDataDir() string {
 }
 
 func main() {
-	dataDir := flag.String("data", defaultDataDir(), "Ayar ve veri klasörü")
-	outPath := flag.String("out", "", "Filtreyi oyun klasörü yerine bu dosyaya yaz (test)")
-	headless := flag.Bool("headless", false, "Arayüz açmadan bir kez güncelle ve çık")
-	show := flag.Bool("show", false, "Açılışta paneli göster")
-	debugPort := flag.Int("debug-port", 0, "WebView2 uzaktan hata ayıklama portu (geliştirme)")
+	dataDir := flag.String("data", defaultDataDir(), "settings and data folder")
+	outPath := flag.String("out", "", "write the filter here instead of the game folder (testing)")
+	headless := flag.Bool("headless", false, "update once without a window and exit")
+	show := flag.Bool("show", false, "show the panel on start")
+	debugPort := flag.Int("debug-port", 0, "WebView2 remote debugging port (development)")
 	flag.Parse()
+
+	// The interface language must be known before any text is built: the tray
+	// menu and the window title are created once, at start.
+	i18n.Set(i18n.Resolve(filter.LoadConfig(filepath.Join(*dataDir, "config.json")).Language))
 
 	if *headless {
 		eng := engine.New(engine.Options{Dir: *dataDir, OutPath: *outPath})
@@ -69,7 +74,7 @@ func main() {
 	app := application.New(application.Options{
 		Windows:     application.WindowsOptions{AdditionalBrowserArgs: browserArgs},
 		Name:        "PoE2 Filtre",
-		Description: "Canlı piyasa fiyatlarıyla güncellenen PoE2 loot filtresi",
+		Description: i18n.T("app.description"),
 		Services: []application.Service{
 			application.NewService(svc),
 			application.NewService(notifier),
@@ -106,18 +111,22 @@ func main() {
 		e.Cancel()
 	})
 
-	menu := app.NewMenu()
-	menu.Add("Paneli aç").OnClick(func(*application.Context) { tray.ShowWindow() })
-	menu.Add("Şimdi güncelle").OnClick(func(*application.Context) { _ = svc.UpdateNow() })
-	menu.AddSeparator()
-	menu.Add("Filtre klasörünü aç").OnClick(func(*application.Context) { _ = svc.OpenGameFolder() })
-	menu.AddSeparator()
-	menu.Add("Çıkış").OnClick(func(*application.Context) { app.Quit() })
+	trayMenu := func() *application.Menu {
+		m := app.NewMenu()
+		m.Add(i18n.T("tray.open")).OnClick(func(*application.Context) { tray.ShowWindow() })
+		m.Add(i18n.T("tray.update")).OnClick(func(*application.Context) { _ = svc.UpdateNow() })
+		m.AddSeparator()
+		m.Add(i18n.T("tray.openFolder")).OnClick(func(*application.Context) { _ = svc.OpenGameFolder() })
+		m.AddSeparator()
+		m.Add(i18n.T("tray.quit")).OnClick(func(*application.Context) { app.Quit() })
+		return m
+	}
 
 	tray = app.SystemTray.New()
 	tray.SetIcon(assets.Tray)
 	tray.SetTooltip("PoE2 Filtre")
-	tray.SetMenu(menu)
+	tray.SetMenu(trayMenu())
+	svc.relabel = func() { tray.SetMenu(trayMenu()) }
 	tray.AttachWindow(panel).WindowOffset(8)
 
 	svc.app, svc.tray = app, tray

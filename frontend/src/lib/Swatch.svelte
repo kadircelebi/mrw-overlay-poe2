@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { t } from './i18n.svelte'
   import { css, effectCss, shapePaths, type Look } from './look'
 
-  let { look, text = 'Örnek eşya', large = false, fontPx = 0 }: { look: Look; text?: string; large?: boolean; fontPx?: number } = $props()
+  let { look, text = t('preview.sample'), large = false, fontPx = 0 }: { look: Look; text?: string; large?: boolean; fontPx?: number } = $props()
 </script>
 
 <span

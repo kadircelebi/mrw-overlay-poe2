@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"poe2filter/internal/i18n"
 )
 
 // Theme is a colour palette for a highlighted drop. Colours are "R G B A" as
@@ -79,7 +81,7 @@ func hexToRGBA(h string) string {
 }
 
 func (cs CustomStyle) theme() Theme {
-	return Theme{ID: CustomThemeID, Label: "Özel", Full: true,
+	return Theme{ID: CustomThemeID, Label: i18n.T("theme.custom"), Full: true,
 		BgColor: hexToRGBA(cs.Bg), TextColor: hexToRGBA(cs.Text), Border: hexToRGBA(cs.Border),
 		Beam: cs.Beam, Icon: cs.Icon, Shape: cs.Shape}
 }
@@ -88,14 +90,14 @@ func (cs CustomStyle) theme() Theme {
 // own background so they are told apart at a glance on the ground; a coloured
 // border alone is too thin to notice in game.
 var ThemeList = []Theme{
-	{ID: "neon_cyan", Label: "Turkuaz zemin", BgColor: "0 200 230 255", TextColor: "0 0 0 255", Border: "255 255 255 255", Beam: "Cyan"},
-	{ID: "neon_purple", Label: "Mor zemin", BgColor: "120 30 180 255", TextColor: "255 255 255 255", Border: "235 170 255 255", Beam: "Purple"},
-	{ID: "neon_red", Label: "Kırmızı zemin", BgColor: "185 10 30 255", TextColor: "255 255 255 255", Border: "255 200 200 255", Beam: "Red"},
-	{ID: "neon_gold", Label: "Altın zemin", BgColor: "255 200 40 255", TextColor: "40 20 0 255", Border: "255 255 255 255", Beam: "Yellow"},
-	{ID: "neon_green", Label: "Yeşil zemin", BgColor: "20 160 70 255", TextColor: "255 255 255 255", Border: "190 255 210 255", Beam: "Green"},
-	{ID: "dark", Label: "Koyu zemin, turkuaz çerçeve", BgColor: "15 15 25 255", TextColor: "255 255 255 255", Border: "0 255 255 255", Beam: "Cyan"},
-	{ID: "gold", Label: "Koyu altın", BgColor: "60 45 5 255", TextColor: "255 215 0 255", Border: "255 215 0 255", Beam: "Yellow"},
-	{ID: "classic_black", Label: "Beyaz zemin, siyah çerçeve", BgColor: "255 255 255 255", TextColor: "0 0 0 255", Border: "0 0 0 255", Beam: "White"},
+	{ID: "neon_cyan", BgColor: "0 200 230 255", TextColor: "0 0 0 255", Border: "255 255 255 255", Beam: "Cyan"},
+	{ID: "neon_purple", BgColor: "120 30 180 255", TextColor: "255 255 255 255", Border: "235 170 255 255", Beam: "Purple"},
+	{ID: "neon_red", BgColor: "185 10 30 255", TextColor: "255 255 255 255", Border: "255 200 200 255", Beam: "Red"},
+	{ID: "neon_gold", BgColor: "255 200 40 255", TextColor: "40 20 0 255", Border: "255 255 255 255", Beam: "Yellow"},
+	{ID: "neon_green", BgColor: "20 160 70 255", TextColor: "255 255 255 255", Border: "190 255 210 255", Beam: "Green"},
+	{ID: "dark", BgColor: "15 15 25 255", TextColor: "255 255 255 255", Border: "0 255 255 255", Beam: "Cyan"},
+	{ID: "gold", BgColor: "60 45 5 255", TextColor: "255 215 0 255", Border: "255 215 0 255", Beam: "Yellow"},
+	{ID: "classic_black", BgColor: "255 255 255 255", TextColor: "0 0 0 255", Border: "0 0 0 255", Beam: "White"},
 }
 
 var themeByID = func() map[string]Theme {
@@ -140,31 +142,31 @@ const (
 
 // StyleGroups lists every customisable group in display order.
 var StyleGroups = []StyleGroup{
-	{ID: GroupDivine, Label: "Divine Orb", Sample: "Divine Orb",
+	{ID: GroupDivine, Sample: "Divine Orb",
 		Default: themeByID["neon_cyan"], DefaultSound: "6", FontSize: 45, HasBeam: true, IconShape: "Star"},
-	{ID: GroupCurrency, Label: "Değerli currency", Sample: "Perfect Exalted Orb", AllowDefault: true,
-		DefaultLabel: "Varsayılan (kategori renkleri)", DefaultSound: "6", FontSize: 45, HasBeam: true, IconShape: "Star",
+	{ID: GroupCurrency, Sample: "Perfect Exalted Orb", AllowDefault: true,
+		DefaultSound: "6", FontSize: 45, HasBeam: true, IconShape: "Star",
 		Default: Theme{BgColor: "60 45 5 255", TextColor: "255 215 0 255", Border: "255 225 0 255", Beam: "Yellow"}},
-	{ID: GroupWhitelist, Label: "Her zaman göster (öne çıkar)", Sample: "Mirror of Kalandra", AllowDefault: true,
-		DefaultLabel: "Varsayılan (kırmızı, altın çerçeve)", DefaultSound: "6", FontSize: 45, HasBeam: true, IconShape: "Star",
+	{ID: GroupWhitelist, Sample: "Mirror of Kalandra", AllowDefault: true,
+		DefaultSound: "6", FontSize: 45, HasBeam: true, IconShape: "Star",
 		Default: Theme{BgColor: "180 0 0 255", TextColor: "255 255 255 255", Border: "255 215 0 255", Beam: "Red"}},
-	{ID: GroupWhitelistMid, Label: "Her zaman göster (orta)", Sample: "Orb of Annulment", AllowDefault: true,
-		DefaultLabel: "Varsayılan (mor)", DefaultSound: "2", FontSize: 40, IconShape: "Diamond",
+	{ID: GroupWhitelistMid, Sample: "Orb of Annulment", AllowDefault: true,
+		DefaultSound: "2", FontSize: 40, IconShape: "Diamond",
 		Default: Theme{BgColor: "70 20 100 230", TextColor: "240 220 255 255", Border: "180 120 255 255", Beam: "Purple"}},
-	{ID: GroupUnique, Label: "Değerli unique", Sample: "Utility Belt", AllowDefault: true,
-		DefaultLabel: "Varsayılan (koyu kırmızı)", DefaultSound: "6", FontSize: 44, HasBeam: true, IconShape: "Star",
+	{ID: GroupUnique, Sample: "Utility Belt", AllowDefault: true,
+		DefaultSound: "6", FontSize: 44, HasBeam: true, IconShape: "Star",
 		Default: Theme{BgColor: "175 40 0 255", TextColor: "255 255 255 255", Border: "255 100 0 255", Beam: "Red"}},
-	{ID: GroupExceptional, Label: "Değerli exceptional", Sample: "Exceptional Sekhema Sandals", AllowDefault: true,
-		DefaultLabel: "Varsayılan (koyu mavi)", DefaultSound: "2", FontSize: 42, HasBeam: true, IconShape: "Diamond",
+	{ID: GroupExceptional, Sample: "Exceptional Sekhema Sandals", AllowDefault: true,
+		DefaultSound: "2", FontSize: 42, HasBeam: true, IconShape: "Diamond",
 		Default: Theme{BgColor: "0 40 70 240", TextColor: "255 255 255 255", Border: "0 210 255 255", Beam: "Cyan"}},
-	{ID: GroupExceptionalUnknown, Label: "Fiyatlanmamış exceptional", Sample: "Exceptional Cavalry Boots", AllowDefault: true,
-		DefaultLabel: "Varsayılan (sönük mavi)", FontSize: 36,
-		Default: Theme{BgColor: "0 25 45 220", TextColor: "200 230 255 255", Border: "0 150 200 255", Beam: "Cyan"}},
-	{ID: GroupT5Rare, Label: "T5 rare", Sample: "Gold Ring", AllowDefault: true,
-		DefaultLabel: "Varsayılan (koyu kahve, altın yazı)", FontSize: 40, IconShape: "Diamond",
+	{ID: GroupExceptionalUnknown, Sample: "Exceptional Cavalry Boots", AllowDefault: true,
+		FontSize: 36,
+		Default:  Theme{BgColor: "0 25 45 220", TextColor: "200 230 255 255", Border: "0 150 200 255", Beam: "Cyan"}},
+	{ID: GroupT5Rare, Sample: "Gold Ring", AllowDefault: true,
+		FontSize: 40, IconShape: "Diamond",
 		Default: Theme{BgColor: "40 25 0 255", TextColor: "255 215 0 255", Border: "255 180 0 255", Beam: "Yellow"}},
-	{ID: GroupChance, Label: "Chance tabanları", Sample: "Heavy Belt", AllowDefault: true,
-		DefaultLabel: "Varsayılan (koyu mavi, turkuaz yazı)", FontSize: 38, IconShape: "Circle",
+	{ID: GroupChance, Sample: "Heavy Belt", AllowDefault: true,
+		FontSize: 38, IconShape: "Circle",
 		Default: Theme{BgColor: "10 30 50 240", TextColor: "0 240 255 255", Border: "0 200 255 255", Beam: "Cyan"}},
 }
 
@@ -343,4 +345,45 @@ func (st *style) with(p Theme) *style {
 		s.icon = size + " " + iconColour + " " + shape
 	}
 	return &s
+}
+
+// groupLabelKeys ties each style group to its translation keys: the group name
+// and, when the group can fall back to the built-in look, the name of that
+// default. Keeping them in one table makes a forgotten key easy to spot.
+var groupLabelKeys = map[string][2]string{
+	GroupDivine:             {"group.divine", ""},
+	GroupCurrency:           {"group.currency", "groupDefault.currency"},
+	GroupWhitelist:          {"group.whitelist", "groupDefault.whitelist"},
+	GroupWhitelistMid:       {"group.whitelistMid", "groupDefault.whitelistMid"},
+	GroupUnique:             {"group.unique", "groupDefault.unique"},
+	GroupExceptional:        {"group.exceptional", "groupDefault.exceptional"},
+	GroupExceptionalUnknown: {"group.exceptionalUnknown", "groupDefault.exceptionalUnknown"},
+	GroupT5Rare:             {"group.t5rare", "groupDefault.t5rare"},
+	GroupChance:             {"group.chance", "groupDefault.chance"},
+}
+
+// LocalizedThemes returns the selectable palettes with their names in the
+// active interface language.
+func LocalizedThemes() []Theme {
+	out := make([]Theme, len(ThemeList))
+	copy(out, ThemeList)
+	for i := range out {
+		out[i].Label = i18n.T("theme." + out[i].ID)
+	}
+	return out
+}
+
+// LocalizedStyleGroups returns the customisable groups with their names in the
+// active interface language.
+func LocalizedStyleGroups() []StyleGroup {
+	out := make([]StyleGroup, len(StyleGroups))
+	copy(out, StyleGroups)
+	for i := range out {
+		keys := groupLabelKeys[out[i].ID]
+		out[i].Label = i18n.T(keys[0])
+		if keys[1] != "" {
+			out[i].DefaultLabel = i18n.T(keys[1])
+		}
+	}
+	return out
 }

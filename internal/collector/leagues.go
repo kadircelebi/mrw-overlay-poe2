@@ -69,7 +69,7 @@ func fetchLeaguesFrom(ctx context.Context, c *http.Client, url string) ([]string
 		out = append(out, name)
 	}
 	if len(out) == 0 {
-		return nil, fmt.Errorf("lig listesi boş döndü")
+		return nil, fmt.Errorf("the league list came back empty")
 	}
 	return out, nil
 }

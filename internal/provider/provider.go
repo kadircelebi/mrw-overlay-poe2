@@ -15,6 +15,8 @@ import (
 
 	"poe2filter/internal/collector"
 	"poe2filter/internal/prices"
+
+	"poe2filter/internal/i18n"
 )
 
 // Provider returns a price snapshot.
@@ -36,7 +38,7 @@ func (c Chain) Get(ctx context.Context) (*prices.Snapshot, string, error) {
 		}
 		errs = append(errs, fmt.Sprintf("%s: %v", p.Name(), err))
 	}
-	return nil, "", errors.New("hiçbir fiyat kaynağı çalışmadı: " + strings.Join(errs, "; "))
+	return nil, "", errors.New(i18n.T("err.noPriceSource") + strings.Join(errs, "; "))
 }
 
 // Cache serves the last snapshot saved on disk.
@@ -75,7 +77,7 @@ func (l Local) Get(ctx context.Context) (*prices.Snapshot, error) {
 		snap.Exceptional = prev.Exceptional
 	}
 	if err := prices.Save(l.CachePath, snap); err != nil {
-		return nil, fmt.Errorf("önbellek yazılamadı: %w", err)
+		return nil, fmt.Errorf("could not write the cache: %w", err)
 	}
 	return snap, nil
 }
@@ -112,10 +114,10 @@ func (r Remote) Get(ctx context.Context) (*prices.Snapshot, error) {
 		return nil, err
 	}
 	if r.League != "" && s.League != r.League {
-		return nil, fmt.Errorf("sunucu farklı lig yayınlıyor (%s)", s.League)
+		return nil, fmt.Errorf("the server publishes a different league (%s)", s.League)
 	}
 	if time.Since(s.GeneratedAt) > 24*time.Hour {
-		return nil, fmt.Errorf("sunucudaki veri 24 saatten eski")
+		return nil, fmt.Errorf("the data on the server is older than 24 hours")
 	}
 	if r.CachePath != "" {
 		_ = prices.Save(r.CachePath, &s)

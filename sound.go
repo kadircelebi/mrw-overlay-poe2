@@ -1,11 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"poe2filter/internal/i18n"
 )
 
 var soundExts = map[string]bool{".mp3": true, ".wav": true, ".ogg": true}
@@ -31,11 +34,11 @@ func (s *AppService) ListSounds() []string {
 func (s *AppService) PreviewSound(name string) error {
 	base := filepath.Base(name)
 	if base != name || !soundExts[strings.ToLower(filepath.Ext(base))] {
-		return fmt.Errorf("geçersiz ses dosyası")
+		return errors.New(i18n.T("err.soundInvalid"))
 	}
 	path := filepath.Join(s.meta.GameDir, base)
 	if _, err := os.Stat(path); err != nil {
-		return fmt.Errorf("%s filtre klasöründe bulunamadı", base)
+		return fmt.Errorf(i18n.T("err.soundNotFound"), base)
 	}
 	return playSound(path)
 }

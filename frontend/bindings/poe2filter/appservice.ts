@@ -54,6 +54,14 @@ export function HidePanel(): $CancellablePromise<void> {
 }
 
 /**
+ * Languages lists the interface languages, each named in its own language.
+ * The first entry follows the Windows display language.
+ */
+export function Languages(): $CancellablePromise<$models.LanguageOption[] | null> {
+    return $Call.ByID(3617621873);
+}
+
+/**
  * Leagues lists the leagues for the picker, live list first, always including
  * the one currently configured.
  */

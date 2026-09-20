@@ -2,7 +2,8 @@
   import type { CustomStyle, StyleGroup, Theme } from '../../bindings/poe2filter/internal/filter/models'
   import Swatch from './Swatch.svelte'
   import Segmented from './Segmented.svelte'
-  import { lookOf, toHex, colourNames, shapeNames, type Look } from './look'
+  import { lookOf, toHex, colourName, shapeName, type Look } from './look'
+  import { t } from './i18n.svelte'
 
   let {
     group,
@@ -86,19 +87,19 @@
 <Segmented
   small
   value={tab}
-  onchange={(t) => {
-    tab = t
-    if (t === 'custom') openCustom()
+  onchange={(v) => {
+    tab = v
+    if (v === 'custom') openCustom()
   }}
   options={[
-    { value: 'app', label: 'Uygulama' },
+    { value: 'app', label: t('picker.tabApp') },
     { value: 'ns', label: 'NeverSink' },
-    { value: 'custom', label: 'Özel' },
+    { value: 'custom', label: t('picker.custom') },
   ]}
 />
 
 {#if tab === 'app'}
-  <div class="list" role="listbox" aria-label="Uygulama temaları">
+  <div class="list" role="listbox" aria-label={t('picker.appThemes')}>
     {#each appRows as t (t.id)}
       <button type="button" role="option" aria-selected={value === t.id} class:on={value === t.id} onclick={() => onselect(t.id)}>
         <span class="name">{t.label}</span>
@@ -108,7 +109,7 @@
   </div>
 {:else if tab === 'ns'}
   {#if nsSections.length}
-    <div class="list tall" role="listbox" aria-label="NeverSink temaları">
+    <div class="list tall" role="listbox" aria-label={t('picker.nsThemes')}>
       {#each nsSections as s (s.category)}
         <div class="section">{s.category}</div>
         {#each s.rows as t (t.id)}
@@ -120,30 +121,30 @@
       {/each}
     </div>
   {:else}
-    <p class="empty">NeverSink stilleri ilk güncellemeden sonra görünür.</p>
+    <p class="empty">{t('picker.nsEmpty')}</p>
   {/if}
 {:else}
   <div class="custom">
-    <label><span>Zemin</span><input type="color" value={draft.bg} oninput={(e) => update('bg', e.currentTarget.value)} /></label>
-    <label><span>Yazı</span><input type="color" value={draft.text} oninput={(e) => update('text', e.currentTarget.value)} /></label>
-    <label><span>Çerçeve</span><input type="color" value={draft.border} oninput={(e) => update('border', e.currentTarget.value)} /></label>
+    <label><span>{t('picker.background')}</span><input type="color" value={draft.bg} oninput={(e) => update('bg', e.currentTarget.value)} /></label>
+    <label><span>{t('picker.text')}</span><input type="color" value={draft.text} oninput={(e) => update('text', e.currentTarget.value)} /></label>
+    <label><span>{t('picker.border')}</span><input type="color" value={draft.border} oninput={(e) => update('border', e.currentTarget.value)} /></label>
     <label class="wide">
-      <span>Işın</span>
+      <span>{t('picker.beam')}</span>
       <select value={draft.beam} onchange={(e) => update('beam', e.currentTarget.value)}>
         <option value="">Yok</option>
-        {#each colours as c}<option value={c}>{colourNames[c] ?? c}</option>{/each}
+        {#each colours as c}<option value={c}>{colourName(c) || c}</option>{/each}
       </select>
     </label>
     <label class="wide">
-      <span>Simge</span>
+      <span>{t('picker.icon')}</span>
       <span class="pair">
         <select value={draft.icon} onchange={(e) => update('icon', e.currentTarget.value)}>
           <option value="">Yok</option>
-          {#each colours as c}<option value={c}>{colourNames[c] ?? c}</option>{/each}
+          {#each colours as c}<option value={c}>{colourName(c) || c}</option>{/each}
         </select>
         <select value={draft.shape} disabled={!draft.icon} onchange={(e) => update('shape', e.currentTarget.value)}>
-          <option value="">Şekil yok</option>
-          {#each shapes as s}<option value={s}>{shapeNames[s] ?? s}</option>{/each}
+          <option value="">{t('picker.noShape')}</option>
+          {#each shapes as s}<option value={s}>{shapeName(s) || s}</option>{/each}
         </select>
       </span>
     </label>

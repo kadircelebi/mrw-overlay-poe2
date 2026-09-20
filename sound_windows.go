@@ -22,10 +22,10 @@ func playSound(path string) error {
 	const alias = "poe2filter_preview"
 	mci("close " + alias)
 	if r := mci(fmt.Sprintf(`open "%s" type mpegvideo alias %s`, path, alias)); r != 0 {
-		return fmt.Errorf("ses açılamadı (MCI %d)", r)
+		return fmt.Errorf("could not open the sound (MCI %d)", r)
 	}
 	if r := mci("play " + alias); r != 0 {
-		return fmt.Errorf("ses çalınamadı (MCI %d)", r)
+		return fmt.Errorf("could not play the sound (MCI %d)", r)
 	}
 	return nil
 }

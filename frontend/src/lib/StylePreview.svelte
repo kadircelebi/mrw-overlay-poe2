@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { StyleGroup } from '../../bindings/poe2filter/internal/filter/models'
   import Swatch from './Swatch.svelte'
-  import { effectCss, shapeNames, colourNames, type Look } from './look'
+  import { effectCss, shapeName, colourName, type Look } from './look'
+  import { t } from './i18n.svelte'
 
   let { group, look, sound = '' }: { group: StyleGroup; look: Look; sound?: string } = $props()
 
@@ -10,15 +11,17 @@
   const beamName = $derived((look.beam || '').split(' ')[0])
 </script>
 
-<div class="stage" aria-label="{group.label} önizlemesi">
+<div class="stage" aria-label={t('preview.aria', group.label)}>
   {#if look.beam}<span class="beam" class:temp={look.beam.includes('Temp')} style="--beam: {effectCss(look.beam)}"></span>{/if}
   <Swatch {look} text={group.sample} large {fontPx} />
 </div>
 <p class="caption">
-  {look.beam ? `Işın: ${colourNames[beamName] ?? beamName}${look.beam.includes('Temp') ? ' (geçici)' : ''}` : 'Işın yok'} ·
-  {look.shape ? `Minimap: ${colourNames[look.icon] ?? look.icon} ${(shapeNames[look.shape] ?? look.shape).toLowerCase()}` : 'Minimap simgesi yok'}{sound
-    ? ` · Ses: ${sound}`
-    : ''}
+  {look.beam
+    ? t(look.beam.includes('Temp') ? 'preview.beamTemp' : 'preview.beam', colourName(beamName) || beamName)
+    : t('preview.noBeam')} ·
+  {look.shape
+    ? t('preview.minimap', colourName(look.icon) || look.icon, shapeName(look.shape) || look.shape)
+    : t('preview.noMinimap')}{sound ? t('preview.soundSuffix', sound) : ''}
 </p>
 
 <style>

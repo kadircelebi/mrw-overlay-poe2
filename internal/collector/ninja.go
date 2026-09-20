@@ -88,7 +88,7 @@ func FetchNinjaUniques(ctx context.Context, c *http.Client, league string) Ninja
 			mu.Lock()
 			defer mu.Unlock()
 			if err == nil && len(data.Lines) == 0 {
-				err = fmt.Errorf("boş cevap")
+				err = fmt.Errorf("empty response")
 			}
 			if err != nil {
 				res.Failed[typ] = err

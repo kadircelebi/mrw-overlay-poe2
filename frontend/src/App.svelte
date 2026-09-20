@@ -14,6 +14,8 @@
   import type { StyleOptions } from '../bindings/poe2filter/models'
   import type { StyleGroup, Theme } from '../bindings/poe2filter/internal/filter/models'
   import { clock, relative, until, money, strictnessNames } from './lib/format'
+  import { t, setLang } from './lib/i18n.svelte'
+  import type { LanguageOption } from '../bindings/poe2filter/models'
 
   let meta = $state<Meta | null>(null)
   let cfg = $state<Config | null>(null)
@@ -34,6 +36,21 @@
   let sounds = $state<string[]>([])
   let soundError = $state('')
   let leagues = $state<string[]>([])
+  let languages = $state<LanguageOption[]>([])
+
+  // "auto" resolves to whatever the first entry (the system language) reports.
+  function languageOf(setting: string | undefined): string {
+    if (!setting || setting === 'auto') return languages.find((l) => l.auto)?.id ?? 'auto'
+    return setting
+  }
+
+  function applyLanguage(setting: string) {
+    const lang = setting === 'auto' ? (languages.find((l) => l.auto)?.resolved ?? 'en') : setting
+    setLang(lang)
+    // CSS uppercase follows the document language: with lang="tr" the browser
+    // turns "i" into "İ", which is wrong in the other two languages.
+    document.documentElement.lang = lang
+  }
 
   async function refresh() {
     st = await AppService.GetState()
@@ -49,7 +66,9 @@
       groups = (await AppService.StyleGroups()) ?? []
       sounds = (await AppService.ListSounds()) ?? []
       leagues = (await AppService.Leagues()) ?? []
+      languages = (await AppService.Languages()) ?? []
       cfg = await AppService.GetConfig()
+      applyLanguage(cfg.language)
       await refresh()
     })()
     const off = Events.On('state', (ev) => {
@@ -81,7 +100,16 @@
         const saved = await AppService.SaveConfig($state.snapshot(cfg) as Config)
         // Ignore stale replies: the user may have kept editing meanwhile.
         if (seq !== saveSeq) return
+        const langChanged = languageOf(saved.language) !== languageOf(cfg?.language)
         cfg = saved
+        if (langChanged) {
+          applyLanguage(saved.language)
+          // Group and theme names come from Go, so they need fetching again.
+          themes = (await AppService.Themes()) ?? themes
+          groups = (await AppService.StyleGroups()) ?? groups
+          languages = (await AppService.Languages()) ?? languages
+          await refresh()
+        }
         saveState = 'saved'
         setTimeout(() => saveState === 'saved' && (saveState = 'idle'), 1500)
       } catch (e) {
@@ -112,11 +140,11 @@
   })
 
   const status = $derived.by(() => {
-    if (!st) return { tone: 'idle', title: 'Başlatılıyor…', sub: '' }
-    if (st.running) return { tone: 'busy', title: 'Güncelleniyor', sub: st.step }
-    if (st.lastError) return { tone: 'bad', title: 'Filtre güncellenemedi', sub: st.lastError }
-    if (st.lastRunAtMs) return { tone: 'ok', title: 'Filtre güncel', sub: `Son güncelleme ${relative(st.lastRunAtMs, now)}` }
-    return { tone: 'idle', title: 'Henüz güncellenmedi', sub: '' }
+    if (!st) return { tone: 'idle', title: t('status.starting'), sub: '' }
+    if (st.running) return { tone: 'busy', title: t('status.updating'), sub: st.step }
+    if (st.lastError) return { tone: 'bad', title: t('status.failed'), sub: st.lastError }
+    if (st.lastRunAtMs) return { tone: 'ok', title: t('status.fresh'), sub: t('status.lastUpdate', relative(st.lastRunAtMs, now)) }
+    return { tone: 'idle', title: t('status.never'), sub: '' }
   })
 
   // The configured league is always offered, even if the live list lost it.
@@ -145,7 +173,7 @@
     const v = cfg?.styles?.[g.id] ?? ''
     const cs = cfg?.custom_styles?.[g.id]
     if (v === 'custom' && cs) {
-      return { id: 'custom', label: 'Özel', full: true, bg: fromHex(cs.bg), text: fromHex(cs.text),
+      return { id: 'custom', label: t('picker.custom'), full: true, bg: fromHex(cs.bg), text: fromHex(cs.text),
         border: fromHex(cs.border), beam: cs.beam, icon: cs.icon, shape: cs.shape } as Theme
     }
     const pool = v.startsWith('ns:') ? nsThemes : themes
@@ -199,10 +227,10 @@
 
   function soundLabel(g: StyleGroup): string {
     const v = cfg?.sounds?.[g.id] ?? ''
-    if (v === 'none') return 'sessiz'
+    if (v === 'none') return t('look.soundDefaultSilent')
     if (v.startsWith('file:')) return v.slice(5)
-    if (v) return `oyun sesi ${v}`
-    return g.defaultSound ? `oyun sesi ${g.defaultSound}` : 'sessiz'
+    if (v) return t('look.soundDefaultGame', v)
+    return g.defaultSound ? t('look.soundDefaultGame', g.defaultSound) : t('look.soundDefaultSilent')
   }
 
   async function previewSound(g: StyleGroup) {
@@ -228,24 +256,24 @@
     <img src="/emblem.png" alt="" class="emblem" />
     {#if view === 'main'}
       <div class="brand">
-        <h1>PoE2 Filtre</h1>
+        <h1>{t('app.title')}</h1>
         {#if cfg}<span class="league">{cfg.league_name}</span>{/if}
       </div>
-      <button class="icon" title="Ayarlar" aria-label="Ayarlar" onclick={() => (view = 'settings')}>
+      <button class="icon" title={t('header.settings')} aria-label={t('header.settings')} onclick={() => (view = 'settings')}>
         <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>
       </button>
     {:else}
       <div class="brand">
-        <h1>Ayarlar</h1>
+        <h1>{t('header.settings')}</h1>
         <span class="save {saveState}">
-          {#if saveState === 'saving'}kaydediliyor…{:else if saveState === 'saved'}kaydedildi{:else if saveState === 'error'}kaydedilemedi{/if}
+          {#if saveState === 'saving'}{t('save.saving')}{:else if saveState === 'saved'}{t('save.saved')}{:else if saveState === 'error'}{t('save.error')}{/if}
         </span>
       </div>
-      <button class="icon" title="Geri" aria-label="Geri" onclick={() => (view = 'main')}>
+      <button class="icon" title={t('header.back')} aria-label={t('header.back')} onclick={() => (view = 'main')}>
         <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
       </button>
     {/if}
-    <button class="icon" title="Gizle" aria-label="Paneli gizle" onclick={() => AppService.HidePanel()}>
+    <button class="icon" title={t('header.hide')} aria-label={t('header.hide')} onclick={() => AppService.HidePanel()}>
       <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
     </button>
   </header>
@@ -265,29 +293,30 @@
           <div class="bar"><span style="width: {Math.round((st.progress || 0.05) * 100)}%"></span></div>
         {/if}
         {#if dirty && !st?.running}
-          <p class="notice">Ayarlar değişti. Filtreye yansıması için güncelle.</p>
+          <p class="notice">{t('status.dirty')}</p>
         {/if}
         {#if st?.lastError && !st.running}
           <p class="notice bad">
-            Oyundaki filtre yazılamadı, {st.lastOkAtMs
-              ? `dosya ${relative(st.lastOkAtMs, now)} yazılan hâliyle duruyor`
-              : 'henüz hiç yazılmadı'}. Yeni ayarların oyuna yansıması için güncellemenin başarılı olması gerekir.
+            {t(
+              'status.writeFailed',
+              st.lastOkAtMs ? t('status.fileFrom', relative(st.lastOkAtMs, now)) : t('status.fileNever'),
+            )}
           </p>
         {/if}
         <button class="primary" class:pulse={dirty} disabled={st?.running} onclick={updateNow}>
-          {st?.running ? 'Güncelleniyor…' : st?.lastError ? 'Tekrar dene' : 'Şimdi güncelle'}
+          {st?.running ? t('button.updating') : st?.lastError ? t('button.retry') : t('button.updateNow')}
         </button>
         <div class="meta-row">
           {#if st?.running}
             <span>&nbsp;</span>
           {:else if st?.nextRetryAtMs}
-            <span>Otomatik tekrar: {clock(st.nextRetryAtMs)} <em>({until(st.nextRetryAtMs, now)})</em></span>
+            <span>{t('meta.autoRetry', clock(st.nextRetryAtMs))} <em>({until(st.nextRetryAtMs, now)})</em></span>
           {:else if st?.nextRunAtMs}
-            <span>Sonraki: {clock(st.nextRunAtMs)} <em>({until(st.nextRunAtMs, now)})</em></span>
+            <span>{t('meta.next', clock(st.nextRunAtMs))} <em>({until(st.nextRunAtMs, now)})</em></span>
           {:else if !cfg.auto_update_enabled}
-            <span>Otomatik güncelleme kapalı</span>
+            <span>{t('meta.autoOff')}</span>
           {/if}
-          <span class="reload">Oyunda: Item Filter → Reload</span>
+          <span class="reload">{t('meta.reload')}</span>
         </div>
         {#if actionError}<p class="error">{actionError}</p>{/if}
       </section>
@@ -295,10 +324,12 @@
       <!-- Threshold -->
       <section class="card">
         <div class="card-title">
-          <h2>Değer eşiği</h2>
+          <h2>{t('threshold.title')}</h2>
           {#if divineEx && cfg.min_value_unit !== 'exalted'}<span class="aside num">≈ {money(thresholdEx, 0)}</span>{/if}
         </div>
-        <p class="desc">Bu değerin altındaki eşyalar {cfg.filter_mode === 'dim' ? 'soluk gösterilir' : cfg.filter_mode === 'show_only' ? 'yine gösterilir' : 'gizlenir'}.</p>
+        <p class="desc">
+          {t(cfg.filter_mode === 'dim' ? 'threshold.dim' : cfg.filter_mode === 'show_only' ? 'threshold.show' : 'threshold.hide')}
+        </p>
         <div class="threshold">
           <input
             type="number"
@@ -329,7 +360,7 @@
       <!-- Strictness + mode -->
       <section class="card">
         <div class="card-title">
-          <h2><span lang="en">NeverSink</span> temeli</h2>
+          <h2>{t('base.title')}</h2>
           <span class="aside gold">{strictnessNames[cfg.strictness]}</span>
         </div>
         <input
@@ -342,16 +373,16 @@
           onchange={() => queueSave()}
           style="--p: {(cfg.strictness / 6) * 100}%"
         />
-        <div class="scale"><span>Soft</span><span>Strict</span><span>Uber+</span></div>
+        <div class="scale"><span>{t('base.soft')}</span><span>{t('base.strict')}</span><span>{t('base.uber')}</span></div>
 
-        <h2 class="sub-title">Eşik altı eşyalar</h2>
+        <h2 class="sub-title">{t('mode.title')}</h2>
         <Segmented
           bind:value={cfg.filter_mode}
           onchange={() => queueSave()}
           options={[
-            { value: 'hide', label: 'Gizle' },
-            { value: 'dim', label: 'Soluk' },
-            { value: 'show_only', label: 'Göster' },
+            { value: 'hide', label: t('mode.hide') },
+            { value: 'dim', label: t('mode.dim') },
+            { value: 'show_only', label: t('mode.show') },
           ]}
         />
       </section>
@@ -360,29 +391,32 @@
       <section class="card">
         <Toggle
           bind:checked={cfg.exceptional_scan}
-          label="Exceptional taraması"
-          hint="Fazladan soketli ve %21+ kaliteli tabanları trade'den fiyatlar"
+          label={t('scan.toggle')}
+          hint={t('scan.hint')}
           onchange={() => queueSave(false)}
         />
         {#if st && cfg.exceptional_scan}
           <div class="bar thin"><span class="cyan" style="width: {scanPct * 100}%"></span></div>
           <div class="scan-line num">
-            <span>{st.scan.scanned} / {st.scan.keys || '—'} tarandı</span>
-            <span class="cyan-text">{st.scan.valuable} değerli</span>
+            <span>{t('scan.scanned', st.scan.scanned, st.scan.keys || '—')}</span>
+            <span class="cyan-text">{t('scan.valuable', st.scan.valuable)}</span>
           </div>
           {#if st.scan.current}
             <div class="scan-line muted">
-              <span class="ellipsis">Sırada: {st.scan.current}</span>
-              <span class="num">{st.scan.nextAtMs > now + 1000 ? until(st.scan.nextAtMs, now) : 'aranıyor…'}</span>
+              <span class="ellipsis">{t('scan.next', st.scan.current)}</span>
+              <span class="num">{st.scan.nextAtMs > now + 1000 ? until(st.scan.nextAtMs, now) : t('scan.searching')}</span>
             </div>
           {/if}
           {#if st.scan.last}
-            <div class="scan-line muted"><span class="ellipsis">Son: {st.scan.last}</span></div>
+            <div class="scan-line muted"><span class="ellipsis">{t('scan.last', st.scan.last)}</span></div>
           {/if}
           {#if st.scan.etaSec > 0}
             <p class="scan-note">
-              Aramalar kotayı korumak için ~{Math.round(st.scan.etaSec / Math.max(1, st.scan.keys - st.scan.scanned))} sn arayla yapılıyor.
-              Tüm tabanların ilk taraması ≈ {until(now + st.scan.etaSec * 1000, now)}; NeverSink'in değerli bulduğu tabanlar önce.
+              {t(
+                'scan.note',
+                Math.round(st.scan.etaSec / Math.max(1, st.scan.keys - st.scan.scanned)),
+                until(now + st.scan.etaSec * 1000, now),
+              )}
             </p>
           {/if}
         {/if}
@@ -391,24 +425,24 @@
       <!-- Summary -->
       {#if last}
         <section class="stats">
-          <div><strong class="num">{last.valuableCurrency}</strong><span>currency</span></div>
-          <div><strong class="num">{last.valuableUniques}</strong><span>unique taban</span></div>
-          <div><strong class="num cyan-text">{last.valuableExcept}</strong><span>exceptional</span></div>
+          <div><strong class="num">{last.valuableCurrency}</strong><span>{t('stats.currency')}</span></div>
+          <div><strong class="num">{last.valuableUniques}</strong><span>{t('stats.uniqueBases')}</span></div>
+          <div><strong class="num cyan-text">{last.valuableExcept}</strong><span>{t('stats.exceptional')}</span></div>
         </section>
-        <p class="stats-caption">eşiğin üstünde vurgulanan · 1 div = {Math.round(divineEx)} ex</p>
+        <p class="stats-caption">{t('stats.caption', Math.round(divineEx))}</p>
       {/if}
     </div>
   {:else if cfg && view === 'settings'}
     <div class="scroll settings">
       <section class="card">
-        <h2>Ekipman</h2>
-        <Toggle bind:checked={cfg.include_gear} label="Sıkı ekipman filtresi" hint="Sıradan silah ve zırhları gizler" onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.t5_rares} label="Tier 5 rare ekipman" hint="Tanımlanmamış tier'ı 5 olan rare'ler hep görünür" onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.t5_jewels_only} label="Rare jewel'larda sadece T5" onchange={() => queueSave()} />
+        <h2>{t('gear.title')}</h2>
+        <Toggle bind:checked={cfg.include_gear} label={t('gear.strict')} hint={t('gear.strictHint')} onchange={() => queueSave()} />
+        <Toggle bind:checked={cfg.t5_rares} label={t('gear.t5')} hint={t('gear.t5Hint')} onchange={() => queueSave()} />
+        <Toggle bind:checked={cfg.t5_jewels_only} label={t('gear.t5JewelsOnly')} onchange={() => queueSave()} />
         <label class="field">
-          <span>Yüksek kalite ekipmanı göster</span>
+          <span>{t('gear.quality')}</span>
           <select bind:value={cfg.quality_threshold} onchange={() => queueSave()}>
-            <option value={0}>Kapalı</option>
+            <option value={0}>{t('gear.qualityOff')}</option>
             <option value={15}>%15+</option>
             <option value={20}>%20+</option>
           </select>
@@ -416,41 +450,46 @@
       </section>
 
       <section class="card">
-        <h2>Özel kurallar</h2>
-        <Toggle bind:checked={cfg.high_waystones} label="T14+ waystone vurgusu" onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.high_uncut_gems} label="Sadece 20. seviye uncut gem" hint="Diğer uncut gem'ler gizlenir" onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.uncut_support_gems} label="Uncut support gem'leri göster" hint="Kapalıyken hepsi gizlenir; açıkken 20. seviye kuralına uyar" onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.boss_keys_and_tablets} label="Pinnacle anahtarları vurgusu" onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.hide_exalt} label="Exalted Orb'ları gizle" onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.hide_gold} label="Gold'u gizle" onchange={() => queueSave()} />
+        <h2>{t('rules.title')}</h2>
+        <Toggle bind:checked={cfg.high_waystones} label={t('rules.waystones')} onchange={() => queueSave()} />
+        <Toggle bind:checked={cfg.high_uncut_gems} label={t('rules.uncut20')} hint={t('rules.uncut20Hint')} onchange={() => queueSave()} />
+        <Toggle
+          bind:checked={cfg.uncut_support_gems}
+          label={t('rules.uncutSupport')}
+          hint={t('rules.uncutSupportHint')}
+          onchange={() => queueSave()}
+        />
+        <Toggle bind:checked={cfg.boss_keys_and_tablets} label={t('rules.pinnacle')} onchange={() => queueSave()} />
+        <Toggle bind:checked={cfg.hide_exalt} label={t('rules.hideExalt')} onchange={() => queueSave()} />
+        <Toggle bind:checked={cfg.hide_gold} label={t('rules.hideGold')} onchange={() => queueSave()} />
       </section>
 
       <section class="card">
-        <h2>Listeler</h2>
-        <h3>Her zaman göster — öne çıkar <span class="h3-note">en güçlü vurgu</span></h3>
-        <p class="desc">Değerli unique'i olan tabanlar (Mageblood, Headhunter, Voices…) zaten otomatik ve sadece unique olarak gösterilir.</p>
-        <ListEditor bind:items={cfg.whitelist} uniqueVariants placeholder="Unique, currency veya taban ara…" onchange={() => queueSave()} />
-        <h3>Her zaman göster — orta <span class="h3-note">asla gizlenmez, orta vurgu</span></h3>
-        <p class="desc">Eşya zaten değerliyse güçlü vurgusunu korur; değilse bu orta seviye görünümle gösterilir.</p>
-        <ListEditor bind:items={cfg.whitelist_mid} uniqueVariants placeholder="Unique, currency veya taban ara…" onchange={() => queueSave()} />
-        <h3>Her zaman gizle</h3>
-        <ListEditor bind:items={cfg.blacklist} placeholder="Gizlenecek eşya ara…" onchange={() => queueSave()} />
-        <h3>Chance tabanları <span class="h3-note">sadece normal nadirlik</span></h3>
-        <ListEditor bind:items={cfg.chance_bases} placeholder="Taban veya unique ara…" onchange={() => queueSave()} />
+        <h2>{t('lists.title')}</h2>
+        <h3>{t('lists.showTop')} <span class="h3-note">{t('lists.showTopNote')}</span></h3>
+        <p class="desc">{t('lists.showTopDesc')}</p>
+        <ListEditor bind:items={cfg.whitelist} uniqueVariants placeholder={t('lists.searchItem')} onchange={() => queueSave()} />
+        <h3>{t('lists.showMid')} <span class="h3-note">{t('lists.showMidNote')}</span></h3>
+        <p class="desc">{t('lists.showMidDesc')}</p>
+        <ListEditor bind:items={cfg.whitelist_mid} uniqueVariants placeholder={t('lists.searchItem')} onchange={() => queueSave()} />
+        <h3>{t('lists.hide')}</h3>
+        <ListEditor bind:items={cfg.blacklist} placeholder={t('lists.searchHide')} onchange={() => queueSave()} />
+        <h3>{t('lists.chance')} <span class="h3-note">{t('lists.chanceNote')}</span></h3>
+        <ListEditor bind:items={cfg.chance_bases} placeholder={t('lists.searchBase')} onchange={() => queueSave()} />
       </section>
 
       <section class="card">
-        <h2>Görünüm</h2>
-        <p class="desc">Her grubun rengini ve sesini ayrı seç: uygulama temaları, NeverSink'in kendi stilleri ya da kendi renklerin.</p>
+        <h2>{t('look.title')}</h2>
+        <p class="desc">{t('look.desc')}</p>
         <div class="presets">
-          <button type="button" onclick={applyNeverSink} disabled={!nsThemes.length}>Tümünü NeverSink renklerine çevir</button>
-          <button type="button" onclick={resetStyles}>Varsayılana döndür</button>
+          <button type="button" onclick={applyNeverSink} disabled={!nsThemes.length}>{t('look.applyNeverSink')}</button>
+          <button type="button" onclick={resetStyles}>{t('look.reset')}</button>
         </div>
         <div class="groups" role="tablist">
           {#each groups as g (g.id)}
             <button type="button" role="tab" aria-selected={g.id === styleGroup} class:on={g.id === styleGroup} onclick={() => (styleGroup = g.id)}>
               <span lang={g.id === 'divine' ? 'en' : undefined}>{g.label}</span>
-              {#if customised(g)}<i class="custom-dot" title="Özelleştirildi"></i>{/if}
+              {#if customised(g)}<i class="custom-dot" title={t('look.customised')}></i>{/if}
             </button>
           {/each}
         </div>
@@ -471,13 +510,18 @@
             />
           </div>
           <label class="field">
-            <span>Ses</span>
+            <span>{t('look.sound')}</span>
             <span class="sound-row">
               <select value={cfg.sounds?.[selGroup.id] ?? ''} onchange={(e) => setSound(selGroup.id, e.currentTarget.value)}>
-                <option value="">Varsayılan ({selGroup.defaultSound ? `oyun sesi ${selGroup.defaultSound}` : 'sessiz'})</option>
-                <option value="none">Sessiz</option>
+                <option value="">
+                  {t(
+                    'look.soundDefault',
+                    selGroup.defaultSound ? t('look.soundDefaultGame', selGroup.defaultSound) : t('look.soundDefaultSilent'),
+                  )}
+                </option>
+                <option value="none">{t('look.soundNone')}</option>
                 {#each ['1', '2', '3', '4', '5', '6'] as n}
-                  <option value={n}>Oyun sesi {n}</option>
+                  <option value={n}>{t('look.soundGame', n)}</option>
                 {/each}
                 {#each sounds as f (f)}
                   <option value={'file:' + f}>{f}</option>
@@ -486,8 +530,8 @@
               <button
                 type="button"
                 class="play"
-                title={soundFile(selGroup) ? 'Dinle' : 'Oyun sesleri sadece oyunda çalınabilir'}
-                aria-label="Sesi dinle"
+                title={soundFile(selGroup) ? t('look.play') : t('look.playGameOnly')}
+                aria-label={t('look.playAria')}
                 disabled={!soundFile(selGroup)}
                 onclick={() => previewSound(selGroup)}
               >
@@ -497,40 +541,48 @@
           </label>
           {#if soundError}<p class="error">{soundError}</p>{/if}
           {#if !sounds.length}
-            <p class="desc hint">Kendi sesini kullanmak için bir mp3/wav dosyasını filtre klasörüne koy (Ayarlar'ın altındaki "Filtre klasörü").</p>
+            <p class="desc hint">{t('look.soundHint')}</p>
           {/if}
         {/if}
       </section>
 
       <section class="card">
-        <h2>Otomatik güncelleme</h2>
-        <Toggle bind:checked={cfg.auto_update_enabled} label="Açılışta ve düzenli aralıkla güncelle" onchange={() => queueSave(false)} />
+        <h2>{t('auto.title')}</h2>
+        <Toggle bind:checked={cfg.auto_update_enabled} label={t('auto.enable')} onchange={() => queueSave(false)} />
         {#if cfg.auto_update_enabled}
           <Segmented
             small
             bind:value={cfg.auto_update_hours}
             onchange={() => queueSave(false)}
-            options={[1, 2, 4, 6, 12].map((h) => ({ value: h, label: `${h} sa` }))}
+            options={[1, 2, 4, 6, 12].map((h) => ({ value: h, label: t('auto.hours', h) }))}
           />
         {/if}
-        <Toggle bind:checked={cfg.notify_enabled} label="Güncellenince bildirim göster" onchange={() => queueSave(false)} />
+        <Toggle bind:checked={cfg.notify_enabled} label={t('auto.notify')} onchange={() => queueSave(false)} />
       </section>
 
       <section class="card">
-        <h2>Trade taraması</h2>
-        <p class="desc">Trade arama kotası (600 / 6 saat) trade sitesindeki kendi aramalarınla ortak.</p>
+        <h2>{t('trade.title')}</h2>
+        <p class="desc">{t('trade.desc')}</p>
         <Segmented
           small
           bind:value={cfg.scan_budget_pct}
           onchange={() => queueSave(false)}
-          options={[20, 40, 60].map((p) => ({ value: p, label: `Kotanın %${p}'ı` }))}
+          options={[20, 40, 60].map((p) => ({ value: p, label: t('trade.budget', p) }))}
         />
       </section>
 
       <section class="card">
-        <h2>Genel</h2>
+        <h2>{t('general.title')}</h2>
         <label class="field">
-          <span>Lig</span>
+          <span>{t('general.language')}</span>
+          <select bind:value={cfg.language} onchange={() => queueSave(false)}>
+            {#each languages as l (l.id)}
+              <option value={l.id}>{l.auto ? t('general.languageAuto', l.label) : l.label}</option>
+            {/each}
+          </select>
+        </label>
+        <label class="field">
+          <span>{t('general.league')}</span>
           <select bind:value={cfg.league_name} onchange={() => queueSave()}>
             {#each leagueOptions as l (l)}
               <option value={l}>{l}</option>
@@ -538,28 +590,28 @@
           </select>
         </label>
         {#if leagueUnlisted}
-          <p class="desc hint">Bu lig güncel listede yok; seçimin korunuyor, istersen listeden yenisini seç.</p>
+          <p class="desc hint">{t('general.leagueUnlisted')}</p>
         {/if}
         <label class="field stack">
-          <span>Oyundaki filtre adı</span>
+          <span>{t('general.filterName')}</span>
           <input bind:value={cfg.filter_name} onchange={() => queueSave()} spellcheck="false" />
         </label>
         <label class="field stack">
-          <span>Özel temel filtre (boşsa NeverSink)</span>
-          <input bind:value={cfg.custom_base_filter} onchange={() => queueSave()} placeholder="C:\…\filtre.filter" spellcheck="false" />
+          <span>{t('general.customBase')}</span>
+          <input bind:value={cfg.custom_base_filter} onchange={() => queueSave()} placeholder={t('general.customBasePlaceholder')} spellcheck="false" />
         </label>
         <label class="field stack">
-          <span>Fiyat sunucusu (ileride)</span>
+          <span>{t('general.priceServer')}</span>
           <input bind:value={cfg.price_source_url} onchange={() => queueSave(false)} placeholder="https://…/prices.json" spellcheck="false" />
         </label>
       </section>
 
       <section class="actions">
-        <button onclick={() => AppService.OpenGameFolder()}>Filtre klasörü</button>
-        <button onclick={() => AppService.OpenDataFolder()}>Veri klasörü</button>
-        <button class="danger" onclick={() => AppService.Quit()}>Çıkış</button>
+        <button onclick={() => AppService.OpenGameFolder()}>{t('actions.filterFolder')}</button>
+        <button onclick={() => AppService.OpenDataFolder()}>{t('actions.dataFolder')}</button>
+        <button class="danger" onclick={() => AppService.Quit()}>{t('actions.quit')}</button>
       </section>
-      {#if meta}<p class="version">v{meta.version}{meta.testMode ? ' · test modu' : ''}</p>{/if}
+      {#if meta}<p class="version">v{meta.version}{meta.testMode ? t('footer.testMode') : ''}</p>{/if}
     </div>
   {/if}
 </main>

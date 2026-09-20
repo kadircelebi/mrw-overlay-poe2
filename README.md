@@ -2,6 +2,11 @@
 
 Sistem tepsisinde çalışan, NeverSink'in Path of Exile 2 loot filtresini **canlı piyasa fiyatlarıyla** güncelleyen masaüstü uygulaması (Wails v3 + Svelte).
 
+<p align="center">
+  <img src="docs/panel.png" alt="Ana panel" width="300" />
+  <img src="docs/appearance.png" alt="Görünüm ayarları" width="300" />
+</p>
+
 Bir değer eşiği belirlersin — örneğin 50 exalted. Uygulama piyasayı düzenli olarak tarar, eşiği geçen her şeyi yerde göze çarpacak şekilde işaretler, altında kalanları gizler veya soluklaştırır. Fiyatlar değiştikçe filtre kendi kendine güncellenir; lig ilerledikçe listeni elle düzeltmen gerekmez.
 
 Fiyatlar nereden gelir:
@@ -12,6 +17,8 @@ Fiyatlar nereden gelir:
 - **NeverSink** (MIT): seçtiğin strictness her güncellemede GitHub'dan indirilir, kurallar onun ilk bölümünden önce eklenir. Yani NeverSink'in tüm işi korunur, üstüne senin fiyat kuralların biner.
 
 Uygulama oyun belleğini okumaz, oyuna girdi göndermez; yalnızca herkese açık fiyat kaynaklarını kullanır ve sonucu bir metin dosyasına yazar.
+
+**Diller:** İngilizce, Türkçe ve Geleneksel Çince (繁體中文). Uygulama Windows'un dilini izler, Ayarlar → Genel → Dil'den değiştirebilirsin. Eşya ve currency adları her dilde İngilizce kalır, çünkü filtre eşyaları İngilizce adlarıyla tanır.
 
 ## İndirme ve kurulum
 
@@ -43,7 +50,7 @@ Panelde, tepsi simgesine tıklayınca açılır.
 | **Görünüm** | 9 eşya grubunun her biri için renk teması ve ses. Uygulamanın hazır temaları, NeverSink'in kendi 68 stili veya kendi renk/simge seçimin. Değişiklikler panelde canlı önizlenir. |
 | **Otomatik güncelleme** | Aralık (varsayılan 4 saat) ve bildirimler. Kapatırsan "Şimdi güncelle" ile elle çalıştırırsın. |
 | **Trade taraması** | Exceptional taban taramasını aç/kapat ve trade kotasının ne kadarını kullanacağını seç (%10–80, varsayılan %40). |
-| **Genel** | Lig, oyundaki filtre adı, filtre ve veri klasörleri. |
+| **Genel** | Dil, lig, oyundaki filtre adı, filtre ve veri klasörleri. |
 
 Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için güncelle" der: önce **Güncelle**, sonra oyunda **Reload**.
 
@@ -64,6 +71,18 @@ Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için g
 **Baştan başlamak istiyorum.** Uygulamadan çık ve `%APPDATA%\PoE2Filtre` klasörünü sil; uygulama bir sonraki açılışta varsayılan ayarlarla başlar.
 
 **Fiyat kaynağı çökerse ne olur?** Bir kaynak yanıt vermezse o kaynağın önceki verisi korunur ve filtre yine yazılır; zayıf veriyle (tek ilanlı unique, çok az ilanlı exceptional) hiçbir zaman gizleme yapılmaz.
+
+## Diller
+
+Arayüz, tepsi menüsü, bildirimler ve üretilen filtrenin içindeki yorum satırları üç dilde: **English**, **Türkçe**, **繁體中文**.
+
+Varsayılan olarak Windows'un görüntü dili izlenir; Türkçe sistemde Türkçe, Çince (TW/HK) sistemde Geleneksel Çince, diğer her şeyde İngilizce açılır. Ayarlar → Genel → Dil'den elle seçebilirsin, seçim kaydedilir.
+
+<p align="center"><img src="docs/panel-zh.png" alt="繁體中文 arayüz" width="300" /></p>
+
+Eşya, currency ve filtre anahtar kelimeleri (Waystone, Exalted Orb, Uncut Support Gem…) her dilde İngilizce kalır: filtre dosyası eşyaları İngilizce adlarıyla tanıdığı için listelere de İngilizce yazılması gerekir.
+
+Yeni bir dil eklemek istersen `frontend/src/lib/locales/en.ts` ve `internal/i18n/en.go` dosyalarını kopyalayıp çevirmen yeterli; `npm run check` ve `go test ./internal/i18n/` eksik veya fazla anahtarı söyler.
 
 ## Güncelleme ve kaldırma
 

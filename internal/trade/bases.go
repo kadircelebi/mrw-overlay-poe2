@@ -54,7 +54,7 @@ func EquipmentBaseTypes(ctx context.Context, cachePath string) ([]string, error)
 		} else if cached, cerr := os.ReadFile(cachePath); cerr == nil {
 			raw = cached // stale cache beats nothing
 		} else {
-			return nil, fmt.Errorf("trade base listesi alınamadı: %w", err)
+			return nil, fmt.Errorf("could not fetch the trade base list: %w", err)
 		}
 	}
 

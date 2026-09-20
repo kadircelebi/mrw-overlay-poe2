@@ -89,16 +89,16 @@ type SourceStatus struct {
 // Validate rejects snapshots that are unusable for filter generation.
 func (s *Snapshot) Validate() error {
 	if s == nil {
-		return errors.New("boş snapshot")
+		return errors.New("empty snapshot")
 	}
 	if s.SchemaVersion != SchemaVersion {
-		return fmt.Errorf("desteklenmeyen şema sürümü %d (beklenen %d)", s.SchemaVersion, SchemaVersion)
+		return fmt.Errorf("unsupported schema version %d (expected %d)", s.SchemaVersion, SchemaVersion)
 	}
 	if s.Rates.DivineEx <= 0 {
-		return errors.New("divine kuru eksik")
+		return errors.New("divine rate missing")
 	}
 	if len(s.Currency) == 0 && len(s.UniqueBases) == 0 {
-		return errors.New("fiyat verisi yok")
+		return errors.New("no price data")
 	}
 	return nil
 }
@@ -129,7 +129,7 @@ func Load(path string) (*Snapshot, error) {
 	}
 	var s Snapshot
 	if err := json.Unmarshal(data, &s); err != nil {
-		return nil, fmt.Errorf("snapshot okunamadı: %w", err)
+		return nil, fmt.Errorf("could not read the snapshot: %w", err)
 	}
 	if err := s.Validate(); err != nil {
 		return nil, err

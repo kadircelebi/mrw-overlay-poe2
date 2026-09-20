@@ -94,6 +94,12 @@ export interface Config {
      * When set, prices come from this collector server URL first.
      */
     "price_source_url": string;
+
+    /**
+     * Language is the interface language: "auto" (follow Windows), "tr", "en"
+     * or "zh-Hant".
+     */
+    "language": string;
     "auto_update_enabled": boolean;
     "auto_update_hours": number;
     "notify_enabled": boolean;

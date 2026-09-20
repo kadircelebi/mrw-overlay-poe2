@@ -1,3 +1,5 @@
+import { t } from './i18n.svelte'
+
 import type { StyleGroup, Theme } from '../../bindings/poe2filter/internal/filter/models'
 
 /** What a drop looks like on the ground: colours are "R G B [A]" strings. */
@@ -56,14 +58,14 @@ export const shapePaths: Record<string, string> = {
   UpsideDownHouse: 'M3 3h18v9l-9 9-9-9z',
 }
 
-export const shapeNames: Record<string, string> = {
-  Star: 'Yıldız', Diamond: 'Elmas', Circle: 'Daire', Square: 'Kare', Triangle: 'Üçgen', Hexagon: 'Altıgen',
-  Pentagon: 'Beşgen', Cross: 'Artı', Kite: 'Uçurtma', UpsideDownHouse: 'Ters ev',
+/** Minimap shape name in the active language. */
+export function shapeName(shape: string): string {
+  return shape ? t('shape.' + shape) : ''
 }
 
-export const colourNames: Record<string, string> = {
-  Blue: 'Mavi', Brown: 'Kahverengi', Cyan: 'Turkuaz', Green: 'Yeşil', Grey: 'Gri', Orange: 'Turuncu',
-  Pink: 'Pembe', Purple: 'Mor', Red: 'Kırmızı', White: 'Beyaz', Yellow: 'Sarı',
+/** Effect/icon colour name in the active language. */
+export function colourName(colour: string): string {
+  return colour ? t('colour.' + colour) : ''
 }
 
 /** "#rrggbb" to a filter colour "R G B 255". */

@@ -20,8 +20,11 @@
 
   --radius: 10px;
   --radius-sm: 7px;
-  --serif: 'Cinzel', Georgia, serif;
-  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Cinzel and Inter carry no CJK glyphs, so the Chinese interface falls
+     through to the system's Traditional Chinese faces. */
+  --cjk: 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', 'Microsoft YaHei';
+  --serif: 'Cinzel', Georgia, var(--cjk), serif;
+  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', var(--cjk), sans-serif;
 
   color-scheme: dark;
 }

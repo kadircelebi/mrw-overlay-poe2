@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"os"
 	"os/exec"
 	"sync"
@@ -12,8 +12,19 @@ import (
 
 	"poe2filter/internal/engine"
 	"poe2filter/internal/filter"
+	"poe2filter/internal/i18n"
 	"poe2filter/internal/insights"
 )
+
+// LanguageOption is one entry of the language picker.
+type LanguageOption struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	// Auto marks the entry that follows the Windows display language. Label is
+	// the language that choice currently resolves to, Resolved its code.
+	Auto     bool   `json:"auto"`
+	Resolved string `json:"resolved,omitempty"`
+}
 
 // StyleOptions are the choices offered in the custom style editor.
 type StyleOptions struct {
@@ -39,6 +50,9 @@ type AppService struct {
 	meta    Meta
 	signal  chan struct{}
 	started sync.Once
+	// relabel rebuilds the tray menu after a language change; the menu is
+	// created once at start, so its labels do not follow i18n on their own.
+	relabel func()
 }
 
 func newAppService(meta Meta) *AppService {
@@ -80,11 +94,11 @@ func (s *AppService) pump() {
 		tip := "PoE2 Filtre"
 		switch {
 		case st.Running:
-			tip += " — güncelleniyor…"
+			tip += i18n.T("tray.updating")
 		case st.LastError != "":
-			tip += " — son güncelleme başarısız"
+			tip += i18n.T("tray.lastFailed")
 		case st.LastRunAtMs > 0:
-			tip += " — son güncelleme " + time.UnixMilli(st.LastRunAtMs).Format("15:04")
+			tip += i18n.T("tray.lastSuccess") + time.UnixMilli(st.LastRunAtMs).Format("15:04")
 		}
 		if tip != lastTip && s.tray != nil {
 			s.tray.SetTooltip(tip)
@@ -103,10 +117,34 @@ func (s *AppService) GetState() engine.State { return s.eng.State() }
 func (s *AppService) GetConfig() filter.Config { return s.eng.Config() }
 
 // SaveConfig stores new settings and returns them normalised.
-func (s *AppService) SaveConfig(c filter.Config) (filter.Config, error) { return s.eng.SetConfig(c) }
+func (s *AppService) SaveConfig(c filter.Config) (filter.Config, error) {
+	before := i18n.Current()
+	saved, err := s.eng.SetConfig(c)
+	if err != nil {
+		return saved, err
+	}
+	if lang := i18n.Resolve(saved.Language); lang != before {
+		i18n.Set(lang)
+		if s.relabel != nil {
+			s.relabel()
+		}
+	}
+	return saved, nil
+}
+
+// Languages lists the interface languages, each named in its own language.
+// The first entry follows the Windows display language.
+func (s *AppService) Languages() []LanguageOption {
+	sys := i18n.Resolve(string(i18n.Auto))
+	out := []LanguageOption{{ID: string(i18n.Auto), Label: i18n.Names[sys], Auto: true, Resolved: string(sys)}}
+	for _, l := range i18n.Supported {
+		out = append(out, LanguageOption{ID: string(l), Label: i18n.Names[l]})
+	}
+	return out
+}
 
 // Themes lists the selectable colour palettes.
-func (s *AppService) Themes() []filter.Theme { return filter.ThemeList }
+func (s *AppService) Themes() []filter.Theme { return filter.LocalizedThemes() }
 
 // NeverSinkThemes lists NeverSink's named styles from the current base filter.
 func (s *AppService) NeverSinkThemes() []filter.Theme { return s.eng.NeverSinkThemes() }
@@ -117,7 +155,7 @@ func (s *AppService) StyleOptions() StyleOptions {
 }
 
 // StyleGroups lists the drop groups whose colours can be changed.
-func (s *AppService) StyleGroups() []filter.StyleGroup { return filter.StyleGroups }
+func (s *AppService) StyleGroups() []filter.StyleGroup { return filter.LocalizedStyleGroups() }
 
 // Leagues lists the leagues for the picker, live list first, always including
 // the one currently configured.
@@ -134,7 +172,7 @@ func (s *AppService) SearchItems(query string) []insights.SearchItem {
 // OpenGameFolder opens the PoE2 filter folder in Explorer.
 func (s *AppService) OpenGameFolder() error {
 	if s.meta.GameDir == "" {
-		return fmt.Errorf("Path of Exile 2 klasörü bulunamadı")
+		return errors.New(i18n.T("err.gameDir"))
 	}
 	return exec.Command("explorer.exe", s.meta.GameDir).Start()
 }

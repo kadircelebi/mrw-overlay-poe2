@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"poe2filter/internal/i18n"
 	"poe2filter/internal/prices"
 	"poe2filter/internal/trade"
 )
@@ -213,12 +214,12 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 
 	// ---- header -----------------------------------------------------------
 	b.add("#==============================================================================",
-		"# [[DYNAMIC LOOT FILTER]] - poe2-filter (poe.ninja, poe2scout, trade exceptional scan)",
-		fmt.Sprintf("# Threshold: %.2f %s (= %.1f Exalted)", cfg.MinValue, cfg.MinValueUnit, thr),
-		fmt.Sprintf("# Exchange Rate: 1 Divine = %.1f Exalted", divEx),
-		fmt.Sprintf("# Prices generated: %s", snap.GeneratedAt.Local().Format("2006-01-02 15:04")),
-		fmt.Sprintf("# Filter written:   %s", time.Now().Format("2006-01-02 15:04")),
-		fmt.Sprintf("# Low-value action: %s", strings.ToUpper(cfg.FilterMode)),
+		"# "+i18n.T("filter.header"),
+		"# "+fmt.Sprintf(i18n.T("filter.threshold"), cfg.MinValue, cfg.MinValueUnit, thr),
+		"# "+fmt.Sprintf(i18n.T("filter.rate"), divEx),
+		"# "+fmt.Sprintf(i18n.T("filter.pricesAt"), snap.GeneratedAt.Local().Format("2006-01-02 15:04")),
+		"# "+fmt.Sprintf(i18n.T("filter.writtenAt"), time.Now().Format("2006-01-02 15:04")),
+		"# "+fmt.Sprintf(i18n.T("filter.lowValue"), strings.ToUpper(cfg.FilterMode)),
 		"#==============================================================================",
 		"")
 
@@ -232,18 +233,18 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 				// unique on the same base is valuable.
 				if ub := snap.UniqueBases[base]; ub.MaxEx >= thr && !strings.EqualFold(ub.TopName, raw) {
 					st.Warnings = append(st.Warnings, fmt.Sprintf(
-						"Kara liste: %q atlandı, aynı taban (%s) üzerinde değerli %s var", raw, base, ub.TopName))
+						i18n.T("warn.blacklistSkipped"), raw, base, ub.TopName))
 					continue
 				}
 				uniqueBases = append(uniqueBases, base)
 			} else if name, ok := canon(raw); ok {
 				bases = append(bases, name)
 			} else {
-				st.Warnings = append(st.Warnings, fmt.Sprintf("Kara liste: %q tanınmadı", raw))
+				st.Warnings = append(st.Warnings, fmt.Sprintf(i18n.T("warn.blacklistUnknown"), raw))
 			}
 		}
 		if len(uniqueBases)+len(bases) > 0 {
-			b.section("1. USER BLACKLIST (always hidden)")
+			b.section(i18n.T("filter.sec.blacklist"))
 			b.rule("Hide", []string{"Rarity Unique"}, "BaseType", uniqueBases, nil)
 			// Normal/Magic/Rare only: blacklisting a base must not hide uniques on it.
 			b.rule("Hide", []string{"Rarity Normal Magic Rare"}, "BaseType", bases, nil)
@@ -252,7 +253,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 
 	// ---- 2. divine spotlight ----------------------------------------------
 	dp, _ := cfg.Palette(GroupDivine, ns)
-	b.section("2. DIVINE ORB SPOTLIGHT")
+	b.section(i18n.T("filter.sec.divine"))
 	b.rule("Show", []string{`Class == "Stackable Currency"`, `BaseType == "Divine Orb"`}, "", nil,
 		styleDivine.with(dp).withSound(cfg.Sound(GroupDivine)))
 
@@ -267,7 +268,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	if len(cfg.Whitelist) > 0 {
 		uniqueBases, bases := resolveShowList(cfg.Whitelist, uniqueToBase, canon)
 		if len(uniqueBases)+len(bases) > 0 {
-			b.section("3. USER WHITELIST (always shown)")
+			b.section(i18n.T("filter.sec.whitelist"))
 			wl, _ := cfg.Palette(GroupWhitelist, ns)
 			wst := styleMax.with(wl).withSound(cfg.Sound(GroupWhitelist))
 			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, wst)
@@ -277,7 +278,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 
 	// ---- 4. valuable currency and bulk items -------------------------------
 	if len(valuableCur) > 0 {
-		b.section("4. VALUABLE CURRENCY & BULK ITEMS")
+		b.section(i18n.T("filter.sec.currency"))
 		byCat := map[string][]cur{}
 		for _, c := range valuableCur {
 			byCat[c.cat] = append(byCat[c.cat], c)
@@ -322,7 +323,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 
 	// ---- 5. valuable unique bases ------------------------------------------
 	if len(valuableUniqueBases) > 0 {
-		b.section("5. VALUABLE UNIQUE BASES (best unique on the base >= threshold)")
+		b.section(i18n.T("filter.sec.unique"))
 		up, _ := cfg.Palette(GroupUnique, ns)
 		b.rule("Show", []string{"Rarity Unique"}, "BaseType", valuableUniqueBases, styleUnique.with(up).withSound(cfg.Sound(GroupUnique)))
 	}
@@ -338,7 +339,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			}
 		}
 		if len(bases) > 0 {
-			b.section("6. CHANCE & CRAFTING BASES")
+			b.section(i18n.T("filter.sec.chance"))
 			// Orb of Chance only works on normal items.
 			cp, _ := cfg.Palette(GroupChance, ns)
 			b.rule("Show", []string{"Rarity Normal"}, "BaseType", bases, styleChance.with(cp).withSound(cfg.Sound(GroupChance)))
@@ -367,7 +368,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	}
 	exPal, _ := cfg.Palette(GroupExceptional, ns)
 	if len(valuableEx) > 0 {
-		b.section("7. VALUABLE EXCEPTIONAL BASES (trade scan)")
+		b.section(i18n.T("filter.sec.except"))
 		for _, g := range exGroups(valuableEx) {
 			sort.Strings(valuableEx[g])
 			b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic Rare", exCond(g)},
@@ -377,12 +378,12 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 
 	// ---- 8. rares, jewels, quality, waystones, gems, keys --------------------
 	if cfg.T5Rares {
-		b.section("8.1 TIER 5 RARE EQUIPMENT")
+		b.section(i18n.T("filter.sec.t5rare"))
 		tp, _ := cfg.Palette(GroupT5Rare, ns)
 		b.rule("Show", []string{"Rarity Rare", "UnidentifiedItemTier >= 5"}, "Class", gearClasses, styleT5Rare.with(tp).withSound(cfg.Sound(GroupT5Rare)))
 	}
 	if cfg.IncludeGear {
-		b.section("8.2 RARE JEWELS")
+		b.section(i18n.T("filter.sec.jewels"))
 		if cfg.T5JewelsOnly {
 			b.rule("Show", []string{`Class == "Jewels"`, "Rarity Rare", "UnidentifiedItemTier >= 5"}, "", nil,
 				&style{font: 42, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
@@ -395,12 +396,12 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		b.rule("Hide", []string{`Class == "Jewels"`, "Rarity Normal Magic Rare"}, "", nil, nil)
 	}
 	if cfg.QualityThreshold > 0 {
-		b.section(fmt.Sprintf("8.3 HIGH QUALITY GEAR (Quality >= %d)", cfg.QualityThreshold))
+		b.section(fmt.Sprintf(i18n.T("filter.sec.quality"), cfg.QualityThreshold))
 		b.rule("Show", []string{"Rarity Normal Magic Rare", fmt.Sprintf("Quality >= %d", cfg.QualityThreshold)}, "Class", gearClasses,
 			&style{font: 40, text: "255 255 255 255", border: "255 215 0 255", bg: "40 30 0 240", icon: "1 Yellow Diamond"})
 	}
 	if cfg.HighWaystones {
-		b.section("8.4 HIGH-TIER WAYSTONES (T14+)")
+		b.section(i18n.T("filter.sec.waystones"))
 		b.rule("Show", []string{`Class == "Waystones"`, "WaystoneTier >= 14"}, "", nil,
 			&style{font: 42, text: "255 255 255 255", border: "255 0 0 255", bg: "120 0 0 240",
 				beam: "Red", icon: "1 Red Square", sound: "2 300"})
@@ -413,20 +414,20 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			gems = append(gems, `"Uncut Support Gem"`)
 		}
 		if cfg.HighUncutGems {
-			b.section("8.5 UNCUT GEMS (level 20 only)")
+			b.section(i18n.T("filter.sec.gems20"))
 			b.rule("Show", []string{"BaseType == " + strings.Join(gems, " "), "GemLevel >= 20"}, "", nil,
 				&style{font: 42, text: "80 255 160 255", border: "0 255 130 255", bg: "5 50 20 255",
 					beam: "Green", icon: "1 Green Triangle", sound: "2 300"})
 			b.rule("Hide", []string{"BaseType == " + strings.Join(gems, " ")}, "", nil, nil)
 		} else {
-			b.section("8.5 UNCUT GEMS")
+			b.section(i18n.T("filter.sec.gems"))
 		}
 		if !cfg.UncutSupportGems {
 			b.rule("Hide", []string{`BaseType == "Uncut Support Gem"`}, "", nil, nil)
 		}
 	}
 	if cfg.PinnacleKeys {
-		b.section("8.6 PINNACLE KEYS")
+		b.section(i18n.T("filter.sec.pinnacle"))
 		b.rule("Show", []string{`Class == "Pinnacle Keys"`}, "", nil,
 			&style{font: 45, text: "255 255 255 255", border: "255 215 0 255", bg: "140 0 170 255",
 				beam: "Red", icon: "0 Red Star", sound: "6 300"})
@@ -440,7 +441,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		if len(uniqueBases)+len(bases) > 0 {
 			mp, _ := cfg.Palette(GroupWhitelistMid, ns)
 			mst := styleMid.with(mp).withSound(cfg.Sound(GroupWhitelistMid))
-			b.section("8.7 USER LIST - MEDIUM HIGHLIGHT")
+			b.section(i18n.T("filter.sec.mid"))
 			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, mst)
 			b.rule("Show", nil, "BaseType", bases, mst)
 		}
@@ -452,7 +453,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		if cfg.FilterMode == "dim" {
 			action, dim = "Show", styleDim
 		}
-		b.section(fmt.Sprintf("9. BELOW THRESHOLD (%s)", strings.ToUpper(cfg.FilterMode)))
+		b.section(fmt.Sprintf(i18n.T("filter.sec.below"), strings.ToUpper(cfg.FilterMode)))
 		var names []string
 		for _, c := range cheapCur {
 			names = append(names, c.name)
@@ -472,7 +473,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// ---- 10/11. strict equipment cleanup -----------------------------------
 	if cfg.IncludeGear {
 		// Exceptional items we have not priced (yet) are shown, never hidden.
-		b.section("10. EXCEPTIONAL BASES NOT YET PRICED (shown until scanned)")
+		b.section(i18n.T("filter.sec.unpriced"))
 		unk, _ := cfg.Palette(GroupExceptionalUnknown, ns)
 		styleUnk := styleExceptionalUnknown.with(unk).withSound(cfg.Sound(GroupExceptionalUnknown))
 		b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic", "Sockets >= 2"}, "Class", trade.SocketClasses(2), styleUnk)

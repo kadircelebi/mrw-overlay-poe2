@@ -41,7 +41,7 @@ func getJSON(ctx context.Context, c *http.Client, url string, out any) error {
 		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, url)
 	}
 	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-		return fmt.Errorf("JSON çözülemedi (%s): %w", url, err)
+		return fmt.Errorf("could not decode JSON (%s): %w", url, err)
 	}
 	return nil
 }

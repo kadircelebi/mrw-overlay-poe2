@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"poe2filter/internal/prices"
+
+	"poe2filter/internal/i18n"
 )
 
 const rawBaseURL = "https://raw.githubusercontent.com/NeverSinkDev/NeverSink-Filter-for-PoE2/main/"
@@ -29,7 +31,7 @@ var Presets = []string{
 // FileName returns the upstream file name of a preset.
 func FileName(strictness int) (string, error) {
 	if strictness < 0 || strictness >= len(Presets) {
-		return "", fmt.Errorf("geçersiz strictness %d", strictness)
+		return "", fmt.Errorf("invalid strictness %d", strictness)
 	}
 	return fmt.Sprintf("NeverSink's filter 2 - %s.filter", Presets[strictness]), nil
 }
@@ -53,7 +55,7 @@ func Ensure(ctx context.Context, strictness int, dir string, maxAge time.Duratio
 	if _, err := os.Stat(path); err == nil {
 		return path, nil // stale but usable
 	}
-	return "", fmt.Errorf("NeverSink filtresi indirilemedi: %w", dlErr)
+	return "", fmt.Errorf(i18n.T("err.neversinkDownload"), dlErr)
 }
 
 func download(ctx context.Context, u, dest, userAgent string) error {
@@ -75,7 +77,7 @@ func download(ctx context.Context, u, dest, userAgent string) error {
 		return err
 	}
 	if !strings.Contains(string(data), "NeverSink") || len(data) < 10000 {
-		return fmt.Errorf("beklenmeyen içerik")
+		return fmt.Errorf("unexpected content")
 	}
 	return prices.WriteFileAtomic(dest, data)
 }

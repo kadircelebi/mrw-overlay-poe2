@@ -1,12 +1,14 @@
 package filter
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"poe2filter/internal/i18n"
 	"poe2filter/internal/prices"
 )
 
@@ -53,7 +55,7 @@ func Inject(baseContent, block string) string {
 func FilterPath(filterName string) (string, error) {
 	dir := GetPoE2GameDir()
 	if dir == "" {
-		return "", fmt.Errorf("Path of Exile 2 klasörü bulunamadı (Belgeler\\My Games\\Path of Exile 2)")
+		return "", errors.New(i18n.T("err.gameDirLong"))
 	}
 	return filepath.Join(dir, filterName+".filter"), nil
 }
@@ -62,10 +64,10 @@ func FilterPath(filterName string) (string, error) {
 func WriteFilter(basePath, block, dest string) error {
 	base, err := os.ReadFile(basePath)
 	if err != nil {
-		return fmt.Errorf("temel filtre okunamadı (%s): %w", basePath, err)
+		return fmt.Errorf(i18n.T("err.baseRead"), basePath, err)
 	}
 	if err := prices.WriteFileAtomic(dest, []byte(Inject(string(base), block))); err != nil {
-		return fmt.Errorf("filtre yazılamadı: %w", err)
+		return fmt.Errorf(i18n.T("err.filterWrite"), err)
 	}
 	return nil
 }

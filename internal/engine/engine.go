@@ -6,6 +6,7 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 
 	"poe2filter/internal/collector"
 	"poe2filter/internal/filter"
+	"poe2filter/internal/i18n"
 	"poe2filter/internal/insights"
 	"poe2filter/internal/neversink"
 	"poe2filter/internal/prices"
@@ -121,7 +123,7 @@ func New(opt Options) *Engine {
 	e.cfg = filter.LoadConfig(e.configPath())
 	_ = e.cfg.Save(e.configPath()) // persist migrated format
 	e.loadLeagues()
-	e.st.Step = "Hazır"
+	e.st.Step = i18n.T("step.ready")
 	return e
 }
 
@@ -199,7 +201,7 @@ func (e *Engine) refreshLeagues(ctx context.Context) {
 	}
 	list, err := collector.FetchLeagues(ctx, nil)
 	if err != nil {
-		e.logf("[Uyarı] Lig listesi alınamadı, mevcut liste kullanılıyor: %v", err)
+		e.logf("%s", i18n.T("log.leaguesFailed", err))
 		return
 	}
 	now := time.Now()
@@ -230,7 +232,7 @@ func (e *Engine) Leagues() []string {
 func (e *Engine) SetConfig(c filter.Config) (filter.Config, error) {
 	c.Normalize()
 	if err := c.Save(e.configPath()); err != nil {
-		return e.Config(), fmt.Errorf("ayarlar kaydedilemedi: %w", err)
+		return e.Config(), fmt.Errorf(i18n.T("err.settingsSave"), err)
 	}
 	e.cfgMu.Lock()
 	e.cfg = c
@@ -272,7 +274,7 @@ func (e *Engine) UpdateNow() error {
 	busy := e.st.Running
 	e.stMu.Unlock()
 	if busy {
-		return fmt.Errorf("zaten bir güncelleme çalışıyor")
+		return errors.New(i18n.T("err.updateRunning"))
 	}
 	go func() {
 		if err := e.run(context.Background()); err != nil {
@@ -316,12 +318,12 @@ func (e *Engine) loop() {
 		e.stMu.Unlock()
 		switch {
 		case !retryAt.IsZero() && !time.Now().Before(retryAt):
-			e.logf("Başarısız güncelleme yeniden deneniyor (%d. deneme)", fails+1)
+			e.logf("%s", i18n.T("log.retry", fails+1))
 			if err := e.run(context.Background()); err != nil {
 				e.logf("[HATA] %v", err)
 			}
 		case cfg.AutoUpdateEnabled && time.Since(last) >= time.Duration(cfg.AutoUpdateHours)*time.Hour:
-			e.logf("Zamanlanmış güncelleme (%d saatte bir)", cfg.AutoUpdateHours)
+			e.logf("%s", i18n.T("log.scheduled", cfg.AutoUpdateHours))
 			if err := e.run(context.Background()); err != nil {
 				e.logf("[HATA] %v", err)
 			}
@@ -359,7 +361,7 @@ func (e *Engine) ensureScanner(run bool) {
 	case !cfg.ExceptionalScan && e.scanCancel != nil:
 		e.scanCancel()
 		e.scanCancel = nil
-		msg = "Exceptional taraması durduruldu."
+		msg = i18n.T("log.scanStopped")
 	case cfg.ExceptionalScan && run && e.scanCancel == nil:
 		ctx, cancel := context.WithCancel(context.Background())
 		e.scanCancel = cancel
@@ -372,7 +374,7 @@ func (e *Engine) basePath(ctx context.Context, cfg filter.Config) (string, error
 		if fi, err := os.Stat(cfg.CustomBaseFilter); err == nil && !fi.IsDir() {
 			return cfg.CustomBaseFilter, nil
 		}
-		e.logf("[Uyarı] Özel temel filtre bulunamadı, NeverSink kullanılıyor.")
+		e.logf("%s", i18n.T("log.customBaseMissing"))
 	}
 	return neversink.Ensure(ctx, cfg.Strictness, filepath.Join(e.dataDir, "neversink"), 12*time.Hour, collector.UserAgent)
 }
@@ -380,7 +382,7 @@ func (e *Engine) basePath(ctx context.Context, cfg filter.Config) (string, error
 // run refreshes prices and writes the filter. Only one run at a time.
 func (e *Engine) run(ctx context.Context) (err error) {
 	if !e.runMu.TryLock() {
-		return fmt.Errorf("zaten bir güncelleme çalışıyor")
+		return errors.New(i18n.T("err.updateRunning"))
 	}
 	defer e.runMu.Unlock()
 
@@ -412,7 +414,7 @@ func (e *Engine) run(ctx context.Context) (err error) {
 
 	cfg := e.Config()
 	e.refreshLeagues(ctx)
-	e.setStep(0.1, "NeverSink filtresi hazırlanıyor")
+	e.setStep(0.1, i18n.T("step.neversink"))
 	basePath, err := e.basePath(ctx, cfg)
 	if err != nil {
 		return err
@@ -423,7 +425,7 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	}
 	validBases := neversink.BaseTypes(string(baseContent))
 
-	e.setStep(0.3, "Piyasa fiyatları alınıyor")
+	e.setStep(0.3, i18n.T("step.prices"))
 	e.scanMu.Lock()
 	scanner := e.scanner
 	e.scanMu.Unlock()
@@ -459,15 +461,15 @@ func (e *Engine) run(ctx context.Context) (err error) {
 			}
 			scanner.SetCandidates(trade.BuildCandidates(bases, droppable, neversink.ExceptionalBases(string(baseContent))))
 		} else {
-			e.logf("[Uyarı] Exceptional taban listesi alınamadı: %v", berr)
+			e.logf("%s", i18n.T("log.basesFailed", berr))
 		}
 	}
 
-	e.setStep(0.7, "Kurallar üretiliyor")
+	e.setStep(0.7, i18n.T("step.rules"))
 	ns := e.ns.set(basePath, string(baseContent))
 	block, st := filter.GenerateDynamicFilterBlock(cfg, snap, validBases, ns)
 
-	e.setStep(0.85, "Filtre yazılıyor")
+	e.setStep(0.85, i18n.T("step.writing"))
 	dest := e.opt.OutPath
 	if dest == "" {
 		if dest, err = filter.FilterPath(cfg.FilterName); err != nil {
@@ -487,12 +489,12 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	}
 	e.stMu.Lock()
 	e.st.Last, e.st.Warnings = res, st.Warnings
-	e.st.Step, e.st.Progress = "Tamamlandı", 1
+	e.st.Step, e.st.Progress = i18n.T("step.done"), 1
 	e.stMu.Unlock()
-	e.logf("Filtre yazıldı: %d değerli currency, %d unique taban, %d exceptional", st.ValuableCurrency, st.ValuableUniques, st.ValuableExcept)
+	e.logf("%s", i18n.T("log.written", st.ValuableCurrency, st.ValuableUniques, st.ValuableExcept))
 
 	if cfg.NotifyEnabled && e.opt.Notify != nil {
-		e.opt.Notify("Filtre güncellendi", fmt.Sprintf("%s.filter hazır. Oyunda Item Filter → Reload yap.", cfg.FilterName))
+		e.opt.Notify(i18n.T("notify.title"), i18n.T("notify.body", cfg.FilterName))
 	}
 	return nil
 }

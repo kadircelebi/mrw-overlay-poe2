@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from './i18n.svelte'
   import { SearchItems } from '../../bindings/poe2filter/appservice'
   import type { SearchItem } from '../../bindings/poe2filter/internal/insights/models'
 
@@ -35,8 +36,8 @@
       const p = price(r)
       if (uniqueVariants && r.type === 'base' && r.related_uniques?.length) {
         out.push({ value: r.name + UNIQUE, name: r.name, unique: true,
-          note: `Sadece Unique${p ? ' · en değerli ' + p : ''}` })
-        out.push({ value: r.name, name: r.name, unique: false, note: 'Tüm nadirlikler' })
+          note: p ? t('editor.uniqueOnlyTop', p) : t('editor.uniqueOnly') })
+        out.push({ value: r.name, name: r.name, unique: false, note: t('editor.allRarities') })
       } else {
         out.push({ value: r.name, name: r.name, unique: false, note: p ? `${r.category} · ${p}` : r.category })
       }
@@ -100,7 +101,7 @@
     <div class="tags">
       {#each list as it (it)}
         {@const l = label(it)}
-        <span class="tag">{l.name}{#if l.unique}<em class="u">Unique</em>{/if}<button type="button" aria-label="{l.name} kaldır" onclick={() => remove(it)}>×</button></span>
+        <span class="tag">{l.name}{#if l.unique}<em class="u">Unique</em>{/if}<button type="button" aria-label={t('editor.remove', l.name)} onclick={() => remove(it)}>×</button></span>
       {/each}
     </div>
   {/if}

@@ -7,6 +7,7 @@ export {
 };
 
 export type {
+    LanguageOption,
     Meta,
     StyleOptions
 } from "./models.js";

@@ -41,7 +41,7 @@ func FetchScout(ctx context.Context, c *http.Client, league string) ([]prices.Cu
 		return nil, 0, err
 	}
 	if len(items) == 0 {
-		return nil, 0, fmt.Errorf("poe2scout boş liste döndü")
+		return nil, 0, fmt.Errorf("poe2scout returned an empty list")
 	}
 
 	var out []prices.CurrencyPrice

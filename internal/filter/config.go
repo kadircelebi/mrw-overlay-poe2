@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"poe2filter/internal/i18n"
 	"poe2filter/internal/prices"
 )
 
@@ -53,6 +54,10 @@ type Config struct {
 	// When set, prices come from this collector server URL first.
 	PriceSourceURL string `json:"price_source_url"`
 
+	// Language is the interface language: "auto" (follow Windows), "tr", "en"
+	// or "zh-Hant".
+	Language string `json:"language"`
+
 	AutoUpdateEnabled bool `json:"auto_update_enabled"`
 	AutoUpdateHours   int  `json:"auto_update_hours"`
 	NotifyEnabled     bool `json:"notify_enabled"`
@@ -87,6 +92,7 @@ func DefaultConfig() Config {
 		PinnacleKeys:      true,
 		LeagueName:        DefaultLeagues[0],
 		Strictness:        3,
+		Language:          string(i18n.Auto),
 		ExceptionalScan:   true,
 		ScanBudgetPct:     40,
 		AutoUpdateEnabled: true,
@@ -153,6 +159,9 @@ func (c *Config) Normalize() {
 	}
 	if c.ScanBudgetPct < 10 || c.ScanBudgetPct > 80 {
 		c.ScanBudgetPct = 40
+	}
+	if !i18n.Valid(c.Language) {
+		c.Language = string(i18n.Auto)
 	}
 	if c.AutoUpdateHours < 1 {
 		c.AutoUpdateHours = 4

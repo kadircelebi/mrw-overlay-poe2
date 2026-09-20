@@ -72,7 +72,7 @@ func Collect(ctx context.Context, opt Options, prev *prices.Snapshot) (*prices.S
 	case usablePrev:
 		snap.Rates = prev.Rates
 	default:
-		return nil, errors.New("divine kuru hiçbir kaynaktan alınamadı")
+		return nil, errors.New("no source provided the divine rate")
 	}
 	if snap.Rates.ChaosEx <= 0 {
 		for _, c := range scout {
