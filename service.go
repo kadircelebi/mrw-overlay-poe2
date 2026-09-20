@@ -14,6 +14,7 @@ import (
 	"poe2filter/internal/filter"
 	"poe2filter/internal/i18n"
 	"poe2filter/internal/insights"
+	"poe2filter/internal/trade"
 )
 
 // LanguageOption is one entry of the language picker.
@@ -46,9 +47,12 @@ type Meta struct {
 // AppService is the API the panel calls. Its methods are exposed to the
 // frontend through generated bindings.
 type AppService struct {
-	eng     *engine.Engine
-	app     *application.App
-	tray    *application.SystemTray
+	eng  *engine.Engine
+	app  *application.App
+	tray *application.SystemTray
+	// panel is the tray window; file dialogs attach to it so the panel does not
+	// disappear behind them when it loses focus.
+	panel   application.Window
 	meta    Meta
 	signal  chan struct{}
 	started sync.Once
@@ -163,6 +167,54 @@ func (s *AppService) UserGroupTemplate() filter.StyleGroup { return filter.UserG
 
 // StyleGroups lists the drop groups whose colours can be changed.
 func (s *AppService) StyleGroups() []filter.StyleGroup { return filter.LocalizedStyleGroups() }
+
+// ExportScan asks where to put the scan results and writes them there. It
+// returns the chosen path, or an empty string when the user cancels.
+func (s *AppService) ExportScan() (string, error) {
+	data, err := s.eng.ExportScan()
+	if err != nil {
+		return "", err
+	}
+	name := "poe2filtre-tarama-" + time.Now().Format("2006-01-02") + ".json"
+	dlg := s.app.Dialog.SaveFile().
+		SetFilename(name).
+		AddFilter("JSON", "*.json")
+	if s.panel != nil {
+		dlg = dlg.AttachToWindow(s.panel)
+	}
+	path, err := dlg.PromptForSingleSelection()
+	if err != nil || path == "" {
+		return "", err
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// ImportScan asks for a file exported by another player and merges it. A nil
+// result means the user cancelled the dialog.
+func (s *AppService) ImportScan() (*trade.ImportResult, error) {
+	dlg := s.app.Dialog.OpenFile().
+		CanChooseFiles(true).
+		AddFilter("JSON", "*.json")
+	if s.panel != nil {
+		dlg = dlg.AttachToWindow(s.panel)
+	}
+	path, err := dlg.PromptForSingleSelection()
+	if err != nil || path == "" {
+		return nil, err
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	res, err := s.eng.ImportScan(data)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
 
 // Leagues lists the leagues for the picker, live list first, always including
 // the one currently configured.

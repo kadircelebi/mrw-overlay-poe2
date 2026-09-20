@@ -564,3 +564,32 @@ func (e *Engine) SearchItems(query string, limit int) []insights.SearchItem {
 	}
 	return out
 }
+
+// ExportScan returns the exceptional scan results in shareable form, so a
+// player who has already spent the search budget can pass them on.
+func (e *Engine) ExportScan() ([]byte, error) {
+	e.scanMu.Lock()
+	sc := e.scanner
+	e.scanMu.Unlock()
+	if sc == nil {
+		return nil, errors.New(i18n.T("err.scanOff"))
+	}
+	return sc.Export()
+}
+
+// ImportScan merges someone else's results into ours and reports what changed.
+func (e *Engine) ImportScan(data []byte) (trade.ImportResult, error) {
+	e.scanMu.Lock()
+	sc := e.scanner
+	e.scanMu.Unlock()
+	if sc == nil {
+		return trade.ImportResult{}, errors.New(i18n.T("err.scanOff"))
+	}
+	res, err := sc.Import(data)
+	if err != nil {
+		return res, err
+	}
+	e.logf(i18n.T("log.imported"), res.Added, res.Updated, res.Skipped)
+	e.changed()
+	return res, nil
+}

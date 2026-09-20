@@ -20,10 +20,21 @@ import * as filter$0 from "./internal/filter/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as insights$0 from "./internal/insights/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as trade$0 from "./internal/trade/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
+
+/**
+ * ExportScan asks where to put the scan results and writes them there. It
+ * returns the chosen path, or an empty string when the user cancels.
+ */
+export function ExportScan(): $CancellablePromise<string> {
+    return $Call.ByID(4253054929);
+}
 
 /**
  * GetConfig returns the current settings.
@@ -51,6 +62,14 @@ export function GetState(): $CancellablePromise<engine$0.State> {
  */
 export function HidePanel(): $CancellablePromise<void> {
     return $Call.ByID(1659128072);
+}
+
+/**
+ * ImportScan asks for a file exported by another player and merges it. A nil
+ * result means the user cancelled the dialog.
+ */
+export function ImportScan(): $CancellablePromise<trade$0.ImportResult | null> {
+    return $Call.ByID(3003695854);
 }
 
 /**

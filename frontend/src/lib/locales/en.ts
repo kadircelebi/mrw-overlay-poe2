@@ -173,9 +173,17 @@ export const en: Record<string, string> = {
   // Trade scan
   'trade.title': 'Trade scan',
   'trade.desc': 'The trade search quota (600 / 6 hours) is shared with your own searches on the trade site.',
-  'trade.budget': '{0}% of the quota',
+  'trade.budget': '{0}%',
 
   // General
+  'share.title': 'Share scan results',
+  'share.desc':
+    'A full scan costs hours of rate-limited searches. Send the file to a friend so they start with your prices instead of scanning from zero.',
+  'share.export': 'Export',
+  'share.import': 'Import',
+  'share.exported': 'Saved: {0}',
+  'share.imported': '{0} new, {1} updated, {2} already newer here.',
+
   'general.title': 'General',
   'general.language': 'Language',
   'general.languageAuto': 'System language ({0})',

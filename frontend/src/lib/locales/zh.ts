@@ -154,7 +154,14 @@ export const zh: Record<string, string> = {
 
   'trade.title': 'Trade 掃描',
   'trade.desc': 'Trade 搜尋配額（600 / 6 小時）與你在 trade 網站上的搜尋共用。',
-  'trade.budget': '配額的 {0}%',
+  'trade.budget': '{0}%',
+
+  'share.title': '分享掃描結果',
+  'share.desc': '完整掃描需要數小時的受限搜尋。把檔案傳給朋友，他們就能直接使用你的價格，不必從零開始掃描。',
+  'share.export': '匯出',
+  'share.import': '匯入',
+  'share.exported': '已儲存：{0}',
+  'share.imported': '新增 {0} 筆、更新 {1} 筆、{2} 筆本機較新。',
 
   'general.title': '一般',
   'general.language': '語言',

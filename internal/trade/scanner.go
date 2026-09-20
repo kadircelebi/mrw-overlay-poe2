@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
+	"poe2filter/internal/i18n"
 	"poe2filter/internal/prices"
 )
 
@@ -255,7 +257,7 @@ func (s *Scanner) Run(ctx context.Context) {
 			return
 		}
 		if err != nil {
-			s.logf("[Tarama] %s %s: %v", t.base, t.kind, err)
+			s.logf(i18n.T("log.scanFailed"), t.base, t.kind, err)
 		}
 		s.mu.Lock()
 		s.last = s.current
@@ -396,7 +398,7 @@ func (s *Scanner) save() {
 	s.mu.Unlock()
 	if err == nil {
 		if err := prices.WriteFileAtomic(s.statePath, data); err != nil {
-			s.logf("[Tarama] durum kaydedilemedi: %v", err)
+			s.logf(i18n.T("log.scanSaveFailed"), err)
 		}
 	}
 }
@@ -479,4 +481,106 @@ func SocketClasses(min int) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// ShareVersion is the format version of an exported scan file. Importing a file
+// from a newer version is refused rather than half-understood.
+const ShareVersion = 1
+
+// Share is what "export scan results" writes. The point is that a scan costs
+// hours of rate-limited searches, so a player can hand their results to someone
+// starting out instead of everyone rediscovering the same prices.
+type Share struct {
+	Version    int                  `json:"version"`
+	League     string               `json:"league"`
+	ExportedAt time.Time            `json:"exported_at"`
+	Classes    map[string]string    `json:"classes"`
+	Keys       map[string]*keyState `json:"keys"`
+}
+
+// ImportResult reports what an import changed.
+type ImportResult struct {
+	League  string `json:"league"`
+	Added   int    `json:"added"`
+	Updated int    `json:"updated"`
+	Skipped int    `json:"skipped"`
+}
+
+// Export returns the current results in shareable form.
+func (s *Scanner) Export() ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := Share{
+		Version:    ShareVersion,
+		League:     s.st.League,
+		ExportedAt: time.Now().UTC(),
+		Classes:    make(map[string]string, len(s.st.Classes)),
+		Keys:       make(map[string]*keyState, len(s.st.Keys)),
+	}
+	for k, v := range s.st.Classes {
+		out.Classes[k] = v
+	}
+	for k, v := range s.st.Keys {
+		// Failures carry nothing worth sharing, and the error text is local.
+		if v == nil || v.ScannedAt.IsZero() {
+			continue
+		}
+		cp := *v
+		cp.LastError = ""
+		out.Keys[k] = &cp
+	}
+	return json.MarshalIndent(out, "", " ")
+}
+
+// Import merges someone else's results into ours. Prices are league specific,
+// so a file from another league is refused; within a league the newer scan of
+// each key wins, which means importing can only ever bring us forward.
+func (s *Scanner) Import(data []byte) (ImportResult, error) {
+	var in Share
+	if err := json.Unmarshal(data, &in); err != nil {
+		return ImportResult{}, fmt.Errorf(i18n.T("err.importBroken"), err)
+	}
+	if in.Version != ShareVersion {
+		return ImportResult{}, fmt.Errorf(i18n.T("err.importVersion"), in.Version, ShareVersion)
+	}
+	res := ImportResult{League: in.League}
+
+	s.mu.Lock()
+	if !strings.EqualFold(strings.TrimSpace(in.League), strings.TrimSpace(s.st.League)) {
+		league := s.st.League
+		s.mu.Unlock()
+		return res, fmt.Errorf(i18n.T("err.importLeague"), in.League, league)
+	}
+	for key, v := range in.Keys {
+		if v == nil || v.ScannedAt.IsZero() {
+			continue
+		}
+		cur := s.st.Keys[key]
+		switch {
+		case cur == nil:
+			res.Added++
+		case v.ScannedAt.After(cur.ScannedAt):
+			res.Updated++
+		default:
+			res.Skipped++
+			continue
+		}
+		cp := *v
+		cp.LastError = ""
+		// Their last attempt is not ours: keep our own retry schedule.
+		if cur != nil && cur.LastAttempt.After(cp.LastAttempt) {
+			cp.LastAttempt = cur.LastAttempt
+		}
+		s.st.Keys[key] = &cp
+	}
+	for base, class := range in.Classes {
+		if _, ok := s.st.Classes[base]; !ok {
+			s.st.Classes[base] = class
+		}
+	}
+	s.mu.Unlock()
+
+	s.save()
+	s.nudge()
+	return res, nil
 }

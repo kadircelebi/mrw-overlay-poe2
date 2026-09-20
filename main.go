@@ -129,7 +129,7 @@ func main() {
 	svc.relabel = func() { tray.SetMenu(trayMenu()) }
 	tray.AttachWindow(panel).WindowOffset(8)
 
-	svc.app, svc.tray = app, tray
+	svc.app, svc.tray, svc.panel = app, tray, panel
 	svc.eng = engine.New(engine.Options{
 		Dir:      *dataDir,
 		OutPath:  *outPath,

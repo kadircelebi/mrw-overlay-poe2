@@ -107,4 +107,12 @@ var zh = map[string]string{
 	"group.migratedHide":     "永遠隱藏",
 	"group.unnamed":          "群組 %d",
 	"groupDefault.userGroup": "預設（紫色）",
+
+	"log.scanFailed":     "[掃描] %s %s：%v",
+	"log.scanSaveFailed": "[掃描] 無法儲存狀態：%v",
+	"err.importBroken":   "無法讀取檔案：%w",
+	"err.importVersion":  "檔案格式為版本 %d，此版本支援 %d",
+	"err.importLeague":   "檔案屬於 %q 聯盟，你的是 %q",
+	"log.imported":       "已匯入掃描結果：%d 筆新增、%d 筆更新、%d 筆本機較新。",
+	"err.scanOff":        "exceptional 掃描已關閉",
 }

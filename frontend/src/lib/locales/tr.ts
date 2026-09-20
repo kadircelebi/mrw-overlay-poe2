@@ -161,6 +161,14 @@ export const tr: Record<string, string> = {
   'trade.desc': 'Trade arama kotası (600 / 6 saat) trade sitesindeki kendi aramalarınla ortak.',
   'trade.budget': "Kotanın %{0}'ı",
 
+  'share.title': 'Tarama sonuçlarını paylaş',
+  'share.desc':
+    'Tam bir tarama saatler süren, kotaya takılan aramalar demek. Dosyayı arkadaşına gönder, sıfırdan taramak yerine senin fiyatlarınla başlasın.',
+  'share.export': 'Dışa aktar',
+  'share.import': 'İçe aktar',
+  'share.exported': 'Kaydedildi: {0}',
+  'share.imported': '{0} yeni, {1} güncellendi, {2} zaten daha yeniydi.',
+
   'general.title': 'Genel',
   'general.language': 'Dil',
   'general.languageAuto': 'Sistem dili ({0})',

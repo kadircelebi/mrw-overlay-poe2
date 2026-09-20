@@ -40,6 +40,9 @@
   let groupTemplate = $state<StyleGroup | null>(null)
   // Group waiting for a second click on Delete.
   let confirmDelete = $state('')
+  // Result line under the share buttons: what the last export/import did.
+  let shareMsg = $state('')
+  let shareErr = $state('')
   // Index the user is dragging a group from, and the card it hovers over.
   let dragFrom = $state<number | null>(null)
   let dragOver = $state<number | null>(null)
@@ -123,6 +126,26 @@
         saveState = 'error'
       }
     }, 450)
+  }
+
+  async function exportScan() {
+    shareMsg = shareErr = ''
+    try {
+      const path = await AppService.ExportScan()
+      if (path) shareMsg = t('share.exported', path)
+    } catch (e) {
+      shareErr = String(e)
+    }
+  }
+
+  async function importScan() {
+    shareMsg = shareErr = ''
+    try {
+      const res = await AppService.ImportScan()
+      if (res) shareMsg = t('share.imported', res.added, res.updated, res.skipped)
+    } catch (e) {
+      shareErr = String(e)
+    }
   }
 
   async function updateNow() {
@@ -748,6 +771,14 @@
           onchange={() => queueSave(false)}
           options={[20, 40, 60].map((p) => ({ value: p, label: t('trade.budget', p) }))}
         />
+        <h3>{t('share.title')}</h3>
+        <p class="desc">{t('share.desc')}</p>
+        <div class="presets">
+          <button type="button" onclick={exportScan}>{t('share.export')}</button>
+          <button type="button" onclick={importScan}>{t('share.import')}</button>
+        </div>
+        {#if shareMsg}<p class="desc hint ellipsis" title={shareMsg}>{shareMsg}</p>{/if}
+        {#if shareErr}<p class="error">{shareErr}</p>{/if}
       </section>
 
       <section class="card">

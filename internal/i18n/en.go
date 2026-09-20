@@ -120,4 +120,12 @@ var en = map[string]string{
 	"group.migratedHide":     "Always hidden",
 	"group.unnamed":          "Group %d",
 	"groupDefault.userGroup": "Default (purple)",
+
+	"log.scanFailed":     "[Scan] %s %s: %v",
+	"log.scanSaveFailed": "[Scan] could not save the state: %v",
+	"err.importBroken":   "the file could not be read: %w",
+	"err.importVersion":  "file format version %d, this build understands %d",
+	"err.importLeague":   "the file is for league %q, yours is %q",
+	"log.imported":       "Scan results imported: %d new, %d updated, %d already newer here.",
+	"err.scanOff":        "the exceptional scan is off",
 }

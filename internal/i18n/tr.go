@@ -104,4 +104,12 @@ var tr = map[string]string{
 	"group.migratedHide":     "Her zaman gizle",
 	"group.unnamed":          "Grup %d",
 	"groupDefault.userGroup": "Varsayılan (mor)",
+
+	"log.scanFailed":     "[Tarama] %s %s: %v",
+	"log.scanSaveFailed": "[Tarama] durum kaydedilemedi: %v",
+	"err.importBroken":   "dosya okunamadı: %w",
+	"err.importVersion":  "dosya biçimi sürüm %d, bu sürüm %d anlıyor",
+	"err.importLeague":   "dosya %q ligine ait, seninki %q",
+	"log.imported":       "Tarama sonuçları alındı: %d yeni, %d güncellendi, %d zaten daha yeniydi.",
+	"err.scanOff":        "exceptional taraması kapalı",
 }
