@@ -16,6 +16,11 @@ permissions:
 jobs:
   windows-exe:
     runs-on: ubuntu-latest
+    # İmzalama adımları yalnızca bu gizli değerler tanımlıysa çalışır. SignPath
+    # Foundation başvurusu onaylanana kadar exe imzasız yayınlanır ve akış
+    # aynen tamamlanır.
+    env:
+      SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
     steps:
       # Etiketten tetiklendiyse etiketli commit, elle tetiklendiyse workflow'un
       # çalıştığı dal (etiket henüz yoksa release onu bu commit'te oluşturur).
@@ -69,6 +74,38 @@ jobs:
           go build -tags production -trimpath \
             -ldflags "-w -s -H windowsgui -X main.version=${{ steps.ver.outputs.version }}" \
             -o "poe2filtre-${{ steps.ver.outputs.tag }}-windows-amd64.exe" .
+
+      # SignPath imzalanacak dosyayı GitHub Actions artefaktından alır, bu yüzden
+      # exe'yi önce artefakt olarak yüklüyoruz.
+      - name: İmzalanacak exe'yi artefakt olarak yükle
+        id: unsigned
+        if: env.SIGNPATH_ORGANIZATION_ID != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-exe
+          path: poe2filtre-${{ steps.ver.outputs.tag }}-windows-amd64.exe
+          if-no-files-found: error
+
+      - name: SignPath ile imzala
+        if: env.SIGNPATH_ORGANIZATION_ID != ''
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: poe2-filtre
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: exe
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      # İmzalı dosya release'e giden dosyanın yerini alır; özet de ondan alınır.
+      - name: İmzalı exe'yi kullan
+        if: env.SIGNPATH_ORGANIZATION_ID != ''
+        run: |
+          EXE="poe2filtre-${{ steps.ver.outputs.tag }}-windows-amd64.exe"
+          test -f "signed/$EXE" || { echo "imzali dosya bulunamadi" >&2; ls -la signed; exit 1; }
+          mv "signed/$EXE" "$EXE"
 
       - name: Release'i yayınla
         env:

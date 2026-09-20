@@ -447,6 +447,20 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	// The base filter is one source of valid base names, the trade item list is
+	// the other and it is complete: a base NeverSink never mentions used to be
+	// unknown to us, which meant it could not be priced and could not be named
+	// in a rule, so it fell through to the catch-all and was always shown.
+	tradeBases, berr := trade.EquipmentBaseTypes(ctx, filepath.Join(e.dataDir, "trade_items.json"))
+	if berr != nil {
+		e.logf("%s", i18n.T("log.basesFailed", berr))
+	}
+	for _, b := range tradeBases {
+		if _, ok := validBases[strings.ToLower(b)]; !ok {
+			validBases[strings.ToLower(b)] = b
+		}
+	}
+
 	e.snapMu.Lock()
 	e.snap, e.validBases = snap, validBases
 	e.snapMu.Unlock()
@@ -454,14 +468,8 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	if scanner != nil {
 		scanner.SetMarket(snap)
 		scanner.SetHotThreshold(cfg.ThresholdEx(snap.Rates) / 2)
-		if bases, berr := trade.EquipmentBaseTypes(ctx, filepath.Join(e.dataDir, "trade_items.json")); berr == nil {
-			droppable := map[string]bool{}
-			for _, b := range validBases {
-				droppable[b] = true
-			}
-			scanner.SetCandidates(trade.BuildCandidates(bases, droppable, neversink.ExceptionalBases(string(baseContent))))
-		} else {
-			e.logf("%s", i18n.T("log.basesFailed", berr))
+		if len(tradeBases) > 0 {
+			scanner.SetCandidates(trade.BuildCandidates(tradeBases, nil, neversink.ExceptionalBases(string(baseContent))))
 		}
 	}
 

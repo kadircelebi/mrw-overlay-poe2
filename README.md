@@ -91,6 +91,25 @@ Eşya, currency ve filtre anahtar kelimeleri (Waystone, Exalted Orb, Uncut Suppo
 
 Yeni bir dil eklemek istersen `frontend/src/lib/locales/en.ts` ve `internal/i18n/en.go` dosyalarını kopyalayıp çevirmen yeterli; `npm run check` ve `go test ./internal/i18n/` eksik veya fazla anahtarı söyler.
 
+## Code signing policy
+
+Bu bölüm [SignPath Foundation](https://signpath.org/) başvurusu için gereklidir ve İngilizce tutulmuştur. **Başvuru onaylanana kadar yayınlanan exe imzasızdır**; SmartScreen uyarısı bu yüzden çıkar.
+
+Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+Team roles:
+
+- Committers and reviewers: [kadircelebi](https://github.com/kadircelebi)
+- Approvers: [kadircelebi](https://github.com/kadircelebi)
+
+All releases are built from this repository by [GitHub Actions](.github/workflows/release.yml); no binary is produced on a developer machine.
+
+### Privacy policy
+
+This program will not transfer any information about the user to other networked systems.
+
+To do its job it reads publicly available data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout](https://poe2scout.com/), item listings from the official Path of Exile trade API, and NeverSink's filter from GitHub. These requests carry no account name, session or other identifying information, and the application never signs in. Nothing the user enters in the app leaves their machine; settings stay in `%APPDATA%\PoE2Filtre`.
+
 ## Güncelleme ve kaldırma
 
 Yeni sürüm çıktığında Releases'ten yeni exe'yi indir, eskisinin üstüne koy (uygulama kapalıyken). Ayarların `%APPDATA%\PoE2Filtre` altında durduğu için korunur.

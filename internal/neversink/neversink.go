@@ -84,6 +84,12 @@ func download(ctx context.Context, u, dest, userAgent string) error {
 
 var quoted = regexp.MustCompile(`"([^"]+)"`)
 
+// uncomment trims a line and drops the "#" a disabled rule carries, so the
+// same parsing works for active and switched-off rules alike.
+func uncomment(line string) string {
+	return strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(line), "#"))
+}
+
 // BaseTypes returns every BaseType named in the filter (lowercase -> canonical).
 // These are the names the game accepts, so generated rules stick to them.
 func BaseTypes(content string) map[string]string {
@@ -91,7 +97,12 @@ func BaseTypes(content string) map[string]string {
 	sc := bufio.NewScanner(strings.NewReader(content))
 	sc.Buffer(make([]byte, 1<<20), 1<<20)
 	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
+		// A strictness level switches rules off by commenting them out, but the
+		// base names in them are still real game items. Reading only the active
+		// rules would leave a strict filter knowing fewer bases than a soft one
+		// (128 fewer at Uber Plus Strict), and every unknown base falls through
+		// to the catch-all rules instead of being priced.
+		line := uncomment(sc.Text())
 		if !strings.HasPrefix(line, "BaseType") {
 			continue
 		}
@@ -110,14 +121,14 @@ func ExceptionalBases(content string) map[string]bool {
 	sc := bufio.NewScanner(strings.NewReader(content))
 	sc.Buffer(make([]byte, 1<<20), 1<<20)
 	for sc.Scan() {
-		line := sc.Text()
-		trimmed := strings.TrimSpace(line)
+		// Commented-out rules count here too, for the same reason as in BaseTypes.
+		line := uncomment(sc.Text())
 		if strings.HasPrefix(line, "Show") || strings.HasPrefix(line, "Hide") || strings.HasPrefix(line, "Minimal") {
 			in = strings.Contains(line, "$type->exotic->exceptional")
 			continue
 		}
-		if in && strings.HasPrefix(trimmed, "BaseType") {
-			for _, m := range quoted.FindAllStringSubmatch(trimmed, -1) {
+		if in && strings.HasPrefix(line, "BaseType") {
+			for _, m := range quoted.FindAllStringSubmatch(line, -1) {
 				out[m[1]] = true
 			}
 		}

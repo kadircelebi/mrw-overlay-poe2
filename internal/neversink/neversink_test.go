@@ -1,6 +1,9 @@
 package neversink
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestStyles(t *testing.T) {
 	content := `Show # %D9 $type->a $tier->b !apex_stier
@@ -35,5 +38,48 @@ Show # adjacent block without a blank line !currency_c
 	}
 	if got[1].Tag != "currency_c" || got[1].Effect != "Purple Temp" {
 		t.Fatalf("currency style wrong: %+v", got[1])
+	}
+}
+
+// A strictness level disables rules by commenting them out. Their base names
+// are still valid items, and skipping them left the strictest filter knowing
+// the fewest bases — the opposite of what a stricter level should do.
+func TestBaseTypesReadsDisabledRules(t *testing.T) {
+	const content = `
+Show # $type->ut->rare $tier->gear5c !exotics_btier
+	Rarity Rare
+	BaseType == "Cavalry Boots" "Champion Helm"
+	SetFontSize 40
+
+#Show # %D5 $type->ut->rare $tier->gear4c !exotics_ctier
+#	Rarity Rare
+#	BaseType == "Warded Helm" "Cassis Helm"
+#	SetFontSize 40
+`
+	bases := BaseTypes(content)
+	for _, want := range []string{"Cavalry Boots", "Champion Helm", "Warded Helm", "Cassis Helm"} {
+		if got, ok := bases[strings.ToLower(want)]; !ok || got != want {
+			t.Errorf("BaseTypes missing %q (got %q, ok=%v)", want, got, ok)
+		}
+	}
+}
+
+func TestExceptionalBasesReadsDisabledRules(t *testing.T) {
+	const content = `
+Show # $type->exotic->exceptional $tier->t1
+	BaseType == "Cavalry Boots"
+
+#Show # $type->exotic->exceptional $tier->t2
+#	BaseType == "Warded Helm"
+
+Show # $type->ut->rare
+	BaseType == "Felt Cap"
+`
+	got := ExceptionalBases(content)
+	if !got["Cavalry Boots"] || !got["Warded Helm"] {
+		t.Errorf("exceptional bases incomplete: %v", got)
+	}
+	if got["Felt Cap"] {
+		t.Error("a base outside the exceptional blocks must not be included")
 	}
 }
