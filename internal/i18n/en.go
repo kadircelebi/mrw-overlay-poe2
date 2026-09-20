@@ -128,4 +128,12 @@ var en = map[string]string{
 	"log.imported":       "Scan results imported: %d new, %d updated, %d already newer here.",
 	"err.scanOff":        "the exceptional scan is off",
 	"filter.sec.none":    "off",
+
+	"profile.default":    "Default",
+	"profile.imported":   "Imported profile",
+	"err.profileName":    "give the profile a name",
+	"err.profileMissing": "no profile named %q",
+	"err.profileLimit":   "at most %d profiles",
+	"err.profileLast":    "the last profile cannot be deleted",
+	"err.noFilterYet":    "no filter has been written yet",
 }

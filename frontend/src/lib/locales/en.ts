@@ -188,6 +188,26 @@ export const en: Record<string, string> = {
   'share.exported': 'Saved: {0}',
   'share.imported': '{0} new, {1} updated, {2} already newer here.',
 
+  // Profiles
+  'profile.title': 'Profiles',
+  'profile.desc':
+    'A profile is a complete settings set. Keep one per kind of farming and switch with a click; the filter is rewritten right away.',
+  'profile.namePlaceholder': 'New profile name',
+  'profile.saveAs': 'Save as',
+  'profile.delete': 'Delete',
+  'profile.deleteConfirm': 'Delete?',
+  'profile.export': 'Export',
+  'profile.import': 'Import',
+  'profile.switched': 'Switched to {0}.',
+  'profile.imported': '{0} imported and loaded.',
+  'profile.exported': 'Saved: {0}',
+  'profile.filterNameChanged': 'This profile writes {0}.filter — pick it in game with Item Filter.',
+  'profile.leagueChanged': 'The league is now {0}.',
+  'profile.everything':
+    'A profile carries every setting, league and filter name included, which is what makes the file shareable.',
+  'filter.export': 'Export the filter file',
+  'filter.exportHint': 'A copy of the filter that was last written, for sharing or another machine',
+
   'general.title': 'General',
   'general.language': 'Language',
   'general.languageAuto': 'System language ({0})',

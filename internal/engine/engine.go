@@ -103,6 +103,8 @@ type Engine struct {
 	leagues   []string
 	leaguesAt time.Time
 
+	profileMu sync.Mutex
+
 	scanMu     sync.Mutex
 	scanner    *trade.Scanner
 	scanCancel context.CancelFunc
@@ -238,6 +240,7 @@ func (e *Engine) SetConfig(c filter.Config) (filter.Config, error) {
 	e.cfg = c
 	e.cfgMu.Unlock()
 	e.ensureScanner(true)
+	e.syncActiveProfile()
 	e.changed()
 	return c, nil
 }

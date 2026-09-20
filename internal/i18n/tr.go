@@ -112,4 +112,12 @@ var tr = map[string]string{
 	"log.imported":       "Tarama sonuçları alındı: %d yeni, %d güncellendi, %d zaten daha yeniydi.",
 	"err.scanOff":        "exceptional taraması kapalı",
 	"filter.sec.none":    "kapalı",
+
+	"profile.default":    "Varsayılan",
+	"profile.imported":   "Alınan profil",
+	"err.profileName":    "profile bir ad ver",
+	"err.profileMissing": "%q adında profil yok",
+	"err.profileLimit":   "en fazla %d profil",
+	"err.profileLast":    "son profil silinemez",
+	"err.noFilterYet":    "henüz filtre yazılmadı",
 }

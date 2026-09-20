@@ -17,6 +17,7 @@
   import { clock, relative, until, money, strictnessNames } from './lib/format'
   import { t, setLang } from './lib/i18n.svelte'
   import type { LanguageOption } from '../bindings/poe2filter/models'
+  import type { ProfileInfo } from '../bindings/poe2filter/internal/engine/models'
 
   let meta = $state<Meta | null>(null)
   let cfg = $state<Config | null>(null)
@@ -44,6 +45,11 @@
   // Result line under the share buttons: what the last export/import did.
   let shareMsg = $state('')
   let shareErr = $state('')
+  let profiles = $state<ProfileInfo[]>([])
+  let newProfile = $state('')
+  let profileMsg = $state('')
+  let profileErr = $state('')
+  let confirmProfileDelete = $state(false)
   // Index the user is dragging a group from, and the card it hovers over.
   let dragFrom = $state<number | null>(null)
   let dragOver = $state<number | null>(null)
@@ -78,6 +84,7 @@
       sounds = (await AppService.ListSounds()) ?? []
       leagues = (await AppService.Leagues()) ?? []
       languages = (await AppService.Languages()) ?? []
+      profiles = (await AppService.Profiles()) ?? []
       cfg = await AppService.GetConfig()
       applyLanguage(cfg.language)
       await refresh()
@@ -127,6 +134,102 @@
         saveState = 'error'
       }
     }, 450)
+  }
+
+  const activeProfile = $derived(profiles.find((p) => p.active)?.name ?? '')
+
+  // Applying a profile can change the league and the filter name, so say what
+  // moved instead of letting the user discover it in game.
+  function profileChanges(before: Config | null, after: Config): string {
+    const notes: string[] = []
+    if (before && after.filter_name !== before.filter_name) {
+      notes.push(t('profile.filterNameChanged', after.filter_name))
+    }
+    if (before && after.league_name !== before.league_name) {
+      notes.push(t('profile.leagueChanged', after.league_name))
+    }
+    return notes.join(' ')
+  }
+
+  async function afterProfileChange(saved: Config, before: Config | null, msg: string) {
+    cfg = saved
+    applyLanguage(saved.language)
+    profiles = (await AppService.Profiles()) ?? profiles
+    themes = (await AppService.Themes()) ?? themes
+    groups = (await AppService.StyleGroups()) ?? groups
+    sounds = (await AppService.ListSounds()) ?? sounds
+    styleGroup = 'divine'
+    dirty = false
+    profileMsg = [msg, profileChanges(before, saved)].filter(Boolean).join(' ')
+    await refresh()
+  }
+
+  async function switchProfile(name: string) {
+    if (!name || name === activeProfile) return
+    profileMsg = profileErr = ''
+    const before = cfg ? ({ ...$state.snapshot(cfg) } as Config) : null
+    try {
+      await afterProfileChange(await AppService.SwitchProfile(name), before, t('profile.switched', name))
+    } catch (e) {
+      profileErr = String(e)
+    }
+  }
+
+  async function saveProfileAs() {
+    const name = newProfile.trim()
+    if (!name) return
+    profileMsg = profileErr = ''
+    try {
+      profiles = (await AppService.SaveProfileAs(name)) ?? profiles
+      newProfile = ''
+      profileMsg = t('profile.switched', name)
+    } catch (e) {
+      profileErr = String(e)
+    }
+  }
+
+  async function deleteProfile() {
+    profileMsg = profileErr = ''
+    confirmProfileDelete = false
+    const before = cfg ? ({ ...$state.snapshot(cfg) } as Config) : null
+    try {
+      const saved = await AppService.DeleteProfile(activeProfile)
+      await afterProfileChange(saved, before, '')
+    } catch (e) {
+      profileErr = String(e)
+    }
+  }
+
+  async function exportProfile() {
+    profileMsg = profileErr = ''
+    try {
+      const path = await AppService.ExportProfile(activeProfile)
+      if (path) profileMsg = t('profile.exported', path)
+    } catch (e) {
+      profileErr = String(e)
+    }
+  }
+
+  async function importProfile() {
+    profileMsg = profileErr = ''
+    const before = cfg ? ({ ...$state.snapshot(cfg) } as Config) : null
+    try {
+      const name = await AppService.ImportProfile()
+      if (!name) return
+      await afterProfileChange(await AppService.GetConfig(), before, t('profile.imported', name))
+    } catch (e) {
+      profileErr = String(e)
+    }
+  }
+
+  async function exportFilter() {
+    shareMsg = shareErr = ''
+    try {
+      const path = await AppService.ExportFilter()
+      if (path) shareMsg = t('share.exported', path)
+    } catch (e) {
+      shareErr = String(e)
+    }
   }
 
   async function exportScan() {
@@ -540,6 +643,47 @@
   {:else if cfg && view === 'settings'}
     <div class="scroll settings">
       <section class="card">
+        <h2>{t('profile.title')}</h2>
+        <p class="desc">{t('profile.desc')}</p>
+        <label class="field">
+          <span>{t('profile.title')}</span>
+          <select value={activeProfile} onchange={(e) => switchProfile(e.currentTarget.value)}>
+            {#each profiles as p (p.name)}
+              <option value={p.name}>{p.name}</option>
+            {/each}
+          </select>
+        </label>
+        <div class="group-head">
+          <input
+            class="group-name"
+            bind:value={newProfile}
+            placeholder={t('profile.namePlaceholder')}
+            onkeydown={(e) => e.key === 'Enter' && saveProfileAs()}
+            spellcheck="false"
+          />
+          <button type="button" class="group-del" onclick={saveProfileAs} disabled={!newProfile.trim()}>
+            {t('profile.saveAs')}
+          </button>
+        </div>
+        <div class="presets">
+          <button type="button" onclick={exportProfile}>{t('profile.export')}</button>
+          <button type="button" onclick={importProfile}>{t('profile.import')}</button>
+          <button
+            type="button"
+            class:confirm={confirmProfileDelete}
+            disabled={profiles.length < 2}
+            onclick={() => (confirmProfileDelete ? deleteProfile() : (confirmProfileDelete = true))}
+            onblur={() => (confirmProfileDelete = false)}
+          >
+            {confirmProfileDelete ? t('profile.deleteConfirm') : t('profile.delete')}
+          </button>
+        </div>
+        <p class="desc hint">{t('profile.everything')}</p>
+        {#if profileMsg}<p class="desc warn">{profileMsg}</p>{/if}
+        {#if profileErr}<p class="error">{profileErr}</p>{/if}
+      </section>
+
+      <section class="card">
         <h2>{t('gear.title')}</h2>
         <Toggle bind:checked={cfg.include_gear} label={t('gear.strict')} hint={t('gear.strictHint')} onchange={() => queueSave()} />
         <TierSlider
@@ -838,6 +982,10 @@
           <span>{t('general.filterName')}</span>
           <input bind:value={cfg.filter_name} onchange={() => queueSave()} spellcheck="false" />
         </label>
+        <div class="presets">
+          <button type="button" onclick={exportFilter}>{t('filter.export')}</button>
+        </div>
+        <p class="desc hint">{t('filter.exportHint')}</p>
         <label class="field stack">
           <span>{t('general.customBase')}</span>
           <input bind:value={cfg.custom_base_filter} onchange={() => queueSave()} placeholder={t('general.customBasePlaceholder')} spellcheck="false" />
@@ -1084,7 +1232,8 @@
     color: var(--muted);
     white-space: nowrap;
   }
-  .group-del.confirm {
+  .group-del.confirm,
+  .presets button.confirm {
     color: var(--bad);
     border-color: var(--bad);
   }

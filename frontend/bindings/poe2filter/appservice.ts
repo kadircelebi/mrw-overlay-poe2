@@ -29,6 +29,28 @@ import * as trade$0 from "./internal/trade/models.js";
 import * as $models from "./models.js";
 
 /**
+ * DeleteProfile removes a profile and switches away from it when it was active.
+ */
+export function DeleteProfile(name: string): $CancellablePromise<filter$0.Config> {
+    return $Call.ByID(1212961758, name);
+}
+
+/**
+ * ExportFilter saves a copy of the filter that was last written, for sharing or
+ * for using it on a machine that does not run this app.
+ */
+export function ExportFilter(): $CancellablePromise<string> {
+    return $Call.ByID(1884601658);
+}
+
+/**
+ * ExportProfile writes a profile to a file another player can import.
+ */
+export function ExportProfile(name: string): $CancellablePromise<string> {
+    return $Call.ByID(2256871597, name);
+}
+
+/**
  * ExportScan asks where to put the scan results and writes them there. It
  * returns the chosen path, or an empty string when the user cancels.
  */
@@ -62,6 +84,14 @@ export function GetState(): $CancellablePromise<engine$0.State> {
  */
 export function HidePanel(): $CancellablePromise<void> {
     return $Call.ByID(1659128072);
+}
+
+/**
+ * ImportProfile adds a profile from a file and switches to it. An empty name
+ * means the user cancelled the dialog.
+ */
+export function ImportProfile(): $CancellablePromise<string> {
+    return $Call.ByID(147905064);
 }
 
 /**
@@ -125,6 +155,13 @@ export function PreviewSound(name: string): $CancellablePromise<void> {
 }
 
 /**
+ * Profiles lists the saved settings sets for the picker.
+ */
+export function Profiles(): $CancellablePromise<engine$0.ProfileInfo[] | null> {
+    return $Call.ByID(251923804);
+}
+
+/**
  * Quit exits the application.
  */
 export function Quit(): $CancellablePromise<void> {
@@ -136,6 +173,13 @@ export function Quit(): $CancellablePromise<void> {
  */
 export function SaveConfig(c: filter$0.Config): $CancellablePromise<filter$0.Config> {
     return $Call.ByID(2775748437, c);
+}
+
+/**
+ * SaveProfileAs stores the current settings under a name and makes it active.
+ */
+export function SaveProfileAs(name: string): $CancellablePromise<engine$0.ProfileInfo[] | null> {
+    return $Call.ByID(3887311624, name);
 }
 
 /**
@@ -157,6 +201,14 @@ export function StyleGroups(): $CancellablePromise<filter$0.StyleGroup[] | null>
  */
 export function StyleOptions(): $CancellablePromise<$models.StyleOptions> {
     return $Call.ByID(2448222331);
+}
+
+/**
+ * SwitchProfile loads another profile, applies it and rewrites the filter, so
+ * changing what you farm is one click rather than a dozen sliders.
+ */
+export function SwitchProfile(name: string): $CancellablePromise<filter$0.Config> {
+    return $Call.ByID(439236687, name);
 }
 
 /**

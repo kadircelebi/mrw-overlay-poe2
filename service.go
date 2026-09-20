@@ -5,6 +5,8 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -130,13 +132,136 @@ func (s *AppService) SaveConfig(c filter.Config) (filter.Config, error) {
 	if err != nil {
 		return saved, err
 	}
-	if lang := i18n.Resolve(saved.Language); lang != before {
+	s.applyLanguage(saved, before)
+	return saved, nil
+}
+
+// applyLanguage switches the Go side (and the tray menu, which is built once)
+// when the settings that just landed carry a different language.
+func (s *AppService) applyLanguage(cfg filter.Config, before i18n.Lang) {
+	if lang := i18n.Resolve(cfg.Language); lang != before {
 		i18n.Set(lang)
 		if s.relabel != nil {
 			s.relabel()
 		}
 	}
+}
+
+// Profiles lists the saved settings sets for the picker.
+func (s *AppService) Profiles() []engine.ProfileInfo { return s.eng.Profiles() }
+
+// SaveProfileAs stores the current settings under a name and makes it active.
+func (s *AppService) SaveProfileAs(name string) ([]engine.ProfileInfo, error) {
+	if err := s.eng.SaveProfileAs(name); err != nil {
+		return s.eng.Profiles(), err
+	}
+	return s.eng.Profiles(), nil
+}
+
+// SwitchProfile loads another profile, applies it and rewrites the filter, so
+// changing what you farm is one click rather than a dozen sliders.
+func (s *AppService) SwitchProfile(name string) (filter.Config, error) {
+	before := i18n.Current()
+	cfg, err := s.eng.SwitchProfile(name)
+	if err != nil {
+		return s.eng.Config(), err
+	}
+	saved, err := s.eng.SetConfig(cfg)
+	if err != nil {
+		return saved, err
+	}
+	s.applyLanguage(saved, before)
+	_ = s.eng.UpdateNow()
 	return saved, nil
+}
+
+// DeleteProfile removes a profile and switches away from it when it was active.
+func (s *AppService) DeleteProfile(name string) (filter.Config, error) {
+	active, err := s.eng.DeleteProfile(name)
+	if err != nil {
+		return s.eng.Config(), err
+	}
+	return s.SwitchProfile(active)
+}
+
+// ExportProfile writes a profile to a file another player can import.
+func (s *AppService) ExportProfile(name string) (string, error) {
+	data, err := s.eng.ExportProfile(name)
+	if err != nil {
+		return "", err
+	}
+	return s.saveToFile(safeFileName("poe2filtre-profil-"+name)+".json", "JSON", "*.json", data)
+}
+
+// ImportProfile adds a profile from a file and switches to it. An empty name
+// means the user cancelled the dialog.
+func (s *AppService) ImportProfile() (string, error) {
+	data, err := s.openFile("JSON", "*.json")
+	if err != nil || data == nil {
+		return "", err
+	}
+	name, err := s.eng.ImportProfile(data)
+	if err != nil {
+		return "", err
+	}
+	if _, err := s.SwitchProfile(name); err != nil {
+		return name, err
+	}
+	return name, nil
+}
+
+// ExportFilter saves a copy of the filter that was last written, for sharing or
+// for using it on a machine that does not run this app.
+func (s *AppService) ExportFilter() (string, error) {
+	st := s.eng.State()
+	if st.Last == nil || st.Last.FilterPath == "" {
+		return "", errors.New(i18n.T("err.noFilterYet"))
+	}
+	data, err := os.ReadFile(st.Last.FilterPath)
+	if err != nil {
+		return "", err
+	}
+	return s.saveToFile(filepath.Base(st.Last.FilterPath), "Filter", "*.filter", data)
+}
+
+// saveToFile asks where to put data and writes it; an empty path means the
+// user cancelled.
+func (s *AppService) saveToFile(name, filterName, pattern string, data []byte) (string, error) {
+	dlg := s.app.Dialog.SaveFile().SetFilename(name).AddFilter(filterName, pattern)
+	if s.panel != nil {
+		dlg = dlg.AttachToWindow(s.panel)
+	}
+	path, err := dlg.PromptForSingleSelection()
+	if err != nil || path == "" {
+		return "", err
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// openFile asks for a file and returns its contents; nil means cancelled.
+func (s *AppService) openFile(filterName, pattern string) ([]byte, error) {
+	dlg := s.app.Dialog.OpenFile().CanChooseFiles(true).AddFilter(filterName, pattern)
+	if s.panel != nil {
+		dlg = dlg.AttachToWindow(s.panel)
+	}
+	path, err := dlg.PromptForSingleSelection()
+	if err != nil || path == "" {
+		return nil, err
+	}
+	return os.ReadFile(path)
+}
+
+// safeFileName keeps a user-chosen profile name usable as a file name.
+func safeFileName(s string) string {
+	return strings.Map(func(r rune) rune {
+		if strings.ContainsRune(`\/:*?"<>|`, r) {
+			return '-'
+		}
+		return r
+	}, s)
 }
 
 // Languages lists the interface languages, each named in its own language.
@@ -175,38 +300,14 @@ func (s *AppService) ExportScan() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	name := "poe2filtre-tarama-" + time.Now().Format("2006-01-02") + ".json"
-	dlg := s.app.Dialog.SaveFile().
-		SetFilename(name).
-		AddFilter("JSON", "*.json")
-	if s.panel != nil {
-		dlg = dlg.AttachToWindow(s.panel)
-	}
-	path, err := dlg.PromptForSingleSelection()
-	if err != nil || path == "" {
-		return "", err
-	}
-	if err := os.WriteFile(path, data, 0o644); err != nil {
-		return "", err
-	}
-	return path, nil
+	return s.saveToFile("poe2filtre-tarama-"+time.Now().Format("2006-01-02")+".json", "JSON", "*.json", data)
 }
 
 // ImportScan asks for a file exported by another player and merges it. A nil
 // result means the user cancelled the dialog.
 func (s *AppService) ImportScan() (*trade.ImportResult, error) {
-	dlg := s.app.Dialog.OpenFile().
-		CanChooseFiles(true).
-		AddFilter("JSON", "*.json")
-	if s.panel != nil {
-		dlg = dlg.AttachToWindow(s.panel)
-	}
-	path, err := dlg.PromptForSingleSelection()
-	if err != nil || path == "" {
-		return nil, err
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
+	data, err := s.openFile("JSON", "*.json")
+	if err != nil || data == nil {
 		return nil, err
 	}
 	res, err := s.eng.ImportScan(data)

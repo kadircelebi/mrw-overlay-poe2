@@ -173,6 +173,27 @@ export const tr: Record<string, string> = {
   'share.exported': 'Kaydedildi: {0}',
   'share.imported': '{0} yeni, {1} güncellendi, {2} zaten daha yeniydi.',
 
+  // Profiller
+  'profile.title': 'Profiller',
+  'profile.desc':
+    'Profil, ayarların tamamının bir kopyasıdır. Her farm türü için bir tane tut, tek tıkla geç; filtre hemen yeniden yazılır.',
+  'profile.namePlaceholder': 'Yeni profil adı',
+  'profile.saveAs': 'Farklı kaydet',
+  'profile.delete': 'Sil',
+  'profile.deleteConfirm': 'Silinsin mi?',
+  'profile.export': 'Dışa aktar',
+  'profile.import': 'İçe aktar',
+  'profile.switched': '{0} profiline geçildi.',
+  'profile.imported': '{0} alındı ve yüklendi.',
+  'profile.exported': 'Kaydedildi: {0}',
+  'profile.filterNameChanged':
+    "Bu profil {0}.filter dosyasını yazıyor — oyunda Item Filter'dan onu seç.",
+  'profile.leagueChanged': 'Lig artık {0}.',
+  'profile.everything':
+    'Profil bütün ayarları taşır, lig ve filtre adı dahil; dosyayı paylaşılabilir yapan da bu.',
+  'filter.export': 'Filtre dosyasını dışa aktar',
+  'filter.exportHint': 'En son yazılan filtrenin bir kopyası; paylaşmak ya da başka bir makinede kullanmak için',
+
   'general.title': 'Genel',
   'general.language': 'Dil',
   'general.languageAuto': 'Sistem dili ({0})',

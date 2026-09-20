@@ -115,4 +115,12 @@ var zh = map[string]string{
 	"log.imported":       "已匯入掃描結果：%d 筆新增、%d 筆更新、%d 筆本機較新。",
 	"err.scanOff":        "exceptional 掃描已關閉",
 	"filter.sec.none":    "關閉",
+
+	"profile.default":    "預設",
+	"profile.imported":   "匯入的設定檔",
+	"err.profileName":    "請為設定檔命名",
+	"err.profileMissing": "沒有名為 %q 的設定檔",
+	"err.profileLimit":   "最多 %d 個設定檔",
+	"err.profileLast":    "無法刪除最後一個設定檔",
+	"err.noFilterYet":    "尚未寫入過過濾器",
 }
