@@ -20,8 +20,13 @@ export interface Config {
      */
     "filter_mode": string;
     "include_gear": boolean;
-    "t5_rares": boolean;
-    "t5_jewels_only": boolean;
+
+    /**
+     * T5RareTier shows unidentified rare equipment from this tier up, and
+     * RareJewelTier does the same for rare jewels. TierOff switches them off.
+     */
+    "t5_rare_tier": number;
+    "rare_jewel_tier": number;
 
     /**
      * 0 = off
@@ -64,13 +69,21 @@ export interface Config {
      */
     "item_groups": ItemGroup[] | null;
     "chance_bases": string[] | null;
-    "high_waystones": boolean;
-    "high_uncut_gems": boolean;
+
+    /**
+     * WaystoneTier highlights waystones from this tier up (1..15, TierOff = no
+     * rule) and UncutGemLevel shows uncut skill and spirit gems from this level
+     * up, hiding the rest.
+     */
+    "waystone_tier": number;
+    "uncut_gem_level": number;
 
     /**
      * Uncut Support Gems drop constantly, so they have their own switch.
+     * UncutSupportLevel is the same for support gems, which drop far more often;
+     * TierOff hides them all.
      */
-    "uncut_support_gems": boolean;
+    "uncut_support_level": number;
     "boss_keys_and_tablets": boolean;
     "league_name": string;
 
@@ -107,6 +120,11 @@ export interface Config {
     /**
      * Legacy fields, read once for migration and never written back.
      */
+    "t5_rares"?: boolean | null;
+    "t5_jewels_only"?: boolean | null;
+    "high_waystones"?: boolean | null;
+    "high_uncut_gems"?: boolean | null;
+    "uncut_support_gems"?: boolean | null;
     "whitelist_mid"?: string[] | null;
     "blacklist"?: string[] | null;
     "min_exalt"?: number;

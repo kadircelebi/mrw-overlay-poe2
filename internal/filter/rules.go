@@ -384,20 +384,27 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	}
 
 	// ---- 8. rares, jewels, quality, waystones, gems, keys --------------------
-	if cfg.T5Rares {
-		b.section(i18n.T("filter.sec.t5rare"))
+	if cfg.T5RareTier != TierOff {
+		b.section(fmt.Sprintf(i18n.T("filter.sec.t5rare"), cfg.T5RareTier))
 		tp, _ := cfg.Palette(GroupT5Rare, ns)
-		b.rule("Show", []string{"Rarity Rare", "UnidentifiedItemTier >= 5"}, "Class", gearClasses, styleT5Rare.with(tp).withSound(cfg.Sound(GroupT5Rare)))
+		b.rule("Show", []string{"Rarity Rare", fmt.Sprintf("UnidentifiedItemTier >= %d", cfg.T5RareTier)},
+			"Class", gearClasses, styleT5Rare.with(tp).withSound(cfg.Sound(GroupT5Rare)))
 	}
 	if cfg.IncludeGear {
 		b.section(i18n.T("filter.sec.jewels"))
-		if cfg.T5JewelsOnly {
-			b.rule("Show", []string{`Class == "Jewels"`, "Rarity Rare", "UnidentifiedItemTier >= 5"}, "", nil,
-				&style{font: 42, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
-					beam: "Yellow", icon: "1 Yellow Diamond", sound: "2 300"})
-		} else {
-			b.rule("Show", []string{`Class == "Jewels"`, "Rarity Rare"}, "", nil,
-				&style{font: 40, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255", icon: "2 Yellow Diamond"})
+		if cfg.RareJewelTier != TierOff {
+			// The top tier gets the louder look; anything below is a quieter show.
+			st := &style{font: 42, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
+				beam: "Yellow", icon: "1 Yellow Diamond", sound: "2 300"}
+			if cfg.RareJewelTier < MaxRareTier {
+				st = &style{font: 40, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
+					icon: "2 Yellow Diamond"}
+			}
+			conds := []string{`Class == "Jewels"`, "Rarity Rare"}
+			if cfg.RareJewelTier > 0 {
+				conds = append(conds, fmt.Sprintf("UnidentifiedItemTier >= %d", cfg.RareJewelTier))
+			}
+			b.rule("Show", conds, "", nil, st)
 		}
 		// Normal/Magic/Rare only: unique jewels follow the unique rules above.
 		b.rule("Hide", []string{`Class == "Jewels"`, "Rarity Normal Magic Rare"}, "", nil, nil)
@@ -407,31 +414,31 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		b.rule("Show", []string{"Rarity Normal Magic Rare", fmt.Sprintf("Quality >= %d", cfg.QualityThreshold)}, "Class", gearClasses,
 			&style{font: 40, text: "255 255 255 255", border: "255 215 0 255", bg: "40 30 0 240", icon: "1 Yellow Diamond"})
 	}
-	if cfg.HighWaystones {
-		b.section(i18n.T("filter.sec.waystones"))
-		b.rule("Show", []string{`Class == "Waystones"`, "WaystoneTier >= 14"}, "", nil,
+	if cfg.WaystoneTier != TierOff {
+		b.section(fmt.Sprintf(i18n.T("filter.sec.waystones"), cfg.WaystoneTier))
+		b.rule("Show", []string{`Class == "Waystones"`, fmt.Sprintf("WaystoneTier >= %d", cfg.WaystoneTier)}, "", nil,
 			&style{font: 42, text: "255 255 255 255", border: "255 0 0 255", bg: "120 0 0 240",
 				beam: "Red", icon: "1 Red Square", sound: "2 300"})
 	}
-	// Support gems are their own toggle: they drop far more often than skill
-	// and spirit gems, so they are hidden unless explicitly asked for.
-	if cfg.HighUncutGems || !cfg.UncutSupportGems {
-		gems := []string{`"Uncut Skill Gem"`, `"Uncut Spirit Gem"`}
-		if cfg.UncutSupportGems {
-			gems = append(gems, `"Uncut Support Gem"`)
-		}
-		if cfg.HighUncutGems {
-			b.section(i18n.T("filter.sec.gems20"))
-			b.rule("Show", []string{"BaseType == " + strings.Join(gems, " "), "GemLevel >= 20"}, "", nil,
-				&style{font: 42, text: "80 255 160 255", border: "0 255 130 255", bg: "5 50 20 255",
-					beam: "Green", icon: "1 Green Triangle", sound: "2 300"})
-			b.rule("Hide", []string{"BaseType == " + strings.Join(gems, " ")}, "", nil, nil)
-		} else {
-			b.section(i18n.T("filter.sec.gems"))
-		}
-		if !cfg.UncutSupportGems {
-			b.rule("Hide", []string{`BaseType == "Uncut Support Gem"`}, "", nil, nil)
-		}
+	// Skill and spirit gems share one slider; support gems have their own
+	// because they drop far more often.
+	gemStyle := &style{font: 42, text: "80 255 160 255", border: "0 255 130 255", bg: "5 50 20 255",
+		beam: "Green", icon: "1 Green Triangle", sound: "2 300"}
+	skillGems := `BaseType == "Uncut Skill Gem" "Uncut Spirit Gem"`
+	supportGems := `BaseType == "Uncut Support Gem"`
+	if cfg.UncutGemLevel != TierOff || cfg.UncutSupportLevel != TierOff {
+		b.section(fmt.Sprintf(i18n.T("filter.sec.gems"), gemLevelLabel(cfg)))
+	}
+	if cfg.UncutGemLevel != TierOff {
+		b.rule("Show", []string{skillGems, fmt.Sprintf("GemLevel >= %d", cfg.UncutGemLevel)}, "", nil, gemStyle)
+		b.rule("Hide", []string{skillGems}, "", nil, nil)
+	}
+	switch {
+	case cfg.UncutSupportLevel == TierOff:
+		b.rule("Hide", []string{supportGems}, "", nil, nil)
+	default:
+		b.rule("Show", []string{supportGems, fmt.Sprintf("GemLevel >= %d", cfg.UncutSupportLevel)}, "", nil, gemStyle)
+		b.rule("Hide", []string{supportGems}, "", nil, nil)
 	}
 	if cfg.PinnacleKeys {
 		b.section(i18n.T("filter.sec.pinnacle"))
@@ -508,6 +515,17 @@ func (b *builder) userShowGroups(cfg Config, ns map[string]Theme, uniqueToBase m
 		b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, st)
 		b.rule("Show", nil, "BaseType", bases, st)
 	}
+}
+
+// gemLevelLabel describes both gem sliders in one heading, e.g. "20+ / off".
+func gemLevelLabel(cfg Config) string {
+	part := func(v int) string {
+		if v == TierOff {
+			return i18n.T("filter.sec.none")
+		}
+		return fmt.Sprintf("%d+", v)
+	}
+	return part(cfg.UncutGemLevel) + " / " + part(cfg.UncutSupportLevel)
 }
 
 func resolveShowList(list []string, uniqueToBase map[string]string, canon func(string) (string, bool)) (uniqueBases, bases []string) {

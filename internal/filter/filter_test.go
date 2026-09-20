@@ -171,8 +171,8 @@ func TestLegacyConfigMigration(t *testing.T) {
 	if !c.HideExalt || len(c.ItemGroups) != 1 || len(c.ItemGroups[0].Items) != 2 || c.AutoUpdateEnabled {
 		t.Errorf("user choices not kept: %+v", c)
 	}
-	if c.AutoUpdateHours != 1 || !c.T5Rares || !c.ExceptionalScan {
-		t.Errorf("new defaults: hours=%d t5=%v scan=%v", c.AutoUpdateHours, c.T5Rares, c.ExceptionalScan)
+	if c.AutoUpdateHours != 1 || c.T5RareTier != MaxRareTier || !c.ExceptionalScan {
+		t.Errorf("new defaults: hours=%d t5=%d scan=%v", c.AutoUpdateHours, c.T5RareTier, c.ExceptionalScan)
 	}
 	if err := c.Save(p); err != nil {
 		t.Fatal(err)
@@ -305,34 +305,121 @@ func TestGroupSounds(t *testing.T) {
 	}
 }
 
-func TestUncutSupportGemsToggle(t *testing.T) {
-	// Off (the default): hidden whatever the level-20 rule says.
-	for _, high := range []bool{true, false} {
+func TestUncutGemSliders(t *testing.T) {
+	// Support gems off: hidden whatever the skill gem slider says.
+	for _, lvl := range []int{TierOff, 20} {
 		cfg := DefaultConfig()
-		cfg.HighUncutGems, cfg.UncutSupportGems = high, false
+		cfg.UncutGemLevel, cfg.UncutSupportLevel = lvl, TierOff
 		out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 		if blockContaining(t, out, "Hide", `BaseType == "Uncut Support Gem"`) < 0 {
-			t.Fatalf("high=%v: uncut support gems must be hidden when the toggle is off", high)
+			t.Fatalf("skill=%d: support gems must be hidden when their slider is off", lvl)
 		}
 		if blockContaining(t, out, "Show", `"Uncut Support Gem"`) >= 0 {
-			t.Fatalf("high=%v: uncut support gems must never be shown when the toggle is off", high)
+			t.Fatalf("skill=%d: support gems must not be shown when their slider is off", lvl)
 		}
 	}
-	// On with the level-20 rule: shown at 20, hidden below.
+
+	// Each slider writes its own threshold.
 	cfg := DefaultConfig()
-	cfg.HighUncutGems, cfg.UncutSupportGems = true, true
+	cfg.UncutGemLevel, cfg.UncutSupportLevel = 20, 3
 	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
-	if blockContaining(t, out, "Show", `"Uncut Support Gem"`, "GemLevel >= 20") < 0 {
-		t.Fatal("level 20 uncut support gems must be shown when the toggle is on")
+	if blockContaining(t, out, "Show", `"Uncut Skill Gem"`, "GemLevel >= 20") < 0 {
+		t.Error("skill gems should be shown from level 20")
 	}
-	if blockContaining(t, out, "Hide", `"Uncut Support Gem"`) < 0 {
-		t.Fatal("uncut support gems below level 20 must still be hidden")
+	if blockContaining(t, out, "Show", `"Uncut Support Gem"`, "GemLevel >= 3") < 0 {
+		t.Error("support gems should follow their own level")
 	}
-	// On without the level-20 rule: the base filter decides.
-	cfg.HighUncutGems = false
+	if blockContaining(t, out, "Hide", `BaseType == "Uncut Skill Gem" "Uncut Spirit Gem"`) < 0 {
+		t.Error("gems below the level must still be hidden")
+	}
+
+	// Both off: no uncut rule at all except the support hide.
+	cfg.UncutGemLevel, cfg.UncutSupportLevel = TierOff, 1
 	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
-	if strings.Contains(out, "Uncut") {
-		t.Fatal("no uncut gem rule expected when both toggles allow everything")
+	if blockContaining(t, out, "Hide", `BaseType == "Uncut Skill Gem" "Uncut Spirit Gem"`) >= 0 {
+		t.Error("an off slider must not write a rule for skill gems")
+	}
+	if blockContaining(t, out, "Show", `"Uncut Support Gem"`, "GemLevel >= 1") < 0 {
+		t.Error("support gems at 1+ should be shown at any level")
+	}
+}
+
+func TestTierSliders(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.T5RareTier, cfg.RareJewelTier, cfg.WaystoneTier = 3, 0, 15
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+
+	if blockContaining(t, out, "Show", "Rarity Rare", "UnidentifiedItemTier >= 3") < 0 {
+		t.Error("rare equipment should follow its slider")
+	}
+	// Tier 0 means every rare jewel, so no tier condition belongs in the rule.
+	jewels := blockContaining(t, out, "Show", `Class == "Jewels"`, "Rarity Rare")
+	if jewels < 0 {
+		t.Error("rare jewels should be shown at tier 0")
+	}
+	if blockContaining(t, out, "Show", `Class == "Jewels"`, "UnidentifiedItemTier") >= 0 {
+		t.Error("tier 0 should not write a tier condition")
+	}
+	if blockContaining(t, out, "Show", `Class == "Waystones"`, "WaystoneTier >= 15") < 0 {
+		t.Error("waystones should follow their slider")
+	}
+
+	// Off means the rule is not written at all.
+	cfg.T5RareTier, cfg.RareJewelTier, cfg.WaystoneTier = TierOff, TierOff, TierOff
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	if blockContaining(t, out, "Show", "UnidentifiedItemTier") >= 0 {
+		t.Error("no tier rule expected when the sliders are off")
+	}
+	if blockContaining(t, out, "Show", `Class == "Waystones"`) >= 0 {
+		t.Error("no waystone rule expected when the slider is off")
+	}
+	if blockContaining(t, out, "Hide", `Class == "Jewels"`) < 0 {
+		t.Error("rare jewels are still hidden by the gear filter")
+	}
+}
+
+func TestTierMigrationFromToggles(t *testing.T) {
+	legacy := `{"t5_rares": false, "t5_jewels_only": false, "high_waystones": true,
+	 "high_uncut_gems": true, "uncut_support_gems": true}`
+	p := filepath.Join(t.TempDir(), "cfg.json")
+	if err := os.WriteFile(p, []byte(legacy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	c := LoadConfig(p)
+	if c.T5RareTier != TierOff {
+		t.Errorf("t5_rares off should switch the slider off, got %d", c.T5RareTier)
+	}
+	if c.RareJewelTier != 0 {
+		t.Errorf(`"T5 only" off used to show every rare jewel, got %d`, c.RareJewelTier)
+	}
+	if c.WaystoneTier != 14 {
+		t.Errorf("waystones were T14+, got %d", c.WaystoneTier)
+	}
+	if c.UncutGemLevel != MaxUncutGemLevel {
+		t.Errorf("uncut gems were level 20, got %d", c.UncutGemLevel)
+	}
+	if c.UncutSupportLevel != MaxSupportGemLevel {
+		t.Errorf("support gems followed the level rule, got %d", c.UncutSupportLevel)
+	}
+	// The old keys must not come back when the config is written again.
+	if err := c.Save(p); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(p)
+	for _, gone := range []string{"t5_rares", "high_uncut_gems", "uncut_support_gems"} {
+		if strings.Contains(string(data), gone) {
+			t.Errorf("legacy key %q written back", gone)
+		}
+	}
+}
+
+func TestTierClamp(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.T5RareTier, cfg.UncutGemLevel, cfg.UncutSupportLevel, cfg.WaystoneTier = 99, 0, 99, 99
+	cfg.Normalize()
+	if cfg.T5RareTier != MaxRareTier || cfg.UncutGemLevel != 1 ||
+		cfg.UncutSupportLevel != MaxSupportGemLevel || cfg.WaystoneTier != MaxWaystoneTier {
+		t.Errorf("sliders not clamped: %+v", cfg)
 	}
 }
 

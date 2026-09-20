@@ -9,6 +9,7 @@
   import ListEditor from './lib/ListEditor.svelte'
   import StylePreview from './lib/StylePreview.svelte'
   import ThemePicker from './lib/ThemePicker.svelte'
+  import TierSlider from './lib/TierSlider.svelte'
   import { lookOf, fromHex } from './lib/look'
   import type { CustomStyle, ItemGroup } from '../bindings/poe2filter/internal/filter/models'
   import type { StyleOptions } from '../bindings/poe2filter/models'
@@ -541,8 +542,22 @@
       <section class="card">
         <h2>{t('gear.title')}</h2>
         <Toggle bind:checked={cfg.include_gear} label={t('gear.strict')} hint={t('gear.strictHint')} onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.t5_rares} label={t('gear.t5')} hint={t('gear.t5Hint')} onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.t5_jewels_only} label={t('gear.t5JewelsOnly')} onchange={() => queueSave()} />
+        <TierSlider
+          bind:value={cfg.t5_rare_tier}
+          min={0}
+          max={5}
+          label={t('tier.t5rare')}
+          hint={t('tier.t5rareHint')}
+          onchange={() => queueSave()}
+        />
+        <TierSlider
+          bind:value={cfg.rare_jewel_tier}
+          min={0}
+          max={5}
+          label={t('tier.jewels')}
+          hint={t('tier.jewelsHint')}
+          onchange={() => queueSave()}
+        />
         <label class="field">
           <span>{t('gear.quality')}</span>
           <select bind:value={cfg.quality_threshold} onchange={() => queueSave()}>
@@ -555,12 +570,29 @@
 
       <section class="card">
         <h2>{t('rules.title')}</h2>
-        <Toggle bind:checked={cfg.high_waystones} label={t('rules.waystones')} onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.high_uncut_gems} label={t('rules.uncut20')} hint={t('rules.uncut20Hint')} onchange={() => queueSave()} />
-        <Toggle
-          bind:checked={cfg.uncut_support_gems}
-          label={t('rules.uncutSupport')}
-          hint={t('rules.uncutSupportHint')}
+        <TierSlider
+          bind:value={cfg.waystone_tier}
+          min={1}
+          max={15}
+          prefix="T"
+          label={t('tier.waystones')}
+          hint={t('tier.waystonesHint')}
+          onchange={() => queueSave()}
+        />
+        <TierSlider
+          bind:value={cfg.uncut_gem_level}
+          min={1}
+          max={20}
+          label={t('tier.uncut')}
+          hint={t('tier.uncutHint')}
+          onchange={() => queueSave()}
+        />
+        <TierSlider
+          bind:value={cfg.uncut_support_level}
+          min={1}
+          max={5}
+          label={t('tier.support')}
+          hint={t('tier.supportHint')}
           onchange={() => queueSave()}
         />
         <Toggle bind:checked={cfg.boss_keys_and_tablets} label={t('rules.pinnacle')} onchange={() => queueSave()} />

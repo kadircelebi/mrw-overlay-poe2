@@ -28,6 +28,18 @@ type ItemGroup struct {
 // and Sounds.
 func (g ItemGroup) StyleKey() string { return UserGroupPrefix + g.ID }
 
+// TierOff is the "none" position of a tier or level slider: no rule is written
+// for it at all, so the base filter decides.
+const TierOff = -1
+
+// Slider ranges, mirroring what the game can produce.
+const (
+	MaxRareTier        = 5  // UnidentifiedItemTier
+	MaxUncutGemLevel   = 20 // GemLevel of skill and spirit gems
+	MaxSupportGemLevel = 5  // GemLevel of support gems
+	MaxWaystoneTier    = 15 // WaystoneTier
+)
+
 // MaxItemGroups keeps the settings panel (and the filter) manageable.
 const MaxItemGroups = 12
 
@@ -37,10 +49,12 @@ type Config struct {
 	MinValue     float64 `json:"min_value"`
 	MinValueUnit string  `json:"min_value_unit"` // "exalted", "chaos", "divine"
 
-	FilterMode       string `json:"filter_mode"` // "hide", "dim", "show_only"
-	IncludeGear      bool   `json:"include_gear"`
-	T5Rares          bool   `json:"t5_rares"`
-	T5JewelsOnly     bool   `json:"t5_jewels_only"`
+	FilterMode  string `json:"filter_mode"` // "hide", "dim", "show_only"
+	IncludeGear bool   `json:"include_gear"`
+	// T5RareTier shows unidentified rare equipment from this tier up, and
+	// RareJewelTier does the same for rare jewels. TierOff switches them off.
+	T5RareTier       int    `json:"t5_rare_tier"`
+	RareJewelTier    int    `json:"rare_jewel_tier"`
 	QualityThreshold int    `json:"quality_threshold"` // 0 = off
 	DivineTheme      string `json:"divine_theme"`      // mirrors styles["divine"]
 	// Styles maps a style group id to a theme id (see StyleGroups).
@@ -57,14 +71,19 @@ type Config struct {
 	Whitelist       []string          `json:"whitelist"`
 	// ItemGroups are the user's own lists. Each one shows or hides its items
 	// and carries its own colours and sound, keyed by ItemGroup.StyleKey().
-	ItemGroups    []ItemGroup `json:"item_groups"`
-	ChanceBases   []string    `json:"chance_bases"`
-	HighWaystones bool        `json:"high_waystones"`
-	HighUncutGems bool        `json:"high_uncut_gems"`
+	ItemGroups  []ItemGroup `json:"item_groups"`
+	ChanceBases []string    `json:"chance_bases"`
+	// WaystoneTier highlights waystones from this tier up (1..15, TierOff = no
+	// rule) and UncutGemLevel shows uncut skill and spirit gems from this level
+	// up, hiding the rest.
+	WaystoneTier  int `json:"waystone_tier"`
+	UncutGemLevel int `json:"uncut_gem_level"`
 	// Uncut Support Gems drop constantly, so they have their own switch.
-	UncutSupportGems bool   `json:"uncut_support_gems"`
-	PinnacleKeys     bool   `json:"boss_keys_and_tablets"`
-	LeagueName       string `json:"league_name"`
+	// UncutSupportLevel is the same for support gems, which drop far more often;
+	// TierOff hides them all.
+	UncutSupportLevel int    `json:"uncut_support_level"`
+	PinnacleKeys      bool   `json:"boss_keys_and_tablets"`
+	LeagueName        string `json:"league_name"`
 
 	// Base filter: a NeverSink strictness (0..6), or a custom file when set.
 	Strictness       int    `json:"strictness"`
@@ -86,12 +105,17 @@ type Config struct {
 	NotifyEnabled     bool `json:"notify_enabled"`
 
 	// Legacy fields, read once for migration and never written back.
-	LegacyWhitelistMid []string `json:"whitelist_mid,omitempty"`
-	LegacyBlacklist    []string `json:"blacklist,omitempty"`
-	LegacyMinExalt     float64  `json:"min_exalt,omitempty"`
-	LegacyMinDivine    float64  `json:"min_divine,omitempty"`
-	LegacyPreset       string   `json:"base_filter_preset,omitempty"`
-	LegacyIntervalMn   int      `json:"auto_update_interval,omitempty"`
+	LegacyT5Rares          *bool    `json:"t5_rares,omitempty"`
+	LegacyT5JewelsOnly     *bool    `json:"t5_jewels_only,omitempty"`
+	LegacyHighWaystones    *bool    `json:"high_waystones,omitempty"`
+	LegacyHighUncutGems    *bool    `json:"high_uncut_gems,omitempty"`
+	LegacyUncutSupportGems *bool    `json:"uncut_support_gems,omitempty"`
+	LegacyWhitelistMid     []string `json:"whitelist_mid,omitempty"`
+	LegacyBlacklist        []string `json:"blacklist,omitempty"`
+	LegacyMinExalt         float64  `json:"min_exalt,omitempty"`
+	LegacyMinDivine        float64  `json:"min_divine,omitempty"`
+	LegacyPreset           string   `json:"base_filter_preset,omitempty"`
+	LegacyIntervalMn       int      `json:"auto_update_interval,omitempty"`
 }
 
 // DefaultLeagues is the built-in league list: the fallback for the picker
@@ -105,14 +129,15 @@ func DefaultConfig() Config {
 		MinValueUnit:      "exalted",
 		FilterMode:        "hide",
 		IncludeGear:       true,
-		T5Rares:           true,
-		T5JewelsOnly:      true,
+		T5RareTier:        MaxRareTier,
+		RareJewelTier:     MaxRareTier,
 		DivineTheme:       "neon_cyan",
 		FilterName:        "auto_updated",
 		Whitelist:         []string{"Mirror of Kalandra", "Albino Rhoa Feather"},
 		ChanceBases:       []string{"Heavy Belt", "Utility Belt"},
-		HighWaystones:     true,
-		HighUncutGems:     true,
+		WaystoneTier:      14,
+		UncutGemLevel:     MaxUncutGemLevel,
+		UncutSupportLevel: TierOff,
 		PinnacleKeys:      true,
 		LeagueName:        DefaultLeagues[0],
 		Strictness:        3,
@@ -199,6 +224,8 @@ func (c *Config) Normalize() {
 	}
 	c.normalizeStyles()
 	// Empty lists serialise as [] rather than null for the UI.
+	c.migrateTiers()
+	c.clampTiers()
 	c.migrateLists()
 	c.normalizeGroups()
 	for _, l := range []*[]string{&c.Whitelist, &c.ChanceBases} {
@@ -320,4 +347,54 @@ func (c *Config) normalizeGroups() {
 			delete(c.Sounds, key)
 		}
 	}
+}
+
+// migrateTiers turns the yes/no switches of earlier versions into the tier and
+// level sliders that replaced them. A missing field means the user never had
+// the switch, so the default stands.
+func (c *Config) migrateTiers() {
+	move := func(old *bool, target *int, on, off int) {
+		if old == nil {
+			return
+		}
+		if *old {
+			*target = on
+		} else {
+			*target = off
+		}
+	}
+	move(c.LegacyT5Rares, &c.T5RareTier, MaxRareTier, TierOff)
+	// "T5 only" off used to mean every rare jewel was shown, which is tier 0.
+	move(c.LegacyT5JewelsOnly, &c.RareJewelTier, MaxRareTier, 0)
+	move(c.LegacyHighWaystones, &c.WaystoneTier, 14, TierOff)
+	move(c.LegacyHighUncutGems, &c.UncutGemLevel, MaxUncutGemLevel, TierOff)
+	if c.LegacyUncutSupportGems != nil {
+		switch {
+		case !*c.LegacyUncutSupportGems:
+			c.UncutSupportLevel = TierOff // they were hidden outright
+		case c.LegacyHighUncutGems != nil && *c.LegacyHighUncutGems:
+			c.UncutSupportLevel = MaxSupportGemLevel // they followed the level rule
+		default:
+			c.UncutSupportLevel = 1 // shown at any level
+		}
+	}
+	c.LegacyT5Rares, c.LegacyT5JewelsOnly = nil, nil
+	c.LegacyHighWaystones, c.LegacyHighUncutGems, c.LegacyUncutSupportGems = nil, nil, nil
+}
+
+// clampTiers keeps every slider inside the range the game can produce.
+func (c *Config) clampTiers() {
+	clamp := func(v *int, min, max int) {
+		if *v < min && *v != TierOff {
+			*v = min
+		}
+		if *v > max {
+			*v = max
+		}
+	}
+	clamp(&c.T5RareTier, 0, MaxRareTier)
+	clamp(&c.RareJewelTier, 0, MaxRareTier)
+	clamp(&c.UncutGemLevel, 1, MaxUncutGemLevel)
+	clamp(&c.UncutSupportLevel, 1, MaxSupportGemLevel)
+	clamp(&c.WaystoneTier, 1, MaxWaystoneTier)
 }
