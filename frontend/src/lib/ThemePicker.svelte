@@ -72,9 +72,12 @@
     if (value !== 'custom') oncustom({ ...draft })
   }
 
+  // A minimap icon needs both a colour and a shape, so choosing one fills in
+  // the other: the beam's colour (or white), and the group's own shape.
   function update<K extends keyof CustomStyle>(k: K, v: CustomStyle[K]) {
     draft = { ...draft, [k]: v }
-    if (k === 'shape' && v && !draft.icon) draft.icon = draft.beam || 'White'
+    if (k === 'shape' && v && !draft.icon) draft.icon = (draft.beam || 'White').split(' ')[0]
+    if (k === 'icon' && v && !draft.shape) draft.shape = group.iconShape || 'Star'
     if (k === 'icon' && !v) draft.shape = ''
     oncustom({ ...draft })
   }
@@ -142,7 +145,7 @@
           <option value="">{t('picker.none')}</option>
           {#each colours as c}<option value={c}>{colourName(c) || c}</option>{/each}
         </select>
-        <select value={draft.shape} disabled={!draft.icon} onchange={(e) => update('shape', e.currentTarget.value)}>
+        <select value={draft.shape} onchange={(e) => update('shape', e.currentTarget.value)}>
           <option value="">{t('picker.noShape')}</option>
           {#each shapes as s}<option value={s}>{shapeName(s) || s}</option>{/each}
         </select>

@@ -4,7 +4,7 @@ Sistem tepsisinde çalışan, NeverSink'in Path of Exile 2 loot filtresini **can
 
 <p align="center">
   <img src="docs/panel.png" alt="Ana panel" width="300" />
-  <img src="docs/appearance.png" alt="Görünüm ayarları" width="300" />
+  <img src="docs/groups.png" alt="Kendi eşya grupların" width="300" />
 </p>
 
 Bir değer eşiği belirlersin — örneğin 50 exalted. Uygulama piyasayı düzenli olarak tarar, eşiği geçen her şeyi yerde göze çarpacak şekilde işaretler, altında kalanları gizler veya soluklaştırır. Fiyatlar değiştikçe filtre kendi kendine güncellenir; lig ilerledikçe listeni elle düzeltmen gerekmez.
@@ -46,13 +46,16 @@ Panelde, tepsi simgesine tıklayınca açılır.
 | **Değer eşiği** | Eşik ve birimi (exalted / chaos / divine). Altında kalan eşyalar gizlenir veya soluklaştırılır. |
 | **NeverSink temeli** | Strictness seçimi (0 Soft … 6 Uber Plus Strict) veya kendi temel filtre dosyan. |
 | **Özel kurallar** | T5 rare ve jewel'lar, yüksek kaliteli ekipman, yüksek waystone'lar, uncut gem'ler, uncut support gem'ler, pinnacle anahtarları; Exalted Orb ve altını gizleme. |
-| **Listeler** | "Her zaman göster" (öne çıkar / orta vurgu), "her zaman gizle" ve chance tabanları. Fiyattan bağımsız çalışır. |
-| **Görünüm** | 9 eşya grubunun her biri için renk teması ve ses. Uygulamanın hazır temaları, NeverSink'in kendi 68 stili veya kendi renk/simge seçimin. Değişiklikler panelde canlı önizlenir. |
+| **Listeler** | "Her zaman göster" (en güçlü vurgu) ve chance tabanları. Fiyattan bağımsız çalışır. |
+| **Gruplarım** | Kendi listelerin, en fazla 12 tane. Her grubun adı, eşya listesi, rengi, simgesi ve sesi ayrı; grup içindekileri gösterir ya da gizler. |
+| **Görünüm** | Her eşya grubu (yerleşik olanlar ve kendi grupların) için renk teması ve ses. Uygulamanın hazır temaları, NeverSink'in kendi 68 stili veya kendi renklerin — minimap simgesinin rengi ve şekli dahil. Değişiklikler panelde canlı önizlenir. |
 | **Otomatik güncelleme** | Aralık (varsayılan 4 saat) ve bildirimler. Kapatırsan "Şimdi güncelle" ile elle çalıştırırsın. |
 | **Trade taraması** | Exceptional taban taramasını aç/kapat ve trade kotasının ne kadarını kullanacağını seç (%10–80, varsayılan %40). |
 | **Genel** | Dil, lig, oyundaki filtre adı, filtre ve veri klasörleri. |
 
 Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için güncelle" der: önce **Güncelle**, sonra oyunda **Reload**.
+
+<p align="center"><img src="docs/appearance.png" alt="Görünüm bölümü" width="300" /></p>
 
 ## Sık karşılaşılanlar
 
@@ -64,7 +67,11 @@ Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için g
 
 **Çok fazla şey gizleniyor / yeterince gizlenmiyor.** Önce değer eşiğini, sonra NeverSink strictness'ını oynat. İkisi birlikte çalışır: strictness tabanı belirler, eşik senin kurallarını.
 
-**Belirli bir eşyayı hep görmek istiyorum.** Listeler → "Her zaman göster". Yalnızca unique hâlini istiyorsan `Taban adı|unique` yazabilirsin.
+**Belirli bir eşyayı hep görmek istiyorum.** Listeler → "Her zaman göster", ya da kendi grubunu kur: Gruplarım → Grup ekle. Yalnızca unique hâlini istiyorsan `Taban adı|unique` yazabilirsin.
+
+**Bir grup kurdum ama eşya hâlâ eski rengiyle çıkıyor.** Eşya eşiğin üstündeyse güçlü "değerli" vurgusunu korur. Grubun rengi her koşulda kazansın istiyorsan o grubun "her zaman kazansın" anahtarını aç.
+
+**Minimap simgesini nasıl değiştiririm?** Görünüm → grubu seç → **Özel** sekmesi: zemin, yazı, çerçeve, ışın rengi ve minimap simgesinin rengi ile şekli (yıldız, elmas, altıgen, artı…). Şekli seçmen yeterli, rengi kendiliğinden gelir.
 
 **Renklerle oynadım, beğenmedim.** Görünüm bölümünde iki düğme var: "Varsayılana döndür" tüm grupların rengini ve sesini sıfırlar, "Tümünü NeverSink renklerine çevir" hepsini NeverSink'in kendi stillerine yaklaştırır.
 

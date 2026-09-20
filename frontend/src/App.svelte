@@ -168,7 +168,10 @@
   // all share one look template.
   const allGroups = $derived.by<StyleGroup[]>(() => {
     if (!groupTemplate || !cfg?.item_groups?.length) return groups
-    const own = cfg.item_groups!.map((g) => ({ ...groupTemplate!, id: 'user:' + g.id, label: g.name }) as StyleGroup)
+    // A hidden group draws nothing, so it has no colours to pick.
+    const own = cfg.item_groups!
+      .filter((g) => !g.hide)
+      .map((g) => ({ ...groupTemplate!, id: 'user:' + g.id, label: g.name }) as StyleGroup)
     return [...groups, ...own]
   })
 
