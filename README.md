@@ -23,7 +23,13 @@ Uygulama trade API'sini sadece oyunun kendi rate limit'lerine uyarak ve kotanın
 
 ## Derleme
 
-Gerekenler: Go 1.25+, Node 20+, Wails CLI (`go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.23`).
+Kendin derlemek istersen depoyu indir ve **`derle.bat`** dosyasına çift tıkla. Betik Go ile Node'un kurulu olduğunu doğrular, eksikse Wails CLI'sini kendisi kurar ve `bin\poe2filter.exe` dosyasını üretir.
+
+Gerekenler: [Go](https://go.dev/dl/) 1.25+ ve [Node.js](https://nodejs.org/) 20+. Wails CLI'sini elle kurmak istersen: `go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.23`.
+
+Windows'un **Akıllı Uygulama Denetimi** (Smart App Control) açıkken kendi derlediğin imzasız exe çalıştırılamaz; engellenirse Windows Güvenliği → Uygulama ve tarayıcı denetimi → Akıllı Uygulama Denetimi → Kapalı. (Bu ayar bir kez kapatılınca Windows sıfırlanmadan geri açılamaz.)
+
+Elle derlemek için:
 
 ```
 wails3 build          # bin/poe2filter.exe
