@@ -94,6 +94,9 @@ export const tr: Record<string, string> = {
   'groups.title': 'Gruplarım',
   'groups.desc':
     'Kendi listelerin. Her grup içindekileri gösterir ya da gizler; rengini ve sesini Görünüm bölümünden seçersin.',
+  'groups.order': 'Sıra önceliği belirler: aynı türdeki gruplardan üstteki kazanır.',
+  'groups.reorder': 'Grubu taşı',
+  'groups.duplicates': 'Başka bir listede de var: {0}',
   'groups.add': 'Grup ekle',
   'groups.namePlaceholder': 'Grup adı',
   'groups.modeShow': 'Göster',

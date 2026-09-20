@@ -40,6 +40,9 @@
   let groupTemplate = $state<StyleGroup | null>(null)
   // Group waiting for a second click on Delete.
   let confirmDelete = $state('')
+  // Index the user is dragging a group from, and the card it hovers over.
+  let dragFrom = $state<number | null>(null)
+  let dragOver = $state<number | null>(null)
 
   // "auto" resolves to whatever the first entry (the system language) reports.
   function languageOf(setting: string | undefined): string {
@@ -187,6 +190,42 @@
   function openLook(id: string) {
     styleGroup = 'user:' + id
     requestAnimationFrame(() => document.querySelector('#appearance')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))
+  }
+
+  // Order decides which group's rules reach the filter first, so moving a card
+  // is a real setting, not decoration.
+  function moveGroup(from: number, to: number) {
+    if (!cfg) return
+    const list = [...(cfg.item_groups ?? [])]
+    if (from < 0 || to < 0 || from >= list.length || to >= list.length || from === to) return
+    const [g] = list.splice(from, 1)
+    list.splice(to, 0, g)
+    cfg.item_groups = list
+    queueSave()
+  }
+
+  function onGripKey(e: KeyboardEvent, i: number) {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
+    e.preventDefault()
+    moveGroup(i, i + (e.key === 'ArrowUp' ? -1 : 1))
+  }
+
+  // The same item in two lists is legal but confusing: the earlier rule wins
+  // and the later one silently does nothing, so say where the clash is.
+  function duplicatesOf(index: number): string {
+    const groupsList = cfg?.item_groups ?? []
+    const key = (v: string) => v.split('|')[0].trim().toLowerCase()
+    const mine = new Set(groupsList[index]?.items?.map(key) ?? [])
+    const hits: string[] = []
+    const scan = (items: string[] | null, where: string) => {
+      for (const it of items ?? []) {
+        if (mine.has(key(it))) hits.push(`${it} (${where})`)
+      }
+    }
+    groupsList.forEach((g, i) => i !== index && scan(g.items, g.name || t('groups.title')))
+    scan(cfg?.whitelist ?? [], t('lists.showTop'))
+    scan(cfg?.chance_bases ?? [], t('lists.chance'))
+    return hits.join(', ')
   }
 
   function removeGroup(id: string) {
@@ -518,9 +557,36 @@
       <section class="card">
         <h2>{t('groups.title')}</h2>
         <p class="desc">{t('groups.desc')}</p>
+        <p class="desc hint">{t('groups.order')}</p>
         {#each cfg.item_groups ?? [] as g, i (g.id || i)}
-          <div class="group">
+          <div
+            class="group"
+            class:drag-over={dragOver === i && dragFrom !== i}
+            ondragover={(e) => {
+              if (dragFrom === null) return
+              e.preventDefault()
+              dragOver = i
+            }}
+            ondrop={(e) => {
+              e.preventDefault()
+              if (dragFrom !== null) moveGroup(dragFrom, i)
+              dragFrom = dragOver = null
+            }}
+            role="listitem"
+          >
             <div class="group-head">
+              <button
+                type="button"
+                class="grip"
+                draggable="true"
+                aria-label={t('groups.reorder')}
+                title={t('groups.reorder')}
+                ondragstart={() => (dragFrom = i)}
+                ondragend={() => (dragFrom = dragOver = null)}
+                onkeydown={(e) => onGripKey(e, i)}
+              >
+                <svg viewBox="0 0 24 24"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01" /></svg>
+              </button>
               <input
                 class="group-name"
                 bind:value={cfg.item_groups![i].name}
@@ -565,6 +631,9 @@
               placeholder={g.hide ? t('lists.searchHide') : t('lists.searchItem')}
               onchange={() => queueSave()}
             />
+            {#if duplicatesOf(i)}
+              <p class="desc warn">{t('groups.duplicates', duplicatesOf(i))}</p>
+            {/if}
             {#if !g.hide && g.id}
               <button type="button" class="look-link" onclick={() => openLook(g.id)}>
                 {t('groups.lookLink', g.name)}
@@ -917,6 +986,28 @@
   .group-head {
     display: flex;
     gap: 6px;
+  }
+  .group.drag-over {
+    border-color: var(--gold-bright);
+  }
+  .grip {
+    width: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    cursor: grab;
+  }
+  .grip svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+  .desc.warn {
+    color: var(--gold);
   }
   .group-name {
     flex: 1;

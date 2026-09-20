@@ -103,6 +103,9 @@ export const en: Record<string, string> = {
   'groups.title': 'My groups',
   'groups.desc':
     'Your own lists. Each group shows or hides what it holds and has its own colour and sound, set under Appearance.',
+  'groups.order': 'Order sets priority: among groups of the same kind, the one above wins.',
+  'groups.reorder': 'Move group',
+  'groups.duplicates': 'Also in another list: {0}',
   'groups.add': 'Add group',
   'groups.namePlaceholder': 'Group name',
   'groups.modeShow': 'Show',

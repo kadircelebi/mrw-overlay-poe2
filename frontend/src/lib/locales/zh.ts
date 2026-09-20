@@ -91,6 +91,9 @@ export const zh: Record<string, string> = {
   // 我的群組
   'groups.title': '我的群組',
   'groups.desc': '你自己的清單。每個群組會顯示或隱藏其中的物品，顏色與音效在「外觀」中設定。',
+  'groups.order': '順序決定優先權：同類型的群組中，位於上方的優先。',
+  'groups.reorder': '移動群組',
+  'groups.duplicates': '也在其他清單中：{0}',
   'groups.add': '新增群組',
   'groups.namePlaceholder': '群組名稱',
   'groups.modeShow': '顯示',
