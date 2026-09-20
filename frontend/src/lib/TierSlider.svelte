@@ -12,6 +12,7 @@
     hint = '',
     prefix = '',
     off = -1,
+    hide = -2,
     onchange,
   }: {
     value: number
@@ -21,16 +22,20 @@
     hint?: string
     prefix?: string // e.g. "T" for waystone tiers
     off?: number
+    hide?: number
     onchange?: () => void
   } = $props()
 
-  // Slider positions: 0 is off, 1..steps map to min..max.
-  const steps = $derived(max - min + 1)
-  const index = $derived(value === off ? 0 : Math.min(steps, Math.max(1, value - min + 1)))
-  const shown = $derived(value === off ? t('tier.off') : `${prefix}${value}+`)
+  // Positions: 0 hides everything, 1 writes no rule at all, 2..steps map to
+  // min..max. The two words come first because they are the coarse decision.
+  const steps = $derived(max - min + 2)
+  const index = $derived(
+    value === hide ? 0 : value === off ? 1 : Math.min(steps, Math.max(2, value - min + 2)),
+  )
+  const shown = $derived(value === hide ? t('tier.hide') : value === off ? t('tier.off') : `${prefix}${value}+`)
 
   function pick(i: number) {
-    value = i === 0 ? off : min + i - 1
+    value = i === 0 ? hide : i === 1 ? off : min + i - 2
     onchange?.()
   }
 </script>
@@ -38,7 +43,7 @@
 <div class="tier">
   <div class="head">
     <span class="label">{label}</span>
-    <span class="value" class:off={value === off}>{shown}</span>
+    <span class="value" class:off={value === off} class:hide={value === hide}>{shown}</span>
   </div>
   {#if hint}<p class="desc">{hint}</p>{/if}
   <input
@@ -53,9 +58,10 @@
     oninput={(e) => pick(Number(e.currentTarget.value))}
     style="--p: {(index / steps) * 100}%"
   />
+  <!-- The two word stops sit at the left end, in this order, before the
+       numbers start; naming them together avoids two labels colliding. -->
   <div class="scale">
-    <span>{t('tier.off')}</span>
-    <span>{prefix}{min}+</span>
+    <span>{t('tier.hide')} · {t('tier.off')}</span>
     <span>{prefix}{max}+</span>
   </div>
 </div>
@@ -80,6 +86,9 @@
   }
   .value.off {
     color: var(--muted);
+  }
+  .value.hide {
+    color: var(--bad);
   }
   .desc {
     margin: 2px 0 0;

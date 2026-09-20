@@ -385,14 +385,18 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 
 	// ---- 8. rares, jewels, quality, waystones, gems, keys --------------------
 	if cfg.T5RareTier != TierOff {
-		b.section(fmt.Sprintf(i18n.T("filter.sec.t5rare"), cfg.T5RareTier))
-		tp, _ := cfg.Palette(GroupT5Rare, ns)
-		b.rule("Show", []string{"Rarity Rare", fmt.Sprintf("UnidentifiedItemTier >= %d", cfg.T5RareTier)},
-			"Class", gearClasses, styleT5Rare.with(tp).withSound(cfg.Sound(GroupT5Rare)))
+		b.section(fmt.Sprintf(i18n.T("filter.sec.t5rare"), tierLabel(cfg.T5RareTier, "")))
+		if cfg.T5RareTier == TierHide {
+			b.rule("Hide", []string{"Rarity Rare"}, "Class", gearClasses, nil)
+		} else {
+			tp, _ := cfg.Palette(GroupT5Rare, ns)
+			b.rule("Show", []string{"Rarity Rare", fmt.Sprintf("UnidentifiedItemTier >= %d", cfg.T5RareTier)},
+				"Class", gearClasses, styleT5Rare.with(tp).withSound(cfg.Sound(GroupT5Rare)))
+		}
 	}
-	if cfg.IncludeGear {
-		b.section(i18n.T("filter.sec.jewels"))
-		if cfg.RareJewelTier != TierOff {
+	if cfg.RareJewelTier != TierOff {
+		b.section(fmt.Sprintf(i18n.T("filter.sec.jewels"), tierLabel(cfg.RareJewelTier, "")))
+		if cfg.RareJewelTier != TierHide {
 			// The top tier gets the louder look; anything below is a quieter show.
 			st := &style{font: 42, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
 				beam: "Yellow", icon: "1 Yellow Diamond", sound: "2 300"}
@@ -415,10 +419,14 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			&style{font: 40, text: "255 255 255 255", border: "255 215 0 255", bg: "40 30 0 240", icon: "1 Yellow Diamond"})
 	}
 	if cfg.WaystoneTier != TierOff {
-		b.section(fmt.Sprintf(i18n.T("filter.sec.waystones"), cfg.WaystoneTier))
-		b.rule("Show", []string{`Class == "Waystones"`, fmt.Sprintf("WaystoneTier >= %d", cfg.WaystoneTier)}, "", nil,
-			&style{font: 42, text: "255 255 255 255", border: "255 0 0 255", bg: "120 0 0 240",
-				beam: "Red", icon: "1 Red Square", sound: "2 300"})
+		b.section(fmt.Sprintf(i18n.T("filter.sec.waystones"), tierLabel(cfg.WaystoneTier, "T")))
+		if cfg.WaystoneTier == TierHide {
+			b.rule("Hide", []string{`Class == "Waystones"`}, "", nil, nil)
+		} else {
+			b.rule("Show", []string{`Class == "Waystones"`, fmt.Sprintf("WaystoneTier >= %d", cfg.WaystoneTier)}, "", nil,
+				&style{font: 42, text: "255 255 255 255", border: "255 0 0 255", bg: "120 0 0 240",
+					beam: "Red", icon: "1 Red Square", sound: "2 300"})
+		}
 	}
 	// Skill and spirit gems share one slider; support gems have their own
 	// because they drop far more often.
@@ -429,12 +437,17 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	if cfg.UncutGemLevel != TierOff || cfg.UncutSupportLevel != TierOff {
 		b.section(fmt.Sprintf(i18n.T("filter.sec.gems"), gemLevelLabel(cfg)))
 	}
-	if cfg.UncutGemLevel != TierOff {
+	switch {
+	case cfg.UncutGemLevel == TierOff:
+	case cfg.UncutGemLevel == TierHide:
+		b.rule("Hide", []string{skillGems}, "", nil, nil)
+	default:
 		b.rule("Show", []string{skillGems, fmt.Sprintf("GemLevel >= %d", cfg.UncutGemLevel)}, "", nil, gemStyle)
 		b.rule("Hide", []string{skillGems}, "", nil, nil)
 	}
 	switch {
 	case cfg.UncutSupportLevel == TierOff:
+	case cfg.UncutSupportLevel == TierHide:
 		b.rule("Hide", []string{supportGems}, "", nil, nil)
 	default:
 		b.rule("Show", []string{supportGems, fmt.Sprintf("GemLevel >= %d", cfg.UncutSupportLevel)}, "", nil, gemStyle)
@@ -517,15 +530,21 @@ func (b *builder) userShowGroups(cfg Config, ns map[string]Theme, uniqueToBase m
 	}
 }
 
-// gemLevelLabel describes both gem sliders in one heading, e.g. "20+ / off".
-func gemLevelLabel(cfg Config) string {
-	part := func(v int) string {
-		if v == TierOff {
-			return i18n.T("filter.sec.none")
-		}
-		return fmt.Sprintf("%d+", v)
+// tierLabel names a slider position for a section heading: the two stops
+// before the numbers read as words, the rest as "3+" or "T14+".
+func tierLabel(v int, prefix string) string {
+	switch v {
+	case TierHide:
+		return i18n.T("filter.sec.hidden")
+	case TierOff:
+		return i18n.T("filter.sec.none")
 	}
-	return part(cfg.UncutGemLevel) + " / " + part(cfg.UncutSupportLevel)
+	return fmt.Sprintf("%s%d+", prefix, v)
+}
+
+// gemLevelLabel describes both gem sliders in one heading, e.g. "20+ / hidden".
+func gemLevelLabel(cfg Config) string {
+	return tierLabel(cfg.UncutGemLevel, "") + " / " + tierLabel(cfg.UncutSupportLevel, "")
 }
 
 func resolveShowList(list []string, uniqueToBase map[string]string, canon func(string) (string, bool)) (uniqueBases, bases []string) {

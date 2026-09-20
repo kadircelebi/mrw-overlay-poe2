@@ -46,7 +46,7 @@ Panelde, tepsi simgesine tıklayınca açılır.
 | **Değer eşiği** | Eşik ve birimi (exalted / chaos / divine). Altında kalan eşyalar gizlenir veya soluklaştırılır. |
 | **NeverSink temeli** | Strictness seçimi (0 Soft … 6 Uber Plus Strict) veya kendi temel filtre dosyan. |
 | **Ekipman** | Sıkı ekipman filtresi, tanımlanmamış rare ekipman ve rare jewel'lar için tier kaydıracı, yüksek kalite eşiği. |
-| **Özel kurallar** | Waystone, uncut gem ve uncut support gem eşikleri (kaydıraçla, "Hiçbiri" dahil), pinnacle anahtarları; Exalted Orb ve altını gizleme. |
+| **Özel kurallar** | Waystone, uncut gem ve uncut support gem eşikleri (kaydıraçla; "Gösterme" ve "Hiçbiri" durakları dahil), pinnacle anahtarları; Exalted Orb ve altını gizleme. |
 | **Listeler** | "Her zaman göster" (en güçlü vurgu) ve chance tabanları. Fiyattan bağımsız çalışır. |
 | **Gruplarım** | Kendi listelerin, en fazla 12 tane. Her grubun adı, eşya listesi, rengi, simgesi ve sesi ayrı; grup içindekileri gösterir ya da gizler. |
 | **Görünüm** | Her eşya grubu (yerleşik olanlar ve kendi grupların) için renk teması ve ses. Uygulamanın hazır temaları, NeverSink'in kendi 68 stili veya kendi renklerin — minimap simgesinin rengi ve şekli dahil. Değişiklikler panelde canlı önizlenir. |
@@ -69,7 +69,13 @@ Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için g
 
 **Çok fazla şey gizleniyor / yeterince gizlenmiyor.** Önce değer eşiğini, sonra NeverSink strictness'ını oynat. İkisi birlikte çalışır: strictness tabanı belirler, eşik senin kurallarını.
 
-**Tier ve seviye kaydıraçları nasıl çalışır?** Ekipman ve Özel kurallar bölümlerindeki kaydıraçların en solu **Hiçbiri**: o kural hiç yazılmaz, kararı NeverSink verir. Sağa kaydırdıkça eşik yükselir; örneğin waystone kaydıracı T14+ ise yalnızca T14 ve üstü vurgulanır, altındakiler temel filtreye bırakılır. Uncut gem'lerde skill/spirit ve support için ayrı kaydıraç vardır, çünkü support gem'ler çok daha sık düşer.
+**Tier ve seviye kaydıraçları nasıl çalışır?** Her kaydıracın soldan sağa üç tür durağı var:
+
+1. **Gösterme** — o türün tamamı gizlenir.
+2. **Hiçbiri** — uygulama hiçbir kural yazmaz, kararı NeverSink'in temel filtresi verir.
+3. **Bir tier/seviye** — o eşik ve üstü gösterilir (waystone'da vurgulanır), altı gizlenir.
+
+Örneğin waystone kaydıracı T14+ ise yalnızca T14 ve üstü vurgulanır; "Hiçbiri" dersen waystone'lara hiç karışılmaz; "Gösterme" dersen hepsi gizlenir. Uncut gem'lerde skill/spirit ve support için ayrı kaydıraç vardır, çünkü support gem'ler çok daha sık düşer.
 
 **Belirli bir eşyayı hep görmek istiyorum.** Listeler → "Her zaman göster", ya da kendi grubunu kur: Gruplarım → Grup ekle. Yalnızca unique hâlini istiyorsan `Taban adı|unique` yazabilirsin.
 

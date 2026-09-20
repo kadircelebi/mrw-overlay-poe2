@@ -109,6 +109,12 @@ export interface Config {
     "price_source_url": string;
 
     /**
+     * ConfigVersion is the format of this file, used to migrate meanings that
+     * changed without the field itself changing.
+     */
+    "config_version": number;
+
+    /**
      * Language is the interface language: "auto" (follow Windows), "tr", "en"
      * or "zh-Hant".
      */

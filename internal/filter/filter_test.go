@@ -130,11 +130,15 @@ func TestShowOnlyNeverHidesByValue(t *testing.T) {
 	cfg.IncludeGear = false
 	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 	for _, blk := range strings.Split(out, "\n\n") {
-		if strings.Contains(blk, "\nHide") || strings.HasPrefix(strings.TrimSpace(blk), "Hide") {
-			if !strings.Contains(blk, "Uncut") {
-				t.Fatalf("unexpected hide in show_only mode:\n%s", blk)
-			}
+		if !strings.Contains(blk, "\nHide") && !strings.HasPrefix(strings.TrimSpace(blk), "Hide") {
+			continue
 		}
+		// The tier sliders are explicit choices ("show 5+, hide the rest"), so
+		// they still hide; what show_only forbids is hiding because of price.
+		if strings.Contains(blk, "Uncut") || strings.Contains(blk, `Class == "Jewels"`) {
+			continue
+		}
+		t.Fatalf("unexpected hide in show_only mode:\n%s", blk)
 	}
 }
 
@@ -306,16 +310,16 @@ func TestGroupSounds(t *testing.T) {
 }
 
 func TestUncutGemSliders(t *testing.T) {
-	// Support gems off: hidden whatever the skill gem slider says.
+	// Support gems on the hide stop: hidden whatever the skill gem slider says.
 	for _, lvl := range []int{TierOff, 20} {
 		cfg := DefaultConfig()
-		cfg.UncutGemLevel, cfg.UncutSupportLevel = lvl, TierOff
+		cfg.UncutGemLevel, cfg.UncutSupportLevel = lvl, TierHide
 		out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 		if blockContaining(t, out, "Hide", `BaseType == "Uncut Support Gem"`) < 0 {
-			t.Fatalf("skill=%d: support gems must be hidden when their slider is off", lvl)
+			t.Fatalf("skill=%d: support gems must be hidden on the hide stop", lvl)
 		}
 		if blockContaining(t, out, "Show", `"Uncut Support Gem"`) >= 0 {
-			t.Fatalf("skill=%d: support gems must not be shown when their slider is off", lvl)
+			t.Fatalf("skill=%d: support gems must not be shown on the hide stop", lvl)
 		}
 	}
 
@@ -373,8 +377,67 @@ func TestTierSliders(t *testing.T) {
 	if blockContaining(t, out, "Show", `Class == "Waystones"`) >= 0 {
 		t.Error("no waystone rule expected when the slider is off")
 	}
-	if blockContaining(t, out, "Hide", `Class == "Jewels"`) < 0 {
-		t.Error("rare jewels are still hidden by the gear filter")
+	if blockContaining(t, out, "Hide", `Class == "Jewels"`) >= 0 {
+		t.Error(`"none" must leave jewels to the base filter, not hide them`)
+	}
+}
+
+// The leftmost stop hides everything of that kind; the one next to it writes no
+// rule at all. Mixing the two up would either bury drops or leak them.
+func TestTierHideStop(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.T5RareTier, cfg.RareJewelTier = TierHide, TierHide
+	cfg.WaystoneTier, cfg.UncutGemLevel, cfg.UncutSupportLevel = TierHide, TierHide, TierHide
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+
+	for _, c := range []struct{ what, cond string }{
+		{"rare equipment", "Rarity Rare"},
+		{"rare jewels", `Class == "Jewels"`},
+		{"waystones", `Class == "Waystones"`},
+		{"skill gems", `BaseType == "Uncut Skill Gem" "Uncut Spirit Gem"`},
+		{"support gems", `BaseType == "Uncut Support Gem"`},
+	} {
+		if blockContaining(t, out, "Hide", c.cond) < 0 {
+			t.Errorf("%s should be hidden outright", c.what)
+		}
+	}
+	if blockContaining(t, out, "Show", "UnidentifiedItemTier") >= 0 {
+		t.Error("nothing should be shown by a hidden slider")
+	}
+
+	// And "none" writes nothing for any of them.
+	cfg.T5RareTier, cfg.RareJewelTier = TierOff, TierOff
+	cfg.WaystoneTier, cfg.UncutGemLevel, cfg.UncutSupportLevel = TierOff, TierOff, TierOff
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	for _, cond := range []string{`Class == "Waystones"`, `BaseType == "Uncut Support Gem"`, `Class == "Jewels"`} {
+		if blockContaining(t, out, "Hide", cond) >= 0 {
+			t.Errorf("%q: no rule expected at the none stop", cond)
+		}
+	}
+}
+
+// Files written before the hide stop existed used one "off" for both meanings:
+// for jewels and support gems it actually hid them, so they must land on hide.
+func TestTierMeaningMigration(t *testing.T) {
+	legacy := `{"t5_rare_tier": -1, "rare_jewel_tier": -1, "waystone_tier": -1,
+	 "uncut_gem_level": -1, "uncut_support_level": -1}`
+	p := filepath.Join(t.TempDir(), "cfg.json")
+	if err := os.WriteFile(p, []byte(legacy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	c := LoadConfig(p)
+	if c.RareJewelTier != TierHide || c.UncutSupportLevel != TierHide {
+		t.Errorf("jewels and support gems were hidden before: %d / %d", c.RareJewelTier, c.UncutSupportLevel)
+	}
+	if c.T5RareTier != TierOff || c.WaystoneTier != TierOff || c.UncutGemLevel != TierOff {
+		t.Errorf("the others only meant 'no rule': %+v", c)
+	}
+	// A file that already knows about the hide stop is left alone.
+	again := c
+	again.RareJewelTier = TierOff
+	again.Normalize()
+	if again.RareJewelTier != TierOff {
+		t.Error("a current file must not be migrated twice")
 	}
 }
 

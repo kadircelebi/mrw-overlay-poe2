@@ -28,9 +28,17 @@ type ItemGroup struct {
 // and Sounds.
 func (g ItemGroup) StyleKey() string { return UserGroupPrefix + g.ID }
 
-// TierOff is the "none" position of a tier or level slider: no rule is written
-// for it at all, so the base filter decides.
-const TierOff = -1
+// The two stops before the numbers on a tier or level slider.
+const (
+	// TierHide hides everything of that kind outright.
+	TierHide = -2
+	// TierOff writes no rule at all, leaving the decision to the base filter.
+	TierOff = -1
+)
+
+// configVersion marks the meaning of the stored fields, not the app version.
+// Version 2 split the old "off" into TierHide and TierOff.
+const configVersion = 2
 
 // Slider ranges, mirroring what the game can produce.
 const (
@@ -96,6 +104,10 @@ type Config struct {
 	// When set, prices come from this collector server URL first.
 	PriceSourceURL string `json:"price_source_url"`
 
+	// ConfigVersion is the format of this file, used to migrate meanings that
+	// changed without the field itself changing.
+	ConfigVersion int `json:"config_version"`
+
 	// Language is the interface language: "auto" (follow Windows), "tr", "en"
 	// or "zh-Hant".
 	Language string `json:"language"`
@@ -137,10 +149,11 @@ func DefaultConfig() Config {
 		ChanceBases:       []string{"Heavy Belt", "Utility Belt"},
 		WaystoneTier:      14,
 		UncutGemLevel:     MaxUncutGemLevel,
-		UncutSupportLevel: TierOff,
+		UncutSupportLevel: TierHide,
 		PinnacleKeys:      true,
 		LeagueName:        DefaultLeagues[0],
 		Strictness:        3,
+		ConfigVersion:     configVersion,
 		Language:          string(i18n.Auto),
 		ExceptionalScan:   true,
 		ScanBudgetPct:     40,
@@ -162,6 +175,9 @@ func LoadConfig(path string) Config {
 	if json.Unmarshal(data, &raw) != nil {
 		return cfg
 	}
+	// Only the file may claim a format version; the defaults must not, or a
+	// file written before the field existed would look current.
+	cfg.ConfigVersion = 0
 	_ = json.Unmarshal(data, &cfg)
 	has := func(k string) bool { _, ok := raw[k]; return ok }
 
@@ -225,6 +241,7 @@ func (c *Config) Normalize() {
 	c.normalizeStyles()
 	// Empty lists serialise as [] rather than null for the UI.
 	c.migrateTiers()
+	c.migrateTierMeaning()
 	c.clampTiers()
 	c.migrateLists()
 	c.normalizeGroups()
@@ -371,7 +388,7 @@ func (c *Config) migrateTiers() {
 	if c.LegacyUncutSupportGems != nil {
 		switch {
 		case !*c.LegacyUncutSupportGems:
-			c.UncutSupportLevel = TierOff // they were hidden outright
+			c.UncutSupportLevel = TierHide // they were hidden outright
 		case c.LegacyHighUncutGems != nil && *c.LegacyHighUncutGems:
 			c.UncutSupportLevel = MaxSupportGemLevel // they followed the level rule
 		default:
@@ -385,7 +402,7 @@ func (c *Config) migrateTiers() {
 // clampTiers keeps every slider inside the range the game can produce.
 func (c *Config) clampTiers() {
 	clamp := func(v *int, min, max int) {
-		if *v < min && *v != TierOff {
+		if *v < min && *v != TierOff && *v != TierHide {
 			*v = min
 		}
 		if *v > max {
@@ -397,4 +414,22 @@ func (c *Config) clampTiers() {
 	clamp(&c.UncutGemLevel, 1, MaxUncutGemLevel)
 	clamp(&c.UncutSupportLevel, 1, MaxSupportGemLevel)
 	clamp(&c.WaystoneTier, 1, MaxWaystoneTier)
+}
+
+// migrateTierMeaning upgrades files written before the sliders grew a separate
+// "hide" stop. Back then a single off position meant "no rule" for most
+// sliders, but for rare jewels and support gems it actually hid them, so those
+// two move to TierHide and keep behaving the way the user set them.
+func (c *Config) migrateTierMeaning() {
+	if c.ConfigVersion >= configVersion {
+		c.ConfigVersion = configVersion
+		return
+	}
+	if c.RareJewelTier == TierOff {
+		c.RareJewelTier = TierHide
+	}
+	if c.UncutSupportLevel == TierOff {
+		c.UncutSupportLevel = TierHide
+	}
+	c.ConfigVersion = configVersion
 }

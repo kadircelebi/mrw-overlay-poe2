@@ -70,16 +70,17 @@ export const en: Record<string, string> = {
 
   // Custom rules
   'tier.off': 'None',
+  'tier.hide': 'Hide',
   'tier.t5rare': 'Unidentified rare equipment',
-  'tier.t5rareHint': 'Shown from this tier up',
+  'tier.t5rareHint': 'Hide all · None: NeverSink decides · a tier: shown from there up',
   'tier.jewels': 'Rare jewels',
-  'tier.jewelsHint': 'Below the chosen tier they are hidden',
+  'tier.jewelsHint': 'Hide all · None: NeverSink decides · a tier: shown from there up',
   'tier.uncut': 'Uncut skill and spirit gems',
-  'tier.uncutHint': 'Shown from this level up, the rest hidden',
+  'tier.uncutHint': 'Hide all · None: NeverSink decides · a level: shown from there up',
   'tier.support': 'Uncut support gems',
-  'tier.supportHint': 'They drop constantly, so they have their own level',
+  'tier.supportHint': 'They drop constantly, so they have their own stop',
   'tier.waystones': 'Waystones',
-  'tier.waystonesHint': 'Highlighted from this tier up',
+  'tier.waystonesHint': 'Hide all · None: NeverSink decides · a tier: highlighted from there up',
 
   'rules.title': 'Custom rules',
   'rules.pinnacle': 'Highlight pinnacle keys',
