@@ -42,7 +42,8 @@ rem gecici derleme klasorunu proje icine aliyoruz.
 if not exist ".gotmp" mkdir ".gotmp"
 set "GOTMPDIR=%CD%\.gotmp"
 
-echo Derleniyor...
+echo Derleniyor... ^(ilk derleme birkac dakika surer^)
+echo Not: "uname" / "tail" bulunamadi gibi satirlar cikabilir, zararsizdir.
 echo.
 "%WAILS%" build
 if errorlevel 1 (
