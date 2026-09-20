@@ -170,6 +170,30 @@ var StyleGroups = []StyleGroup{
 		Default: Theme{BgColor: "10 30 50 240", TextColor: "0 240 255 255", Border: "0 200 255 255", Beam: "Cyan"}},
 }
 
+// UserGroupPrefix marks the Styles/Sounds keys of a user-made item group, so
+// they can never collide with the built-in group ids.
+const UserGroupPrefix = "user:"
+
+// UserGroupTemplate is the look a new user group starts from: the medium
+// highlight, which is deliberately weaker than the spotlight list.
+func UserGroupTemplate() StyleGroup {
+	g := groupByID[GroupWhitelistMid]
+	g.ID, g.Label, g.DefaultLabel = "", "", i18n.T("groupDefault.userGroup")
+	return g
+}
+
+// styleGroup resolves a Styles key to its definition; user groups all share
+// the template's defaults.
+func styleGroup(key string) StyleGroup {
+	if g, ok := groupByID[key]; ok {
+		return g
+	}
+	if strings.HasPrefix(key, UserGroupPrefix) {
+		return groupByID[GroupWhitelistMid]
+	}
+	return StyleGroup{}
+}
+
 var groupByID = func() map[string]StyleGroup {
 	m := make(map[string]StyleGroup, len(StyleGroups))
 	for _, g := range StyleGroups {
@@ -181,7 +205,7 @@ var groupByID = func() map[string]StyleGroup {
 // Palette returns the colours for a group and whether the user overrode them.
 // ns holds the NeverSink styles of the current base filter (may be nil).
 func (c Config) Palette(group string, ns map[string]Theme) (Theme, bool) {
-	g := groupByID[group]
+	g := styleGroup(group)
 	id := c.Styles[group]
 	switch {
 	case id == CustomThemeID:
@@ -244,6 +268,19 @@ func validSound(v string) bool {
 
 // normalizeStyles drops unknown ids and migrates the old divine_theme field.
 func (c *Config) normalizeStyles() {
+	// Keys are the built-in groups plus the user's own groups; anything else is
+	// left over from a group that has been deleted.
+	known := func(key string) (StyleGroup, bool) {
+		if g, ok := groupByID[key]; ok {
+			return g, true
+		}
+		for _, ug := range c.ItemGroups {
+			if ug.StyleKey() == key {
+				return groupByID[GroupWhitelistMid], true
+			}
+		}
+		return StyleGroup{}, false
+	}
 	if c.Styles == nil {
 		c.Styles = map[string]string{}
 	}
@@ -254,18 +291,18 @@ func (c *Config) normalizeStyles() {
 		c.CustomStyles = map[string]CustomStyle{}
 	}
 	for group, cs := range c.CustomStyles {
-		if _, known := groupByID[group]; !known || !cs.valid() {
+		if _, ok := known(group); !ok || !cs.valid() {
 			delete(c.CustomStyles, group)
 		}
 	}
 	for group, id := range c.Styles {
-		g, known := groupByID[group]
+		g, isKnown := known(group)
 		_, theme := themeByID[id]
 		_, custom := c.CustomStyles[group]
 		ok := theme || (id == DefaultThemeID && g.AllowDefault) ||
 			(id == CustomThemeID && custom) ||
 			(strings.HasPrefix(id, NeverSinkThemePrefix) && nsTag.MatchString(strings.TrimPrefix(id, NeverSinkThemePrefix)))
-		if !known || !ok {
+		if !isKnown || !ok {
 			delete(c.Styles, group)
 		}
 	}
@@ -285,7 +322,7 @@ func (c *Config) normalizeStyles() {
 		}
 	}
 	for group, v := range c.Sounds {
-		if _, known := groupByID[group]; !known || !validSound(v) || v == SoundDefault {
+		if _, ok := known(group); !ok || !validSound(v) || v == SoundDefault {
 			delete(c.Sounds, group)
 		}
 	}
@@ -375,9 +412,15 @@ func LocalizedThemes() []Theme {
 
 // LocalizedStyleGroups returns the customisable groups with their names in the
 // active interface language.
+// The medium list became a user group, so its entry only survives as the
+// template new user groups start from; the panel must not offer it as a tab.
 func LocalizedStyleGroups() []StyleGroup {
-	out := make([]StyleGroup, len(StyleGroups))
-	copy(out, StyleGroups)
+	out := make([]StyleGroup, 0, len(StyleGroups))
+	for _, g := range StyleGroups {
+		if g.ID != GroupWhitelistMid {
+			out = append(out, g)
+		}
+	}
 	for i := range out {
 		keys := groupLabelKeys[out[i].ID]
 		out[i].Label = i18n.T(keys[0])

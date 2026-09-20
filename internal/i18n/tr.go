@@ -82,7 +82,6 @@ var tr = map[string]string{
 	"filter.pricesAt":      "Fiyat tarihi:     %s",
 	"filter.writtenAt":     "Filtre yazıldı:   %s",
 	"filter.lowValue":      "Eşik altı davranış: %s",
-	"filter.sec.blacklist": "1. KULLANICI KARA LİSTESİ (her zaman gizli)",
 	"filter.sec.divine":    "2. DIVINE ORB VURGUSU",
 	"filter.sec.whitelist": "3. KULLANICI BEYAZ LİSTESİ (her zaman görünür)",
 	"filter.sec.currency":  "4. DEĞERLİ CURRENCY VE TOPLU EŞYALAR",
@@ -96,7 +95,13 @@ var tr = map[string]string{
 	"filter.sec.gems20":    "8.5 UNCUT GEM (sadece seviye 20)",
 	"filter.sec.gems":      "8.5 UNCUT GEM",
 	"filter.sec.pinnacle":  "8.6 PINNACLE ANAHTARLARI",
-	"filter.sec.mid":       "8.7 KULLANICI LİSTESİ - ORTA VURGU",
 	"filter.sec.below":     "9. EŞİK ALTI (%s)",
 	"filter.sec.unpriced":  "10. HENÜZ FİYATLANMAMIŞ EXCEPTIONAL TABANLAR (taranana kadar görünür)",
+
+	"filter.sec.userShow":    "KULLANICI GRUBU: %s",
+	"filter.sec.userHide":    "KULLANICI GRUBU (GİZLİ): %s",
+	"group.migratedMid":      "Orta vurgu",
+	"group.migratedHide":     "Her zaman gizle",
+	"group.unnamed":          "Grup %d",
+	"groupDefault.userGroup": "Varsayılan (mor)",
 }

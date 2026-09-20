@@ -10,7 +10,7 @@
   import StylePreview from './lib/StylePreview.svelte'
   import ThemePicker from './lib/ThemePicker.svelte'
   import { lookOf, fromHex } from './lib/look'
-  import type { CustomStyle } from '../bindings/poe2filter/internal/filter/models'
+  import type { CustomStyle, ItemGroup } from '../bindings/poe2filter/internal/filter/models'
   import type { StyleOptions } from '../bindings/poe2filter/models'
   import type { StyleGroup, Theme } from '../bindings/poe2filter/internal/filter/models'
   import { clock, relative, until, money, strictnessNames } from './lib/format'
@@ -37,6 +37,9 @@
   let soundError = $state('')
   let leagues = $state<string[]>([])
   let languages = $state<LanguageOption[]>([])
+  let groupTemplate = $state<StyleGroup | null>(null)
+  // Group waiting for a second click on Delete.
+  let confirmDelete = $state('')
 
   // "auto" resolves to whatever the first entry (the system language) reports.
   function languageOf(setting: string | undefined): string {
@@ -64,6 +67,7 @@
       nsThemes = (await AppService.NeverSinkThemes()) ?? []
       styleOptions = (await AppService.StyleOptions()) ?? styleOptions
       groups = (await AppService.StyleGroups()) ?? []
+      groupTemplate = await AppService.UserGroupTemplate()
       sounds = (await AppService.ListSounds()) ?? []
       leagues = (await AppService.Leagues()) ?? []
       languages = (await AppService.Languages()) ?? []
@@ -160,7 +164,35 @@
       !leagues.some((l) => l.toLowerCase() === cfg!.league_name.toLowerCase()),
   )
 
-  const selGroup = $derived(groups.find((g) => g.id === styleGroup))
+  // The Appearance tabs cover the built-in groups and every user group, which
+  // all share one look template.
+  const allGroups = $derived.by<StyleGroup[]>(() => {
+    if (!groupTemplate || !cfg?.item_groups?.length) return groups
+    const own = cfg.item_groups!.map((g) => ({ ...groupTemplate!, id: 'user:' + g.id, label: g.name }) as StyleGroup)
+    return [...groups, ...own]
+  })
+
+  const selGroup = $derived(allGroups.find((g) => g.id === styleGroup))
+
+  function addGroup() {
+    if (!cfg || (cfg.item_groups ?? []).length >= (meta?.maxItemGroups ?? 12)) return
+    cfg.item_groups = [...(cfg.item_groups ?? []), { id: '', name: '', items: [], hide: false, always: false } as ItemGroup]
+    queueSave()
+  }
+
+  // Jump to the group's colours: the picker lives in the Appearance section.
+  function openLook(id: string) {
+    styleGroup = 'user:' + id
+    requestAnimationFrame(() => document.querySelector('#appearance')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))
+  }
+
+  function removeGroup(id: string) {
+    if (!cfg) return
+    confirmDelete = ''
+    cfg.item_groups = (cfg.item_groups ?? []).filter((g) => g.id !== id)
+    if (styleGroup === 'user:' + id) styleGroup = 'divine'
+    queueSave()
+  }
 
   // Groups without a built-in look (Divine Orb) default to their first theme.
   function styleValue(g: StyleGroup): string {
@@ -191,7 +223,7 @@
   function applyNeverSink() {
     if (!cfg) return
     const next = { ...(cfg.styles ?? {}) }
-    for (const g of groups) {
+    for (const g of allGroups) {
       const id = 'ns:' + (styleOptions.preset?.[g.id] ?? '')
       if (nsThemes.some((t) => t.id === id)) next[g.id] = id
     }
@@ -476,16 +508,80 @@
         <h3>{t('lists.showTop')} <span class="h3-note">{t('lists.showTopNote')}</span></h3>
         <p class="desc">{t('lists.showTopDesc')}</p>
         <ListEditor bind:items={cfg.whitelist} uniqueVariants placeholder={t('lists.searchItem')} onchange={() => queueSave()} />
-        <h3>{t('lists.showMid')} <span class="h3-note">{t('lists.showMidNote')}</span></h3>
-        <p class="desc">{t('lists.showMidDesc')}</p>
-        <ListEditor bind:items={cfg.whitelist_mid} uniqueVariants placeholder={t('lists.searchItem')} onchange={() => queueSave()} />
-        <h3>{t('lists.hide')}</h3>
-        <ListEditor bind:items={cfg.blacklist} placeholder={t('lists.searchHide')} onchange={() => queueSave()} />
         <h3>{t('lists.chance')} <span class="h3-note">{t('lists.chanceNote')}</span></h3>
         <ListEditor bind:items={cfg.chance_bases} placeholder={t('lists.searchBase')} onchange={() => queueSave()} />
       </section>
 
       <section class="card">
+        <h2>{t('groups.title')}</h2>
+        <p class="desc">{t('groups.desc')}</p>
+        {#each cfg.item_groups ?? [] as g, i (g.id || i)}
+          <div class="group">
+            <div class="group-head">
+              <input
+                class="group-name"
+                bind:value={cfg.item_groups![i].name}
+                placeholder={t('groups.namePlaceholder')}
+                onchange={() => queueSave()}
+                spellcheck="false"
+              />
+              <button
+                type="button"
+                class="group-del"
+                class:confirm={confirmDelete === g.id}
+                onclick={() => (confirmDelete === g.id ? removeGroup(g.id) : (confirmDelete = g.id))}
+                onblur={() => (confirmDelete = '')}
+              >
+                {confirmDelete === g.id ? t('groups.deleteConfirm') : t('groups.delete')}
+              </button>
+            </div>
+            <Segmented
+              small
+              value={g.hide ? 'hide' : 'show'}
+              onchange={(v) => {
+                cfg!.item_groups![i].hide = v === 'hide'
+                if (v === 'hide') cfg!.item_groups![i].always = false
+                queueSave()
+              }}
+              options={[
+                { value: 'show', label: t('groups.modeShow') },
+                { value: 'hide', label: t('groups.modeHide') },
+              ]}
+            />
+            {#if !g.hide}
+              <Toggle
+                bind:checked={cfg.item_groups![i].always}
+                label={t('groups.always')}
+                hint={t('groups.alwaysHint')}
+                onchange={() => queueSave()}
+              />
+            {/if}
+            <ListEditor
+              bind:items={cfg.item_groups![i].items}
+              uniqueVariants={!g.hide}
+              placeholder={g.hide ? t('lists.searchHide') : t('lists.searchItem')}
+              onchange={() => queueSave()}
+            />
+            {#if !g.hide && g.id}
+              <button type="button" class="look-link" onclick={() => openLook(g.id)}>
+                {t('groups.lookLink', g.name)}
+              </button>
+            {/if}
+          </div>
+        {:else}
+          <p class="desc hint">{t('groups.empty')}</p>
+        {/each}
+        <div class="presets">
+          <button type="button" onclick={addGroup} disabled={(cfg.item_groups ?? []).length >= (meta?.maxItemGroups ?? 12)}>
+            {t('groups.add')}
+          </button>
+        </div>
+        {#if (cfg.item_groups ?? []).length >= (meta?.maxItemGroups ?? 12)}
+          <p class="desc hint">{t('groups.limit', meta?.maxItemGroups ?? 12)}</p>
+        {/if}
+      </section>
+
+      <section class="card" id="appearance">
         <h2>{t('look.title')}</h2>
         <p class="desc">{t('look.desc')}</p>
         <div class="presets">
@@ -493,7 +589,7 @@
           <button type="button" onclick={resetStyles}>{t('look.reset')}</button>
         </div>
         <div class="groups" role="tablist">
-          {#each groups as g (g.id)}
+          {#each allGroups as g (g.id)}
             <button type="button" role="tab" aria-selected={g.id === styleGroup} class:on={g.id === styleGroup} onclick={() => (styleGroup = g.id)}>
               <span lang={g.id === 'divine' ? 'en' : undefined}>{g.label}</span>
               {#if customised(g)}<i class="custom-dot" title={t('look.customised')}></i>{/if}
@@ -806,6 +902,43 @@
   }
   .picker {
     margin: 10px 0 4px;
+  }
+  .group {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    margin: 10px 0;
+    display: grid;
+    gap: 8px;
+  }
+  .group-head {
+    display: flex;
+    gap: 6px;
+  }
+  .group-name {
+    flex: 1;
+    min-width: 0;
+  }
+  .group-del {
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .group-del.confirm {
+    color: var(--bad);
+    border-color: var(--bad);
+  }
+  .look-link {
+    justify-self: start;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: 11px;
+    text-decoration: underline;
   }
   .sound-row {
     display: flex;

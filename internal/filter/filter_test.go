@@ -71,7 +71,7 @@ func blockContaining(t *testing.T, out string, needles ...string) int {
 func TestRuleOrderAndSafety(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.MinValue, cfg.MinValueUnit = 10, "exalted"
-	cfg.Blacklist = []string{"Mirror of Kalandra"}
+	cfg.ItemGroups = []ItemGroup{{ID: "g1", Name: "Hide", Items: []string{"Mirror of Kalandra"}, Hide: true}}
 	out, st := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 
 	black := blockContaining(t, out, "Hide", `"Mirror of Kalandra"`)
@@ -113,7 +113,8 @@ func TestRuleOrderAndSafety(t *testing.T) {
 
 func TestBlacklistProtectsValuableSibling(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.Blacklist = []string{"Cloak of Flame"} // shares Silk Robe with Temporalis
+	// Cloak of Flame shares Silk Robe with Temporalis.
+	cfg.ItemGroups = []ItemGroup{{ID: "g1", Name: "Hide", Items: []string{"Cloak of Flame"}, Hide: true}}
 	out, st := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 	if blockContaining(t, out, "Hide", "Rarity Unique", `"Silk Robe"`) >= 0 {
 		t.Fatal("blacklisting a junk unique must not hide Temporalis' base")
@@ -167,7 +168,7 @@ func TestLegacyConfigMigration(t *testing.T) {
 	if c.Strictness != 6 || c.CustomBaseFilter != "" {
 		t.Errorf("strictness: %d custom=%q", c.Strictness, c.CustomBaseFilter)
 	}
-	if !c.HideExalt || len(c.Blacklist) != 2 || c.AutoUpdateEnabled {
+	if !c.HideExalt || len(c.ItemGroups) != 1 || len(c.ItemGroups[0].Items) != 2 || c.AutoUpdateEnabled {
 		t.Errorf("user choices not kept: %+v", c)
 	}
 	if c.AutoUpdateHours != 1 || !c.T5Rares || !c.ExceptionalScan {
@@ -254,7 +255,7 @@ func TestStyleGroupsApplyAndMigrate(t *testing.T) {
 
 func TestMediumWhitelistOrder(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.WhitelistMid = []string{"Orb of Alchemy", "Silk Robe|unique"}
+	cfg.ItemGroups = []ItemGroup{{ID: "g1", Name: "Mid", Items: []string{"Orb of Alchemy", "Silk Robe|unique"}}}
 	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 
 	mid := blockContaining(t, out, "Show", `"Orb of Alchemy"`, "MinimapIcon 1 Purple Diamond")
@@ -366,5 +367,116 @@ func TestNeverSinkAndCustomThemes(t *testing.T) {
 	cfg.Styles[GroupT5Rare] = "ns:gone"
 	if p, custom := cfg.Palette(GroupT5Rare, ns); custom || p.BgColor != groupByID[GroupT5Rare].Default.BgColor {
 		t.Fatal("unknown NeverSink tag should fall back to the default")
+	}
+}
+
+func TestUserGroupsOrderAndLook(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ItemGroups = []ItemGroup{
+		{ID: "g1", Name: "Loud", Items: []string{"Silk Robe|unique"}, Always: true},
+		{ID: "g2", Name: "Quiet", Items: []string{"Orb of Alchemy"}},
+		{ID: "g3", Name: "Gone", Items: []string{"Heavy Belt"}, Hide: true},
+	}
+	cfg.Styles = map[string]string{"user:g1": "neon_green"}
+	cfg.Normalize()
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+
+	// An "always" group outranks the valuable styles on the same item.
+	loud := blockContaining(t, out, "Show", "Rarity Unique", `"Silk Robe"`, "SetBackgroundColor 20 160 70 255")
+	strong := blockContaining(t, out, "Show", "Rarity Unique", `"Silk Robe"`, "PlayEffect Red")
+	if loud < 0 {
+		t.Fatal("the always group did not use its own colours")
+	}
+	if strong >= 0 && strong < loud {
+		t.Fatalf("an always group must come before the valuable styles (loud=%d strong=%d)", loud, strong)
+	}
+	// A plain group still waits until after them.
+	quiet := blockContaining(t, out, "Show", `"Orb of Alchemy"`, "MinimapIcon 1 Purple Diamond")
+	if quiet < 0 || quiet < loud {
+		t.Fatalf("a plain group belongs after the always ones (quiet=%d loud=%d)", quiet, loud)
+	}
+	// Hide groups come first of all.
+	hidden := blockContaining(t, out, "Hide", `"Heavy Belt"`)
+	if hidden < 0 || hidden > loud {
+		t.Fatalf("hide groups must come first (hidden=%d loud=%d)", hidden, loud)
+	}
+	// Both group names reach the filter as section headings.
+	for _, want := range []string{"LOUD", "QUIET", "GONE"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("section heading %q missing", want)
+		}
+	}
+}
+
+func TestItemGroupNormalize(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ItemGroups = []ItemGroup{
+		{Name: "  spaced  ", Items: []string{" Chaos Orb ", "", "  "}},
+		{ID: "g1"}, // no name
+		{ID: "g1", Name: "clash", Hide: true, Always: true}, // duplicate id
+	}
+	cfg.Styles = map[string]string{"user:ghost": "neon_red", GroupDivine: "neon_red"}
+	cfg.CustomStyles = map[string]CustomStyle{"user:ghost": {Bg: "#101010", Text: "#ffffff", Border: "#ffffff"}}
+	cfg.Sounds = map[string]string{"user:ghost": "3"}
+	cfg.Normalize()
+
+	if n := len(cfg.ItemGroups); n != 3 {
+		t.Fatalf("groups kept: %d", n)
+	}
+	if g := cfg.ItemGroups[0]; g.Name != "spaced" || len(g.Items) != 1 || g.Items[0] != "Chaos Orb" {
+		t.Errorf("first group not tidied: %+v", g)
+	}
+	if cfg.ItemGroups[1].Name == "" {
+		t.Error("a nameless group must get a name")
+	}
+	ids := map[string]bool{}
+	for _, g := range cfg.ItemGroups {
+		if g.ID == "" || ids[g.ID] {
+			t.Errorf("id not unique: %q", g.ID)
+		}
+		ids[g.ID] = true
+	}
+	if cfg.ItemGroups[2].Always {
+		t.Error("a hidden group has nothing to outrank")
+	}
+	// Styles of a group that no longer exists are cleared, others are kept.
+	if _, ok := cfg.Styles["user:ghost"]; ok {
+		t.Error("style of a deleted group kept")
+	}
+	if _, ok := cfg.CustomStyles["user:ghost"]; ok {
+		t.Error("custom style of a deleted group kept")
+	}
+	if _, ok := cfg.Sounds["user:ghost"]; ok {
+		t.Error("sound of a deleted group kept")
+	}
+	if cfg.Styles[GroupDivine] != "neon_red" {
+		t.Error("a built-in group style must survive")
+	}
+}
+
+func TestLegacyListsBecomeGroups(t *testing.T) {
+	legacy := `{"whitelist_mid": ["Orb of Alchemy"], "blacklist": ["Scroll of Wisdom"],
+	 "styles": {"whitelist_mid": "neon_green"}, "sounds": {"whitelist_mid": "4"}}`
+	p := filepath.Join(t.TempDir(), "cfg.json")
+	if err := os.WriteFile(p, []byte(legacy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	c := LoadConfig(p)
+	if len(c.ItemGroups) != 2 {
+		t.Fatalf("both lists should become groups: %+v", c.ItemGroups)
+	}
+	mid, hidden := c.ItemGroups[0], c.ItemGroups[1]
+	if mid.Hide || len(mid.Items) != 1 || mid.Items[0] != "Orb of Alchemy" {
+		t.Errorf("medium list not carried over: %+v", mid)
+	}
+	if !hidden.Hide || len(hidden.Items) != 1 {
+		t.Errorf("blacklist not carried over: %+v", hidden)
+	}
+	// The look and sound follow the list into its group.
+	if c.Styles[mid.StyleKey()] != "neon_green" || c.Sounds[mid.StyleKey()] != "4" {
+		t.Errorf("look not migrated: styles=%v sounds=%v", c.Styles, c.Sounds)
+	}
+	if _, ok := c.Styles[GroupWhitelistMid]; ok {
+		t.Error("the old style key should be gone")
 	}
 }

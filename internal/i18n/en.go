@@ -98,7 +98,6 @@ var en = map[string]string{
 	"filter.pricesAt":      "Prices generated: %s",
 	"filter.writtenAt":     "Filter written:   %s",
 	"filter.lowValue":      "Low-value action: %s",
-	"filter.sec.blacklist": "1. USER BLACKLIST (always hidden)",
 	"filter.sec.divine":    "2. DIVINE ORB SPOTLIGHT",
 	"filter.sec.whitelist": "3. USER WHITELIST (always shown)",
 	"filter.sec.currency":  "4. VALUABLE CURRENCY & BULK ITEMS",
@@ -112,7 +111,13 @@ var en = map[string]string{
 	"filter.sec.gems20":    "8.5 UNCUT GEMS (level 20 only)",
 	"filter.sec.gems":      "8.5 UNCUT GEMS",
 	"filter.sec.pinnacle":  "8.6 PINNACLE KEYS",
-	"filter.sec.mid":       "8.7 USER LIST - MEDIUM HIGHLIGHT",
 	"filter.sec.below":     "9. BELOW THRESHOLD (%s)",
 	"filter.sec.unpriced":  "10. EXCEPTIONAL BASES NOT YET PRICED (shown until scanned)",
+
+	"filter.sec.userShow":    "USER GROUP: %s",
+	"filter.sec.userHide":    "USER GROUP (HIDDEN): %s",
+	"group.migratedMid":      "Medium highlight",
+	"group.migratedHide":     "Always hidden",
+	"group.unnamed":          "Group %d",
+	"groupDefault.userGroup": "Default (purple)",
 }

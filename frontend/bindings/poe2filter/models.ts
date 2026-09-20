@@ -28,6 +28,11 @@ export interface Meta {
      * writing somewhere other than the game folder
      */
     "testMode": boolean;
+
+    /**
+     * MaxItemGroups is how many of their own groups a user may keep.
+     */
+    "maxItemGroups": number;
 }
 
 /**

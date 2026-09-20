@@ -153,3 +153,11 @@ export function Themes(): $CancellablePromise<filter$0.Theme[] | null> {
 export function UpdateNow(): $CancellablePromise<void> {
     return $Call.ByID(3283441069);
 }
+
+/**
+ * UserGroupTemplate is the look and sound a new user group starts from, so the
+ * panel can render its colour picker like the built-in groups.
+ */
+export function UserGroupTemplate(): $CancellablePromise<filter$0.StyleGroup> {
+    return $Call.ByID(3114360830);
+}

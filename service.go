@@ -39,6 +39,8 @@ type Meta struct {
 	DataDir  string `json:"dataDir"`
 	GameDir  string `json:"gameDir"`
 	TestMode bool   `json:"testMode"` // writing somewhere other than the game folder
+	// MaxItemGroups is how many of their own groups a user may keep.
+	MaxItemGroups int `json:"maxItemGroups"`
 }
 
 // AppService is the API the panel calls. Its methods are exposed to the
@@ -56,6 +58,7 @@ type AppService struct {
 }
 
 func newAppService(meta Meta) *AppService {
+	meta.MaxItemGroups = filter.MaxItemGroups
 	return &AppService{meta: meta, signal: make(chan struct{}, 1)}
 }
 
@@ -153,6 +156,10 @@ func (s *AppService) NeverSinkThemes() []filter.Theme { return s.eng.NeverSinkTh
 func (s *AppService) StyleOptions() StyleOptions {
 	return StyleOptions{Colours: filter.EffectColours, Shapes: filter.IconShapes, Preset: filter.NeverSinkPreset}
 }
+
+// UserGroupTemplate is the look and sound a new user group starts from, so the
+// panel can render its colour picker like the built-in groups.
+func (s *AppService) UserGroupTemplate() filter.StyleGroup { return filter.UserGroupTemplate() }
 
 // StyleGroups lists the drop groups whose colours can be changed.
 func (s *AppService) StyleGroups() []filter.StyleGroup { return filter.LocalizedStyleGroups() }

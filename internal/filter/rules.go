@@ -223,10 +223,13 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		"#==============================================================================",
 		"")
 
-	// ---- 1. user blacklist (first, so it really is unconditional) ---------
-	if len(cfg.Blacklist) > 0 {
+	// ---- 1. user hide groups (first, so they really are unconditional) ----
+	for _, g := range cfg.ItemGroups {
+		if !g.Hide {
+			continue
+		}
 		var uniqueBases, bases []string
-		for _, raw := range cfg.Blacklist {
+		for _, raw := range g.Items {
 			key := strings.ToLower(strings.TrimSpace(raw))
 			if base, ok := uniqueToBase[key]; ok {
 				// Never hide a base because of one junk unique if another
@@ -244,9 +247,9 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			}
 		}
 		if len(uniqueBases)+len(bases) > 0 {
-			b.section(i18n.T("filter.sec.blacklist"))
+			b.section(fmt.Sprintf(i18n.T("filter.sec.userHide"), strings.ToUpper(g.Name)))
 			b.rule("Hide", []string{"Rarity Unique"}, "BaseType", uniqueBases, nil)
-			// Normal/Magic/Rare only: blacklisting a base must not hide uniques on it.
+			// Normal/Magic/Rare only: hiding a base must not hide uniques on it.
 			b.rule("Hide", []string{"Rarity Normal Magic Rare"}, "BaseType", bases, nil)
 		}
 	}
@@ -275,6 +278,10 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			b.rule("Show", nil, "BaseType", bases, wst)
 		}
 	}
+
+	// Groups set to always win go before the valuable styles; the others wait
+	// until after them, so a valuable item keeps its stronger highlight.
+	b.userShowGroups(cfg, ns, uniqueToBase, canon, true)
 
 	// ---- 4. valuable currency and bulk items -------------------------------
 	if len(valuableCur) > 0 {
@@ -436,16 +443,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// ---- 8.7 medium whitelist -----------------------------------------------
 	// After the valuable sections, so an item that is valuable anyway keeps
 	// its stronger highlight; before the hides, so it is never hidden.
-	if len(cfg.WhitelistMid) > 0 {
-		uniqueBases, bases := resolveShowList(cfg.WhitelistMid, uniqueToBase, canon)
-		if len(uniqueBases)+len(bases) > 0 {
-			mp, _ := cfg.Palette(GroupWhitelistMid, ns)
-			mst := styleMid.with(mp).withSound(cfg.Sound(GroupWhitelistMid))
-			b.section(i18n.T("filter.sec.mid"))
-			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, mst)
-			b.rule("Show", nil, "BaseType", bases, mst)
-		}
-	}
+	b.userShowGroups(cfg, ns, uniqueToBase, canon, false)
 
 	// ---- 9. below-threshold items ------------------------------------------
 	if cfg.FilterMode == "hide" || cfg.FilterMode == "dim" {
@@ -491,6 +489,27 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 
 // resolveShowList splits a show list into bases shown for uniques only (unique
 // names and "|unique" entries) and bases shown for every rarity.
+// userShowGroups writes the user's shown groups, in their own order. always
+// selects which half to write: the groups that outrank the valuable styles, or
+// the ones that come after them.
+func (b *builder) userShowGroups(cfg Config, ns map[string]Theme, uniqueToBase map[string]string,
+	canon func(string) (string, bool), always bool) {
+	for _, g := range cfg.ItemGroups {
+		if g.Hide || g.Always != always {
+			continue
+		}
+		uniqueBases, bases := resolveShowList(g.Items, uniqueToBase, canon)
+		if len(uniqueBases)+len(bases) == 0 {
+			continue
+		}
+		pal, _ := cfg.Palette(g.StyleKey(), ns)
+		st := styleMid.with(pal).withSound(cfg.Sound(g.StyleKey()))
+		b.section(fmt.Sprintf(i18n.T("filter.sec.userShow"), strings.ToUpper(g.Name)))
+		b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, st)
+		b.rule("Show", nil, "BaseType", bases, st)
+	}
+}
+
 func resolveShowList(list []string, uniqueToBase map[string]string, canon func(string) (string, bool)) (uniqueBases, bases []string) {
 	for _, raw := range list {
 		item, uniqueOnly := ParseListEntry(raw)

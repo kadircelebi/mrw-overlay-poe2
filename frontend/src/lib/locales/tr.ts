@@ -90,6 +90,22 @@ export const tr: Record<string, string> = {
   'lists.searchHide': 'Gizlenecek eşya ara…',
   'lists.searchBase': 'Taban veya unique ara…',
 
+  // Gruplarım
+  'groups.title': 'Gruplarım',
+  'groups.desc':
+    'Kendi listelerin. Her grup içindekileri gösterir ya da gizler; rengini ve sesini Görünüm bölümünden seçersin.',
+  'groups.add': 'Grup ekle',
+  'groups.namePlaceholder': 'Grup adı',
+  'groups.modeShow': 'Göster',
+  'groups.modeHide': 'Gizle',
+  'groups.always': 'Her zaman kazansın',
+  'groups.alwaysHint': 'Kapalıyken eşiğin üstündeki bir eşya güçlü vurgusunu korur',
+  'groups.delete': 'Sil',
+  'groups.deleteConfirm': 'Silinsin mi?',
+  'groups.empty': 'Henüz grup yok.',
+  'groups.limit': 'En fazla {0} grup.',
+  'groups.lookLink': 'Renk ve ses: Görünüm → {0}',
+
   'look.title': 'Görünüm',
   'look.desc':
     "Her grubun rengini ve sesini ayrı seç: uygulama temaları, NeverSink'in kendi stilleri ya da kendi renklerin.",
@@ -120,6 +136,7 @@ export const tr: Record<string, string> = {
   'picker.beam': 'Işın',
   'picker.icon': 'Simge',
   'picker.shape': 'Şekil',
+  'picker.none': 'Yok',
   'picker.noShape': 'Şekil yok',
   'picker.noBeam': 'Işın yok',
 

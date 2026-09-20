@@ -59,10 +59,10 @@ export interface Config {
     "whitelist": string[] | null;
 
     /**
-     * shown with a medium highlight
+     * ItemGroups are the user's own lists. Each one shows or hides its items
+     * and carries its own colours and sound, keyed by ItemGroup.StyleKey().
      */
-    "whitelist_mid": string[] | null;
-    "blacklist": string[] | null;
+    "item_groups": ItemGroup[] | null;
     "chance_bases": string[] | null;
     "high_waystones": boolean;
     "high_uncut_gems": boolean;
@@ -107,6 +107,8 @@ export interface Config {
     /**
      * Legacy fields, read once for migration and never written back.
      */
+    "whitelist_mid"?: string[] | null;
+    "blacklist"?: string[] | null;
     "min_exalt"?: number;
     "min_divine"?: number;
     "base_filter_preset"?: string;
@@ -124,6 +126,28 @@ export interface CustomStyle {
     "beam": string;
     "icon": string;
     "shape": string;
+}
+
+/**
+ * ItemGroup is one of the user's own item lists. It either shows or hides what
+ * it holds, and has its own colours and sound like the built-in groups do.
+ */
+export interface ItemGroup {
+    "id": string;
+    "name": string;
+    "items": string[] | null;
+
+    /**
+     * Hide turns the group into an always-hidden list instead of a shown one.
+     */
+    "hide": boolean;
+
+    /**
+     * Always lets a shown group beat the valuable-item styles. Without it a
+     * valuable item keeps its stronger highlight, which is what the medium
+     * list has always done.
+     */
+    "always": boolean;
 }
 
 /**

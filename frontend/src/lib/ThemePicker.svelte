@@ -131,7 +131,7 @@
     <label class="wide">
       <span>{t('picker.beam')}</span>
       <select value={draft.beam} onchange={(e) => update('beam', e.currentTarget.value)}>
-        <option value="">Yok</option>
+        <option value="">{t('picker.none')}</option>
         {#each colours as c}<option value={c}>{colourName(c) || c}</option>{/each}
       </select>
     </label>
@@ -139,7 +139,7 @@
       <span>{t('picker.icon')}</span>
       <span class="pair">
         <select value={draft.icon} onchange={(e) => update('icon', e.currentTarget.value)}>
-          <option value="">Yok</option>
+          <option value="">{t('picker.none')}</option>
           {#each colours as c}<option value={c}>{colourName(c) || c}</option>{/each}
         </select>
         <select value={draft.shape} disabled={!draft.icon} onchange={(e) => update('shape', e.currentTarget.value)}>

@@ -85,7 +85,6 @@ var zh = map[string]string{
 	"filter.pricesAt":      "價格時間：%s",
 	"filter.writtenAt":     "寫入時間：%s",
 	"filter.lowValue":      "低價處理方式：%s",
-	"filter.sec.blacklist": "1. 使用者黑名單（永遠隱藏）",
 	"filter.sec.divine":    "2. DIVINE ORB 強調",
 	"filter.sec.whitelist": "3. 使用者白名單（永遠顯示）",
 	"filter.sec.currency":  "4. 高價 CURRENCY 與大宗物品",
@@ -99,7 +98,13 @@ var zh = map[string]string{
 	"filter.sec.gems20":    "8.5 UNCUT GEM（僅限 20 級）",
 	"filter.sec.gems":      "8.5 UNCUT GEM",
 	"filter.sec.pinnacle":  "8.6 PINNACLE 鑰匙",
-	"filter.sec.mid":       "8.7 使用者清單 - 中等強調",
 	"filter.sec.below":     "9. 低於門檻（%s）",
 	"filter.sec.unpriced":  "10. 尚未定價的 EXCEPTIONAL 基底（掃描完成前顯示）",
+
+	"filter.sec.userShow":    "使用者群組：%s",
+	"filter.sec.userHide":    "使用者群組（隱藏）：%s",
+	"group.migratedMid":      "中等強調",
+	"group.migratedHide":     "永遠隱藏",
+	"group.unnamed":          "群組 %d",
+	"groupDefault.userGroup": "預設（紫色）",
 }

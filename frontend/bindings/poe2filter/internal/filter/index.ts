@@ -4,6 +4,7 @@
 export type {
     Config,
     CustomStyle,
+    ItemGroup,
     StyleGroup,
     Theme
 } from "./models.js";

@@ -99,6 +99,22 @@ export const en: Record<string, string> = {
   'lists.searchHide': 'Search an item to hide…',
   'lists.searchBase': 'Search a base or unique…',
 
+  // My groups
+  'groups.title': 'My groups',
+  'groups.desc':
+    'Your own lists. Each group shows or hides what it holds and has its own colour and sound, set under Appearance.',
+  'groups.add': 'Add group',
+  'groups.namePlaceholder': 'Group name',
+  'groups.modeShow': 'Show',
+  'groups.modeHide': 'Hide',
+  'groups.always': 'Always win',
+  'groups.alwaysHint': 'Off: an item worth more than the threshold keeps its stronger highlight',
+  'groups.delete': 'Delete',
+  'groups.deleteConfirm': 'Delete?',
+  'groups.empty': 'No groups yet.',
+  'groups.limit': 'At most {0} groups.',
+  'groups.lookLink': 'Colour and sound: Appearance → {0}',
+
   // Appearance
   'look.title': 'Appearance',
   'look.desc':
@@ -131,6 +147,7 @@ export const en: Record<string, string> = {
   'picker.beam': 'Beam',
   'picker.icon': 'Icon',
   'picker.shape': 'Shape',
+  'picker.none': 'None',
   'picker.noShape': 'No shape',
   'picker.noBeam': 'No beam',
 

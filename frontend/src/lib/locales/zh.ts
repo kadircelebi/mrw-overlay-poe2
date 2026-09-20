@@ -88,6 +88,21 @@ export const zh: Record<string, string> = {
   'lists.searchHide': '搜尋要隱藏的物品…',
   'lists.searchBase': '搜尋基底或 unique…',
 
+  // 我的群組
+  'groups.title': '我的群組',
+  'groups.desc': '你自己的清單。每個群組會顯示或隱藏其中的物品，顏色與音效在「外觀」中設定。',
+  'groups.add': '新增群組',
+  'groups.namePlaceholder': '群組名稱',
+  'groups.modeShow': '顯示',
+  'groups.modeHide': '隱藏',
+  'groups.always': '一律優先',
+  'groups.alwaysHint': '關閉時，高於門檻的物品會保留較強的強調',
+  'groups.delete': '刪除',
+  'groups.deleteConfirm': '確定刪除？',
+  'groups.empty': '尚無群組。',
+  'groups.limit': '最多 {0} 個群組。',
+  'groups.lookLink': '顏色與音效：外觀 → {0}',
+
   'look.title': '外觀',
   'look.desc': '為每個群組分別挑選顏色與音效：應用程式主題、NeverSink 的樣式，或你自己的顏色。',
   'look.applyNeverSink': '全部改用 NeverSink 顏色',
@@ -116,6 +131,7 @@ export const zh: Record<string, string> = {
   'picker.beam': '光束',
   'picker.icon': '圖示',
   'picker.shape': '形狀',
+  'picker.none': '無',
   'picker.noShape': '無形狀',
   'picker.noBeam': '無光束',
 

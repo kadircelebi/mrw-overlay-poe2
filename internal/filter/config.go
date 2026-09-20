@@ -3,11 +3,33 @@ package filter
 import (
 	"encoding/json"
 	"os"
+	"strconv"
 	"strings"
 
 	"poe2filter/internal/i18n"
 	"poe2filter/internal/prices"
 )
+
+// ItemGroup is one of the user's own item lists. It either shows or hides what
+// it holds, and has its own colours and sound like the built-in groups do.
+type ItemGroup struct {
+	ID    string   `json:"id"`
+	Name  string   `json:"name"`
+	Items []string `json:"items"`
+	// Hide turns the group into an always-hidden list instead of a shown one.
+	Hide bool `json:"hide"`
+	// Always lets a shown group beat the valuable-item styles. Without it a
+	// valuable item keeps its stronger highlight, which is what the medium
+	// list has always done.
+	Always bool `json:"always"`
+}
+
+// StyleKey is where this group's colours and sound live in Styles, CustomStyles
+// and Sounds.
+func (g ItemGroup) StyleKey() string { return UserGroupPrefix + g.ID }
+
+// MaxItemGroups keeps the settings panel (and the filter) manageable.
+const MaxItemGroups = 12
 
 // Config contains all filter generation options matching the GUI settings.
 type Config struct {
@@ -33,11 +55,12 @@ type Config struct {
 	HideGold        bool              `json:"hide_gold"`
 	FilterName      string            `json:"filter_name"`
 	Whitelist       []string          `json:"whitelist"`
-	WhitelistMid    []string          `json:"whitelist_mid"` // shown with a medium highlight
-	Blacklist       []string          `json:"blacklist"`
-	ChanceBases     []string          `json:"chance_bases"`
-	HighWaystones   bool              `json:"high_waystones"`
-	HighUncutGems   bool              `json:"high_uncut_gems"`
+	// ItemGroups are the user's own lists. Each one shows or hides its items
+	// and carries its own colours and sound, keyed by ItemGroup.StyleKey().
+	ItemGroups    []ItemGroup `json:"item_groups"`
+	ChanceBases   []string    `json:"chance_bases"`
+	HighWaystones bool        `json:"high_waystones"`
+	HighUncutGems bool        `json:"high_uncut_gems"`
 	// Uncut Support Gems drop constantly, so they have their own switch.
 	UncutSupportGems bool   `json:"uncut_support_gems"`
 	PinnacleKeys     bool   `json:"boss_keys_and_tablets"`
@@ -63,10 +86,12 @@ type Config struct {
 	NotifyEnabled     bool `json:"notify_enabled"`
 
 	// Legacy fields, read once for migration and never written back.
-	LegacyMinExalt   float64 `json:"min_exalt,omitempty"`
-	LegacyMinDivine  float64 `json:"min_divine,omitempty"`
-	LegacyPreset     string  `json:"base_filter_preset,omitempty"`
-	LegacyIntervalMn int     `json:"auto_update_interval,omitempty"`
+	LegacyWhitelistMid []string `json:"whitelist_mid,omitempty"`
+	LegacyBlacklist    []string `json:"blacklist,omitempty"`
+	LegacyMinExalt     float64  `json:"min_exalt,omitempty"`
+	LegacyMinDivine    float64  `json:"min_divine,omitempty"`
+	LegacyPreset       string   `json:"base_filter_preset,omitempty"`
+	LegacyIntervalMn   int      `json:"auto_update_interval,omitempty"`
 }
 
 // DefaultLeagues is the built-in league list: the fallback for the picker
@@ -85,7 +110,6 @@ func DefaultConfig() Config {
 		DivineTheme:       "neon_cyan",
 		FilterName:        "auto_updated",
 		Whitelist:         []string{"Mirror of Kalandra", "Albino Rhoa Feather"},
-		Blacklist:         []string{},
 		ChanceBases:       []string{"Heavy Belt", "Utility Belt"},
 		HighWaystones:     true,
 		HighUncutGems:     true,
@@ -175,7 +199,9 @@ func (c *Config) Normalize() {
 	}
 	c.normalizeStyles()
 	// Empty lists serialise as [] rather than null for the UI.
-	for _, l := range []*[]string{&c.Whitelist, &c.WhitelistMid, &c.Blacklist, &c.ChanceBases} {
+	c.migrateLists()
+	c.normalizeGroups()
+	for _, l := range []*[]string{&c.Whitelist, &c.ChanceBases} {
 		if *l == nil {
 			*l = []string{}
 		}
@@ -203,4 +229,95 @@ func (c Config) ThresholdEx(r prices.Rates) float64 {
 		}
 	}
 	return c.MinValue
+}
+
+// migrateLists folds the two fixed lists of earlier versions into user groups,
+// carrying their colours and sound over, so nobody loses a setting on upgrade.
+func (c *Config) migrateLists() {
+	move := func(items []string, from string, hide bool, name string) {
+		if len(items) == 0 {
+			return
+		}
+		g := ItemGroup{ID: c.freeGroupID(), Name: name, Items: items, Hide: hide}
+		if v, ok := c.Styles[from]; ok {
+			if c.Styles == nil {
+				c.Styles = map[string]string{}
+			}
+			c.Styles[g.StyleKey()] = v
+			delete(c.Styles, from)
+		}
+		if v, ok := c.CustomStyles[from]; ok {
+			c.CustomStyles[g.StyleKey()] = v
+			delete(c.CustomStyles, from)
+		}
+		if v, ok := c.Sounds[from]; ok {
+			c.Sounds[g.StyleKey()] = v
+			delete(c.Sounds, from)
+		}
+		c.ItemGroups = append(c.ItemGroups, g)
+	}
+	move(c.LegacyWhitelistMid, GroupWhitelistMid, false, i18n.T("group.migratedMid"))
+	move(c.LegacyBlacklist, "", true, i18n.T("group.migratedHide"))
+	c.LegacyWhitelistMid, c.LegacyBlacklist = nil, nil
+}
+
+// freeGroupID returns an id no current group uses.
+func (c *Config) freeGroupID() string {
+	for i := 1; ; i++ {
+		id := "g" + strconv.Itoa(i)
+		taken := false
+		for _, g := range c.ItemGroups {
+			if g.ID == id {
+				taken = true
+				break
+			}
+		}
+		if !taken {
+			return id
+		}
+	}
+}
+
+// normalizeGroups drops broken groups, gives every group an id and a name, and
+// keeps the count sane. It also clears styles left behind by deleted groups.
+func (c *Config) normalizeGroups() {
+	seen := map[string]bool{}
+	out := c.ItemGroups[:0]
+	for _, g := range c.ItemGroups {
+		g.Name = strings.TrimSpace(g.Name)
+		items := g.Items[:0]
+		for _, it := range g.Items {
+			if it = strings.TrimSpace(it); it != "" {
+				items = append(items, it)
+			}
+		}
+		g.Items = items
+		if g.ID == "" || seen[g.ID] {
+			g.ID = c.freeGroupID()
+		}
+		if g.Name == "" {
+			g.Name = i18n.T("group.unnamed", len(out)+1)
+		}
+		if g.Hide {
+			g.Always = false // a hidden group has nothing to win over
+		}
+		seen[g.ID] = true
+		out = append(out, g)
+		if len(out) == MaxItemGroups {
+			break
+		}
+	}
+	c.ItemGroups = out
+
+	live := map[string]bool{}
+	for _, g := range c.ItemGroups {
+		live[g.StyleKey()] = true
+	}
+	for key := range c.Styles {
+		if strings.HasPrefix(key, UserGroupPrefix) && !live[key] {
+			delete(c.Styles, key)
+			delete(c.CustomStyles, key)
+			delete(c.Sounds, key)
+		}
+	}
 }
