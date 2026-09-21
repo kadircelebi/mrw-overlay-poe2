@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "name": "Varsayılan",
+  "config": {
+    "min_value": 75,
+    "min_value_unit": "exalted",
+    "filter_mode": "hide",
+    "include_gear": true,
+    "t5_rare_tier": -1,
+    "rare_jewel_tier": 5,
+    "quality_threshold": 0,
+    "divine_theme": "custom",
+    "styles": {
+      "chance": "ns:itemproperty_achancing",
+      "currency": "ns:currency_a",
+      "divine": "custom",
+      "exceptional": "ns:exotics_btier",
+      "exceptional_unknown": "ns:exotics_ctier",
+      "t5rare": "ns:gear_tieredjewellery",
+      "unique": "ns:uniques_a",
+      "user:g1": "ns:currency_c",
+      "user:g2": "custom",
+      "whitelist": "ns:apex_stier"
+    },
+    "custom_styles": {
+      "divine": {
+        "bg": "#ffffff",
+        "text": "#ff0000",
+        "border": "#ff0000",
+        "beam": "Red",
+        "icon": "Red",
+        "shape": "Star"
+      },
+      "user:g2": {
+        "bg": "#461464",
+        "text": "#b40875",
+        "border": "#b478ff",
+        "beam": "",
+        "icon": "Purple",
+        "shape": "Diamond"
+      }
+    },
+    "sounds": {
+      "divine": "file:nebu.mp3",
+      "unique": "4",
+      "user:g2": "2"
+    },
+    "custom_sound_path": "",
+    "hide_exalt": false,
+    "hide_gold": true,
+    "filter_name": "auto_updated",
+    "whitelist": [
+      "Mirror of Kalandra",
+      "Albino Rhoa Feather",
+      "Heavy Belt|unique",
+      "Sapphire|unique",
+      "Utility Belt|unique",
+      "Hinekora's Lock"
+    ],
+    "item_groups": [
+      {
+        "id": "g1",
+        "name": "Orta Grup",
+        "items": [
+          "Fracturing Orb",
+          "Orb of Annulment",
+          "Chaos Orb",
+          "Perfect Regal Orb",
+          "Perfect Orb of Augmentation"
+        ],
+        "hide": false,
+        "always": false
+      },
+      {
+        "id": "g2",
+        "name": "Diger Seyler",
+        "items": [
+          "Simulacrum Splinter",
+          "Simulacrum",
+          "Verisium",
+          "Liquid Verisium",
+          "Exceptional Verisium",
+          "Vaal Orb"
+        ],
+        "hide": false,
+        "always": false
+      }
+    ],
+    "chance_bases": [
+      "Heavy Belt",
+      "Utility Belt"
+    ],
+    "waystone_tier": 15,
+    "uncut_gem_level": 20,
+    "uncut_support_level": -2,
+    "boss_keys_and_tablets": true,
+    "league_name": "Forbidden Rites",
+    "strictness": 6,
+    "custom_base_filter": "",
+    "exceptional_scan": true,
+    "scan_budget_pct": 40,
+    "price_source_url": "",
+    "config_version": 2,
+    "language": "auto",
+    "auto_update_enabled": true,
+    "auto_update_hours": 4,
+    "notify_enabled": true
+  }
+}
