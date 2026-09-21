@@ -45,8 +45,8 @@ export function DeleteProfile(name: string): $CancellablePromise<filter$0.Config
 }
 
 /**
- * DownloadGameSounds fetches the alert sounds the game plays for 1-6 so they
- * can be listened to in the app. It is only ever called from the button in the
+ * DownloadGameSounds fetches the alert sounds the game plays so they can be
+ * listened to in the app. It is only ever called from the button in the
  * panel; nothing downloads them on its own.
  */
 export function DownloadGameSounds(): $CancellablePromise<number> {
