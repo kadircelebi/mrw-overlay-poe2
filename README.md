@@ -1,4 +1,4 @@
-# PoE2 Filtre
+# MrW POE2 Filter
 
 Sistem tepsisinde çalışan, NeverSink'in Path of Exile 2 loot filtresini **canlı piyasa fiyatlarıyla** güncelleyen masaüstü uygulaması (Wails v3 + Svelte).
 

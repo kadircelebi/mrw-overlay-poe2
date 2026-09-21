@@ -140,7 +140,7 @@
     padding: 3px 4px 3px 9px;
     background: var(--surface-3);
     border: 1px solid var(--line-strong);
-    border-radius: 999px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
   }
   .tag button {
@@ -192,7 +192,7 @@
     width: 100%;
     padding: 6px 8px;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     background: transparent;
     text-align: left;
   }
@@ -210,7 +210,7 @@
   .u {
     margin-left: 5px;
     padding: 0 5px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     background: rgba(230, 137, 58, 0.18);
     color: #f0a766;
     font-style: normal;
