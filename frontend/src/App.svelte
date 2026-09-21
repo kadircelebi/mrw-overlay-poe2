@@ -37,6 +37,10 @@
   let styleGroup = $state('divine')
   let sounds = $state<string[]>([])
   let soundError = $state('')
+  // The game's own 1-6 sounds live inside its audio banks; the app can only
+  // play them once the user has downloaded a copy for previewing.
+  let gameSoundsReady = $state(false)
+  let gameSoundsBusy = $state(false)
   let leagues = $state<string[]>([])
   let languages = $state<LanguageOption[]>([])
   let groupTemplate = $state<StyleGroup | null>(null)
@@ -82,6 +86,7 @@
       groups = (await AppService.StyleGroups()) ?? []
       groupTemplate = await AppService.UserGroupTemplate()
       sounds = (await AppService.ListSounds()) ?? []
+      gameSoundsReady = (await AppService.GameSoundsReady()) ?? false
       leagues = (await AppService.Leagues()) ?? []
       languages = (await AppService.Languages()) ?? []
       profiles = (await AppService.Profiles()) ?? []
@@ -441,12 +446,35 @@
     return g.defaultSound ? t('look.soundDefaultGame', g.defaultSound) : t('look.soundDefaultSilent')
   }
 
+  // The number of the game sound a group ends up with, 0 when it plays a file
+  // or nothing at all.
+  function soundGameNumber(g: StyleGroup): number {
+    const v = cfg?.sounds?.[g.id] ?? ''
+    if (v === 'none' || v.startsWith('file:')) return 0
+    return Number(v || g.defaultSound || 0)
+  }
+
   async function previewSound(g: StyleGroup) {
     soundError = ''
     try {
-      await AppService.PreviewSound(soundFile(g))
+      const n = soundGameNumber(g)
+      if (soundFile(g)) await AppService.PreviewSound(soundFile(g))
+      else if (n) await AppService.PreviewGameSound(n)
     } catch (e) {
       soundError = String(e)
+    }
+  }
+
+  async function downloadGameSounds() {
+    soundError = ''
+    gameSoundsBusy = true
+    try {
+      await AppService.DownloadGameSounds()
+      gameSoundsReady = (await AppService.GameSoundsReady()) ?? false
+    } catch (e) {
+      soundError = String(e)
+    } finally {
+      gameSoundsBusy = false
     }
   }
 
@@ -901,7 +929,7 @@
                   <option value={'file:' + f}>{f}</option>
                 {/each}
               </select>
-              {#if soundFile(selGroup)}
+              {#if soundFile(selGroup) || (soundGameNumber(selGroup) && gameSoundsReady)}
                 <button
                   type="button"
                   class="play"
@@ -915,7 +943,14 @@
             </span>
           </label>
           {#if soundIsGame(selGroup)}
-            <p class="desc hint">{t('look.gameSoundNote')}</p>
+            {#if gameSoundsReady}
+              <p class="desc hint">{t('look.gameSoundNote')}</p>
+            {:else}
+              <p class="desc hint">{t('look.gameSoundGet')}</p>
+              <button type="button" class="ghost" disabled={gameSoundsBusy} onclick={downloadGameSounds}>
+                {gameSoundsBusy ? t('look.gameSoundGetting') : t('look.gameSoundGetBtn')}
+              </button>
+            {/if}
           {/if}
           {#if soundError}<p class="error">{soundError}</p>{/if}
           {#if !sounds.length}
@@ -1180,6 +1215,23 @@
     border-color: var(--gold-dim);
   }
   .presets button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  /* "Download the game sounds": an offer, not a main action. */
+  button.ghost {
+    padding: 6px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: 11.5px;
+  }
+  button.ghost:hover:not(:disabled) {
+    color: var(--gold-bright);
+    border-color: var(--gold-dim);
+  }
+  button.ghost:disabled {
     opacity: 0.5;
     cursor: default;
   }

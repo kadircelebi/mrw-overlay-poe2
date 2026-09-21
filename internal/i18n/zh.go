@@ -43,6 +43,8 @@ var zh = map[string]string{
 	"err.soundInvalid":      "音效檔案無效",
 	"err.soundNotFound":     "過濾器資料夾中找不到 %s",
 	"err.soundWindowsOnly":  "音效試聽僅支援 Windows",
+	"err.soundDownload":     "無法下載遊戲音效：%w",
+	"err.gameSoundsMissing": "遊戲音效尚未下載",
 
 	"warn.blacklistSkipped": "黑名單：已略過 %q，同一基底（%s）上有高價的 %s",
 	"warn.blacklistUnknown": "黑名單：無法辨識 %q",

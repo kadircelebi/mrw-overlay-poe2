@@ -88,6 +88,8 @@ Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için g
 
 **Renklerle oynadım, beğenmedim.** Görünüm bölümünde iki düğme var: "Varsayılana döndür" tüm grupların rengini ve sesini sıfırlar, "Tümünü NeverSink renklerine çevir" hepsini NeverSink'in kendi stillerine yaklaştırır.
 
+**Oyun seslerini (1–6) nasıl dinlerim?** Görünüm bölümünde "Oyun seslerini indir" düğmesine bir kez bas; uygulama altı sesin birer kopyasını (≈300 KB, [FilterBlade](https://filterblade.xyz/)'den) veri klasörüne indirir ve yanındaki oynat düğmesi çalışır hale gelir. Bu sesler Path of Exile'a ait; oyunun ses dosyalarının içinde durdukları için uygulamayla birlikte gelmiyorlar ve sen istemeden indirilmiyorlar. Filtreye yazılan şey değişmez: oyunda sesi yine oyun çalar.
+
 **Baştan başlamak istiyorum.** Uygulamadan çık ve `%APPDATA%\PoE2Filtre` klasörünü sil; uygulama bir sonraki açılışta varsayılan ayarlarla başlar.
 
 **Farklı içerikler için farklı ayarlar istiyorum.** Ayarlar → Profiller. Şu ankini "Farklı kaydet" ile adlandır, ayarları değiştir, sonra listeden tek tıkla geç. Profil bütün ayarları taşır — lig ve oyundaki filtre adı dahil; filtre adı değişirse panel söyler, oyunda o filtreyi seçmen gerekir.

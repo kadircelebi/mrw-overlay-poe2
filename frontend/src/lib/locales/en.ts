@@ -137,7 +137,10 @@ export const en: Record<string, string> = {
   'look.soundNone': 'Silent',
   'look.soundGame': 'Game sound {0}',
   'look.play': 'Play',
-  'look.gameSoundNote': 'Game sounds 1–6 belong to Path of Exile and can only be heard in game.',
+  'look.gameSoundNote': 'Sounds 1–6 belong to Path of Exile. The game plays them itself; the copy here is only for listening.',
+  'look.gameSoundGet': 'Sounds 1–6 belong to Path of Exile and live inside its audio files, so the app cannot play them yet. Download a copy once (about 300 KB, from filterblade.xyz) to hear what you are picking.',
+  'look.gameSoundGetBtn': 'Download the game sounds',
+  'look.gameSoundGetting': 'Downloading…',
   'look.playAria': 'Play the sound',
   'look.soundHint':
     'To use your own sound, put an mp3/wav file in the filter folder ("Filter folder" at the bottom of Settings).',

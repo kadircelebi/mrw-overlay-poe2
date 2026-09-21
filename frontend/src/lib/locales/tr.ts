@@ -127,7 +127,10 @@ export const tr: Record<string, string> = {
   'look.soundNone': 'Sessiz',
   'look.soundGame': 'Oyun sesi {0}',
   'look.play': 'Dinle',
-  'look.gameSoundNote': '1–6 arası sesler oyunun kendi sesleri; yalnızca oyunda duyulur.',
+  'look.gameSoundNote': '1–6 arası sesler Path of Exile’ın kendi sesleri. Oyunda onları oyun çalıyor; buradaki kopya sadece dinlemek için.',
+  'look.gameSoundGet': '1–6 arası sesler Path of Exile’ın kendi sesleri ve oyunun ses dosyalarının içinde duruyor, o yüzden uygulama henüz çalamıyor. Ne seçtiğini duymak için bir kerelik kopyayı indir (≈300 KB, filterblade.xyz).',
+  'look.gameSoundGetBtn': 'Oyun seslerini indir',
+  'look.gameSoundGetting': 'İndiriliyor…',
   'look.playAria': 'Sesi dinle',
   'look.soundHint':
     'Kendi sesini kullanmak için bir mp3/wav dosyasını filtre klasörüne koy (Ayarlar\'ın altındaki "Filtre klasörü").',
