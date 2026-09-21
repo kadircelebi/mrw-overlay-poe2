@@ -1,7 +1,6 @@
-// Package gamesounds makes the game's own alert sounds (PlayAlertSound 1-6)
-// audible inside the app.
+// Package gamesounds makes the game's own alert sounds audible inside the app.
 //
-// The filter can only ask the game to play sound 1-6; the files live inside
+// A filter can only ask the game to play a sound by id; the files live inside
 // Path of Exile 2's FMOD banks, which nothing outside the game can read. So a
 // user picking "game sound 3" had no way of knowing what they chose. FilterBlade
 // publishes the same six sounds as plain mp3 for its own preview, and the app
@@ -24,11 +23,22 @@ import (
 	"poe2filter/internal/prices"
 )
 
-// Count is how many alert sounds the game exposes to filters.
-const Count = 6
+// IDs are the alert sounds a filter can ask for, in the order the community
+// numbers them: 1 to 16, then the ten named currency sounds that tools show as
+// 17 to 26. They mirror filter.GameSounds; the file names FilterBlade publishes
+// use the same ids.
+var IDs = []string{
+	"1", "2", "3", "4", "5", "6", "7", "8",
+	"9", "10", "11", "12", "13", "14", "15", "16",
+	"ShAlchemy", "ShBlessed", "ShChaos", "ShFusing", "ShGeneral",
+	"ShRegal", "ShVaal", "ShDivine", "ShExalted", "ShMirror",
+}
+
+// Count is how many sounds there are to download.
+var Count = len(IDs)
 
 // sourceURL is a variable only so the tests can point it at a local server.
-var sourceURL = "https://www.filterblade.xyz/assets/sounds/AlertSound%d.mp3"
+var sourceURL = "https://www.filterblade.xyz/assets/sounds/AlertSound%s.mp3"
 
 // Guard rails for what we accept as a sound file. The real ones are 29-59 KB.
 const (
@@ -41,20 +51,30 @@ const (
 // and they must not show up in the custom sound list.
 func Dir(dataDir string) string { return filepath.Join(dataDir, "sounds") }
 
-// Path is the file for alert sound n (1-based).
-func Path(dataDir string, n int) string {
-	return filepath.Join(Dir(dataDir), fmt.Sprintf("AlertSound%d.mp3", n))
+// Path is the file for one alert sound id.
+func Path(dataDir, id string) string {
+	return filepath.Join(Dir(dataDir), "AlertSound"+id+".mp3")
+}
+
+// Known reports whether id is one of the game's alert sounds.
+func Known(id string) bool {
+	for _, x := range IDs {
+		if x == id {
+			return true
+		}
+	}
+	return false
 }
 
 // Ready reports whether every sound has been downloaded.
 func Ready(dataDir string) bool { return len(Missing(dataDir)) == 0 }
 
 // Missing lists the sounds that still have to be fetched.
-func Missing(dataDir string) []int {
-	var out []int
-	for n := 1; n <= Count; n++ {
-		if info, err := os.Stat(Path(dataDir, n)); err != nil || info.Size() < minSize {
-			out = append(out, n)
+func Missing(dataDir string) []string {
+	var out []string
+	for _, id := range IDs {
+		if info, err := os.Stat(Path(dataDir, id)); err != nil || info.Size() < minSize {
+			out = append(out, id)
 		}
 	}
 	return out
@@ -65,12 +85,12 @@ func Missing(dataDir string) []int {
 // user can retry, while the files that did arrive stay on disk.
 func Download(ctx context.Context, c *http.Client, dataDir, userAgent string) (int, error) {
 	got := 0
-	for _, n := range Missing(dataDir) {
-		data, err := fetch(ctx, c, fmt.Sprintf(sourceURL, n), userAgent)
+	for _, id := range Missing(dataDir) {
+		data, err := fetch(ctx, c, fmt.Sprintf(sourceURL, id), userAgent)
 		if err != nil {
 			return got, err
 		}
-		if err := prices.WriteFileAtomic(Path(dataDir, n), data); err != nil {
+		if err := prices.WriteFileAtomic(Path(dataDir, id), data); err != nil {
 			return got, err
 		}
 		got++

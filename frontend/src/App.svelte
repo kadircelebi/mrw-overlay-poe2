@@ -32,12 +32,12 @@
   let actionError = $state('')
   let themes = $state<Theme[]>([])
   let nsThemes = $state<Theme[]>([])
-  let styleOptions = $state<StyleOptions>({ colours: [], shapes: [], preset: {} })
+  let styleOptions = $state<StyleOptions>({ colours: [], shapes: [], preset: {}, sounds: [] })
   let groups = $state<StyleGroup[]>([])
   let styleGroup = $state('divine')
   let sounds = $state<string[]>([])
   let soundError = $state('')
-  // The game's own 1-6 sounds live inside its audio banks; the app can only
+  // The game's own alert sounds live inside its audio banks; the app can only
   // play them once the user has downloaded a copy for previewing.
   let gameSoundsReady = $state(false)
   let gameSoundsBusy = $state(false)
@@ -431,7 +431,8 @@
     return v.startsWith('file:') ? v.slice(5) : ''
   }
 
-  // Sounds 1-6 are the game's own; nothing outside the game can play them.
+  // A game sound belongs to the game itself; the app can only play a copy of
+  // it, and only once the user has downloaded one.
   function soundIsGame(g: StyleGroup): boolean {
     const v = cfg?.sounds?.[g.id] ?? ''
     if (v === 'none' || v.startsWith('file:')) return false
@@ -442,24 +443,70 @@
     const v = cfg?.sounds?.[g.id] ?? ''
     if (v === 'none') return t('look.soundDefaultSilent')
     if (v.startsWith('file:')) return v.slice(5)
-    if (v) return t('look.soundDefaultGame', v)
-    return g.defaultSound ? t('look.soundDefaultGame', g.defaultSound) : t('look.soundDefaultSilent')
+    if (v) return t('look.soundDefaultGame', soundName(v))
+    return g.defaultSound
+      ? t('look.soundDefaultGame', soundName(g.defaultSound))
+      : t('look.soundDefaultSilent')
   }
 
-  // The number of the game sound a group ends up with, 0 when it plays a file
-  // or nothing at all.
-  function soundGameNumber(g: StyleGroup): number {
+  // "ShDivine" means nothing to a reader; "24 · Divine Orb" does.
+  function soundName(id: string): string {
+    const i = (styleOptions.sounds ?? []).indexOf(id)
+    const name = soundCurrency[id]
+    if (!name) return id
+    return `${i >= 0 ? i + 1 : id} · ${name}`
+  }
+
+  // The game sound a group ends up with, '' when it plays a file or nothing.
+  function soundGameID(g: StyleGroup): string {
     const v = cfg?.sounds?.[g.id] ?? ''
-    if (v === 'none' || v.startsWith('file:')) return 0
-    return Number(v || g.defaultSound || 0)
+    if (v === 'none' || v.startsWith('file:')) return ''
+    return v || g.defaultSound || ''
   }
 
   async function previewSound(g: StyleGroup) {
     soundError = ''
     try {
-      const n = soundGameNumber(g)
+      const id = soundGameID(g)
       if (soundFile(g)) await AppService.PreviewSound(soundFile(g))
-      else if (n) await AppService.PreviewGameSound(n)
+      else if (id) await AppService.PreviewGameSound(id)
+    } catch (e) {
+      soundError = String(e)
+    }
+  }
+
+  // Sounds 17-26 are named after the currency whose drop they announce; the
+  // filter spells them "ShAlchemy" and so on, but nobody thinks of them that
+  // way, so the menu shows the number and the currency.
+  const soundCurrency: Record<string, string> = {
+    ShAlchemy: 'Orb of Alchemy',
+    ShBlessed: 'Blessed Orb',
+    ShChaos: 'Chaos Orb',
+    ShFusing: 'Orb of Fusing',
+    ShGeneral: 'Orb of immense power',
+    ShRegal: 'Regal Orb',
+    ShVaal: 'Vaal Orb',
+    ShDivine: 'Divine Orb',
+    ShExalted: 'Exalted Orb',
+    ShMirror: 'Mirror of Kalandra',
+  }
+
+  // The list comes from Go so the menu can never offer something the filter
+  // writer would refuse.
+  const gameSoundIDs = $derived(styleOptions.sounds ?? [])
+
+  function gameSoundLabel(id: string, i: number): string {
+    const name = soundCurrency[id]
+    return t('look.soundGame', name ? `${i + 1} · ${name}` : id)
+  }
+
+  async function addSound() {
+    soundError = ''
+    try {
+      const name = await AppService.AddSound()
+      if (!name) return // dialog cancelled
+      sounds = (await AppService.ListSounds()) ?? sounds
+      if (selGroup) setSound(selGroup.id, 'file:' + name)
     } catch (e) {
       soundError = String(e)
     }
@@ -492,7 +539,7 @@
     <img src="/emblem.png" alt="" class="emblem" />
     {#if view === 'main'}
       <div class="brand">
-        <h1>{t('app.title')}</h1>
+        <h1 lang="en">{t('app.title')}</h1>
         {#if cfg}<span class="league">{cfg.league_name}</span>{/if}
       </div>
       <button class="icon" title={t('header.settings')} aria-label={t('header.settings')} onclick={() => (view = 'settings')}>
@@ -922,14 +969,14 @@
                   )}
                 </option>
                 <option value="none">{t('look.soundNone')}</option>
-                {#each ['1', '2', '3', '4', '5', '6'] as n}
-                  <option value={n}>{t('look.soundGame', n)}</option>
+                {#each gameSoundIDs as id, i}
+                  <option value={id}>{gameSoundLabel(id, i)}</option>
                 {/each}
                 {#each sounds as f (f)}
                   <option value={'file:' + f}>{f}</option>
                 {/each}
               </select>
-              {#if soundFile(selGroup) || (soundGameNumber(selGroup) && gameSoundsReady)}
+              {#if soundFile(selGroup) || (soundGameID(selGroup) && gameSoundsReady)}
                 <button
                   type="button"
                   class="play"
@@ -952,10 +999,9 @@
               </button>
             {/if}
           {/if}
+          <button type="button" class="ghost" onclick={addSound}>{t('look.addSound')}</button>
           {#if soundError}<p class="error">{soundError}</p>{/if}
-          {#if !sounds.length}
-            <p class="desc hint">{t('look.soundHint')}</p>
-          {/if}
+          <p class="desc hint">{t('look.soundHint')}</p>
         {/if}
       </section>
 
@@ -1046,11 +1092,18 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    /* Grain over stone, with the light falling from above, the way the game's
+       own panels are lit. No coloured glow: that is what made this look like a
+       landing page rather than something from the game. */
     background:
-      radial-gradient(120% 60% at 50% -10%, rgba(201, 164, 92, 0.1), transparent 60%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 260px),
+      var(--grain),
       var(--bg);
     border: 1px solid var(--line-strong);
-    border-radius: 12px;
+    border-radius: var(--radius);
+    box-shadow:
+      inset 0 0 0 1px #000,
+      inset 0 0 40px rgba(0, 0, 0, 0.7);
     overflow: hidden;
   }
 
@@ -1059,7 +1112,7 @@
     align-items: center;
     gap: 10px;
     padding: 12px 10px 10px 14px;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--gold-dim);
     --wails-draggable: drag;
   }
   header button {
@@ -1079,9 +1132,14 @@
   h1 {
     margin: 0;
     font-family: var(--serif);
-    font-weight: 700;
-    font-size: 16px;
-    letter-spacing: 0.04em;
+    font-weight: 600;
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    /* The element carries lang="en" for this: uppercasing under lang="tr" turns
+       "i" into "İ", and Cinzel's own small-capital "i" keeps its dot too, so
+       lowercase was no escape either. Real capitals, cased as English. */
+    text-transform: uppercase;
+    white-space: nowrap;
     color: var(--gold-bright);
   }
   .league {
@@ -1134,10 +1192,12 @@
     gap: 10px;
   }
 
+  /* A titled group, like the game's "Advanced Settings" block: a framed recess
+     with its name on a band across the top. */
   .card {
-    background: linear-gradient(180deg, var(--surface-2), var(--surface));
+    background: rgba(0, 0, 0, 0.22);
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     padding: 12px 14px;
   }
   .card-title {
@@ -1146,16 +1206,36 @@
     align-items: baseline;
   }
   h2 {
-    margin: 0;
+    /* Pulled out to the card's edges so the title reads as a band, without
+       every card needing a wrapper element around its body. */
+    margin: -12px -14px 10px;
+    padding: 7px 14px 6px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.025);
     font-family: var(--serif);
-    font-weight: 500;
-    font-size: 12.5px;
-    letter-spacing: 0.06em;
+    font-weight: 600;
+    font-size: 11.5px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--text-2);
+    color: var(--gold);
+  }
+  .card-title h2 {
+    flex: 1;
+  }
+  /* A title that shares its band with a value on the right. */
+  .card-title {
+    margin: -12px -14px 10px;
+    padding: 0 14px 0 0;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.025);
+  }
+  .card-title h2 {
+    margin: 0;
+    border: 0;
+    background: none;
   }
   .settings h2 {
-    margin-bottom: 4px;
+    margin-bottom: 10px;
   }
   h3 {
     margin: 12px 0 6px;
@@ -1173,8 +1253,8 @@
     position: relative;
     padding: 5px 10px;
     border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--bg);
+    border-radius: var(--radius-sm);
+    background: var(--sunk);
     color: var(--text-2);
     font-size: 12px;
   }
@@ -1359,7 +1439,6 @@
   }
   .status.ok .dot {
     background: var(--ok);
-    box-shadow: 0 0 0 4px rgba(124, 191, 107, 0.15);
   }
   .status.busy .dot {
     background: var(--gold-bright);
@@ -1405,22 +1484,26 @@
     border-color: rgba(226, 92, 92, 0.28);
     color: var(--bad);
   }
+  /* A metal plate, like the game's own buttons: dark face, thin lit edge,
+     inscribed label. No gradient sweep, no glow. */
   .primary {
     width: 100%;
     margin-top: 12px;
-    padding: 10px;
-    border: 1px solid var(--gold);
+    padding: 9px;
+    border: 1px solid #8d7f5c;
     border-radius: var(--radius-sm);
-    background: linear-gradient(180deg, #d9b56a, #a8813f);
-    color: #1a140a;
+    background: linear-gradient(180deg, #2c333b, #191d22);
+    box-shadow: inset 0 0 0 1px #000;
+    color: var(--gold-bright);
     font-family: var(--serif);
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 0.05em;
+    font-weight: 600;
+    font-size: 12.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     transition: filter 0.12s;
   }
   .primary:hover:not(:disabled) {
-    filter: brightness(1.08);
+    filter: brightness(1.25);
   }
   .primary:disabled {
     opacity: 0.55;
@@ -1451,10 +1534,10 @@
   }
 
   .bar {
-    height: 6px;
+    height: 5px;
     margin-top: 12px;
-    border-radius: 6px;
-    background: var(--bg);
+    background: var(--sunk);
+    border: 1px solid var(--line);
     overflow: hidden;
   }
   .bar.thin {
@@ -1505,8 +1588,8 @@
     flex: 1;
     padding: 4px 0;
     border: 1px solid var(--line);
-    border-radius: 999px;
-    background: transparent;
+    border-radius: var(--radius-sm);
+    background: var(--sunk);
     color: var(--text-2);
     font-size: 12px;
   }
@@ -1522,22 +1605,20 @@
   /* Strictness slider */
   .strict {
     width: 100%;
-    margin: 12px 0 2px;
+    margin: 14px 0 4px;
     -webkit-appearance: none;
     appearance: none;
-    height: 6px;
-    border-radius: 6px;
-    background: linear-gradient(90deg, var(--gold-dim) var(--p), var(--bg) var(--p));
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold-dim) var(--p), var(--sunk) var(--p));
     border: 1px solid var(--line);
   }
   .strict::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--gold-bright);
-    border: 3px solid var(--surface);
-    box-shadow: 0 0 0 1px var(--gold-dim);
+    width: 11px;
+    height: 11px;
+    background: linear-gradient(135deg, #ddd0aa, #7c7256);
+    border: 1px solid #14161a;
+    transform: rotate(45deg);
     cursor: pointer;
   }
   .scale {
@@ -1669,9 +1750,10 @@
       opacity: 0.35;
     }
   }
+  /* The waiting button breathes along its edge instead of throwing a halo. */
   @keyframes glow {
     50% {
-      box-shadow: 0 0 0 4px rgba(236, 201, 124, 0.18);
+      border-color: var(--gold-bright);
     }
   }
 </style>

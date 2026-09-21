@@ -47,14 +47,64 @@ func (s *AppService) PreviewSound(name string) error {
 	return playSound(path)
 }
 
+// AddSound copies a sound the user picks into the filter folder, which is the
+// only place the game reads CustomAlertSound files from. It returns the name
+// the file ended up with, or "" if the dialog was cancelled.
+func (s *AppService) AddSound() (string, error) {
+	path, err := s.pickFile("Ses", "*.mp3;*.wav")
+	if err != nil || path == "" {
+		return "", err
+	}
+	return copySoundInto(path, s.meta.GameDir)
+}
+
+// copySoundInto puts one sound file in the filter folder and returns the name
+// the game will know it by.
+func copySoundInto(path, gameDir string) (string, error) {
+	name := filepath.Base(path)
+	if !soundExts[strings.ToLower(filepath.Ext(name))] {
+		return "", errors.New(i18n.T("err.soundInvalid"))
+	}
+	if gameDir == "" {
+		return "", errors.New(i18n.T("err.gameDir"))
+	}
+	dest := filepath.Join(gameDir, name)
+	// Picking a file that already lives there is not an error, but copying it
+	// onto itself would truncate it.
+	if same, _ := sameFile(path, dest); same {
+		return name, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(dest, data, 0o644); err != nil {
+		return "", fmt.Errorf(i18n.T("err.soundCopy"), err)
+	}
+	return name, nil
+}
+
+// sameFile reports whether two paths point at the same file on disk.
+func sameFile(a, b string) (bool, error) {
+	ai, err := os.Stat(a)
+	if err != nil {
+		return false, err
+	}
+	bi, err := os.Stat(b)
+	if err != nil {
+		return false, err
+	}
+	return os.SameFile(ai, bi), nil
+}
+
 // GameSoundsReady reports whether the game's own alert sounds have been
 // downloaded, so the panel knows to offer "play" or "download".
 func (s *AppService) GameSoundsReady() bool {
 	return gamesounds.Ready(s.meta.DataDir)
 }
 
-// DownloadGameSounds fetches the alert sounds the game plays for 1-6 so they
-// can be listened to in the app. It is only ever called from the button in the
+// DownloadGameSounds fetches the alert sounds the game plays so they can be
+// listened to in the app. It is only ever called from the button in the
 // panel; nothing downloads them on its own.
 func (s *AppService) DownloadGameSounds() (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -66,12 +116,12 @@ func (s *AppService) DownloadGameSounds() (int, error) {
 	return n, nil
 }
 
-// PreviewGameSound plays one of the downloaded alert sounds (1-6).
-func (s *AppService) PreviewGameSound(n int) error {
-	if n < 1 || n > gamesounds.Count {
+// PreviewGameSound plays one of the downloaded alert sounds.
+func (s *AppService) PreviewGameSound(id string) error {
+	if !gamesounds.Known(id) {
 		return errors.New(i18n.T("err.soundInvalid"))
 	}
-	path := gamesounds.Path(s.meta.DataDir, n)
+	path := gamesounds.Path(s.meta.DataDir, id)
 	if _, err := os.Stat(path); err != nil {
 		return errors.New(i18n.T("err.gameSoundsMissing"))
 	}

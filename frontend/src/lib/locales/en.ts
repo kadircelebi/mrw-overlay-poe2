@@ -1,6 +1,6 @@
 export const en: Record<string, string> = {
   // Header
-  'app.title': 'PoE2 Filter',
+  'app.title': 'MrW POE2 Filter',
   'header.settings': 'Settings',
   'header.back': 'Back',
   'header.hide': 'Hide panel',
@@ -137,13 +137,16 @@ export const en: Record<string, string> = {
   'look.soundNone': 'Silent',
   'look.soundGame': 'Game sound {0}',
   'look.play': 'Play',
-  'look.gameSoundNote': 'Sounds 1–6 belong to Path of Exile. The game plays them itself; the copy here is only for listening.',
-  'look.gameSoundGet': 'Sounds 1–6 belong to Path of Exile and live inside its audio files, so the app cannot play them yet. Download a copy once (about 300 KB, from filterblade.xyz) to hear what you are picking.',
+  'look.gameSoundNote':
+    'All 26 game sounds belong to Path of Exile; 17–26 are the ones it plays for currency drops. The game plays them itself, and the copy here is only for listening.',
+  'look.gameSoundGet':
+    'The game sounds live inside Path of Exile’s audio files, so the app cannot play them yet. Download a copy of all 26 once (about 1.5 MB, from filterblade.xyz) to hear what you are picking.',
   'look.gameSoundGetBtn': 'Download the game sounds',
   'look.gameSoundGetting': 'Downloading…',
   'look.playAria': 'Play the sound',
+  'look.addSound': 'Add your own sound…',
   'look.soundHint':
-    'To use your own sound, put an mp3/wav file in the filter folder ("Filter folder" at the bottom of Settings).',
+    'An mp3 or wav of your own is copied into the filter folder, where the game reads it from. Keep it short: it plays on every matching drop.',
 
   // Theme picker
   'picker.appThemes': 'App themes',

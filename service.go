@@ -34,6 +34,9 @@ type StyleOptions struct {
 	Colours []string          `json:"colours"`
 	Shapes  []string          `json:"shapes"`
 	Preset  map[string]string `json:"preset"` // group -> NeverSink style tag
+	// Sounds are the PlayAlertSound ids, so the panel and the filter writer
+	// cannot drift apart about what the game accepts.
+	Sounds []string `json:"sounds"`
 }
 
 // Meta is static information for the UI.
@@ -100,7 +103,7 @@ func (s *AppService) pump() {
 		st := s.eng.State()
 		s.app.Event.Emit("state", st)
 
-		tip := "PoE2 Filtre"
+		tip := "MrW POE2 Filter"
 		switch {
 		case st.Running:
 			tip += i18n.T("tray.updating")
@@ -241,13 +244,18 @@ func (s *AppService) saveToFile(name, filterName, pattern string, data []byte) (
 	return path, nil
 }
 
-// openFile asks for a file and returns its contents; nil means cancelled.
-func (s *AppService) openFile(filterName, pattern string) ([]byte, error) {
+// pickFile asks for a file and returns its path; "" means cancelled.
+func (s *AppService) pickFile(filterName, pattern string) (string, error) {
 	dlg := s.app.Dialog.OpenFile().CanChooseFiles(true).AddFilter(filterName, pattern)
 	if s.panel != nil {
 		dlg = dlg.AttachToWindow(s.panel)
 	}
-	path, err := dlg.PromptForSingleSelection()
+	return dlg.PromptForSingleSelection()
+}
+
+// openFile asks for a file and returns its contents; nil means cancelled.
+func (s *AppService) openFile(filterName, pattern string) ([]byte, error) {
+	path, err := s.pickFile(filterName, pattern)
 	if err != nil || path == "" {
 		return nil, err
 	}
@@ -283,7 +291,12 @@ func (s *AppService) NeverSinkThemes() []filter.Theme { return s.eng.NeverSinkTh
 
 // StyleOptions lists the colours and minimap shapes allowed in custom styles.
 func (s *AppService) StyleOptions() StyleOptions {
-	return StyleOptions{Colours: filter.EffectColours, Shapes: filter.IconShapes, Preset: filter.NeverSinkPreset}
+	return StyleOptions{
+		Colours: filter.EffectColours,
+		Shapes:  filter.IconShapes,
+		Preset:  filter.NeverSinkPreset,
+		Sounds:  filter.GameSounds,
+	}
 }
 
 // UserGroupTemplate is the look and sound a new user group starts from, so the

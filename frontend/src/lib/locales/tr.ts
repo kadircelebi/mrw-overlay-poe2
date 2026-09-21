@@ -1,5 +1,5 @@
 export const tr: Record<string, string> = {
-  'app.title': 'PoE2 Filtre',
+  'app.title': 'MrW POE2 Filter',
   'header.settings': 'Ayarlar',
   'header.back': 'Geri',
   'header.hide': 'Paneli gizle',
@@ -31,7 +31,9 @@ export const tr: Record<string, string> = {
   'threshold.dim': 'Bu değerin altındaki eşyalar soluk gösterilir.',
   'threshold.show': 'Bu değerin altındaki eşyalar yine gösterilir.',
 
-  'base.title': 'NeverSink temeli',
+  // Büyük harfe çevrilirken Türkçe "i" kuralı marka adını da bozuyordu
+  // (NEVERSİNK). Zaten büyük yazınca dönüştürecek bir şey kalmıyor.
+  'base.title': 'NEVERSINK temeli',
   'base.soft': 'Soft',
   'base.strict': 'Strict',
   'base.uber': 'Uber+',
@@ -127,13 +129,16 @@ export const tr: Record<string, string> = {
   'look.soundNone': 'Sessiz',
   'look.soundGame': 'Oyun sesi {0}',
   'look.play': 'Dinle',
-  'look.gameSoundNote': '1–6 arası sesler Path of Exile’ın kendi sesleri. Oyunda onları oyun çalıyor; buradaki kopya sadece dinlemek için.',
-  'look.gameSoundGet': '1–6 arası sesler Path of Exile’ın kendi sesleri ve oyunun ses dosyalarının içinde duruyor, o yüzden uygulama henüz çalamıyor. Ne seçtiğini duymak için bir kerelik kopyayı indir (≈300 KB, filterblade.xyz).',
+  'look.gameSoundNote':
+    '26 oyun sesinin hepsi Path of Exile’a ait; 17–26 arası olanlar currency düşüş sesleri. Oyunda onları oyun çalıyor, buradaki kopya sadece dinlemek için.',
+  'look.gameSoundGet':
+    'Oyun sesleri Path of Exile’ın ses dosyalarının içinde duruyor, o yüzden uygulama henüz çalamıyor. Ne seçtiğini duymak için 26 sesin birer kopyasını bir kerelik indir (≈1,5 MB, filterblade.xyz).',
   'look.gameSoundGetBtn': 'Oyun seslerini indir',
   'look.gameSoundGetting': 'İndiriliyor…',
   'look.playAria': 'Sesi dinle',
+  'look.addSound': 'Kendi sesini ekle…',
   'look.soundHint':
-    'Kendi sesini kullanmak için bir mp3/wav dosyasını filtre klasörüne koy (Ayarlar\'ın altındaki "Filtre klasörü").',
+    'Seçtiğin mp3 veya wav, oyunun okuduğu filtre klasörüne kopyalanır. Kısa olsun: eşleşen her düşüşte çalıyor.',
 
   'picker.appThemes': 'Uygulama temaları',
   'picker.nsThemes': 'NeverSink temaları',

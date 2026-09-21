@@ -46,4 +46,10 @@ export interface StyleOptions {
      * group -> NeverSink style tag
      */
     "preset": { [_ in string]?: string } | null;
+
+    /**
+     * Sounds are the PlayAlertSound ids, so the panel and the filter writer
+     * cannot drift apart about what the game accepts.
+     */
+    "sounds": string[] | null;
 }

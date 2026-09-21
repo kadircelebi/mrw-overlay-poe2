@@ -29,6 +29,15 @@ import * as trade$0 from "./internal/trade/models.js";
 import * as $models from "./models.js";
 
 /**
+ * AddSound copies a sound the user picks into the filter folder, which is the
+ * only place the game reads CustomAlertSound files from. It returns the name
+ * the file ended up with, or "" if the dialog was cancelled.
+ */
+export function AddSound(): $CancellablePromise<string> {
+    return $Call.ByID(4273186920);
+}
+
+/**
  * DeleteProfile removes a profile and switches away from it when it was active.
  */
 export function DeleteProfile(name: string): $CancellablePromise<filter$0.Config> {
@@ -165,10 +174,10 @@ export function OpenGameFolder(): $CancellablePromise<void> {
 }
 
 /**
- * PreviewGameSound plays one of the downloaded alert sounds (1-6).
+ * PreviewGameSound plays one of the downloaded alert sounds.
  */
-export function PreviewGameSound(n: number): $CancellablePromise<void> {
-    return $Call.ByID(3037340691, n);
+export function PreviewGameSound(id: string): $CancellablePromise<void> {
+    return $Call.ByID(3037340691, id);
 }
 
 /**

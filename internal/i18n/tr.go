@@ -41,6 +41,7 @@ var tr = map[string]string{
 	"err.soundNotFound":     "%s filtre klasöründe bulunamadı",
 	"err.soundWindowsOnly":  "ses önizleme sadece Windows'ta çalışır",
 	"err.soundDownload":     "oyun sesleri indirilemedi: %w",
+	"err.soundCopy":         "ses dosyası filtre klasörüne kopyalanamadı: %w",
 	"err.gameSoundsMissing": "oyun sesleri henüz indirilmedi",
 
 	"warn.blacklistSkipped": "Kara liste: %q atlandı, aynı taban (%s) üzerinde değerli %s var",

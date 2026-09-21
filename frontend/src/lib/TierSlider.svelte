@@ -95,24 +95,23 @@
     color: var(--muted);
     font-size: 12px;
   }
+  /* A sunk track with a brass diamond on it, the way the game draws sliders. */
   .slider {
     width: 100%;
-    margin: 10px 0 2px;
+    margin: 12px 0 4px;
     -webkit-appearance: none;
     appearance: none;
-    height: 6px;
-    border-radius: 6px;
-    background: linear-gradient(90deg, var(--gold-dim) var(--p), var(--bg) var(--p));
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold-dim) var(--p), var(--sunk) var(--p));
     border: 1px solid var(--line);
   }
   .slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--gold-bright);
-    border: 3px solid var(--surface);
-    box-shadow: 0 0 0 1px var(--gold-dim);
+    width: 11px;
+    height: 11px;
+    background: linear-gradient(135deg, #ddd0aa, #7c7256);
+    border: 1px solid #14161a;
+    transform: rotate(45deg);
     cursor: pointer;
   }
   .scale {

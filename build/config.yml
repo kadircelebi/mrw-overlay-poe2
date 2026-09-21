@@ -6,7 +6,7 @@ version: '3'
 # This information is used to generate the build assets.
 info:
   companyName: "kadir" # The name of the company
-  productName: "PoE2 Filtre" # The name of the application
+  productName: "MrW POE2 Filter" # The name of the application
   productIdentifier: "com.kadir.poe2filter" # The unique product identifier
   description: "Canlı piyasa fiyatlarıyla güncellenen PoE2 loot filtresi" # The application description
   copyright: "(c) 2026" # Copyright text

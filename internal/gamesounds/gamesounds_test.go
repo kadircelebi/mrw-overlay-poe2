@@ -20,7 +20,7 @@ func TestDownloadFetchesOnlyWhatIsMissing(t *testing.T) {
 	if err := os.MkdirAll(Dir(dir), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(Path(dir, 2), mp3(8<<10), 0o644); err != nil {
+	if err := os.WriteFile(Path(dir, "2"), mp3(8<<10), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -33,7 +33,7 @@ func TestDownloadFetchesOnlyWhatIsMissing(t *testing.T) {
 		w.Write(mp3(8 << 10))
 	}))
 	defer srv.Close()
-	defer swapSource(srv.URL + "/AlertSound%d.mp3")()
+	defer swapSource(srv.URL + "/AlertSound%s.mp3")()
 
 	got, err := Download(context.Background(), srv.Client(), dir, "test-agent")
 	if err != nil {
@@ -60,7 +60,7 @@ func TestDownloadRejectsNonAudio(t *testing.T) {
 		w.Write([]byte("<html><body>Just a moment...</body></html>"))
 	}))
 	defer srv.Close()
-	defer swapSource(srv.URL + "/AlertSound%d.mp3")()
+	defer swapSource(srv.URL + "/AlertSound%s.mp3")()
 
 	if _, err := Download(context.Background(), srv.Client(), dir, "test-agent"); err == nil {
 		t.Fatal("an HTML body should be refused")

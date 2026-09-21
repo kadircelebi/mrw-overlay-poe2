@@ -45,32 +45,33 @@
     color: var(--muted);
     font-size: 11.5px;
   }
+  /* The game has no sliding switches; it has a round socket that either holds
+     a lit gem or sits empty. The knob grows into place instead of travelling. */
   .track {
     flex: none;
-    width: 34px;
-    height: 20px;
-    border-radius: 20px;
-    background: var(--surface-3);
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--surface-3), var(--sunk));
     border: 1px solid var(--line-strong);
+    box-shadow: inset 0 1px 2px #000;
     position: relative;
-    transition: background 0.15s, border-color 0.15s;
+    transition: border-color 0.15s;
   }
   .knob {
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 14px;
-    height: 14px;
+    inset: 3px;
     border-radius: 50%;
-    background: var(--text-2);
-    transition: transform 0.15s, background 0.15s;
+    background: var(--gold-bright);
+    transform: scale(0);
+    opacity: 0;
+    transition: transform 0.15s, opacity 0.15s;
   }
   .track.on {
-    background: rgba(201, 164, 92, 0.25);
     border-color: var(--gold-dim);
   }
   .track.on .knob {
-    transform: translateX(14px);
-    background: var(--gold-bright);
+    transform: scale(1);
+    opacity: 1;
   }
 </style>

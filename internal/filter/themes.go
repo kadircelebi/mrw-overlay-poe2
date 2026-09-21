@@ -247,8 +247,16 @@ const (
 	SoundFilePrefix = "file:"
 )
 
-// GameSounds are the PlayAlertSound ids NeverSink's PoE2 filter uses.
-var GameSounds = []string{"1", "2", "3", "4", "5", "6"}
+// GameSounds are every id PlayAlertSound accepts. The game's own bank
+// (Four_ItemFilter.bank) holds exactly these 26 samples: AlertSound_01..16 and
+// ten named currency sounds, which the filter language spells "ShAlchemy" and
+// so on — the same names FilterBlade shows as 17 to 26.
+var GameSounds = []string{
+	"1", "2", "3", "4", "5", "6", "7", "8",
+	"9", "10", "11", "12", "13", "14", "15", "16",
+	"ShAlchemy", "ShBlessed", "ShChaos", "ShFusing", "ShGeneral",
+	"ShRegal", "ShVaal", "ShDivine", "ShExalted", "ShMirror",
+}
 
 // validSound reports whether v is an acceptable sound choice.
 func validSound(v string) bool {

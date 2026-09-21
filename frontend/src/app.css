@@ -1,30 +1,39 @@
+/* The palette is taken from the game's own Options panel: cold grey stone,
+   steel frames, and gold only where the game itself uses it — section titles,
+   labels and the handles you grab. Anything warmer than this reads brown. */
 :root {
-  --bg: #0e0c10;
-  --surface: #17141a;
-  --surface-2: #1f1b22;
-  --surface-3: #28232b;
-  --line: #2f2931;
-  --line-strong: #3d3540;
+  --bg: #101215;
+  --surface: #161a1f; /* a raised plate */
+  --surface-2: #1b2027;
+  --surface-3: #232932;
+  --sunk: #0a0c0e; /* a recess: inputs, slider tracks */
+  --line: #272c32; /* hairline inside a group */
+  --line-strong: #4a525b; /* the steel frame around it */
 
-  --gold: #c9a45c;
-  --gold-bright: #ecc97c;
-  --gold-dim: #8a7042;
-  --text: #ece5da;
-  --text-2: #b3a99c;
-  --muted: #7f766c;
+  --gold: #c2ae7e; /* labels and section titles */
+  --gold-bright: #e2d4ae; /* the value you are meant to read */
+  --gold-dim: #6a6047; /* gold at rest: borders, filled tracks */
+  --text: #dcdcd8;
+  --text-2: #a9afb6;
+  --muted: #7c838b;
 
-  --ok: #7cbf6b;
-  --warn: #e0a64a;
-  --bad: #d4605a;
-  --exceptional: #62b6cf;
+  --ok: #7e9c63;
+  --warn: #c9a04a;
+  --bad: #c0564f;
+  --exceptional: #5f9fb5;
 
-  --radius: 10px;
-  --radius-sm: 7px;
+  /* Stone grain. Flat fills are what make a dark panel look like a web page. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.055'/%3E%3C/svg%3E");
+
+  --radius: 3px;
+  --radius-sm: 2px;
   /* Cinzel and Inter carry no CJK glyphs, so the Chinese interface falls
      through to the system's Traditional Chinese faces. */
   --cjk: 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', 'Microsoft YaHei';
   --serif: 'Cinzel', Georgia, var(--cjk), serif;
-  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', var(--cjk), sans-serif;
+  /* Tahoma ships with Windows and has none of the geometric evenness that
+     marks out the fonts every new app reaches for. */
+  --sans: Tahoma, Verdana, 'Segoe UI', system-ui, var(--cjk), sans-serif;
 
   color-scheme: dark;
 }
@@ -79,7 +88,6 @@ input[type='number']::-webkit-outer-spin-button {
 }
 ::-webkit-scrollbar-thumb {
   background: var(--surface-3);
-  border-radius: 8px;
   border: 2px solid var(--bg);
 }
 ::-webkit-scrollbar-track {

@@ -51,6 +51,7 @@ var en = map[string]string{
 	"err.soundNotFound":     "%s is not in the filter folder",
 	"err.soundWindowsOnly":  "sound preview only works on Windows",
 	"err.soundDownload":     "the game sounds could not be downloaded: %w",
+	"err.soundCopy":         "the sound could not be copied into the filter folder: %w",
 	"err.gameSoundsMissing": "the game sounds have not been downloaded yet",
 
 	// Warnings collected while building rules

@@ -73,7 +73,7 @@ func main() {
 	var tray *application.SystemTray
 	app := application.New(application.Options{
 		Windows:     application.WindowsOptions{AdditionalBrowserArgs: browserArgs},
-		Name:        "PoE2 Filtre",
+		Name:        "MrW POE2 Filter",
 		Description: i18n.T("app.description"),
 		Services: []application.Service{
 			application.NewService(svc),
@@ -92,7 +92,7 @@ func main() {
 
 	panel := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "panel",
-		Title:            "PoE2 Filtre",
+		Title:            "MrW POE2 Filter",
 		Width:            380,
 		Height:           640,
 		Frameless:        true,
@@ -124,7 +124,7 @@ func main() {
 
 	tray = app.SystemTray.New()
 	tray.SetIcon(assets.Tray)
-	tray.SetTooltip("PoE2 Filtre")
+	tray.SetTooltip("MrW POE2 Filter")
 	tray.SetMenu(trayMenu())
 	svc.relabel = func() { tray.SetMenu(trayMenu()) }
 	tray.AttachWindow(panel).WindowOffset(8)
