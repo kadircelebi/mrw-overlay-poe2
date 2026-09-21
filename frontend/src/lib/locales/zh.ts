@@ -195,6 +195,8 @@ export const zh: Record<string, string> = {
   'general.league': '聯盟',
   'general.leagueUnlisted': '目前的列表沒有這個聯盟；你的選擇會保留，也可以另外挑一個。',
   'general.filterName': '遊戲中的過濾器名稱',
+  'general.filterNameChanged':
+    '過濾器現在寫成 {0}.filter，但遊戲裡可能仍選著 {1}。請在 Options → Item Filter 選擇 {0}，然後 Reload。',
   'general.customBase': '自訂基礎過濾器（留空則用 NeverSink）',
   'general.customBasePlaceholder': 'C:\\…\\myfilter.filter',
   'general.priceServer': '價格伺服器（日後）',

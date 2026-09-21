@@ -262,6 +262,16 @@
   }
 
   const last = $derived(st?.last ?? null)
+
+  // Renaming the filter starts writing a different file, but the game keeps
+  // loading whatever is selected in its own options. That silence cost an
+  // evening once: the app looked right and the game ignored it.
+  const renamedFilter = $derived.by(() => {
+    const path = last?.filterPath
+    if (!path || !cfg?.filter_name) return ''
+    const written = path.split(/[\\/]/).pop()?.replace(/\.filter$/i, '') ?? ''
+    return written && written !== cfg.filter_name ? written : ''
+  })
   const divineEx = $derived(last?.divineEx ?? 0)
   const chaosEx = $derived(last?.chaosEx ?? 0)
 
@@ -1038,6 +1048,9 @@
           <span>{t('general.filterName')}</span>
           <input bind:value={cfg.filter_name} onchange={() => queueSave()} spellcheck="false" />
         </label>
+        {#if renamedFilter}
+          <p class="notice">{t('general.filterNameChanged', cfg.filter_name, renamedFilter)}</p>
+        {/if}
         <div class="presets">
           <button type="button" onclick={exportFilter}>{t('filter.export')}</button>
         </div>

@@ -218,6 +218,8 @@ export const en: Record<string, string> = {
   'general.leagueUnlisted':
     'This league is not in the current list; your choice is kept, pick a new one if you like.',
   'general.filterName': 'Filter name in game',
+  'general.filterNameChanged':
+    'The filter is now written as {0}.filter, but the game may still have {1} selected. Pick {0} in Options → Item Filter, then Reload.',
   'general.customBase': 'Custom base filter (NeverSink when empty)',
   'general.customBasePlaceholder': 'C:\\…\\myfilter.filter',
   'general.priceServer': 'Price server (future)',

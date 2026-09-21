@@ -329,7 +329,7 @@ func TestUncutGemSliders(t *testing.T) {
 		cfg := DefaultConfig()
 		cfg.UncutGemLevel, cfg.UncutSupportLevel = lvl, TierHide
 		out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
-		if blockContaining(t, out, "Hide", `BaseType == "Uncut Support Gem"`) < 0 {
+		if blockContaining(t, out, "Hide", `BaseType "Uncut Support Gem"`) < 0 {
 			t.Fatalf("skill=%d: support gems must be hidden on the hide stop", lvl)
 		}
 		if blockContaining(t, out, "Show", `"Uncut Support Gem"`) >= 0 {
@@ -347,18 +347,32 @@ func TestUncutGemSliders(t *testing.T) {
 	if blockContaining(t, out, "Show", `"Uncut Support Gem"`, "GemLevel >= 3") < 0 {
 		t.Error("support gems should follow their own level")
 	}
-	if blockContaining(t, out, "Hide", `BaseType == "Uncut Skill Gem" "Uncut Spirit Gem"`) < 0 {
+	if blockContaining(t, out, "Hide", `BaseType "Uncut Skill Gem" "Uncut Spirit Gem"`) < 0 {
 		t.Error("gems below the level must still be hidden")
 	}
 
 	// Both off: no uncut rule at all except the support hide.
 	cfg.UncutGemLevel, cfg.UncutSupportLevel = TierOff, 1
 	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
-	if blockContaining(t, out, "Hide", `BaseType == "Uncut Skill Gem" "Uncut Spirit Gem"`) >= 0 {
+	if blockContaining(t, out, "Hide", `BaseType "Uncut Skill Gem" "Uncut Spirit Gem"`) >= 0 {
 		t.Error("an off slider must not write a rule for skill gems")
 	}
 	if blockContaining(t, out, "Show", `"Uncut Support Gem"`, "GemLevel >= 1") < 0 {
 		t.Error("support gems at 1+ should be shown at any level")
+	}
+}
+
+// An uncut gem's base type carries its level ("Uncut Support Gem (Level 5)"),
+// so an exact match never fires: the rule looks right in the file and the game
+// quietly falls through to the base filter. This cost an evening once.
+func TestUncutRulesDoNotMatchExactly(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.UncutGemLevel, cfg.UncutSupportLevel = 20, TierHide
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	for _, line := range strings.Split(out, "\n") {
+		if strings.Contains(line, "Uncut") && strings.Contains(line, "BaseType ==") {
+			t.Errorf("uncut gems must be matched loosely, got: %s", strings.TrimSpace(line))
+		}
 	}
 }
 
@@ -408,8 +422,8 @@ func TestTierHideStop(t *testing.T) {
 		{"rare equipment", "Rarity Rare"},
 		{"rare jewels", `Class == "Jewels"`},
 		{"waystones", `Class == "Waystones"`},
-		{"skill gems", `BaseType == "Uncut Skill Gem" "Uncut Spirit Gem"`},
-		{"support gems", `BaseType == "Uncut Support Gem"`},
+		{"skill gems", `BaseType "Uncut Skill Gem" "Uncut Spirit Gem"`},
+		{"support gems", `BaseType "Uncut Support Gem"`},
 	} {
 		if blockContaining(t, out, "Hide", c.cond) < 0 {
 			t.Errorf("%s should be hidden outright", c.what)
@@ -423,7 +437,7 @@ func TestTierHideStop(t *testing.T) {
 	cfg.T5RareTier, cfg.RareJewelTier = TierOff, TierOff
 	cfg.WaystoneTier, cfg.UncutGemLevel, cfg.UncutSupportLevel = TierOff, TierOff, TierOff
 	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
-	for _, cond := range []string{`Class == "Waystones"`, `BaseType == "Uncut Support Gem"`, `Class == "Jewels"`} {
+	for _, cond := range []string{`Class == "Waystones"`, `BaseType "Uncut Support Gem"`, `Class == "Jewels"`} {
 		if blockContaining(t, out, "Hide", cond) >= 0 {
 			t.Errorf("%q: no rule expected at the none stop", cond)
 		}

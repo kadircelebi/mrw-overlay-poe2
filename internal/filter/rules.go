@@ -432,8 +432,12 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// because they drop far more often.
 	gemStyle := &style{font: 42, text: "80 255 160 255", border: "0 255 130 255", bg: "5 50 20 255",
 		beam: "Green", icon: "1 Green Triangle", sound: "2 300"}
-	skillGems := `BaseType == "Uncut Skill Gem" "Uncut Spirit Gem"`
-	supportGems := `BaseType == "Uncut Support Gem"`
+	// No "==" here, unlike everywhere else: an uncut gem carries its level in
+	// its base type ("Uncut Support Gem (Level 5)"), so an exact match never
+	// fires and the rules below would silently do nothing. NeverSink matches
+	// them the same way.
+	skillGems := `BaseType "Uncut Skill Gem" "Uncut Spirit Gem"`
+	supportGems := `BaseType "Uncut Support Gem"`
 	if cfg.UncutGemLevel != TierOff || cfg.UncutSupportLevel != TierOff {
 		b.section(fmt.Sprintf(i18n.T("filter.sec.gems"), gemLevelLabel(cfg)))
 	}

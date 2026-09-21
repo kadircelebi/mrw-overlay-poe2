@@ -206,6 +206,8 @@ export const tr: Record<string, string> = {
   'general.leagueUnlisted':
     'Bu lig güncel listede yok; seçimin korunuyor, istersen listeden yenisini seç.',
   'general.filterName': 'Oyundaki filtre adı',
+  'general.filterNameChanged':
+    'Filtre artık {0}.filter olarak yazılıyor, ama oyunda hâlâ {1} seçili olabilir. Oyunda Options → Item Filter listesinden {0} filtresini seç, sonra Reload.',
   'general.customBase': 'Özel temel filtre (boşsa NeverSink)',
   'general.customBasePlaceholder': 'C:\\…\\filtre.filter',
   'general.priceServer': 'Fiyat sunucusu (ileride)',
