@@ -76,7 +76,7 @@ var tr = map[string]string{
 	"groupDefault.t5rare":             "Varsayılan (koyu kahve, altın yazı)",
 	"groupDefault.chance":             "Varsayılan (gri)",
 
-	"filter.header":        "[[DİNAMİK LOOT FİLTRESİ]] - poe2-filter (poe.ninja, poe2scout, trade exceptional taraması)",
+	"filter.header":        "[[DYNAMIC LOOT FILTER]] - poe2-filter (poe.ninja, poe2scout, trade exceptional taraması)",
 	"filter.threshold":     "Eşik: %.2f %s (= %.1f Exalted)",
 	"filter.rate":          "Kur: 1 Divine = %.1f Exalted",
 	"filter.pricesAt":      "Fiyat tarihi:     %s",

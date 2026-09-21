@@ -204,6 +204,20 @@ func TestInjectKeepsDollarSigns(t *testing.T) {
 	}
 }
 
+// Filters written by the Turkish build up to v1.2.0 carry a translated opening
+// marker. If such a file is fed back in as a custom base, the old block still
+// has to be stripped instead of stacking up on every update.
+func TestInjectStripsLegacyTurkishMarker(t *testing.T) {
+	base := "#header\n#=====\n# [[DİNAMİK LOOT FİLTRESİ]] - poe2-filter\nShow # old\n# [[END DYNAMIC LOOT FILTER]]\n\n#=====\n# [[0100]] Gold\n#=====\nShow\n"
+	out := Inject(base, "#=====\n# [[DYNAMIC LOOT FILTER]]\nShow # new\n")
+	if strings.Contains(out, "DİNAMİK") || strings.Contains(out, "Show # old") {
+		t.Fatalf("the old block should be gone:\n%s", out)
+	}
+	if strings.Count(out, "[[END DYNAMIC LOOT FILTER]]") != 1 {
+		t.Fatalf("exactly one block expected:\n%s", out)
+	}
+}
+
 func TestWhitelistUniqueOnlyAndChanceNormal(t *testing.T) {
 	bases := map[string]string{"sapphire": "Sapphire", "heavy belt": "Heavy Belt", "silk robe": "Silk Robe"}
 	cfg := DefaultConfig()
