@@ -37,10 +37,6 @@
   let styleGroup = $state('divine')
   let sounds = $state<string[]>([])
   let soundError = $state('')
-  // The game's own alert sounds live inside its audio banks; the app can only
-  // play them once the user has downloaded a copy for previewing.
-  let gameSoundsReady = $state(false)
-  let gameSoundsBusy = $state(false)
   let leagues = $state<string[]>([])
   let languages = $state<LanguageOption[]>([])
   let groupTemplate = $state<StyleGroup | null>(null)
@@ -86,7 +82,6 @@
       groups = (await AppService.StyleGroups()) ?? []
       groupTemplate = await AppService.UserGroupTemplate()
       sounds = (await AppService.ListSounds()) ?? []
-      gameSoundsReady = (await AppService.GameSoundsReady()) ?? false
       leagues = (await AppService.Leagues()) ?? []
       languages = (await AppService.Languages()) ?? []
       profiles = (await AppService.Profiles()) ?? []
@@ -509,19 +504,6 @@
       if (selGroup) setSound(selGroup.id, 'file:' + name)
     } catch (e) {
       soundError = String(e)
-    }
-  }
-
-  async function downloadGameSounds() {
-    soundError = ''
-    gameSoundsBusy = true
-    try {
-      await AppService.DownloadGameSounds()
-      gameSoundsReady = (await AppService.GameSoundsReady()) ?? false
-    } catch (e) {
-      soundError = String(e)
-    } finally {
-      gameSoundsBusy = false
     }
   }
 
@@ -976,7 +958,7 @@
                   <option value={'file:' + f}>{f}</option>
                 {/each}
               </select>
-              {#if soundFile(selGroup) || (soundGameID(selGroup) && gameSoundsReady)}
+              {#if soundFile(selGroup) || soundGameID(selGroup)}
                 <button
                   type="button"
                   class="play"
@@ -990,14 +972,7 @@
             </span>
           </label>
           {#if soundIsGame(selGroup)}
-            {#if gameSoundsReady}
-              <p class="desc hint">{t('look.gameSoundNote')}</p>
-            {:else}
-              <p class="desc hint">{t('look.gameSoundGet')}</p>
-              <button type="button" class="ghost" disabled={gameSoundsBusy} onclick={downloadGameSounds}>
-                {gameSoundsBusy ? t('look.gameSoundGetting') : t('look.gameSoundGetBtn')}
-              </button>
-            {/if}
+            <p class="desc hint">{t('look.gameSoundNote')}</p>
           {/if}
           <button type="button" class="ghost" onclick={addSound}>{t('look.addSound')}</button>
           {#if soundError}<p class="error">{soundError}</p>{/if}

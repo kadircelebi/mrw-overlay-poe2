@@ -1,0 +1,19 @@
+NOTICE
+======
+
+The source code in this repository is licensed under the MIT Licence; see
+LICENSE. The following files are not, and the MIT Licence does not extend to
+them:
+
+internal/gamesounds/files/*.mp3
+    The 26 item filter alert sounds of Path of Exile 2. These are the game's
+    own audio assets and belong to Grinding Gear Games. They are included so
+    that a player can hear which alert sound a rule is about to use, before
+    putting that rule in their filter. The application never plays them during
+    play: the generated filter contains PlayAlertSound, and in game the game
+    plays its own audio.
+
+    Path of Exile and Path of Exile 2 are trademarks of Grinding Gear Games.
+    This project is not affiliated with, endorsed by, or sponsored by Grinding
+    Gear Games. If Grinding Gear Games would rather these files were not
+    distributed here, open an issue and they will be removed.

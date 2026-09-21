@@ -88,7 +88,7 @@ Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için g
 
 **Renklerle oynadım, beğenmedim.** Görünüm bölümünde iki düğme var: "Varsayılana döndür" tüm grupların rengini ve sesini sıfırlar, "Tümünü NeverSink renklerine çevir" hepsini NeverSink'in kendi stillerine yaklaştırır.
 
-**Oyun seslerini (1–6) nasıl dinlerim?** Görünüm bölümünde "Oyun seslerini indir" düğmesine bir kez bas; uygulama altı sesin birer kopyasını (≈300 KB, [FilterBlade](https://filterblade.xyz/)'den) veri klasörüne indirir ve yanındaki oynat düğmesi çalışır hale gelir. Bu sesler Path of Exile'a ait; oyunun ses dosyalarının içinde durdukları için uygulamayla birlikte gelmiyorlar ve sen istemeden indirilmiyorlar. Filtreye yazılan şey değişmez: oyunda sesi yine oyun çalar.
+**Oyun seslerini nasıl dinlerim?** Görünüm bölümünde sesin yanındaki oynat düğmesine bas. Oyunun 26 uyarı sesinin hepsi uygulamayla birlikte geliyor: 1–16 arası numaralı sesler ve 17–26 arası currency düşüş sesleri (Orb of Alchemy, Divine Orb, Mirror of Kalandra…). Bunlar Path of Exile'a ait, yalnızca ne seçtiğini duyman için var; filtreye yazılan şey değişmez, oyunda sesi yine oyun çalar. Ayrıntı için [NOTICE](NOTICE).
 
 **Baştan başlamak istiyorum.** Uygulamadan çık ve `%APPDATA%\PoE2Filtre` klasörünü sil; uygulama bir sonraki açılışta varsayılan ayarlarla başlar.
 
@@ -180,4 +180,4 @@ go run ./cmd/genicon  # simgeleri yeniden çiz
 
 ## Lisans
 
-MIT, bkz. [LICENSE](LICENSE). NeverSink'in filtresi ayrıca MIT lisanslıdır ve bu repoda dağıtılmaz; uygulama çalışırken [NeverSinkDev/NeverSink-Filter-for-PoE2](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2) reposundan indirir. Fiyat verileri poe.ninja, poe2scout ve resmi trade API'sinden gelir. Bu proje Grinding Gear Games ile bağlantılı değildir.
+MIT, bkz. [LICENSE](LICENSE). Tek istisna `internal/gamesounds/files/` altındaki 26 uyarı sesi: onlar oyunun kendi ses dosyaları ve Grinding Gear Games'e aittir, MIT lisansının kapsamı dışındadır — bkz. [NOTICE](NOTICE). NeverSink'in filtresi ayrıca MIT lisanslıdır ve bu repoda dağıtılmaz; uygulama çalışırken [NeverSinkDev/NeverSink-Filter-for-PoE2](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2) reposundan indirir. Fiyat verileri poe.ninja, poe2scout ve resmi trade API'sinden gelir. Bu proje Grinding Gear Games ile bağlantılı değildir.

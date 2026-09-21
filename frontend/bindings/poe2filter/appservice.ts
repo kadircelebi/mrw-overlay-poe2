@@ -45,15 +45,6 @@ export function DeleteProfile(name: string): $CancellablePromise<filter$0.Config
 }
 
 /**
- * DownloadGameSounds fetches the alert sounds the game plays so they can be
- * listened to in the app. It is only ever called from the button in the
- * panel; nothing downloads them on its own.
- */
-export function DownloadGameSounds(): $CancellablePromise<number> {
-    return $Call.ByID(629340876);
-}
-
-/**
  * ExportFilter saves a copy of the filter that was last written, for sharing or
  * for using it on a machine that does not run this app.
  */
@@ -74,14 +65,6 @@ export function ExportProfile(name: string): $CancellablePromise<string> {
  */
 export function ExportScan(): $CancellablePromise<string> {
     return $Call.ByID(4253054929);
-}
-
-/**
- * GameSoundsReady reports whether the game's own alert sounds have been
- * downloaded, so the panel knows to offer "play" or "download".
- */
-export function GameSoundsReady(): $CancellablePromise<boolean> {
-    return $Call.ByID(936250763);
 }
 
 /**
@@ -174,7 +157,8 @@ export function OpenGameFolder(): $CancellablePromise<void> {
 }
 
 /**
- * PreviewGameSound plays one of the downloaded alert sounds.
+ * PreviewGameSound plays one of the game's own alert sounds. The sound ships
+ * with the app and is written out on first use, since playback needs a path.
  */
 export function PreviewGameSound(id: string): $CancellablePromise<void> {
     return $Call.ByID(3037340691, id);

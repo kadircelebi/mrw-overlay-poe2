@@ -125,10 +125,6 @@ export const zh: Record<string, string> = {
   'look.play': '試聽',
   'look.gameSoundNote':
     '26 個遊戲音效都屬於 Path of Exile，17–26 是 currency 掉落音效。遊戲中由遊戲自己播放，這裡的副本只是用來試聽。',
-  'look.gameSoundGet':
-    '遊戲音效存放在 Path of Exile 的音效檔案裡，所以應用程式目前無法播放。想知道自己選了什麼，可以一次下載全部 26 個副本（約 1.5 MB，來自 filterblade.xyz）。',
-  'look.gameSoundGetBtn': '下載遊戲音效',
-  'look.gameSoundGetting': '下載中…',
   'look.playAria': '試聽音效',
   'look.addSound': '加入自己的音效…',
   'look.soundHint':

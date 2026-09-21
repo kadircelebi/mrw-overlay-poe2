@@ -1,83 +1,69 @@
 package gamesounds
 
 import (
-	"context"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-func mp3(size int) []byte {
-	b := make([]byte, size)
-	copy(b, "ID3")
-	return b
-}
-
-func TestDownloadFetchesOnlyWhatIsMissing(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.MkdirAll(Dir(dir), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(Path(dir, "2"), mp3(8<<10), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	var hits int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hits++
-		if r.Header.Get("User-Agent") != "test-agent" {
-			t.Errorf("the tool must identify itself, got %q", r.Header.Get("User-Agent"))
-		}
-		w.Write(mp3(8 << 10))
-	}))
-	defer srv.Close()
-	defer swapSource(srv.URL + "/AlertSound%s.mp3")()
-
-	got, err := Download(context.Background(), srv.Client(), dir, "test-agent")
+// A missing or misspelled file would only show up as a silent play button on
+// someone else's machine, so check the set here instead.
+func TestEveryIDHasAFile(t *testing.T) {
+	entries, err := files.ReadDir("files")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != Count-1 || hits != Count-1 {
-		t.Errorf("the sound already on disk should be left alone: downloaded %d, requests %d", got, hits)
+	if len(entries) != len(IDs) {
+		t.Errorf("embedded %d files for %d sounds", len(entries), len(IDs))
 	}
-	if !Ready(dir) {
-		t.Errorf("all sounds should be present now, missing: %v", Missing(dir))
-	}
-
-	// A second run has nothing left to do.
-	if got, _ := Download(context.Background(), srv.Client(), dir, "test-agent"); got != 0 {
-		t.Errorf("a finished set must not be downloaded again, got %d", got)
+	for _, id := range IDs {
+		data, err := files.ReadFile("files/" + name(id))
+		if err != nil {
+			t.Errorf("sound %q has no file: %v", id, err)
+			continue
+		}
+		if len(data) < 4<<10 {
+			t.Errorf("sound %q is only %d bytes, which is not an alert sound", id, len(data))
+		}
+		if string(data[:3]) != "ID3" && !(data[0] == 0xFF && data[1]&0xE0 == 0xE0) {
+			t.Errorf("sound %q is not an mp3", id)
+		}
 	}
 }
 
-// Cloudflare and captive portals answer with HTML. Writing that out as
-// "AlertSound1.mp3" would leave a file that only fails at playback time.
-func TestDownloadRejectsNonAudio(t *testing.T) {
+func TestEnsureWritesTheSoundOnce(t *testing.T) {
 	dir := t.TempDir()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("<html><body>Just a moment...</body></html>"))
-	}))
-	defer srv.Close()
-	defer swapSource(srv.URL + "/AlertSound%s.mp3")()
-
-	if _, err := Download(context.Background(), srv.Client(), dir, "test-agent"); err == nil {
-		t.Fatal("an HTML body should be refused")
+	path, err := Ensure(dir, "ShMirror")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if files, _ := filepath.Glob(filepath.Join(Dir(dir), "*.mp3")); len(files) != 0 {
+	if path != Path(dir, "ShMirror") {
+		t.Errorf("unexpected path %q", path)
+	}
+	info, err := os.Stat(path)
+	if err != nil || info.Size() < 4<<10 {
+		t.Fatalf("the file should be on disk now: %v %v", err, info)
+	}
+
+	// A file that is already there is left alone, including one a user put
+	// there themselves or an older version downloaded.
+	if err := os.WriteFile(path, []byte("older copy"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Ensure(dir, "ShMirror"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(path); string(got) != "older copy" {
+		t.Error("an existing file must not be overwritten")
+	}
+}
+
+func TestEnsureRefusesAnUnknownID(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := Ensure(dir, "27"); err == nil {
+		t.Error("only the game's own sounds have files")
+	}
+	if files, _ := filepath.Glob(filepath.Join(Dir(dir), "*")); len(files) != 0 {
 		t.Errorf("nothing should have been written: %v", files)
 	}
-}
-
-func TestMissingListsEverythingOnAnEmptyFolder(t *testing.T) {
-	if got := Missing(t.TempDir()); len(got) != Count {
-		t.Errorf("expected all %d sounds to be missing, got %v", Count, got)
-	}
-}
-
-func swapSource(u string) func() {
-	old := sourceURL
-	sourceURL = u
-	return func() { sourceURL = old }
 }

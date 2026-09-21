@@ -50,9 +50,7 @@ var en = map[string]string{
 	"err.soundInvalid":      "invalid sound file",
 	"err.soundNotFound":     "%s is not in the filter folder",
 	"err.soundWindowsOnly":  "sound preview only works on Windows",
-	"err.soundDownload":     "the game sounds could not be downloaded: %w",
 	"err.soundCopy":         "the sound could not be copied into the filter folder: %w",
-	"err.gameSoundsMissing": "the game sounds have not been downloaded yet",
 
 	// Warnings collected while building rules
 	"warn.blacklistSkipped": "Blacklist: %q skipped, the same base (%s) carries a valuable %s",

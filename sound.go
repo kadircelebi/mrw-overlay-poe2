@@ -1,16 +1,13 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
-	"poe2filter/internal/collector"
 	"poe2filter/internal/gamesounds"
 	"poe2filter/internal/i18n"
 )
@@ -97,33 +94,15 @@ func sameFile(a, b string) (bool, error) {
 	return os.SameFile(ai, bi), nil
 }
 
-// GameSoundsReady reports whether the game's own alert sounds have been
-// downloaded, so the panel knows to offer "play" or "download".
-func (s *AppService) GameSoundsReady() bool {
-	return gamesounds.Ready(s.meta.DataDir)
-}
-
-// DownloadGameSounds fetches the alert sounds the game plays so they can be
-// listened to in the app. It is only ever called from the button in the
-// panel; nothing downloads them on its own.
-func (s *AppService) DownloadGameSounds() (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-	n, err := gamesounds.Download(ctx, collector.NewHTTPClient(), s.meta.DataDir, collector.UserAgent)
-	if err != nil {
-		return n, fmt.Errorf(i18n.T("err.soundDownload"), err)
-	}
-	return n, nil
-}
-
-// PreviewGameSound plays one of the downloaded alert sounds.
+// PreviewGameSound plays one of the game's own alert sounds. The sound ships
+// with the app and is written out on first use, since playback needs a path.
 func (s *AppService) PreviewGameSound(id string) error {
 	if !gamesounds.Known(id) {
 		return errors.New(i18n.T("err.soundInvalid"))
 	}
-	path := gamesounds.Path(s.meta.DataDir, id)
-	if _, err := os.Stat(path); err != nil {
-		return errors.New(i18n.T("err.gameSoundsMissing"))
+	path, err := gamesounds.Ensure(s.meta.DataDir, id)
+	if err != nil {
+		return err
 	}
 	return playSound(path)
 }

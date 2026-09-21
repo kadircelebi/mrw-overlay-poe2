@@ -130,11 +130,7 @@ export const tr: Record<string, string> = {
   'look.soundGame': 'Oyun sesi {0}',
   'look.play': 'Dinle',
   'look.gameSoundNote':
-    '26 oyun sesinin hepsi Path of Exile’a ait; 17–26 arası olanlar currency düşüş sesleri. Oyunda onları oyun çalıyor, buradaki kopya sadece dinlemek için.',
-  'look.gameSoundGet':
-    'Oyun sesleri Path of Exile’ın ses dosyalarının içinde duruyor, o yüzden uygulama henüz çalamıyor. Ne seçtiğini duymak için 26 sesin birer kopyasını bir kerelik indir (≈1,5 MB, filterblade.xyz).',
-  'look.gameSoundGetBtn': 'Oyun seslerini indir',
-  'look.gameSoundGetting': 'İndiriliyor…',
+    '26 oyun sesi Path of Exile’a ait; 17–26 arası olanlar currency düşüş sesleri. Oyunda onları oyun çalıyor, buradaki kopya sadece dinlemek için.',
   'look.playAria': 'Sesi dinle',
   'look.addSound': 'Kendi sesini ekle…',
   'look.soundHint':
