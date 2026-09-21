@@ -94,6 +94,8 @@ Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için g
 
 **Farklı içerikler için farklı ayarlar istiyorum.** Ayarlar → Profiller. Şu ankini "Farklı kaydet" ile adlandır, ayarları değiştir, sonra listeden tek tıkla geç. Profil bütün ayarları taşır — lig ve oyundaki filtre adı dahil; filtre adı değişirse panel söyler, oyunda o filtreyi seçmen gerekir.
 
+**Taramayı baştan beklemek istemiyorum.** [`paylasim/`](paylasim/) klasöründe tamamlanmış bir exceptional taraması (1203 anahtar, Forbidden Rites) ve örnek bir profil var. Taramayı Ayarlar → Tarama sonuçlarını paylaş → İçe aktar ile al; kendi taze kayıtların ezilmez, yalnızca eksik ya da daha eski olanlar güncellenir.
+
 **Ayarlarımı arkadaşıma vermek istiyorum.** Profiller → Dışa aktar bir dosya çıkarır; arkadaşın İçe aktar ile alır ve o profille oynamaya başlar. Yalnızca üretilen filtreyi vermek istiyorsan Genel → "Filtre dosyasını dışa aktar" yeterli, karşı tarafın uygulamayı kurması bile gerekmez.
 
 **Fiyat kaynağı çökerse ne olur?** Bir kaynak yanıt vermezse o kaynağın önceki verisi korunur ve filtre yine yazılır; zayıf veriyle (tek ilanlı unique, çok az ilanlı exceptional) hiçbir zaman gizleme yapılmaz.
