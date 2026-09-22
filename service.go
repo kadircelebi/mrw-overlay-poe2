@@ -12,6 +12,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
+	"poe2filter/internal/appupdate"
 	"poe2filter/internal/engine"
 	"poe2filter/internal/filter"
 	"poe2filter/internal/i18n"
@@ -52,9 +53,10 @@ type Meta struct {
 // AppService is the API the panel calls. Its methods are exposed to the
 // frontend through generated bindings.
 type AppService struct {
-	eng  *engine.Engine
-	app  *application.App
-	tray *application.SystemTray
+	eng     *engine.Engine
+	updater *appupdate.Manager
+	app     *application.App
+	tray    *application.SystemTray
 	// panel is the tray window; file dialogs attach to it so the panel does not
 	// disappear behind them when it loses focus.
 	panel   application.Window
@@ -64,6 +66,10 @@ type AppService struct {
 	// relabel rebuilds the tray menu after a language change; the menu is
 	// created once at start, so its labels do not follow i18n on their own.
 	relabel func()
+	// notifyAppUpdate is supplied by main after the platform notification
+	// service exists. The manager remembers the last notified version.
+	notifyAppUpdate func(string)
+	updateCancel    context.CancelFunc
 }
 
 func newAppService(meta Meta) *AppService {
@@ -85,14 +91,45 @@ func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOp
 	s.started.Do(func() {
 		s.eng.Start()
 		go s.pump()
+		if s.updater != nil {
+			var updateCtx context.Context
+			updateCtx, s.updateCancel = context.WithCancel(ctx)
+			go func() {
+				select {
+				case <-time.After(5 * time.Second):
+				case <-updateCtx.Done():
+					return
+				}
+				_, _ = s.updater.CheckIfDue(updateCtx)
+				s.notifyAvailableUpdate()
+			}()
+		}
 	})
 	return nil
 }
 
 // ServiceShutdown stops background work.
 func (s *AppService) ServiceShutdown() error {
+	if s.updateCancel != nil {
+		s.updateCancel()
+	}
 	s.eng.Stop()
 	return nil
+}
+
+func (s *AppService) appUpdateChanged(st appupdate.State) {
+	if s.app != nil {
+		s.app.Event.Emit("app-update", st)
+	}
+}
+
+func (s *AppService) notifyAvailableUpdate() {
+	if s.updater == nil || s.notifyAppUpdate == nil {
+		return
+	}
+	if version := s.updater.TakeNotification(); version != "" {
+		s.notifyAppUpdate(version)
+	}
 }
 
 // pump coalesces change signals and pushes state to the panel and tray.
@@ -336,6 +373,64 @@ func (s *AppService) Leagues() []string { return s.eng.Leagues() }
 
 // UpdateNow starts a filter update in the background.
 func (s *AppService) UpdateNow() error { return s.eng.UpdateNow() }
+
+// GetAppUpdateState returns the cached application-update status without doing
+// network work, so opening the settings panel stays instant.
+func (s *AppService) GetAppUpdateState() appupdate.State {
+	if s.updater == nil {
+		return appupdate.State{Status: "disabled", CurrentVersion: s.meta.Version}
+	}
+	return s.updater.State()
+}
+
+// CheckForAppUpdate checks GitHub Releases now, regardless of the daily timer.
+func (s *AppService) CheckForAppUpdate() (appupdate.State, error) {
+	if s.updater == nil {
+		return appupdate.State{}, errors.New("application updater is not available")
+	}
+	st, err := s.updater.Check(context.Background())
+	if err == nil {
+		s.notifyAvailableUpdate()
+	}
+	return st, err
+}
+
+// DownloadAppUpdate downloads and verifies the release executable.
+func (s *AppService) DownloadAppUpdate() (appupdate.State, error) {
+	if s.updater == nil {
+		return appupdate.State{}, errors.New("application updater is not available")
+	}
+	return s.updater.Download(context.Background())
+}
+
+// InstallAppUpdate starts the staged updater and exits this process. The
+// updater waits until Windows releases this executable before replacing it.
+func (s *AppService) InstallAppUpdate() error {
+	if s.updater == nil {
+		return errors.New("application updater is not available")
+	}
+	if err := s.updater.LaunchInstaller(); err != nil {
+		return err
+	}
+	go func() {
+		time.Sleep(250 * time.Millisecond)
+		s.app.Quit()
+	}()
+	return nil
+}
+
+// OpenAppUpdatePage opens the trusted GitHub release page in the default
+// browser. Only URLs originating from the fixed GitHub API are accepted.
+func (s *AppService) OpenAppUpdatePage() error {
+	if s.updater == nil {
+		return errors.New("application updater is not available")
+	}
+	url := s.updater.State().ReleaseURL
+	if !strings.HasPrefix(url, "https://github.com/kadircelebi/poe2-filtre/releases/") {
+		return errors.New("invalid application update page")
+	}
+	return exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", url).Start()
+}
 
 // SearchItems finds uniques, currency and bases for the custom lists.
 func (s *AppService) SearchItems(query string) []insights.SearchItem {

@@ -5,6 +5,7 @@ var tr = map[string]string{
 
 	"tray.open":        "Paneli aç",
 	"tray.update":      "Şimdi güncelle",
+	"tray.appUpdate":   "Uygulama güncellemesini denetle",
 	"tray.openFolder":  "Filtre klasörünü aç",
 	"tray.quit":        "Çıkış",
 	"tray.updating":    " — güncelleniyor…",
@@ -28,6 +29,8 @@ var tr = map[string]string{
 
 	"notify.title": "Filtre güncellendi",
 	"notify.body":  "%s.filter hazır. Oyunda Item Filter → Reload yap.",
+	"notify.appUpdateTitle": "Uygulama güncellemesi hazır",
+	"notify.appUpdateBody":  "%s sürümü indirilebilir.",
 
 	"err.updateRunning":     "zaten bir güncelleme çalışıyor",
 	"err.gameDir":           "Path of Exile 2 klasörü bulunamadı",

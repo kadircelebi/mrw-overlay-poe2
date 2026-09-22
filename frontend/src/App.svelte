@@ -18,6 +18,7 @@
   import { t, setLang } from './lib/i18n.svelte'
   import type { LanguageOption } from '../bindings/poe2filter/models'
   import type { ProfileInfo } from '../bindings/poe2filter/internal/engine/models'
+  import type { State as AppUpdateState } from '../bindings/poe2filter/internal/appupdate/models'
 
   let meta = $state<Meta | null>(null)
   let cfg = $state<Config | null>(null)
@@ -30,6 +31,7 @@
   let saveTimer: ReturnType<typeof setTimeout> | undefined
   let saveSeq = 0
   let actionError = $state('')
+  let appUpdateActionError = $state('')
   let themes = $state<Theme[]>([])
   let nsThemes = $state<Theme[]>([])
   let styleOptions = $state<StyleOptions>({ colours: [], shapes: [], preset: {}, sounds: [] })
@@ -53,6 +55,7 @@
   // Index the user is dragging a group from, and the card it hovers over.
   let dragFrom = $state<number | null>(null)
   let dragOver = $state<number | null>(null)
+  let appUpdate = $state<AppUpdateState | null>(null)
 
   // "auto" resolves to whatever the first entry (the system language) reports.
   function languageOf(setting: string | undefined): string {
@@ -76,6 +79,7 @@
   onMount(() => {
     ;(async () => {
       meta = await AppService.GetMeta()
+      appUpdate = await AppService.GetAppUpdateState()
       themes = (await AppService.Themes()) ?? []
       nsThemes = (await AppService.NeverSinkThemes()) ?? []
       styleOptions = (await AppService.StyleOptions()) ?? styleOptions
@@ -97,10 +101,12 @@
         AppService.NeverSinkThemes().then((t) => (nsThemes = t ?? []))
       }
     })
+    const offAppUpdate = Events.On('app-update', (ev) => (appUpdate = ev.data))
     const tick = setInterval(() => (now = Date.now()), 1000)
     window.addEventListener('focus', refresh)
     return () => {
       off()
+      offAppUpdate()
       clearInterval(tick)
       window.removeEventListener('focus', refresh)
     }
@@ -258,6 +264,42 @@
       await AppService.UpdateNow()
     } catch (e) {
       actionError = String(e)
+    }
+  }
+
+  async function checkForAppUpdate() {
+    appUpdateActionError = ''
+    try {
+      appUpdate = await AppService.CheckForAppUpdate()
+    } catch (e) {
+      appUpdateActionError = String(e)
+    }
+  }
+
+  async function downloadAppUpdate() {
+    appUpdateActionError = ''
+    try {
+      appUpdate = await AppService.DownloadAppUpdate()
+    } catch (e) {
+      appUpdateActionError = String(e)
+    }
+  }
+
+  async function installAppUpdate() {
+    appUpdateActionError = ''
+    try {
+      await AppService.InstallAppUpdate()
+    } catch (e) {
+      appUpdateActionError = String(e)
+    }
+  }
+
+  async function openAppUpdatePage() {
+    appUpdateActionError = ''
+    try {
+      await AppService.OpenAppUpdatePage()
+    } catch (e) {
+      appUpdateActionError = String(e)
     }
   }
 
@@ -1081,6 +1123,46 @@
         {/if}
         <Toggle bind:checked={cfg.notify_enabled} label={t('auto.notify')} onchange={() => queueSave(false)} />
       </section>
+
+      {#if appUpdate?.status !== 'disabled'}
+        <section class="card">
+          <h2>{t('appUpdate.title')}</h2>
+          <p class="desc">{t('appUpdate.desc')}</p>
+          {#if appUpdate?.status === 'checking'}
+            <p class="desc hint">{t('appUpdate.checking')}</p>
+          {:else if appUpdate?.status === 'downloading'}
+            <p class="desc hint">{t('appUpdate.downloading', appUpdate.progress ?? 0)}</p>
+          {:else if appUpdate?.status === 'available'}
+            <p class="notice">{t('appUpdate.available', appUpdate.latestVersion ?? '')}</p>
+            {#if !appUpdate.canInstall}<p class="desc warn">{t('appUpdate.noPermission')}</p>{/if}
+          {:else if appUpdate?.status === 'ready'}
+            <p class="notice">{t('appUpdate.ready', appUpdate.latestVersion ?? '')}</p>
+            <p class="desc hint">{t('appUpdate.installNote')}</p>
+          {:else if appUpdate?.status === 'up_to_date'}
+            <p class="desc hint">{t('appUpdate.upToDate', appUpdate.currentVersion)}</p>
+          {:else if appUpdate?.status === 'error'}
+            <p class="error">{t('appUpdate.error')} {appUpdate.error}</p>
+          {/if}
+          {#if appUpdate?.error && appUpdate.status !== 'error'}
+            <p class="error">{t('appUpdate.error')} {appUpdate.error}</p>
+          {/if}
+          {#if appUpdateActionError}<p class="error">{appUpdateActionError}</p>{/if}
+          <div class="presets">
+            {#if appUpdate?.status === 'available' && appUpdate.canInstall}
+              <button type="button" onclick={downloadAppUpdate}>{t('appUpdate.download')}</button>
+            {/if}
+            {#if appUpdate?.status === 'ready'}
+              <button type="button" class="primary" onclick={installAppUpdate}>{t('appUpdate.install')}</button>
+            {/if}
+            {#if appUpdate?.releaseUrl}
+              <button type="button" onclick={openAppUpdatePage}>{t('appUpdate.release')}</button>
+            {/if}
+            {#if appUpdate?.status !== 'checking' && appUpdate?.status !== 'downloading' && appUpdate?.status !== 'installing'}
+              <button type="button" onclick={checkForAppUpdate}>{t('appUpdate.check')}</button>
+            {/if}
+          </div>
+        </section>
+      {/if}
 
       <section class="card">
         <h2>{t('trade.title')}</h2>

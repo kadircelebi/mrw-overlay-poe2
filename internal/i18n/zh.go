@@ -8,6 +8,7 @@ var zh = map[string]string{
 
 	"tray.open":        "開啟面板",
 	"tray.update":      "立即更新",
+	"tray.appUpdate":   "檢查應用程式更新",
 	"tray.openFolder":  "開啟過濾器資料夾",
 	"tray.quit":        "結束",
 	"tray.updating":    " — 更新中…",
@@ -31,6 +32,8 @@ var zh = map[string]string{
 
 	"notify.title": "過濾器已更新",
 	"notify.body":  "%s.filter 已就緒。請在遊戲中執行 Item Filter → Reload。",
+	"notify.appUpdateTitle": "有新的應用程式版本",
+	"notify.appUpdateBody":  "%s 版本可供下載。",
 
 	"err.updateRunning":     "已有一個更新正在執行",
 	"err.gameDir":           "找不到 Path of Exile 2 資料夾",

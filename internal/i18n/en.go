@@ -11,6 +11,7 @@ var en = map[string]string{
 	// Tray menu and tooltip
 	"tray.open":        "Open panel",
 	"tray.update":      "Update now",
+	"tray.appUpdate":   "Check for app updates",
 	"tray.openFolder":  "Open filter folder",
 	"tray.quit":        "Quit",
 	"tray.updating":    " — updating…",
@@ -37,6 +38,8 @@ var en = map[string]string{
 	// Notification
 	"notify.title": "Filter updated",
 	"notify.body":  "%s.filter is ready. Use Item Filter → Reload in game.",
+	"notify.appUpdateTitle": "Application update available",
+	"notify.appUpdateBody":  "Version %s is ready to download.",
 
 	// Errors shown in the panel
 	"err.updateRunning":     "an update is already running",

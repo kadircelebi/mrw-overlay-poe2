@@ -73,7 +73,7 @@ jobs:
         run: |
           go build -tags production -trimpath \
             -ldflags "-w -s -H windowsgui -X main.version=${{ steps.ver.outputs.version }}" \
-            -o "poe2filtre-${{ steps.ver.outputs.tag }}-windows-amd64.exe" .
+            -o "poe2filtre-windows-amd64.exe" .
 
       # SignPath imzalanacak dosyayı GitHub Actions artefaktından alır, bu yüzden
       # exe'yi önce artefakt olarak yüklüyoruz.
@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unsigned-exe
-          path: poe2filtre-${{ steps.ver.outputs.tag }}-windows-amd64.exe
+          path: poe2filtre-windows-amd64.exe
           if-no-files-found: error
 
       - name: SignPath ile imzala
@@ -103,7 +103,7 @@ jobs:
       - name: İmzalı exe'yi kullan
         if: env.SIGNPATH_ORGANIZATION_ID != ''
         run: |
-          EXE="poe2filtre-${{ steps.ver.outputs.tag }}-windows-amd64.exe"
+          EXE="poe2filtre-windows-amd64.exe"
           test -f "signed/$EXE" || { echo "imzali dosya bulunamadi" >&2; ls -la signed; exit 1; }
           mv "signed/$EXE" "$EXE"
 
@@ -112,7 +112,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ steps.ver.outputs.tag }}"
-          EXE="poe2filtre-$TAG-windows-amd64.exe"
+          EXE="poe2filtre-windows-amd64.exe"
           SHA=$(sha256sum "$EXE" | cut -d' ' -f1)
           NOTES=.github/release-notes/$TAG.md
           BODY=$(mktemp)

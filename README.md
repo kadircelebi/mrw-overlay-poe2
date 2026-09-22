@@ -22,7 +22,7 @@ Uygulama oyun belleğini okumaz, oyuna girdi göndermez; yalnızca herkese açı
 
 ## İndirme ve kurulum
 
-1. [Releases](../../releases/latest) sayfasından `poe2filtre-…-windows-amd64.exe` dosyasını indir. Kurulum gerekmez, tek dosya.
+1. [Releases](../../releases/latest) sayfasından `poe2filtre-windows-amd64.exe` dosyasını indir. Kurulum gerekmez, tek dosya.
 2. Çalıştır. Uygulama sistem tepsisine yerleşir; simgeye tıklayınca panel açılır, sağ tıkla menü çıkar.
 3. Oyunda **Options → Item Filter** listesinden **auto_updated**'ı seç.
 
@@ -52,6 +52,7 @@ Panelde, tepsi simgesine tıklayınca açılır.
 | **Gruplarım** | Kendi listelerin ve değer katmanların, en fazla 12 tane. Bir grup eşyaları gösterebilir, gizleyebilir veya kendi Exalted/Chaos/Divine fiyat eşiğine ulaşan bütün fiyatlı eşyalara ayrı görünüm ve ses verebilir. |
 | **Görünüm** | Her eşya grubu (yerleşik olanlar ve kendi grupların) için renk teması ve ses. Uygulamanın hazır temaları, NeverSink'in kendi 68 stili veya kendi renklerin — minimap simgesinin rengi ve şekli dahil. Değişiklikler panelde canlı önizlenir. |
 | **Otomatik güncelleme** | Aralık (varsayılan 4 saat) ve bildirimler. Kapatırsan "Şimdi güncelle" ile elle çalıştırırsın. |
+| **Uygulama güncellemeleri** | GitHub Releases'i günde bir denetler. Yeni exe'yi indirir, SHA-256 ile doğrular ve onayından sonra yeniden başlatarak güvenli biçimde değiştirir. |
 | **Trade taraması** | Exceptional taban taramasını aç/kapat ve trade kotasının ne kadarını kullanacağını seç (%10–80, varsayılan %40). |
 | **Profiller** | Farklı farm türleri için ayrı ayar setleri. Tek tıkla geçilir, filtre hemen yeniden yazılır; dosya olarak paylaşılabilir. |
 | **Genel** | Dil, lig, oyundaki filtre adı, filtre dosyasını dışa aktarma, filtre ve veri klasörleri. |
@@ -135,7 +136,11 @@ To do its job it reads publicly available data: prices from [poe.ninja](https://
 
 ## Güncelleme ve kaldırma
 
-Yeni sürüm çıktığında Releases'ten yeni exe'yi indir, eskisinin üstüne koy (uygulama kapalıyken). Ayarların `%APPDATA%\PoE2Filtre` altında durduğu için korunur.
+Uygulama GitHub Releases'i günde bir kez denetler. Yeni sürüm varsa Ayarlar → **Uygulama güncellemeleri** bölümünden indirip kurabilirsin. Dosya GitHub'ın yayınladığı SHA-256 özetiyle doğrulanır; uygulama kapanır, exe'yi değiştirir ve yeniden açılır. Başlatma başarısız olursa önceki exe geri getirilir. Ayrı bir güncelleme sunucusu veya hesap gerekmez.
+
+Güncelleyici ilk kez v1.8.0 ile geldiği için v1.7.0'dan v1.8.0'a geçiş bir kez elle yapılır; sonraki sürümler uygulama içinden kurulabilir.
+
+Exe'nin bulunduğu klasöre yazma izni yoksa panel otomatik kurulum yerine release sayfasını açar; bu durumda yeni exe'yi uygulama kapalıyken elle eskisinin üstüne koy. Her iki yöntemde de ayarların `%APPDATA%\PoE2Filtre` altında durduğu için korunur.
 
 Kaldırmak için: uygulamadan çık, exe'yi sil, `%APPDATA%\PoE2Filtre` klasörünü sil ve oyunda başka bir filtre seç. Yazılmış `auto_updated.filter` dosyası `Belgeler\My Games\Path of Exile 2` altında kalır, onu da silebilirsin.
 
@@ -173,6 +178,7 @@ go run ./cmd/genicon  # simgeleri yeniden çiz
 | `main.go`, `service.go` | Tepsi, panel penceresi, arayüze açılan API |
 | `frontend/` | Svelte panel |
 | `internal/engine` | Güncelleme akışı, zamanlayıcı, tarayıcı yönetimi (arayüzden bağımsız) |
+| `internal/appupdate` | GitHub release denetimi, SHA-256 doğrulama ve geri alınabilir Windows exe değişimi |
 | `internal/prices` | `prices.json` şeması: uygulama ile ileride sunucunun ortak sözleşmesi |
 | `internal/collector` | poe.ninja + poe2scout → snapshot |
 | `internal/trade` | Rate-limit uyumlu trade istemcisi ve exceptional tarayıcı |

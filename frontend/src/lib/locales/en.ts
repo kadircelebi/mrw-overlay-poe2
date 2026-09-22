@@ -182,6 +182,21 @@ export const en: Record<string, string> = {
   'auto.hours': '{0} h',
   'auto.notify': 'Show a notification after each update',
 
+  'appUpdate.title': 'Application updates',
+  'appUpdate.desc': 'Checks stable GitHub Releases once a day. Downloads are verified with SHA-256 before installation.',
+  'appUpdate.checking': 'Checking GitHub…',
+  'appUpdate.downloading': 'Downloading and verifying… {0}%',
+  'appUpdate.available': 'Version {0} is available.',
+  'appUpdate.ready': 'Version {0} was downloaded and verified.',
+  'appUpdate.upToDate': 'Version {0} is up to date.',
+  'appUpdate.noPermission': 'This folder cannot be updated automatically. Open the release page and replace the exe manually.',
+  'appUpdate.installNote': 'The application will close, replace itself, and reopen. Your settings are preserved.',
+  'appUpdate.error': 'Update check failed:',
+  'appUpdate.download': 'Download',
+  'appUpdate.install': 'Restart and install',
+  'appUpdate.release': 'Release notes',
+  'appUpdate.check': 'Check now',
+
   // Trade scan
   'trade.title': 'Trade scan',
   'trade.desc': 'The trade search quota (600 / 6 hours) is shared with your own searches on the trade site.',

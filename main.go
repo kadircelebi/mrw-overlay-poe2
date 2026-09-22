@@ -13,6 +13,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
+	"poe2filter/internal/appupdate"
 	"poe2filter/internal/assets"
 	"poe2filter/internal/engine"
 	"poe2filter/internal/filter"
@@ -20,13 +21,14 @@ import (
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
-var version = "1.7.0"
+var version = "1.8.0"
 
 //go:embed all:frontend/dist
 var frontend embed.FS
 
 func init() {
 	application.RegisterEvent[engine.State]("state")
+	application.RegisterEvent[appupdate.State]("app-update")
 }
 
 func defaultDataDir() string {
@@ -42,7 +44,22 @@ func main() {
 	headless := flag.Bool("headless", false, "update once without a window and exit")
 	show := flag.Bool("show", false, "show the panel on start")
 	debugPort := flag.Int("debug-port", 0, "WebView2 remote debugging port (development)")
+	applyUpdate := flag.String("apply-update", "", "replace this executable after it exits (internal)")
+	waitPID := flag.Int("wait-pid", 0, "wait for this process before applying an update (internal)")
+	cleanupUpdate := flag.String("cleanup-update", "", "remove staged updater after a successful start (internal)")
 	flag.Parse()
+	if *applyUpdate != "" {
+		if err := appupdate.Apply(*applyUpdate, *dataDir, *outPath, *waitPID); err != nil {
+			fmt.Fprintln(os.Stderr, "update failed:", err)
+			os.Exit(1)
+		}
+		return
+	}
+	if *cleanupUpdate != "" {
+		if exe, err := os.Executable(); err == nil {
+			go appupdate.CleanupAfterStart(*cleanupUpdate, exe)
+		}
+	}
 
 	// The interface language must be known before any text is built: the tray
 	// menu and the window title are created once, at start.
@@ -64,6 +81,17 @@ func main() {
 		TestMode: *outPath != "",
 	})
 	notifier := notifications.New()
+	svc.updater = appupdate.New(appupdate.Options{
+		CurrentVersion: version,
+		DataDir:        *dataDir,
+		Disabled:       *outPath != "",
+		OnChange:       svc.appUpdateChanged,
+	})
+	svc.notifyAppUpdate = func(version string) {
+		_ = notifier.SendNotification(notifications.NotificationOptions{
+			ID: "application-update", Title: i18n.T("notify.appUpdateTitle"), Body: i18n.T("notify.appUpdateBody", version),
+		})
+	}
 
 	var browserArgs []string
 	if *debugPort > 0 {
@@ -115,6 +143,10 @@ func main() {
 		m := app.NewMenu()
 		m.Add(i18n.T("tray.open")).OnClick(func(*application.Context) { tray.ShowWindow() })
 		m.Add(i18n.T("tray.update")).OnClick(func(*application.Context) { _ = svc.UpdateNow() })
+		m.Add(i18n.T("tray.appUpdate")).OnClick(func(*application.Context) {
+			tray.ShowWindow()
+			go func() { _, _ = svc.CheckForAppUpdate() }()
+		})
 		m.AddSeparator()
 		m.Add(i18n.T("tray.openFolder")).OnClick(func(*application.Context) { _ = svc.OpenGameFolder() })
 		m.AddSeparator()

@@ -13,6 +13,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as appupdate$0 from "./internal/appupdate/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as engine$0 from "./internal/engine/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -38,10 +41,24 @@ export function AddSound(): $CancellablePromise<string> {
 }
 
 /**
+ * CheckForAppUpdate checks GitHub Releases now, regardless of the daily timer.
+ */
+export function CheckForAppUpdate(): $CancellablePromise<appupdate$0.State> {
+    return $Call.ByID(899838745);
+}
+
+/**
  * DeleteProfile removes a profile and switches away from it when it was active.
  */
 export function DeleteProfile(name: string): $CancellablePromise<filter$0.Config> {
     return $Call.ByID(1212961758, name);
+}
+
+/**
+ * DownloadAppUpdate downloads and verifies the release executable.
+ */
+export function DownloadAppUpdate(): $CancellablePromise<appupdate$0.State> {
+    return $Call.ByID(2083796200);
 }
 
 /**
@@ -65,6 +82,14 @@ export function ExportProfile(name: string): $CancellablePromise<string> {
  */
 export function ExportScan(): $CancellablePromise<string> {
     return $Call.ByID(4253054929);
+}
+
+/**
+ * GetAppUpdateState returns the cached application-update status without doing
+ * network work, so opening the settings panel stays instant.
+ */
+export function GetAppUpdateState(): $CancellablePromise<appupdate$0.State> {
+    return $Call.ByID(3665196065);
 }
 
 /**
@@ -112,6 +137,14 @@ export function ImportScan(): $CancellablePromise<trade$0.ImportResult | null> {
 }
 
 /**
+ * InstallAppUpdate starts the staged updater and exits this process. The
+ * updater waits until Windows releases this executable before replacing it.
+ */
+export function InstallAppUpdate(): $CancellablePromise<void> {
+    return $Call.ByID(3476256185);
+}
+
+/**
  * Languages lists the interface languages, each named in its own language.
  * The first entry follows the Windows display language.
  */
@@ -140,6 +173,14 @@ export function ListSounds(): $CancellablePromise<string[] | null> {
  */
 export function NeverSinkThemes(): $CancellablePromise<filter$0.Theme[] | null> {
     return $Call.ByID(3621733729);
+}
+
+/**
+ * OpenAppUpdatePage opens the trusted GitHub release page in the default
+ * browser. Only URLs originating from the fixed GitHub API are accepted.
+ */
+export function OpenAppUpdatePage(): $CancellablePromise<void> {
+    return $Call.ByID(2013235483);
 }
 
 /**
