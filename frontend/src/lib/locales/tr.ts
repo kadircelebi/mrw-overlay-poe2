@@ -204,6 +204,8 @@ export const tr: Record<string, string> = {
     'Profil, ayarların tamamının bir kopyasıdır. Her farm türü için bir tane tut, tek tıkla geç; filtre hemen yeniden yazılır.',
   'profile.namePlaceholder': 'Yeni profil adı',
   'profile.saveAs': 'Farklı kaydet',
+  'profile.rename': 'Adını değiştir',
+  'profile.renamed': 'Profilin adı {0} olarak değiştirildi.',
   'profile.delete': 'Sil',
   'profile.deleteConfirm': 'Silinsin mi?',
   'profile.export': 'Dışa aktar',

@@ -196,6 +196,8 @@ export const zh: Record<string, string> = {
   'profile.desc': '設定檔是完整設定的一份副本。每種farm方式各留一個，一鍵切換，過濾器會立即重寫。',
   'profile.namePlaceholder': '新設定檔名稱',
   'profile.saveAs': '另存為',
+  'profile.rename': '重新命名',
+  'profile.renamed': '已重新命名為 {0}。',
   'profile.delete': '刪除',
   'profile.deleteConfirm': '確定刪除？',
   'profile.export': '匯出',

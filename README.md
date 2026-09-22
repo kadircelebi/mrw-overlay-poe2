@@ -54,7 +54,7 @@ Panelde, tepsi simgesine tıklayınca açılır.
 | **Otomatik güncelleme** | Aralık (varsayılan 4 saat) ve bildirimler. Kapatırsan "Şimdi güncelle" ile elle çalıştırırsın. |
 | **Uygulama güncellemeleri** | GitHub Releases'i günde bir denetler. Yeni exe'yi indirir, SHA-256 ile doğrular ve onayından sonra yeniden başlatarak güvenli biçimde değiştirir. |
 | **Trade taraması** | Exceptional taban taramasını aç/kapat ve trade kotasının ne kadarını kullanacağını seç (%10–80, varsayılan %40). |
-| **Profiller** | Farklı farm türleri için ayrı ayar setleri. Tek tıkla geçilir, filtre hemen yeniden yazılır; dosya olarak paylaşılabilir. |
+| **Profiller** | Farklı farm türleri için ayrı ayar setleri. Tek tıkla geçilir, yeniden adlandırılabilir, filtre hemen yeniden yazılır ve dosya olarak paylaşılabilir. |
 | **Genel** | Dil, lig, oyundaki filtre adı, filtre dosyasını dışa aktarma, filtre ve veri klasörleri. |
 
 Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için güncelle" der: önce **Güncelle**, sonra oyunda **Reload**.

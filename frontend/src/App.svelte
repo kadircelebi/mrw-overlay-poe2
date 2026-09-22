@@ -194,6 +194,19 @@
     }
   }
 
+  async function renameProfile() {
+    const name = newProfile.trim()
+    if (!name || !activeProfile) return
+    profileMsg = profileErr = ''
+    try {
+      profiles = (await AppService.RenameProfile(activeProfile, name)) ?? profiles
+      newProfile = ''
+      profileMsg = t('profile.renamed', name)
+    } catch (e) {
+      profileErr = String(e)
+    }
+  }
+
   async function deleteProfile() {
     profileMsg = profileErr = ''
     confirmProfileDelete = false
@@ -818,6 +831,9 @@
           />
           <button type="button" class="group-del" onclick={saveProfileAs} disabled={!newProfile.trim()}>
             {t('profile.saveAs')}
+          </button>
+          <button type="button" class="group-del" onclick={renameProfile} disabled={!newProfile.trim()}>
+            {t('profile.rename')}
           </button>
         </div>
         <div class="presets">

@@ -198,6 +198,14 @@ func (s *AppService) SaveProfileAs(name string) ([]engine.ProfileInfo, error) {
 	return s.eng.Profiles(), nil
 }
 
+// RenameProfile changes a saved profile's name without duplicating it.
+func (s *AppService) RenameProfile(oldName, newName string) ([]engine.ProfileInfo, error) {
+	if err := s.eng.RenameProfile(oldName, newName); err != nil {
+		return s.eng.Profiles(), err
+	}
+	return s.eng.Profiles(), nil
+}
+
 // SwitchProfile loads another profile, applies it and rewrites the filter, so
 // changing what you farm is one click rather than a dozen sliders.
 func (s *AppService) SwitchProfile(name string) (filter.Config, error) {

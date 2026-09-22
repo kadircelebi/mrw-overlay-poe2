@@ -36,8 +36,8 @@ var en = map[string]string{
 	"log.written":           "Filter written: %d valuable currency, %d unique bases, %d exceptional",
 
 	// Notification
-	"notify.title": "Filter updated",
-	"notify.body":  "%s.filter is ready. Use Item Filter → Reload in game.",
+	"notify.title":          "Filter updated",
+	"notify.body":           "%s.filter is ready. Use Item Filter → Reload in game.",
 	"notify.appUpdateTitle": "Application update available",
 	"notify.appUpdateBody":  "Version %s is ready to download.",
 
@@ -139,6 +139,7 @@ var en = map[string]string{
 	"profile.imported":   "Imported profile",
 	"err.profileName":    "give the profile a name",
 	"err.profileMissing": "no profile named %q",
+	"err.profileExists":  "a profile named %q already exists",
 	"err.profileLimit":   "at most %d profiles",
 	"err.profileLast":    "the last profile cannot be deleted",
 	"err.noFilterYet":    "no filter has been written yet",

@@ -217,6 +217,8 @@ export const en: Record<string, string> = {
     'A profile is a complete settings set. Keep one per kind of farming and switch with a click; the filter is rewritten right away.',
   'profile.namePlaceholder': 'New profile name',
   'profile.saveAs': 'Save as',
+  'profile.rename': 'Rename',
+  'profile.renamed': 'Renamed to {0}.',
   'profile.delete': 'Delete',
   'profile.deleteConfirm': 'Delete?',
   'profile.export': 'Export',

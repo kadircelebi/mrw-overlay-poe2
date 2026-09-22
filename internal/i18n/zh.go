@@ -30,8 +30,8 @@ var zh = map[string]string{
 	"log.basesFailed":       "[警告] 無法取得 exceptional 基底列表：%v",
 	"log.written":           "已寫入過濾器：%d 項高價 currency、%d 個 unique 基底、%d 項 exceptional",
 
-	"notify.title": "過濾器已更新",
-	"notify.body":  "%s.filter 已就緒。請在遊戲中執行 Item Filter → Reload。",
+	"notify.title":          "過濾器已更新",
+	"notify.body":           "%s.filter 已就緒。請在遊戲中執行 Item Filter → Reload。",
 	"notify.appUpdateTitle": "有新的應用程式版本",
 	"notify.appUpdateBody":  "%s 版本可供下載。",
 
@@ -126,6 +126,7 @@ var zh = map[string]string{
 	"profile.imported":   "匯入的設定檔",
 	"err.profileName":    "請為設定檔命名",
 	"err.profileMissing": "沒有名為 %q 的設定檔",
+	"err.profileExists":  "名為 %q 的設定檔已存在",
 	"err.profileLimit":   "最多 %d 個設定檔",
 	"err.profileLast":    "無法刪除最後一個設定檔",
 	"err.noFilterYet":    "尚未寫入過過濾器",

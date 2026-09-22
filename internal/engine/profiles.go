@@ -137,6 +137,32 @@ func (e *Engine) SaveProfileAs(name string) error {
 	return e.saveProfiles(st)
 }
 
+// RenameProfile changes only the profile's display name. Its settings and
+// position stay intact, and renaming the active profile keeps it active.
+func (e *Engine) RenameProfile(oldName, newName string) error {
+	newName = strings.TrimSpace(newName)
+	if newName == "" {
+		return errors.New(i18n.T("err.profileName"))
+	}
+	e.profileMu.Lock()
+	defer e.profileMu.Unlock()
+	st := e.loadProfiles()
+	i := st.indexOf(oldName)
+	if i < 0 {
+		return fmt.Errorf(i18n.T("err.profileMissing"), oldName)
+	}
+	if existing := st.indexOf(newName); existing >= 0 && existing != i {
+		return fmt.Errorf(i18n.T("err.profileExists"), newName)
+	}
+	wasActive := strings.EqualFold(st.Profiles[i].Name, st.Active)
+	if wasActive {
+		st.Profiles[i].Config = e.Config()
+		st.Active = newName
+	}
+	st.Profiles[i].Name = newName
+	return e.saveProfiles(st)
+}
+
 // SwitchProfile makes another profile current and returns its settings. The
 // caller applies them, which is what actually rewrites the filter.
 func (e *Engine) SwitchProfile(name string) (filter.Config, error) {

@@ -143,3 +143,39 @@ func TestProfileGuards(t *testing.T) {
 		t.Errorf("expected one profile left, got %d", n)
 	}
 }
+
+func TestRenameProfile(t *testing.T) {
+	e := newTestEngine(t)
+	first := e.Profiles()[0].Name
+	if err := e.SaveProfileAs("Breach"); err != nil {
+		t.Fatal(err)
+	}
+	cfg := e.Config()
+	cfg.MinValue = 321
+	if _, err := e.SetConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.RenameProfile("Breach", "  Simulacrum  "); err != nil {
+		t.Fatal(err)
+	}
+	profiles := e.Profiles()
+	if len(profiles) != 2 || profiles[1].Name != "Simulacrum" || !profiles[1].Active {
+		t.Fatalf("renamed profile state is wrong: %+v", profiles)
+	}
+	if _, err := e.SwitchProfile("Breach"); err == nil {
+		t.Error("old profile name still resolves")
+	}
+	got, err := e.SwitchProfile("Simulacrum")
+	if err != nil || got.MinValue != 321 {
+		t.Fatalf("renamed profile lost its settings: %.0f, %v", got.MinValue, err)
+	}
+	if err := e.RenameProfile("Simulacrum", first); err == nil {
+		t.Error("renaming over another profile should fail")
+	}
+	if err := e.RenameProfile("Simulacrum", "  "); err == nil {
+		t.Error("renaming to an empty name should fail")
+	}
+	if err := e.RenameProfile("Simulacrum", "SIMULACRUM"); err != nil {
+		t.Fatalf("case-only rename should work: %v", err)
+	}
+}

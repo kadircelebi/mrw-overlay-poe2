@@ -227,6 +227,13 @@ export function Quit(): $CancellablePromise<void> {
 }
 
 /**
+ * RenameProfile changes a saved profile's name without duplicating it.
+ */
+export function RenameProfile(oldName: string, newName: string): $CancellablePromise<engine$0.ProfileInfo[] | null> {
+    return $Call.ByID(1831808545, oldName, newName);
+}
+
+/**
  * SaveConfig stores new settings and returns them normalised.
  */
 export function SaveConfig(c: filter$0.Config): $CancellablePromise<filter$0.Config> {

@@ -27,8 +27,8 @@ var tr = map[string]string{
 	"log.basesFailed":       "[Uyarı] Exceptional taban listesi alınamadı: %v",
 	"log.written":           "Filtre yazıldı: %d değerli currency, %d unique taban, %d exceptional",
 
-	"notify.title": "Filtre güncellendi",
-	"notify.body":  "%s.filter hazır. Oyunda Item Filter → Reload yap.",
+	"notify.title":          "Filtre güncellendi",
+	"notify.body":           "%s.filter hazır. Oyunda Item Filter → Reload yap.",
 	"notify.appUpdateTitle": "Uygulama güncellemesi hazır",
 	"notify.appUpdateBody":  "%s sürümü indirilebilir.",
 
@@ -123,6 +123,7 @@ var tr = map[string]string{
 	"profile.imported":   "Alınan profil",
 	"err.profileName":    "profile bir ad ver",
 	"err.profileMissing": "%q adında profil yok",
+	"err.profileExists":  "%q adında bir profil zaten var",
 	"err.profileLimit":   "en fazla %d profil",
 	"err.profileLast":    "son profil silinemez",
 	"err.noFilterYet":    "henüz filtre yazılmadı",
