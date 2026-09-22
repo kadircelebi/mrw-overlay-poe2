@@ -127,6 +127,18 @@ var gearClasses = []string{
 	"Sceptres", "Shields", "Spears", "Staves", "Talismans", "Two Hand Maces", "Wands",
 }
 
+// classOnlyItems are selectable market entries whose filter identity is a
+// Class rather than a BaseType. NeverSink uses the same class names for these
+// items; treating them as bases silently drops them from user groups.
+var classOnlyItems = map[string]string{
+	"expedition logbook": "Expedition Logbook",
+}
+
+func itemClass(name string) (string, bool) {
+	c, ok := classOnlyItems[strings.ToLower(strings.TrimSpace(name))]
+	return c, ok
+}
+
 // GenerateDynamicFilterBlock builds the rules injected ahead of the base filter.
 // The PoE filter language stops at the first matching block, so ORDER MATTERS:
 // explicit user intent first, then valuable drops, then hides, and the blanket
@@ -297,7 +309,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		if g.GroupMode() != ItemGroupModeHide {
 			continue
 		}
-		var uniqueBases, bases []string
+		var uniqueBases, bases, classes []string
 		for _, raw := range g.Items {
 			key := strings.ToLower(strings.TrimSpace(raw))
 			if base, ok := uniqueToBase[key]; ok {
@@ -309,17 +321,22 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 					continue
 				}
 				uniqueBases = append(uniqueBases, base)
+			} else if class, ok := itemClass(raw); ok {
+				classes = append(classes, class)
 			} else if name, ok := canon(raw); ok {
 				bases = append(bases, name)
 			} else {
 				st.Warnings = append(st.Warnings, fmt.Sprintf(i18n.T("warn.blacklistUnknown"), raw))
 			}
 		}
-		if len(uniqueBases)+len(bases) > 0 {
+		if len(uniqueBases)+len(bases)+len(classes) > 0 {
 			b.section(fmt.Sprintf(i18n.T("filter.sec.userHide"), strings.ToUpper(g.Name)))
 			b.rule("Hide", []string{"Rarity Unique"}, "BaseType", uniqueBases, nil)
-			// Normal/Magic/Rare only: hiding a base must not hide uniques on it.
-			b.rule("Hide", []string{"Rarity Normal Magic Rare"}, "BaseType", bases, nil)
+			// A base selection means every item that can drop on that exact base,
+			// including uniques. Crafted Runeforged/Runemastered variants have
+			// different BaseTypes and therefore remain unaffected.
+			b.rule("Hide", nil, "BaseType", bases, nil)
+			b.rule("Hide", nil, "Class", classes, nil)
 		}
 	}
 
@@ -362,13 +379,14 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// receive the user's highest matching price style. The whitelist still
 	// guarantees that anything not covered by a tier is shown prominently.
 	if len(cfg.Whitelist) > 0 {
-		uniqueBases, bases := resolveShowList(cfg.Whitelist, uniqueToBase, canon)
-		if len(uniqueBases)+len(bases) > 0 {
+		uniqueBases, bases, classes := resolveShowList(cfg.Whitelist, uniqueToBase, canon)
+		if len(uniqueBases)+len(bases)+len(classes) > 0 {
 			b.section(i18n.T("filter.sec.whitelist"))
 			wl, _ := cfg.Palette(GroupWhitelist, ns)
 			wst := styleMax.with(wl).withSound(cfg.Sound(GroupWhitelist))
 			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, wst)
 			b.rule("Show", nil, "BaseType", bases, wst)
+			b.rule("Show", nil, "Class", classes, wst)
 		}
 	}
 
@@ -599,8 +617,8 @@ func (b *builder) userShowGroups(cfg Config, ns map[string]Theme, uniqueToBase m
 		if g.GroupMode() != ItemGroupModeShow || g.Always != always {
 			continue
 		}
-		uniqueBases, bases := resolveShowList(g.Items, uniqueToBase, canon)
-		if len(uniqueBases)+len(bases) == 0 {
+		uniqueBases, bases, classes := resolveShowList(g.Items, uniqueToBase, canon)
+		if len(uniqueBases)+len(bases)+len(classes) == 0 {
 			continue
 		}
 		pal, _ := cfg.Palette(g.StyleKey(), ns)
@@ -608,6 +626,7 @@ func (b *builder) userShowGroups(cfg Config, ns map[string]Theme, uniqueToBase m
 		b.section(fmt.Sprintf(i18n.T("filter.sec.userShow"), strings.ToUpper(g.Name)))
 		b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, st)
 		b.rule("Show", nil, "BaseType", bases, st)
+		b.rule("Show", nil, "Class", classes, st)
 	}
 }
 
@@ -628,11 +647,13 @@ func gemLevelLabel(cfg Config) string {
 	return tierLabel(cfg.UncutGemLevel, "") + " / " + tierLabel(cfg.UncutSupportLevel, "")
 }
 
-func resolveShowList(list []string, uniqueToBase map[string]string, canon func(string) (string, bool)) (uniqueBases, bases []string) {
+func resolveShowList(list []string, uniqueToBase map[string]string, canon func(string) (string, bool)) (uniqueBases, bases, classes []string) {
 	for _, raw := range list {
 		item, uniqueOnly := ParseListEntry(raw)
 		if base, ok := uniqueToBase[strings.ToLower(item)]; ok {
 			uniqueBases = append(uniqueBases, base)
+		} else if class, ok := itemClass(item); ok {
+			classes = append(classes, class)
 		} else if name, ok := canon(item); ok {
 			if uniqueOnly {
 				uniqueBases = append(uniqueBases, name)
@@ -641,7 +662,7 @@ func resolveShowList(list []string, uniqueToBase map[string]string, canon func(s
 			}
 		}
 	}
-	return uniqueBases, bases
+	return uniqueBases, bases, classes
 }
 
 // UniqueOnlySuffix marks a list entry that applies to the unique items of a

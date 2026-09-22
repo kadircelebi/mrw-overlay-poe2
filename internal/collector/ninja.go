@@ -57,14 +57,16 @@ type NinjaUnique struct {
 	Listings int
 }
 
-// GroundBase maps a poe.ninja base type to the base type that actually drops.
-// Identified uniques on "Runeforged"/"Runemastered" bases drop (and are
-// chanced) as the plain base, which is what the loot filter matches on.
+// GroundBase returns the directly droppable base represented by a poe.ninja
+// row. Runeforged and Runemastered bases are crafted variants: folding their
+// prices into the plain base makes a cheap ground drop look valuable.
+// Returning an empty string excludes those rows before aggregation.
 func GroundBase(base string) string {
 	b := strings.TrimSpace(strings.ReplaceAll(base, "\"", ""))
-	b = strings.TrimPrefix(b, "Runeforged ")
-	b = strings.TrimPrefix(b, "Runemastered ")
-	return strings.TrimSpace(b)
+	if strings.HasPrefix(b, "Runeforged ") || strings.HasPrefix(b, "Runemastered ") {
+		return ""
+	}
+	return b
 }
 
 // FetchNinjaUniques fetches all unique categories concurrently. Categories that

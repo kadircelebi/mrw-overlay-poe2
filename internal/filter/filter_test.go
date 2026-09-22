@@ -124,6 +124,38 @@ func TestBlacklistProtectsValuableSibling(t *testing.T) {
 	}
 }
 
+func TestHideBaseIncludesUniquesButNotCraftedVariants(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ItemGroups = []ItemGroup{{ID: "g1", Name: "Hide base", Items: []string{"Silk Robe"}, Hide: true}}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+
+	hidden := blockContaining(t, out, "Hide", `BaseType == "Silk Robe"`)
+	if hidden < 0 {
+		t.Fatal("base hide rule missing")
+	}
+	block := strings.Split(out, "\n\n")[hidden]
+	if strings.Contains(block, "Rarity") {
+		t.Fatalf("base hide must include uniques, got:\n%s", block)
+	}
+	if strings.Contains(block, "Runemastered Silk Robe") || strings.Contains(block, "Runeforged Silk Robe") {
+		t.Fatalf("exact base hide must not include crafted variants:\n%s", block)
+	}
+	valuable := blockContaining(t, out, "Show", "Rarity Unique", `BaseType == "Silk Robe"`)
+	if valuable < 0 || hidden > valuable {
+		t.Fatalf("base hide must override valuable unique styling (hide=%d valuable=%d)", hidden, valuable)
+	}
+}
+
+func TestUserGroupSupportsClassOnlyItems(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ItemGroups = []ItemGroup{{ID: "g1", Name: "Logbooks", Items: []string{"Expedition Logbook"}}}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+
+	if blockContaining(t, out, "Show", `Class == "Expedition Logbook"`, "Purple Diamond") < 0 {
+		t.Fatalf("class-only item was dropped from the user group:\n%s", out)
+	}
+}
+
 func TestShowOnlyNeverHidesByValue(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.FilterMode = "show_only"
