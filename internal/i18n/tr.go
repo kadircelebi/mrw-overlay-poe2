@@ -44,6 +44,7 @@ var tr = map[string]string{
 
 	"warn.blacklistSkipped": "Kara liste: %q atlandı, aynı taban (%s) üzerinde değerli %s var",
 	"warn.blacklistUnknown": "Kara liste: %q tanınmadı",
+	"warn.valueTierBelow":   "Değer grubu %q kullanılmadı: %.1f Exalted, ana eşik %.1f değerinden yüksek değil",
 
 	"insights.crafting":       "Crafting tabanı",
 	"insights.chanceCrafting": "Chance & crafting tabanı",
@@ -100,6 +101,7 @@ var tr = map[string]string{
 
 	"filter.sec.userShow":    "KULLANICI GRUBU: %s",
 	"filter.sec.userHide":    "KULLANICI GRUBU (GİZLİ): %s",
+	"filter.sec.valueTier":   "DEĞER GRUBU: %s — %.2f %s (= %.1f Exalted)",
 	"group.migratedMid":      "Orta vurgu",
 	"group.migratedHide":     "Her zaman gizle",
 	"group.unnamed":          "Grup %d",

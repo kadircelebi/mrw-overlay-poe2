@@ -47,6 +47,7 @@ var zh = map[string]string{
 
 	"warn.blacklistSkipped": "黑名單：已略過 %q，同一基底（%s）上有高價的 %s",
 	"warn.blacklistUnknown": "黑名單：無法辨識 %q",
+	"warn.valueTierBelow":   "已忽略價值群組 %q：%.1f Exalted 不高於基本門檻 %.1f",
 
 	"insights.crafting":       "Crafting 基底",
 	"insights.chanceCrafting": "Chance 與 crafting 基底",
@@ -103,6 +104,7 @@ var zh = map[string]string{
 
 	"filter.sec.userShow":    "使用者群組：%s",
 	"filter.sec.userHide":    "使用者群組（隱藏）：%s",
+	"filter.sec.valueTier":   "價值群組：%s — %.2f %s（= %.1f Exalted）",
 	"group.migratedMid":      "中等強調",
 	"group.migratedHide":     "永遠隱藏",
 	"group.unnamed":          "群組 %d",

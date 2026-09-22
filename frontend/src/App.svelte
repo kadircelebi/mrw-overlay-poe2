@@ -283,6 +283,39 @@
     return cfg.min_value
   })
 
+  function groupMode(g: ItemGroup): 'show' | 'hide' | 'value' {
+    if (g.mode === 'show' || g.mode === 'hide' || g.mode === 'value') return g.mode
+    return g.hide ? 'hide' : 'show'
+  }
+
+  function valueInEx(value: number, unit: string): number {
+    if (unit === 'divine') return divineEx > 0 ? value * divineEx : 0
+    if (unit === 'chaos') return chaosEx > 0 ? value * chaosEx : 0
+    return value
+  }
+
+  function groupThresholdEx(g: ItemGroup): number {
+    return valueInEx(g.threshold_value ?? 0, g.threshold_unit || 'exalted')
+  }
+
+  function groupThresholdTooLow(g: ItemGroup): boolean {
+    const value = groupThresholdEx(g)
+    return value > 0 && thresholdEx > 0 && value <= thresholdEx
+  }
+
+  function setGroupMode(index: number, mode: 'show' | 'hide' | 'value') {
+    if (!cfg) return
+    const g = cfg.item_groups![index]
+    g.mode = mode
+    g.hide = mode === 'hide'
+    if (mode !== 'show') g.always = false
+    if (mode === 'value' && !((g.threshold_value ?? 0) > 0)) {
+      g.threshold_value = Math.max(1, cfg.min_value * 2)
+      g.threshold_unit = cfg.min_value_unit
+    }
+    queueSave()
+  }
+
   const status = $derived.by(() => {
     if (!st) return { tone: 'idle', title: t('status.starting'), sub: '' }
     if (st.running) return { tone: 'busy', title: t('status.updating'), sub: st.step }
@@ -310,7 +343,7 @@
     if (!groupTemplate || !cfg?.item_groups?.length) return groups
     // A hidden group draws nothing, so it has no colours to pick.
     const own = cfg.item_groups!
-      .filter((g) => !g.hide)
+      .filter((g) => groupMode(g) !== 'hide')
       .map((g) => ({ ...groupTemplate!, id: 'user:' + g.id, label: g.name }) as StyleGroup)
     return [...groups, ...own]
   })
@@ -319,7 +352,19 @@
 
   function addGroup() {
     if (!cfg || (cfg.item_groups ?? []).length >= (meta?.maxItemGroups ?? 12)) return
-    cfg.item_groups = [...(cfg.item_groups ?? []), { id: '', name: '', items: [], hide: false, always: false } as ItemGroup]
+    cfg.item_groups = [
+      ...(cfg.item_groups ?? []),
+      {
+        id: '',
+        name: '',
+        items: [],
+        mode: 'show',
+        hide: false,
+        always: false,
+        threshold_value: 0,
+        threshold_unit: 'exalted',
+      } as ItemGroup,
+    ]
     queueSave()
   }
 
@@ -351,6 +396,7 @@
   // and the later one silently does nothing, so say where the clash is.
   function duplicatesOf(index: number): string {
     const groupsList = cfg?.item_groups ?? []
+    if (groupMode(groupsList[index]) === 'value') return ''
     const key = (v: string) => v.split('|')[0].trim().toLowerCase()
     const mine = new Set(groupsList[index]?.items?.map(key) ?? [])
     const hits: string[] = []
@@ -359,7 +405,7 @@
         if (mine.has(key(it))) hits.push(`${it} (${where})`)
       }
     }
-    groupsList.forEach((g, i) => i !== index && scan(g.items, g.name || t('groups.title')))
+    groupsList.forEach((g, i) => i !== index && groupMode(g) !== 'value' && scan(g.items, g.name || t('groups.title')))
     scan(cfg?.whitelist ?? [], t('lists.showTop'))
     scan(cfg?.chance_bases ?? [], t('lists.chance'))
     return hits.join(', ')
@@ -872,35 +918,67 @@
             </div>
             <Segmented
               small
-              value={g.hide ? 'hide' : 'show'}
-              onchange={(v) => {
-                cfg!.item_groups![i].hide = v === 'hide'
-                if (v === 'hide') cfg!.item_groups![i].always = false
-                queueSave()
-              }}
+              value={groupMode(g)}
+              onchange={(v) => setGroupMode(i, v as 'show' | 'hide' | 'value')}
               options={[
                 { value: 'show', label: t('groups.modeShow') },
                 { value: 'hide', label: t('groups.modeHide') },
+                { value: 'value', label: t('groups.modeValue') },
               ]}
             />
-            {#if !g.hide}
-              <Toggle
-                bind:checked={cfg.item_groups![i].always}
-                label={t('groups.always')}
-                hint={t('groups.alwaysHint')}
+            {#if groupMode(g) === 'value'}
+              <p class="desc">{t('groups.valueDesc')}</p>
+              <div class="threshold group-threshold">
+                <input
+                  type="number"
+                  class="num"
+                  min="0"
+                  step={g.threshold_unit === 'divine' ? 0.1 : 1}
+                  bind:value={cfg.item_groups![i].threshold_value}
+                  oninput={() => queueSave()}
+                  aria-label={t('groups.valueAmount')}
+                />
+                <Segmented
+                  small
+                  value={g.threshold_unit || 'exalted'}
+                  onchange={(v) => {
+                    cfg!.item_groups![i].threshold_unit = v
+                    queueSave()
+                  }}
+                  options={[
+                    { value: 'exalted', label: 'Exalted' },
+                    { value: 'chaos', label: 'Chaos' },
+                    { value: 'divine', label: 'Divine' },
+                  ]}
+                />
+              </div>
+              {#if groupThresholdEx(g) > 0}
+                <p class="desc hint" class:warn={groupThresholdTooLow(g)}>
+                  {groupThresholdTooLow(g)
+                    ? t('groups.valueTooLow', money(groupThresholdEx(g), 0), money(thresholdEx, 0))
+                    : t('groups.valueEquivalent', money(groupThresholdEx(g), 0))}
+                </p>
+              {/if}
+            {:else}
+              {#if groupMode(g) === 'show'}
+                <Toggle
+                  bind:checked={cfg.item_groups![i].always}
+                  label={t('groups.always')}
+                  hint={t('groups.alwaysHint')}
+                  onchange={() => queueSave()}
+                />
+              {/if}
+              <ListEditor
+                bind:items={cfg.item_groups![i].items}
+                uniqueVariants={groupMode(g) === 'show'}
+                placeholder={groupMode(g) === 'hide' ? t('lists.searchHide') : t('lists.searchItem')}
                 onchange={() => queueSave()}
               />
+              {#if duplicatesOf(i)}
+                <p class="desc warn">{t('groups.duplicates', duplicatesOf(i))}</p>
+              {/if}
             {/if}
-            <ListEditor
-              bind:items={cfg.item_groups![i].items}
-              uniqueVariants={!g.hide}
-              placeholder={g.hide ? t('lists.searchHide') : t('lists.searchItem')}
-              onchange={() => queueSave()}
-            />
-            {#if duplicatesOf(i)}
-              <p class="desc warn">{t('groups.duplicates', duplicatesOf(i))}</p>
-            {/if}
-            {#if !g.hide && g.id}
+            {#if groupMode(g) !== 'hide' && g.id}
               <button type="button" class="look-link" onclick={() => openLook(g.id)}>
                 {t('groups.lookLink', g.name)}
               </button>

@@ -90,9 +90,9 @@ export const en: Record<string, string> = {
   // Lists
   'lists.title': 'Lists',
   'lists.showTop': 'Always show — spotlight',
-  'lists.showTopNote': 'strongest highlight',
+  'lists.showTopNote': 'strong highlight outside value tiers',
   'lists.showTopDesc':
-    'Bases carrying a valuable unique (Mageblood, Headhunter, Voices…) are already handled automatically, and only as the unique.',
+    'An item in a value tier uses that tier’s look; everything else in this list gets a strong highlight. Valuable unique bases are already handled automatically.',
   'lists.showMid': 'Always show — medium',
   'lists.showMidNote': 'never hidden, medium highlight',
   'lists.showMidDesc':
@@ -107,14 +107,19 @@ export const en: Record<string, string> = {
   // My groups
   'groups.title': 'My groups',
   'groups.desc':
-    'Your own lists. Each group shows or hides what it holds and has its own colour and sound, set under Appearance.',
-  'groups.order': 'Order sets priority: among groups of the same kind, the one above wins.',
+    'Your own lists and value tiers. Every visible group has its own colour and sound, set under Appearance.',
+  'groups.order': 'Order sets priority for Show/Hide groups; value groups are automatically ordered by threshold.',
   'groups.reorder': 'Move group',
   'groups.duplicates': 'Also in another list: {0}',
   'groups.add': 'Add group',
   'groups.namePlaceholder': 'Group name',
   'groups.modeShow': 'Show',
   'groups.modeHide': 'Hide',
+  'groups.modeValue': 'Value threshold',
+  'groups.valueDesc': 'Items worth at least this amount use the highest value group whose threshold they reach.',
+  'groups.valueAmount': 'Group threshold',
+  'groups.valueEquivalent': 'Current equivalent: {0}',
+  'groups.valueTooLow': 'This group is not used: {0} must be above the base threshold of {1}.',
   'groups.always': 'Always win',
   'groups.alwaysHint': 'Off: an item worth more than the threshold keeps its stronger highlight',
   'groups.delete': 'Delete',

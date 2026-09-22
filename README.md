@@ -49,7 +49,7 @@ Panelde, tepsi simgesine tıklayınca açılır.
 | **Ekipman** | Sıkı ekipman filtresi, tanımlanmamış rare ekipman ve rare jewel'lar için tier kaydıracı, yüksek kalite eşiği. |
 | **Özel kurallar** | Waystone, uncut gem ve uncut support gem eşikleri (kaydıraçla; "Gösterme" ve "Hiçbiri" durakları dahil), pinnacle anahtarları; Exalted Orb ve altını gizleme. |
 | **Listeler** | "Her zaman göster" (en güçlü vurgu) ve chance tabanları. Fiyattan bağımsız çalışır. |
-| **Gruplarım** | Kendi listelerin, en fazla 12 tane. Her grubun adı, eşya listesi, rengi, simgesi ve sesi ayrı; grup içindekileri gösterir ya da gizler. |
+| **Gruplarım** | Kendi listelerin ve değer katmanların, en fazla 12 tane. Bir grup eşyaları gösterebilir, gizleyebilir veya kendi Exalted/Chaos/Divine fiyat eşiğine ulaşan bütün fiyatlı eşyalara ayrı görünüm ve ses verebilir. |
 | **Görünüm** | Her eşya grubu (yerleşik olanlar ve kendi grupların) için renk teması ve ses. Uygulamanın hazır temaları, NeverSink'in kendi 68 stili veya kendi renklerin — minimap simgesinin rengi ve şekli dahil. Değişiklikler panelde canlı önizlenir. |
 | **Otomatik güncelleme** | Aralık (varsayılan 4 saat) ve bildirimler. Kapatırsan "Şimdi güncelle" ile elle çalıştırırsın. |
 | **Trade taraması** | Exceptional taban taramasını aç/kapat ve trade kotasının ne kadarını kullanacağını seç (%10–80, varsayılan %40). |
@@ -83,6 +83,8 @@ Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için g
 **Belirli bir eşyayı hep görmek istiyorum.** Listeler → "Her zaman göster", ya da kendi grubunu kur: Gruplarım → Grup ekle. Yalnızca unique hâlini istiyorsan `Taban adı|unique` yazabilirsin.
 
 **Bir grup kurdum ama eşya hâlâ eski rengiyle çıkıyor.** Eşya eşiğin üstündeyse güçlü "değerli" vurgusunu korur. Grubun rengi her koşulda kazansın istiyorsan o grubun "her zaman kazansın" anahtarını aç.
+
+**Farklı fiyat seviyelerine farklı ses ve renk verebilir miyim?** Evet. Gruplarım → Grup ekle → **Değer eşiği** seç. Her grup için Exalted, Chaos veya Divine cinsinden ayrı eşik belirleyebilirsin. Uygulama güncel kurla eşikleri karşılaştırır; eşya geçtiği en yüksek grubun rengini, ışınını, minimap simgesini ve sesini alır. Ana eşikten düşük değer grupları uygulanmaz.
 
 **Minimap simgesini nasıl değiştiririm?** Görünüm → grubu seç → **Özel** sekmesi: zemin, yazı, çerçeve, ışın rengi ve minimap simgesinin rengi ile şekli (yıldız, elmas, altıgen, artı…). Şekli seçmen yeterli, rengi kendiliğinden gelir.
 

@@ -10,23 +10,53 @@ import (
 	"poe2filter/internal/prices"
 )
 
-// ItemGroup is one of the user's own item lists. It either shows or hides what
-// it holds, and has its own colours and sound like the built-in groups do.
+const (
+	ItemGroupModeShow  = "show"
+	ItemGroupModeHide  = "hide"
+	ItemGroupModeValue = "value"
+)
+
+// ItemGroup is one of the user's own groups. Show and hide groups act on their
+// item list; value groups act on every market-priced item at or above their
+// threshold. Every visible group has its own colours and sound.
 type ItemGroup struct {
 	ID    string   `json:"id"`
 	Name  string   `json:"name"`
 	Items []string `json:"items"`
-	// Hide turns the group into an always-hidden list instead of a shown one.
-	Hide bool `json:"hide"`
+	// Mode is "show", "hide" or "value". Hide remains in the file so older
+	// versions and existing profiles keep their original meaning.
+	Mode string `json:"mode,omitempty"`
+	Hide bool   `json:"hide"`
 	// Always lets a shown group beat the valuable-item styles. Without it a
 	// valuable item keeps its stronger highlight, which is what the medium
 	// list has always done.
 	Always bool `json:"always"`
+	// ThresholdValue and ThresholdUnit are used only by value groups.
+	ThresholdValue float64 `json:"threshold_value,omitempty"`
+	ThresholdUnit  string  `json:"threshold_unit,omitempty"`
 }
 
 // StyleKey is where this group's colours and sound live in Styles, CustomStyles
 // and Sounds.
 func (g ItemGroup) StyleKey() string { return UserGroupPrefix + g.ID }
+
+// GroupMode understands both the current Mode field and legacy Hide-only
+// configs. Keeping this in one place prevents old profiles changing behaviour.
+func (g ItemGroup) GroupMode() string {
+	switch g.Mode {
+	case ItemGroupModeShow, ItemGroupModeHide, ItemGroupModeValue:
+		return g.Mode
+	}
+	if g.Hide {
+		return ItemGroupModeHide
+	}
+	return ItemGroupModeShow
+}
+
+// ThresholdEx converts this value group's threshold into Exalted Orbs.
+func (g ItemGroup) ThresholdEx(r prices.Rates) float64 {
+	return valueToEx(g.ThresholdValue, g.ThresholdUnit, r)
+}
 
 // The two stops before the numbers on a tier or level slider.
 const (
@@ -264,15 +294,19 @@ func (c Config) Save(path string) error {
 
 // ThresholdEx converts the configured threshold into Exalted Orbs.
 func (c Config) ThresholdEx(r prices.Rates) float64 {
-	switch c.MinValueUnit {
+	return valueToEx(c.MinValue, c.MinValueUnit, r)
+}
+
+func valueToEx(value float64, unit string, r prices.Rates) float64 {
+	switch unit {
 	case "divine":
-		return c.MinValue * r.DivineEx
+		return value * r.DivineEx
 	case "chaos":
 		if r.ChaosEx > 0 {
-			return c.MinValue * r.ChaosEx
+			return value * r.ChaosEx
 		}
 	}
-	return c.MinValue
+	return value
 }
 
 // migrateLists folds the two fixed lists of earlier versions into user groups,
@@ -329,6 +363,19 @@ func (c *Config) normalizeGroups() {
 	out := c.ItemGroups[:0]
 	for _, g := range c.ItemGroups {
 		g.Name = strings.TrimSpace(g.Name)
+		g.Mode = g.GroupMode()
+		g.Hide = g.Mode == ItemGroupModeHide
+		if g.Mode != ItemGroupModeShow {
+			g.Always = false
+		}
+		switch g.ThresholdUnit {
+		case "exalted", "chaos", "divine":
+		default:
+			g.ThresholdUnit = "exalted"
+		}
+		if g.ThresholdValue < 0 {
+			g.ThresholdValue = 0
+		}
 		items := g.Items[:0]
 		for _, it := range g.Items {
 			if it = strings.TrimSpace(it); it != "" {
@@ -341,9 +388,6 @@ func (c *Config) normalizeGroups() {
 		}
 		if g.Name == "" {
 			g.Name = i18n.T("group.unnamed", len(out)+1)
-		}
-		if g.Hide {
-			g.Always = false // a hidden group has nothing to win over
 		}
 		seen[g.ID] = true
 		out = append(out, g)

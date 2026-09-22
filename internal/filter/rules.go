@@ -148,15 +148,54 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		name, cat string
 		ex        float64
 	}
+	type exGroup struct {
+		kind prices.ExceptionalKind
+		min  int
+	}
+	type valueTier struct {
+		group       ItemGroup
+		thresholdEx float64
+		currency    []string
+		uniques     []string
+		exceptional map[exGroup][]string
+	}
+	var tiers []*valueTier
+	for _, g := range cfg.ItemGroups {
+		if g.GroupMode() != ItemGroupModeValue {
+			continue
+		}
+		t := &valueTier{group: g, thresholdEx: g.ThresholdEx(snap.Rates), exceptional: map[exGroup][]string{}}
+		if t.thresholdEx <= thr {
+			st.Warnings = append(st.Warnings, fmt.Sprintf(i18n.T("warn.valueTierBelow"), g.Name, t.thresholdEx, thr))
+			continue
+		}
+		tiers = append(tiers, t)
+	}
+	// A drop belongs to the highest threshold it reaches, independent of the
+	// order in which the user created the value groups.
+	sort.SliceStable(tiers, func(i, j int) bool { return tiers[i].thresholdEx > tiers[j].thresholdEx })
+	tierFor := func(valueEx float64) *valueTier {
+		for _, t := range tiers {
+			if valueEx >= t.thresholdEx {
+				return t
+			}
+		}
+		return nil
+	}
+
 	var valuableCur, cheapCur []cur
 	for _, c := range snap.Currency {
 		name, ok := canon(c.Name)
-		if !ok || name == "Divine Orb" {
+		if !ok {
 			continue
 		}
 		if c.ValueEx >= thr {
-			valuableCur = append(valuableCur, cur{name, c.Category, c.ValueEx})
-		} else {
+			if tier := tierFor(c.ValueEx); tier != nil {
+				tier.currency = append(tier.currency, name)
+			} else if name != "Divine Orb" {
+				valuableCur = append(valuableCur, cur{name, c.Category, c.ValueEx})
+			}
+		} else if name != "Divine Orb" {
 			cheapCur = append(cheapCur, cur{name, c.Category, c.ValueEx})
 		}
 	}
@@ -172,7 +211,11 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			uniqueToBase[strings.ToLower(u.Name)] = name
 		}
 		if ub.MaxEx >= thr {
-			valuableUniqueBases = append(valuableUniqueBases, name)
+			if tier := tierFor(ub.MaxEx); tier != nil {
+				tier.uniques = append(tier.uniques, name)
+			} else {
+				valuableUniqueBases = append(valuableUniqueBases, name)
+			}
 			continue
 		}
 		// Hide only when every unique on the base has enough listings to trust.
@@ -189,11 +232,10 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	sort.Strings(valuableUniqueBases)
 	sort.Strings(cheapUniqueBases)
 	st.ValuableUniques, st.CheapUniques = len(valuableUniqueBases), len(cheapUniqueBases)
-
-	type exGroup struct {
-		kind prices.ExceptionalKind
-		min  int
+	for _, t := range tiers {
+		st.ValuableUniques += len(t.uniques)
 	}
+
 	valuableEx := map[exGroup][]string{}
 	cheapEx := map[exGroup][]string{}
 	for _, e := range snap.Exceptional {
@@ -204,12 +246,39 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		g := exGroup{e.Kind, e.Min}
 		switch {
 		case e.Samples > 0 && e.ValueEx >= thr:
-			valuableEx[g] = append(valuableEx[g], name)
+			if tier := tierFor(e.ValueEx); tier != nil {
+				tier.exceptional[g] = append(tier.exceptional[g], name)
+			} else {
+				valuableEx[g] = append(valuableEx[g], name)
+			}
 			st.ValuableExcept++
 		case e.Listings >= minExceptionalListingsToHide && e.Samples >= minExceptionalSamplesToHide:
 			cheapEx[g] = append(cheapEx[g], name)
 			st.CheapExcept++
 		}
+	}
+	exGroups := func(m map[exGroup][]string) []exGroup {
+		var gs []exGroup
+		for g := range m {
+			gs = append(gs, g)
+		}
+		sort.Slice(gs, func(i, j int) bool {
+			if gs[i].kind != gs[j].kind {
+				return gs[i].kind < gs[j].kind
+			}
+			return gs[i].min < gs[j].min
+		})
+		return gs
+	}
+	exCond := func(g exGroup) string {
+		if g.kind == prices.KindQuality {
+			return fmt.Sprintf("Quality >= %d", g.min)
+		}
+		return fmt.Sprintf("Sockets >= %d", g.min)
+	}
+	st.ValuableCurrency = len(valuableCur)
+	for _, t := range tiers {
+		st.ValuableCurrency += len(t.currency)
 	}
 
 	// ---- header -----------------------------------------------------------
@@ -225,7 +294,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 
 	// ---- 1. user hide groups (first, so they really are unconditional) ----
 	for _, g := range cfg.ItemGroups {
-		if !g.Hide {
+		if g.GroupMode() != ItemGroupModeHide {
 			continue
 		}
 		var uniqueBases, bases []string
@@ -254,12 +323,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 	}
 
-	// ---- 2. divine spotlight ----------------------------------------------
-	dp, _ := cfg.Palette(GroupDivine, ns)
-	b.section(i18n.T("filter.sec.divine"))
-	b.rule("Show", []string{`Class == "Stackable Currency"`, `BaseType == "Divine Orb"`}, "", nil,
-		styleDivine.with(dp).withSound(cfg.Sound(GroupDivine)))
-
+	// Explicit hide switches and user lists outrank every price-driven style.
 	if cfg.HideExalt {
 		b.rule("Hide", []string{`Class == "Stackable Currency"`, `BaseType == "Exalted Orb"`}, "", nil, nil)
 	}
@@ -267,7 +331,36 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		b.rule("Hide", []string{`Class == "Stackable Currency"`, `BaseType == "Gold"`}, "", nil, nil)
 	}
 
-	// ---- 3. user whitelist ------------------------------------------------
+	// Groups set to always win go before every price-driven style; the others
+	// wait until after them, so a valuable item keeps its stronger highlight.
+	b.userShowGroups(cfg, ns, uniqueToBase, canon, true)
+
+	// ---- 3. user value tiers ----------------------------------------------
+	// Tiers are written from highest to lowest. The first matching block wins,
+	// so a 10-divine drop cannot be caught by a 1-divine tier below it.
+	for _, tier := range tiers {
+		if len(tier.currency)+len(tier.uniques)+len(tier.exceptional) == 0 {
+			continue
+		}
+		b.section(fmt.Sprintf(i18n.T("filter.sec.valueTier"), strings.ToUpper(tier.group.Name),
+			tier.group.ThresholdValue, tier.group.ThresholdUnit, tier.thresholdEx))
+		pal, _ := cfg.Palette(tier.group.StyleKey(), ns)
+		tierStyle := styleMid.with(pal).withSound(cfg.Sound(tier.group.StyleKey()))
+		sort.Strings(tier.currency)
+		sort.Strings(tier.uniques)
+		b.rule("Show", nil, "BaseType", tier.currency, tierStyle)
+		b.rule("Show", []string{"Rarity Unique"}, "BaseType", tier.uniques, tierStyle)
+		for _, g := range exGroups(tier.exceptional) {
+			sort.Strings(tier.exceptional[g])
+			b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic Rare", exCond(g)},
+				"BaseType", tier.exceptional[g], tierStyle)
+		}
+	}
+
+	// ---- 3.5 user whitelist -----------------------------------------------
+	// Value tiers come first so even default entries such as Mirror of Kalandra
+	// receive the user's highest matching price style. The whitelist still
+	// guarantees that anything not covered by a tier is shown prominently.
 	if len(cfg.Whitelist) > 0 {
 		uniqueBases, bases := resolveShowList(cfg.Whitelist, uniqueToBase, canon)
 		if len(uniqueBases)+len(bases) > 0 {
@@ -279,11 +372,15 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 	}
 
-	// Groups set to always win go before the valuable styles; the others wait
-	// until after them, so a valuable item keeps its stronger highlight.
-	b.userShowGroups(cfg, ns, uniqueToBase, canon, true)
+	// ---- 4. divine spotlight ----------------------------------------------
+	// When a value tier caught Divine Orb above, its earlier rule wins. With no
+	// tiers the long-standing dedicated Divine appearance stays unchanged.
+	dp, _ := cfg.Palette(GroupDivine, ns)
+	b.section(i18n.T("filter.sec.divine"))
+	b.rule("Show", []string{`Class == "Stackable Currency"`, `BaseType == "Divine Orb"`}, "", nil,
+		styleDivine.with(dp).withSound(cfg.Sound(GroupDivine)))
 
-	// ---- 4. valuable currency and bulk items -------------------------------
+	// ---- 5. valuable currency and bulk items -------------------------------
 	if len(valuableCur) > 0 {
 		b.section(i18n.T("filter.sec.currency"))
 		byCat := map[string][]cur{}
@@ -325,17 +422,16 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			b.rule("Show", nil, "BaseType", apex, apexStyle)
 			b.rule("Show", nil, "BaseType", high, highStyle)
 		}
-		st.ValuableCurrency = len(valuableCur)
 	}
 
-	// ---- 5. valuable unique bases ------------------------------------------
+	// ---- 6. valuable unique bases ------------------------------------------
 	if len(valuableUniqueBases) > 0 {
 		b.section(i18n.T("filter.sec.unique"))
 		up, _ := cfg.Palette(GroupUnique, ns)
 		b.rule("Show", []string{"Rarity Unique"}, "BaseType", valuableUniqueBases, styleUnique.with(up).withSound(cfg.Sound(GroupUnique)))
 	}
 
-	// ---- 6. chance bases ---------------------------------------------------
+	// ---- 7. chance bases ---------------------------------------------------
 	if len(cfg.ChanceBases) > 0 {
 		var bases []string
 		for _, raw := range cfg.ChanceBases {
@@ -353,26 +449,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 	}
 
-	// ---- 7. valuable exceptional bases (trade scan) -------------------------
-	exGroups := func(m map[exGroup][]string) []exGroup {
-		var gs []exGroup
-		for g := range m {
-			gs = append(gs, g)
-		}
-		sort.Slice(gs, func(i, j int) bool {
-			if gs[i].kind != gs[j].kind {
-				return gs[i].kind < gs[j].kind
-			}
-			return gs[i].min < gs[j].min
-		})
-		return gs
-	}
-	exCond := func(g exGroup) string {
-		if g.kind == prices.KindQuality {
-			return fmt.Sprintf("Quality >= %d", g.min)
-		}
-		return fmt.Sprintf("Sockets >= %d", g.min)
-	}
+	// ---- 8. valuable exceptional bases (trade scan) -------------------------
 	exPal, _ := cfg.Palette(GroupExceptional, ns)
 	if len(valuableEx) > 0 {
 		b.section(i18n.T("filter.sec.except"))
@@ -519,7 +596,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 func (b *builder) userShowGroups(cfg Config, ns map[string]Theme, uniqueToBase map[string]string,
 	canon func(string) (string, bool), always bool) {
 	for _, g := range cfg.ItemGroups {
-		if g.Hide || g.Always != always {
+		if g.GroupMode() != ItemGroupModeShow || g.Always != always {
 			continue
 		}
 		uniqueBases, bases := resolveShowList(g.Items, uniqueToBase, canon)

@@ -153,8 +153,9 @@ export interface CustomStyle {
 }
 
 /**
- * ItemGroup is one of the user's own item lists. It either shows or hides what
- * it holds, and has its own colours and sound like the built-in groups do.
+ * ItemGroup is one of the user's own groups. Show and hide groups act on their
+ * item list; value groups act on every market-priced item at or above their
+ * threshold. Every visible group has its own colours and sound.
  */
 export interface ItemGroup {
     "id": string;
@@ -162,8 +163,10 @@ export interface ItemGroup {
     "items": string[] | null;
 
     /**
-     * Hide turns the group into an always-hidden list instead of a shown one.
+     * Mode is "show", "hide" or "value". Hide remains in the file so older
+     * versions and existing profiles keep their original meaning.
      */
+    "mode"?: string;
     "hide": boolean;
 
     /**
@@ -172,6 +175,12 @@ export interface ItemGroup {
      * list has always done.
      */
     "always": boolean;
+
+    /**
+     * ThresholdValue and ThresholdUnit are used only by value groups.
+     */
+    "threshold_value"?: number;
+    "threshold_unit"?: string;
 }
 
 /**

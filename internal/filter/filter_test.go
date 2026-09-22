@@ -155,6 +155,76 @@ func TestThresholdUnits(t *testing.T) {
 	}
 }
 
+func TestUserValueGroupsUseHighestConvertedThreshold(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.MinValue, cfg.MinValueUnit = 75, "exalted"
+	// Deliberately not in price order: generation must sort by converted value.
+	cfg.ItemGroups = []ItemGroup{
+		{ID: "g2", Name: "One Divine", Mode: ItemGroupModeValue, ThresholdValue: 1, ThresholdUnit: "divine"},
+		{ID: "g1", Name: "Three Chaos", Mode: ItemGroupModeValue, ThresholdValue: 3, ThresholdUnit: "chaos"},
+		{ID: "g3", Name: "Ten Divine", Mode: ItemGroupModeValue, ThresholdValue: 10, ThresholdUnit: "divine"},
+	}
+	cfg.Styles = map[string]string{"user:g1": "neon_green", "user:g3": "neon_red"}
+	snap := testSnapshot()
+	snap.Currency = append(snap.Currency,
+		prices.CurrencyPrice{Name: "Orb of Annulment", Category: "currency", ValueEx: 250},
+		prices.CurrencyPrice{Name: "Divine Orb", Category: "currency", ValueEx: 400},
+		prices.CurrencyPrice{Name: "Perfect Exalted Orb", Category: "currency", ValueEx: 550},
+	)
+	bases := map[string]string{}
+	for k, v := range testBases {
+		bases[k] = v
+	}
+	for _, name := range []string{"Orb of Annulment", "Divine Orb", "Perfect Exalted Orb"} {
+		bases[strings.ToLower(name)] = name
+	}
+
+	out, st := GenerateDynamicFilterBlock(cfg, snap, bases, nil)
+	g3 := blockContaining(t, out, "TEN DIVINE", `"Mirror of Kalandra"`)
+	g2 := blockContaining(t, out, "ONE DIVINE", `"Divine Orb"`, `"Perfect Exalted Orb"`)
+	g1 := blockContaining(t, out, "THREE CHAOS", `"Orb of Annulment"`)
+	if g3 < 0 || g2 < 0 || g1 < 0 || !(g3 < g2 && g2 < g1) {
+		t.Fatalf("value groups not emitted from highest to lowest: g3=%d g2=%d g1=%d\n%s", g3, g2, g1, out)
+	}
+	if blockContaining(t, out, "THREE CHAOS", `"Mirror of Kalandra"`) >= 0 {
+		t.Fatal("a high-value item must belong only to the highest threshold it reaches")
+	}
+	whitelistMirror := blockContaining(t, out, `"Mirror of Kalandra"`, "SetBackgroundColor 180 0 0 255")
+	if whitelistMirror < 0 || g3 > whitelistMirror {
+		t.Fatalf("value group must win over the default Mirror whitelist style: tier=%d whitelist=%d", g3, whitelistMirror)
+	}
+	if blockContaining(t, out, "Sockets >= 2", `"Sekhema Sandals"`, "SetBackgroundColor "+themeByID["neon_green"].BgColor) < 0 {
+		t.Fatal("priced exceptional items must use value groups too")
+	}
+	if blockContaining(t, out, "Rarity Unique", `"Silk Robe"`, "SetBackgroundColor "+themeByID["neon_red"].BgColor) < 0 {
+		t.Fatal("priced unique bases must use value groups too")
+	}
+	// The value-group rule must precede the legacy dedicated Divine rule.
+	legacyDivine := blockContaining(t, out, `Class == "Stackable Currency"`, `BaseType == "Divine Orb"`)
+	if legacyDivine < 0 || g2 > legacyDivine {
+		t.Fatalf("value group must win over the legacy Divine style: tier=%d legacy=%d", g2, legacyDivine)
+	}
+	if st.ValuableCurrency != 4 || st.ValuableUniques != 1 || st.ValuableExcept != 1 {
+		t.Fatalf("tiered items missing from stats: %+v", st)
+	}
+}
+
+func TestValueGroupAtOrBelowBaseThresholdIsIgnored(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.MinValue, cfg.MinValueUnit = 75, "exalted"
+	cfg.ItemGroups = []ItemGroup{{
+		ID: "g1", Name: "Too low", Mode: ItemGroupModeValue,
+		ThresholdValue: 1, ThresholdUnit: "chaos", // 50 Exalted in test rates
+	}}
+	out, st := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	if strings.Contains(out, "TOO LOW") {
+		t.Fatal("a value group below the base threshold must not replace the base appearance")
+	}
+	if len(st.Warnings) != 1 || !strings.Contains(st.Warnings[0], "Too low") {
+		t.Fatalf("expected a useful warning, got %v", st.Warnings)
+	}
+}
+
 func TestLegacyConfigMigration(t *testing.T) {
 	// The config file that shipped with the old version.
 	legacy := `{"min_exalt": 10, "min_divine": 1, "filter_mode": "hide", "include_gear": true,
@@ -616,6 +686,9 @@ func TestItemGroupNormalize(t *testing.T) {
 	}
 	if cfg.ItemGroups[2].Always {
 		t.Error("a hidden group has nothing to outrank")
+	}
+	if cfg.ItemGroups[2].Mode != ItemGroupModeHide || !cfg.ItemGroups[2].Hide {
+		t.Errorf("legacy hide group did not gain its mode: %+v", cfg.ItemGroups[2])
 	}
 	// Styles of a group that no longer exists are cleared, others are kept.
 	if _, ok := cfg.Styles["user:ghost"]; ok {

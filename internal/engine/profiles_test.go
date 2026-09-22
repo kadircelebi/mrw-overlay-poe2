@@ -3,6 +3,8 @@ package engine
 import (
 	"strings"
 	"testing"
+
+	"poe2filter/internal/filter"
 )
 
 func newTestEngine(t *testing.T) *Engine {
@@ -60,6 +62,10 @@ func TestProfileExportImport(t *testing.T) {
 	giver := newTestEngine(t)
 	cfg := giver.Config()
 	cfg.MinValue, cfg.FilterName = 123, "simulacrum"
+	cfg.ItemGroups = []filter.ItemGroup{{
+		ID: "g1", Name: "One Divine", Mode: filter.ItemGroupModeValue,
+		ThresholdValue: 1, ThresholdUnit: "divine",
+	}}
 	if _, err := giver.SetConfig(cfg); err != nil {
 		t.Fatal(err)
 	}
@@ -85,6 +91,10 @@ func TestProfileExportImport(t *testing.T) {
 	}
 	if got.MinValue != 123 || got.FilterName != "simulacrum" {
 		t.Errorf("imported settings wrong: %.0f %q", got.MinValue, got.FilterName)
+	}
+	if len(got.ItemGroups) != 1 || got.ItemGroups[0].GroupMode() != filter.ItemGroupModeValue ||
+		got.ItemGroups[0].ThresholdValue != 1 || got.ItemGroups[0].ThresholdUnit != "divine" {
+		t.Errorf("value group did not survive profile export/import: %+v", got.ItemGroups)
 	}
 
 	// Importing the same file again must not overwrite the first copy.

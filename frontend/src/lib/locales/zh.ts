@@ -80,9 +80,9 @@ export const zh: Record<string, string> = {
 
   'lists.title': '清單',
   'lists.showTop': '永遠顯示 — 最強調',
-  'lists.showTopNote': '最強的強調效果',
+  'lists.showTopNote': '價值群組之外使用強烈強調',
   'lists.showTopDesc':
-    '帶有高價 unique 的基底（Mageblood、Headhunter、Voices…）已自動處理，而且只在 unique 狀態下顯示。',
+    '物品若進入價值群組，會使用該群組的外觀；清單中的其他物品則以強烈效果顯示。高價 unique 基底已自動處理。',
   'lists.showMid': '永遠顯示 — 中等',
   'lists.showMidNote': '永不隱藏，中等強調',
   'lists.showMidDesc': '物品本身若已高價，會保留強烈強調；否則以這個中等外觀顯示。',
@@ -95,14 +95,19 @@ export const zh: Record<string, string> = {
 
   // 我的群組
   'groups.title': '我的群組',
-  'groups.desc': '你自己的清單。每個群組會顯示或隱藏其中的物品，顏色與音效在「外觀」中設定。',
-  'groups.order': '順序決定優先權：同類型的群組中，位於上方的優先。',
+  'groups.desc': '你自己的清單與價值層級。每個可見群組的顏色與音效都可在「外觀」中設定。',
+  'groups.order': '顯示／隱藏群組依順序決定優先權；價值群組則依門檻自動排序。',
   'groups.reorder': '移動群組',
   'groups.duplicates': '也在其他清單中：{0}',
   'groups.add': '新增群組',
   'groups.namePlaceholder': '群組名稱',
   'groups.modeShow': '顯示',
   'groups.modeHide': '隱藏',
+  'groups.modeValue': '價值門檻',
+  'groups.valueDesc': '物品價格達到門檻時，會使用它所達到的最高價值群組外觀。',
+  'groups.valueAmount': '群組門檻',
+  'groups.valueEquivalent': '目前折算：{0}',
+  'groups.valueTooLow': '此群組不會使用：{0} 必須高於基本門檻 {1}。',
   'groups.always': '一律優先',
   'groups.alwaysHint': '關閉時，高於門檻的物品會保留較強的強調',
   'groups.delete': '刪除',

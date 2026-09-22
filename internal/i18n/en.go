@@ -55,6 +55,7 @@ var en = map[string]string{
 	// Warnings collected while building rules
 	"warn.blacklistSkipped": "Blacklist: %q skipped, the same base (%s) carries a valuable %s",
 	"warn.blacklistUnknown": "Blacklist: %q not recognised",
+	"warn.valueTierBelow":   "Value group %q ignored: %.1f Exalted is not above the base threshold %.1f",
 
 	// Insights categories
 	"insights.crafting":       "Crafting base",
@@ -116,6 +117,7 @@ var en = map[string]string{
 
 	"filter.sec.userShow":    "USER GROUP: %s",
 	"filter.sec.userHide":    "USER GROUP (HIDDEN): %s",
+	"filter.sec.valueTier":   "VALUE GROUP: %s — %.2f %s (= %.1f Exalted)",
 	"group.migratedMid":      "Medium highlight",
 	"group.migratedHide":     "Always hidden",
 	"group.unnamed":          "Group %d",

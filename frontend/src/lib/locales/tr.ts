@@ -83,9 +83,9 @@ export const tr: Record<string, string> = {
 
   'lists.title': 'Listeler',
   'lists.showTop': 'Her zaman göster — öne çıkar',
-  'lists.showTopNote': 'en güçlü vurgu',
+  'lists.showTopNote': 'değer grubu yoksa güçlü vurgu',
   'lists.showTopDesc':
-    "Değerli unique'i olan tabanlar (Mageblood, Headhunter, Voices…) zaten otomatik ve sadece unique olarak gösterilir.",
+    "Bir eşya değer grubuna girerse o grubun görünümünü alır; diğerleri bu listeyle güçlü biçimde gösterilir. Değerli unique tabanları zaten otomatik işlenir.",
   'lists.showMid': 'Her zaman göster — orta',
   'lists.showMidNote': 'asla gizlenmez, orta vurgu',
   'lists.showMidDesc':
@@ -100,14 +100,19 @@ export const tr: Record<string, string> = {
   // Gruplarım
   'groups.title': 'Gruplarım',
   'groups.desc':
-    'Kendi listelerin. Her grup içindekileri gösterir ya da gizler; rengini ve sesini Görünüm bölümünden seçersin.',
-  'groups.order': 'Sıra önceliği belirler: aynı türdeki gruplardan üstteki kazanır.',
+    'Kendi listelerin ve değer katmanların. Her görünen grubun rengini ve sesini Görünüm bölümünden seçersin.',
+  'groups.order': 'Göster/Gizle gruplarında sıra önceliği belirler; değer grupları eşiklerine göre otomatik sıralanır.',
   'groups.reorder': 'Grubu taşı',
   'groups.duplicates': 'Başka bir listede de var: {0}',
   'groups.add': 'Grup ekle',
   'groups.namePlaceholder': 'Grup adı',
   'groups.modeShow': 'Göster',
   'groups.modeHide': 'Gizle',
+  'groups.modeValue': 'Değer eşiği',
+  'groups.valueDesc': 'Fiyatı bu eşiğe ulaşan eşyalar, geçtikleri en yüksek değer grubunun görünümünü alır.',
+  'groups.valueAmount': 'Grup eşiği',
+  'groups.valueEquivalent': 'Güncel karşılığı: {0}',
+  'groups.valueTooLow': 'Bu grup kullanılmaz: {0}, ana eşik olan {1} değerinden yüksek olmalı.',
   'groups.always': 'Her zaman kazansın',
   'groups.alwaysHint': 'Kapalıyken eşiğin üstündeki bir eşya güçlü vurgusunu korur',
   'groups.delete': 'Sil',
