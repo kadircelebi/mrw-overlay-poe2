@@ -55,6 +55,7 @@ Panelde, tepsi simgesine tıklayınca açılır.
 | **Uygulama güncellemeleri** | GitHub Releases'i günde bir denetler. Yeni exe'yi indirir, SHA-256 ile doğrular ve onayından sonra yeniden başlatarak güvenli biçimde değiştirir. |
 | **Trade taraması** | Exceptional taban taramasını aç/kapat ve trade kotasının ne kadarını kullanacağını seç (%10–80, varsayılan %40). |
 | **Profiller** | Farklı farm türleri için ayrı ayar setleri. Tek tıkla geçilir, yeniden adlandırılabilir, filtre hemen yeniden yazılır ve dosya olarak paylaşılabilir. |
+| **Overlay** | İsteğe bağlı fiyat sorgulayıcı, **varsayılan olarak kapalı**. Açınca oyunda bir eşyanın üzerine gelip kısayola (varsayılan Alt+E) basarsın: küçük pencere eşyayı okur, affix, DPS, nadirlik ve özellikleri tıklanarak aramaya eklenip çıkarılabilir ve resmi trade sitesinde arar. ▣ düğmesi gelişmiş filtreli geniş pazarı açar. Pencereler oyun penceresinin içinde kalır ve başka uygulamaya geçince gizlenir. |
 | **Genel** | Dil, lig, oyundaki filtre adı, filtre dosyasını dışa aktarma, filtre ve veri klasörleri. |
 
 Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için güncelle" der: önce **Güncelle**, sonra oyunda **Reload**.
@@ -132,7 +133,9 @@ All releases are built from this repository by [GitHub Actions](.github/workflow
 
 This program will not transfer any information about the user to other networked systems.
 
-To do its job it reads publicly available data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout](https://poe2scout.com/), item listings from the official Path of Exile trade API, and NeverSink's filter from GitHub. These requests carry no account name, session or other identifying information, and the application never signs in. Nothing the user enters in the app leaves their machine; settings stay in `%APPDATA%\PoE2Filtre`.
+To do its job it reads publicly available data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout](https://poe2scout.com/), item listings from the official Path of Exile trade API, and NeverSink's filter from GitHub. These requests carry no account name, session or other identifying information, and the application never signs in. Settings stay in `%APPDATA%\PoE2Filtre`.
+
+The price-check overlay is off by default. When the user turns it on and presses its shortcut over an item in the game, the application copies that item's text through the game's own copy command and sends a search built from its base type and modifiers to the official trade API. Nothing else the user enters in the app leaves their machine.
 
 ## Güncelleme ve kaldırma
 

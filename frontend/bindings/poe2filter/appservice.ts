@@ -25,6 +25,9 @@ import * as filter$0 from "./internal/filter/models.js";
 import * as insights$0 from "./internal/insights/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as overlay$0 from "./internal/overlay/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as trade$0 from "./internal/trade/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -47,6 +50,10 @@ export function CheckForAppUpdate(): $CancellablePromise<appupdate$0.State> {
     return $Call.ByID(899838745);
 }
 
+export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.SavedSearch[] | null> {
+    return $Call.ByID(3425941931, id);
+}
+
 /**
  * DeleteProfile removes a profile and switches away from it when it was active.
  */
@@ -59,6 +66,15 @@ export function DeleteProfile(name: string): $CancellablePromise<filter$0.Config
  */
 export function DownloadAppUpdate(): $CancellablePromise<appupdate$0.State> {
     return $Call.ByID(2083796200);
+}
+
+/**
+ * EvaluateOverlay reuses identical successful searches for ten minutes unless
+ * refresh is true. In-flight requests are shared as well, so opening Market
+ * while the compact overlay is evaluating cannot consume a second GGG search.
+ */
+export function EvaluateOverlay($in: trade$0.EvaluateRequest, refresh: boolean): $CancellablePromise<trade$0.Evaluation> {
+    return $Call.ByID(986547535, $in, refresh);
 }
 
 /**
@@ -106,11 +122,39 @@ export function GetMeta(): $CancellablePromise<$models.Meta> {
     return $Call.ByID(1638272379);
 }
 
+export function GetOverlayDraft(): $CancellablePromise<trade$0.EvaluateRequest> {
+    return $Call.ByID(740995069);
+}
+
+export function GetOverlaySettings(): $CancellablePromise<overlay$0.Settings> {
+    return $Call.ByID(3199014683);
+}
+
+export function GetOverlaySnapshot(): $CancellablePromise<overlay$0.Snapshot> {
+    return $Call.ByID(2331437714);
+}
+
+export function GetSavedOverlaySearches(): $CancellablePromise<overlay$0.SavedSearch[] | null> {
+    return $Call.ByID(2510875851);
+}
+
 /**
  * GetState returns the current engine state.
  */
 export function GetState(): $CancellablePromise<engine$0.State> {
     return $Call.ByID(800887515);
+}
+
+export function GetTradeCatalog(): $CancellablePromise<overlay$0.Catalog> {
+    return $Call.ByID(1579748955);
+}
+
+export function HideMarket(): $CancellablePromise<void> {
+    return $Call.ByID(1205462434);
+}
+
+export function HideOverlay(): $CancellablePromise<void> {
+    return $Call.ByID(4237697434);
 }
 
 /**
@@ -197,12 +241,33 @@ export function OpenGameFolder(): $CancellablePromise<void> {
     return $Call.ByID(1629061476);
 }
 
+export function OpenTradePage(rawURL: string): $CancellablePromise<void> {
+    return $Call.ByID(1604400219, rawURL);
+}
+
+/**
+ * ParseOverlayText is also useful for diagnostics: a copied item can be pasted
+ * into the expanded market without needing to synthesize game input.
+ */
+export function ParseOverlayText(raw: string): $CancellablePromise<overlay$0.Snapshot> {
+    return $Call.ByID(1780103724, raw);
+}
+
 /**
  * PreviewGameSound plays one of the game's own alert sounds. The sound ships
  * with the app and is written out on first use, since playback needs a path.
  */
 export function PreviewGameSound(id: string): $CancellablePromise<void> {
     return $Call.ByID(3037340691, id);
+}
+
+/**
+ * PreviewOverlay opens the compact window without touching the clipboard. It
+ * lets users verify placement and scale from Settings; the latest item remains
+ * visible when one has already been captured.
+ */
+export function PreviewOverlay(): $CancellablePromise<void> {
+    return $Call.ByID(2955524718);
 }
 
 /**
@@ -226,6 +291,10 @@ export function Quit(): $CancellablePromise<void> {
     return $Call.ByID(2719743713);
 }
 
+export function RefreshTradeCatalog(): $CancellablePromise<overlay$0.Catalog> {
+    return $Call.ByID(745987832);
+}
+
 /**
  * RenameProfile changes a saved profile's name without duplicating it.
  */
@@ -240,6 +309,14 @@ export function SaveConfig(c: filter$0.Config): $CancellablePromise<filter$0.Con
     return $Call.ByID(2775748437, c);
 }
 
+export function SaveOverlaySearch(name: string, query: trade$0.EvaluateRequest): $CancellablePromise<overlay$0.SavedSearch[] | null> {
+    return $Call.ByID(1440462065, name, query);
+}
+
+export function SaveOverlaySettings(next: overlay$0.Settings): $CancellablePromise<overlay$0.Settings> {
+    return $Call.ByID(977749632, next);
+}
+
 /**
  * SaveProfileAs stores the current settings under a name and makes it active.
  */
@@ -252,6 +329,14 @@ export function SaveProfileAs(name: string): $CancellablePromise<engine$0.Profil
  */
 export function SearchItems(query: string): $CancellablePromise<insights$0.SearchItem[] | null> {
     return $Call.ByID(3116757694, query);
+}
+
+export function ShowMarket(): $CancellablePromise<void> {
+    return $Call.ByID(1587891371);
+}
+
+export function ShowMarketWithQuery($in: trade$0.EvaluateRequest): $CancellablePromise<void> {
+    return $Call.ByID(4261131713, $in);
 }
 
 /**

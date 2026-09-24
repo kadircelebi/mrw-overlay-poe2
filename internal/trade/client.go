@@ -37,6 +37,16 @@ func NewClient(league string, budget float64) *Client {
 	}
 }
 
+// NewInteractiveClient keeps the same rate-limit budgets as NewClient but
+// allows the small bursts intended for user-initiated searches. It does not
+// weaken the per-window or server-reported quota checks.
+func NewInteractiveClient(league string, budget float64) *Client {
+	client := NewClient(league, budget)
+	client.Search.SetEvenPacing(false)
+	client.Fetch.SetEvenPacing(false)
+	return client
+}
+
 // Query is the JSON body of a trade search.
 type Query struct {
 	Query struct {

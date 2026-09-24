@@ -11,11 +11,19 @@ import type * as appupdate$0 from "../../../../../poe2filter/internal/appupdate/
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import type * as engine$0 from "../../../../../poe2filter/internal/engine/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import type * as overlay$0 from "../../../../../poe2filter/internal/overlay/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import type * as trade$0 from "../../../../../poe2filter/internal/trade/models.js";
 
 declare module "@wailsio/runtime" {
     namespace Events {
         interface CustomEvents {
             "app-update": appupdate$0.State;
+            "overlay-item": overlay$0.Snapshot;
+            "overlay-query": trade$0.EvaluateRequest;
             "state": engine$0.State;
         }
     }

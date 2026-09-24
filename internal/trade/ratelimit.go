@@ -26,6 +26,7 @@ type Rule struct {
 type Limiter struct {
 	mu           sync.Mutex
 	budget       float64
+	paceEvenly   bool
 	rules        []Rule
 	history      []time.Time // our own request times
 	serverState  []int       // current hits per rule as reported by the server
@@ -39,7 +40,17 @@ func NewLimiter(budget float64, seed []Rule) *Limiter {
 	if budget <= 0 || budget > 1 {
 		budget = 0.5
 	}
-	return &Limiter{budget: budget, rules: seed}
+	return &Limiter{budget: budget, paceEvenly: true, rules: seed}
+}
+
+// SetEvenPacing controls whether requests are spread uniformly across every
+// rate-limit window. Background scanners should stay evenly paced; interactive
+// searches may use GGG's permitted short bursts and are still stopped by the
+// per-window counters below.
+func (l *Limiter) SetEvenPacing(enabled bool) {
+	l.mu.Lock()
+	l.paceEvenly = enabled
+	l.mu.Unlock()
 }
 
 // SetBudget changes the share of the quota we may use.
@@ -66,10 +77,12 @@ func (l *Limiter) nextSlot(now time.Time) time.Time {
 		allowed := l.allowed(r)
 
 		// Spread requests evenly instead of bursting to the limit.
-		if n := len(l.history); n > 0 {
-			spaced := l.history[n-1].Add(r.Period / time.Duration(allowed))
-			if spaced.After(next) {
-				next = spaced
+		if l.paceEvenly {
+			if n := len(l.history); n > 0 {
+				spaced := l.history[n-1].Add(r.Period / time.Duration(allowed))
+				if spaced.After(next) {
+					next = spaced
+				}
 			}
 		}
 

@@ -47,3 +47,19 @@ func TestLiveScan(t *testing.T) {
 			r.Base, r.Kind, r.Min, r.Class, r.ValueEx, r.Listings, r.Samples)
 	}
 }
+
+func TestLiveEvaluateMageblood(t *testing.T) {
+	client := NewClient("Forbidden Rites", 1)
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	result, err := client.Evaluate(ctx, EvaluateRequest{
+		Name: "Mageblood", BaseType: "Utility Belt", Rarity: "unique", Status: "any",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.SearchID == "" || result.Total == 0 || len(result.Listings) == 0 {
+		t.Fatalf("empty result: %+v", result)
+	}
+	t.Logf("search=%s total=%d fetched=%d first=%g %s", result.SearchID, result.Total, len(result.Listings), result.Listings[0].Amount, result.Listings[0].Currency)
+}

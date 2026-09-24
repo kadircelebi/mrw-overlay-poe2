@@ -17,6 +17,7 @@ import (
 	"poe2filter/internal/filter"
 	"poe2filter/internal/i18n"
 	"poe2filter/internal/insights"
+	"poe2filter/internal/overlay"
 	"poe2filter/internal/trade"
 )
 
@@ -70,11 +71,41 @@ type AppService struct {
 	// service exists. The manager remembers the last notified version.
 	notifyAppUpdate func(string)
 	updateCancel    context.CancelFunc
+
+	// Overlay preferences are application-wide and intentionally separate from
+	// filter profiles. The two windows share the latest captured item.
+	overlayMu           sync.RWMutex
+	overlaySettings     overlay.Settings
+	overlaySettingsPath string
+	overlayCatalog      *overlay.CatalogStore
+	overlaySearches     *overlay.SearchStore
+	overlayClient       *trade.Client
+	overlayEvalMu       sync.Mutex
+	overlayEvalCache    map[string]overlayEvaluationCacheEntry
+	overlayEvalFlights  map[string]*overlayEvaluationFlight
+	overlaySnapshot     overlay.Snapshot
+	overlayDraft        trade.EvaluateRequest
+	overlayWindow       application.Window
+	marketWindow        application.Window
+	overlayHotkey       string
+	confineOnce         sync.Once
+	rebindOverlay       func(old, next overlay.Settings) error
 }
 
 func newAppService(meta Meta) *AppService {
 	meta.MaxItemGroups = filter.MaxItemGroups
-	return &AppService{meta: meta, signal: make(chan struct{}, 1)}
+	settingsPath := filepath.Join(meta.DataDir, "overlay.json")
+	return &AppService{
+		meta:                meta,
+		signal:              make(chan struct{}, 1),
+		overlaySettingsPath: settingsPath,
+		overlaySettings:     overlay.LoadSettings(settingsPath),
+		overlayCatalog:      overlay.NewCatalogStore(meta.DataDir),
+		overlaySearches:     overlay.NewSearchStore(filepath.Join(meta.DataDir, "overlay_searches.json")),
+		overlayClient:       trade.NewInteractiveClient(filter.LoadConfig(filepath.Join(meta.DataDir, "config.json")).LeagueName, 0.8),
+		overlayEvalCache:    make(map[string]overlayEvaluationCacheEntry),
+		overlayEvalFlights:  make(map[string]*overlayEvaluationFlight),
+	}
 }
 
 // changed is the engine's OnChange hook. It never blocks and never touches
@@ -90,7 +121,9 @@ func (s *AppService) changed() {
 func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	s.started.Do(func() {
 		s.eng.Start()
+		s.applyOverlayScale()
 		go s.pump()
+		go func() { _, _ = s.overlayCatalog.Load(ctx) }()
 		if s.updater != nil {
 			var updateCtx context.Context
 			updateCtx, s.updateCancel = context.WithCancel(ctx)

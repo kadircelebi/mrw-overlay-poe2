@@ -18,10 +18,12 @@ import (
 	"poe2filter/internal/engine"
 	"poe2filter/internal/filter"
 	"poe2filter/internal/i18n"
+	"poe2filter/internal/overlay"
+	"poe2filter/internal/trade"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
-var version = "1.8.2"
+var version = "2.0.0"
 
 //go:embed all:frontend/dist
 var frontend embed.FS
@@ -29,6 +31,8 @@ var frontend embed.FS
 func init() {
 	application.RegisterEvent[engine.State]("state")
 	application.RegisterEvent[appupdate.State]("app-update")
+	application.RegisterEvent[overlay.Snapshot]("overlay-item")
+	application.RegisterEvent[trade.EvaluateRequest]("overlay-query")
 }
 
 func defaultDataDir() string {
@@ -139,6 +143,46 @@ func main() {
 		e.Cancel()
 	})
 
+	overlayWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:             "overlay",
+		Title:            "MrW POE2 Overlay",
+		Width:            520,
+		Height:           760,
+		Frameless:        true,
+		AlwaysOnTop:      true,
+		Hidden:           true,
+		DisableResize:    true,
+		HideOnEscape:     true,
+		HideOnFocusLost:  true,
+		BackgroundColour: application.NewRGB(15, 13, 17),
+		Windows:          application.WindowsWindow{HiddenOnTaskbar: true},
+		URL:              "/?view=overlay",
+	})
+	overlayWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		overlayWindow.Hide()
+		e.Cancel()
+	})
+
+	marketWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:             "market",
+		Title:            "MrW POE2 Market",
+		Width:            680,
+		Height:           840,
+		MinWidth:         560,
+		MinHeight:        650,
+		Frameless:        true,
+		AlwaysOnTop:      true,
+		Hidden:           true,
+		HideOnEscape:     true,
+		BackgroundColour: application.NewRGB(15, 13, 17),
+		Windows:          application.WindowsWindow{HiddenOnTaskbar: true},
+		URL:              "/?view=market",
+	})
+	marketWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		marketWindow.Hide()
+		e.Cancel()
+	})
+
 	trayMenu := func() *application.Menu {
 		m := app.NewMenu()
 		m.Add(i18n.T("tray.open")).OnClick(func(*application.Context) { tray.ShowWindow() })
@@ -162,6 +206,35 @@ func main() {
 	tray.AttachWindow(panel).WindowOffset(8)
 
 	svc.app, svc.tray, svc.panel = app, tray, panel
+	svc.overlayWindow, svc.marketWindow = overlayWindow, marketWindow
+	svc.rebindOverlay = func(old, next overlay.Settings) error {
+		if old.Enabled && old.Hotkey != "" && app.GlobalShortcut.IsRegistered(old.Hotkey) {
+			if err := app.GlobalShortcut.Unregister(old.Hotkey); err != nil {
+				return err
+			}
+		}
+		if !next.Enabled {
+			svc.overlayHotkey = ""
+			return nil
+		}
+		if err := app.GlobalShortcut.Register(next.Hotkey, svc.captureOverlay); err != nil {
+			if old.Enabled && old.Hotkey != "" {
+				_ = app.GlobalShortcut.Register(old.Hotkey, svc.captureOverlay)
+			}
+			return err
+		}
+		svc.overlayHotkey = next.Hotkey
+		return nil
+	}
+	initialOverlay := svc.GetOverlaySettings()
+	if initialOverlay.Enabled {
+		if err := app.GlobalShortcut.Register(initialOverlay.Hotkey, svc.captureOverlay); err != nil {
+			log.Printf("overlay shortcut: %v", err)
+		} else {
+			svc.overlayHotkey = initialOverlay.Hotkey
+		}
+	}
+	go svc.watchGameFocus()
 	svc.eng = engine.New(engine.Options{
 		Dir:      *dataDir,
 		OutPath:  *outPath,

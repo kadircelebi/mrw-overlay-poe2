@@ -19,6 +19,7 @@
   import type { LanguageOption } from '../bindings/poe2filter/models'
   import type { ProfileInfo } from '../bindings/poe2filter/internal/engine/models'
   import type { State as AppUpdateState } from '../bindings/poe2filter/internal/appupdate/models'
+  import type { Settings as OverlaySettings } from '../bindings/poe2filter/internal/overlay/models'
 
   let meta = $state<Meta | null>(null)
   let cfg = $state<Config | null>(null)
@@ -56,6 +57,14 @@
   let dragFrom = $state<number | null>(null)
   let dragOver = $state<number | null>(null)
   let appUpdate = $state<AppUpdateState | null>(null)
+  let settingsTab = $state<'overlay' | 'filter'>('filter')
+  let overlaySettings = $state<OverlaySettings | null>(null)
+  let overlaySaveState = $state<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  let overlayError = $state('')
+  let catalogStats = $state(0)
+  let catalogItems = $state(0)
+  let catalogUpdatedAt = $state(0)
+  let overlaySaveTimer: ReturnType<typeof setTimeout> | undefined
 
   // "auto" resolves to whatever the first entry (the system language) reports.
   function languageOf(setting: string | undefined): string {
@@ -89,9 +98,11 @@
       leagues = (await AppService.Leagues()) ?? []
       languages = (await AppService.Languages()) ?? []
       profiles = (await AppService.Profiles()) ?? []
+      overlaySettings = await AppService.GetOverlaySettings()
       cfg = await AppService.GetConfig()
       applyLanguage(cfg.language)
       await refresh()
+      AppService.GetTradeCatalog().then(setCatalogSummary).catch(() => {})
     })()
     const off = Events.On('state', (ev) => {
       const prevRunning = st?.running
@@ -111,6 +122,38 @@
       window.removeEventListener('focus', refresh)
     }
   })
+
+  function setCatalogSummary(catalog: Awaited<ReturnType<typeof AppService.GetTradeCatalog>>) {
+    catalogStats = (catalog.stats ?? []).reduce((sum, group) => sum + (group.entries?.length ?? 0), 0)
+    catalogItems = (catalog.items ?? []).reduce((sum, group) => sum + (group.entries?.length ?? 0), 0)
+    catalogUpdatedAt = catalog.updatedAtMs
+  }
+
+  function queueOverlaySave() {
+    if (!overlaySettings) return
+    overlaySaveState = 'saving'
+    overlayError = ''
+    clearTimeout(overlaySaveTimer)
+    overlaySaveTimer = setTimeout(async () => {
+      try {
+        overlaySettings = await AppService.SaveOverlaySettings($state.snapshot(overlaySettings!) as OverlaySettings)
+        overlaySaveState = 'saved'
+        setTimeout(() => overlaySaveState === 'saved' && (overlaySaveState = 'idle'), 1500)
+      } catch (e) {
+        overlaySaveState = 'error'
+        overlayError = String(e)
+      }
+    }, 300)
+  }
+
+  async function refreshCatalog() {
+    overlayError = ''
+    try {
+      setCatalogSummary(await AppService.RefreshTradeCatalog())
+    } catch (e) {
+      overlayError = String(e)
+    }
+  }
 
   // Save shortly after the last change; the filter is rebuilt only on demand.
   function queueSave(affectsFilter = true) {
@@ -810,6 +853,55 @@
     </div>
   {:else if cfg && view === 'settings'}
     <div class="scroll settings">
+      <nav class="settings-tabs" aria-label={t('settings.section')}>
+        <button class:on={settingsTab === 'overlay'} onclick={() => (settingsTab = 'overlay')}>{t('settings.overlay')}</button>
+        <button class:on={settingsTab === 'filter'} onclick={() => (settingsTab = 'filter')}>{t('settings.filter')}</button>
+      </nav>
+      {#if settingsTab === 'overlay' && overlaySettings}
+        <section class="card overlay-settings-card">
+          <div class="card-title">
+            <h2>{t('overlay.title')}</h2>
+            <span class="aside save {overlaySaveState}">
+              {overlaySaveState === 'saving' ? t('save.saving') : overlaySaveState === 'saved' ? t('save.saved') : ''}
+            </span>
+          </div>
+          <p class="desc">{t('overlay.desc')}</p>
+          <Toggle bind:checked={overlaySettings.enabled} label={t('overlay.enable')} hint={t('overlay.enableHint')} onchange={queueOverlaySave} />
+          <label class="field stack">
+            <span>{t('overlay.hotkey')}</span>
+            <input bind:value={overlaySettings.hotkey} onchange={queueOverlaySave} spellcheck="false" placeholder="Alt+E" />
+          </label>
+          <p class="desc hint">{t('overlay.hotkeyHint')}</p>
+        </section>
+
+        <section class="card overlay-settings-card">
+          <h2>{t('overlay.size')}</h2>
+          <Toggle bind:checked={overlaySettings.auto_scale} label={t('overlay.autoScale')} hint={t('overlay.autoScaleHint')} onchange={queueOverlaySave} />
+          <Segmented
+            small
+            bind:value={overlaySettings.ui_scale}
+            onchange={queueOverlaySave}
+            options={[75, 100, 125, 150, 175].map((v) => ({ value: v, label: `%${v}` }))}
+          />
+          <p class="desc hint">{t('overlay.scaleHint')}</p>
+        </section>
+
+        <section class="card overlay-settings-card">
+          <h2>{t('overlay.catalog')}</h2>
+          <p class="desc">{t('overlay.catalogDesc')}</p>
+          <div class="catalog-summary">
+            <div><strong class="num">{catalogStats || '—'}</strong><span>{t('overlay.affixes')}</span></div>
+            <div><strong class="num">{catalogItems || '—'}</strong><span>{t('overlay.items')}</span></div>
+          </div>
+          {#if catalogUpdatedAt}<p class="desc hint">{t('overlay.catalogUpdated', relative(catalogUpdatedAt, now))}</p>{/if}
+          <div class="presets">
+            <button type="button" onclick={refreshCatalog}>{t('overlay.refreshCatalog')}</button>
+            <button type="button" onclick={() => AppService.PreviewOverlay()}>{t('overlay.preview')}</button>
+            <button type="button" onclick={() => AppService.ShowMarket()}>{t('overlay.openMarket')}</button>
+          </div>
+          {#if overlayError}<p class="error">{overlayError}</p>{/if}
+        </section>
+      {:else}
       <section class="card">
         <h2>{t('profile.title')}</h2>
         <p class="desc">{t('profile.desc')}</p>
@@ -1240,6 +1332,7 @@
           <input bind:value={cfg.price_source_url} onchange={() => queueSave(false)} placeholder="https://…/prices.json" spellcheck="false" />
         </label>
       </section>
+	  {/if}
 
       <section class="actions">
         <button onclick={() => AppService.OpenGameFolder()}>{t('actions.filterFolder')}</button>
@@ -1401,6 +1494,37 @@
   .settings h2 {
     margin-bottom: 10px;
   }
+
+  .settings-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 8;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: -12px -12px 12px;
+    padding: 6px 12px 0;
+    background: linear-gradient(var(--bg) 75%, transparent);
+  }
+
+  .settings-tabs button {
+    padding: 10px;
+    border: 1px solid var(--line-strong);
+    border-bottom-color: var(--gold-dim);
+    background: var(--sunk);
+    color: var(--muted);
+    font-family: var(--serif);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .settings-tabs button + button { border-left: 0; }
+  .settings-tabs button.on { color: var(--gold-bright); background: var(--surface-2); box-shadow: inset 0 -2px var(--gold); }
+  .overlay-settings-card .field.stack { margin-top: 7px; }
+  .catalog-summary { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0; }
+  .catalog-summary div { padding:10px; text-align:center; border:1px solid var(--line); background:var(--sunk); }
+  .catalog-summary strong,.catalog-summary span { display:block; }
+  .catalog-summary strong { color:var(--gold-bright); font-size:19px; }
+  .catalog-summary span { color:var(--muted); font-size:10px; text-transform:uppercase; }
   h3 {
     margin: 12px 0 6px;
     font-size: 12px;
