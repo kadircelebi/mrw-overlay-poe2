@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { Events } from '@wailsio/runtime'
+  import { Events, Window } from '@wailsio/runtime'
   import { AppService, type Meta } from '../bindings/poe2filter'
   import type { Config } from '../bindings/poe2filter/internal/filter/models'
   import type { State } from '../bindings/poe2filter/internal/engine/models'
@@ -11,6 +11,7 @@
   import StylePreview from './lib/StylePreview.svelte'
   import ThemePicker from './lib/ThemePicker.svelte'
   import TierSlider from './lib/TierSlider.svelte'
+  import Swatch from './lib/Swatch.svelte'
   import { lookOf, fromHex } from './lib/look'
   import type { CustomStyle, ItemGroup } from '../bindings/poe2filter/internal/filter/models'
   import type { StyleOptions } from '../bindings/poe2filter/models'
@@ -22,10 +23,59 @@
   import type { State as AppUpdateState } from '../bindings/poe2filter/internal/appupdate/models'
   import type { Settings as OverlaySettings } from '../bindings/poe2filter/internal/overlay/models'
 
+  // The same component drives two windows: the small tray panel and the
+  // settings window. Each keeps its own copy of the config; the "config"
+  // event keeps them in step.
+  let { win = 'panel' }: { win?: 'panel' | 'settings' } = $props()
+
+  type Section = 'rules' | 'lists' | 'groups' | 'look' | 'priceCheck' | 'account' | 'profiles' | 'updates' | 'trade' | 'general'
+  const sections: { head: string; items: { id: Section; label: string }[] }[] = $derived([
+    {
+      head: t('nav.filter'),
+      items: [
+        { id: 'rules', label: t('nav.rules') },
+        { id: 'groups', label: t('groups.title') },
+        { id: 'look', label: t('nav.look') },
+        { id: 'lists', label: t('lists.title') },
+      ],
+    },
+    {
+      head: t('nav.overlay'),
+      items: [
+        { id: 'priceCheck', label: t('nav.priceCheck') },
+        { id: 'account', label: t('nav.account') },
+      ],
+    },
+    {
+      head: t('nav.app'),
+      items: [
+        { id: 'profiles', label: t('profile.title') },
+        { id: 'updates', label: t('nav.updates') },
+        { id: 'trade', label: t('trade.title') },
+        { id: 'general', label: t('general.title') },
+      ],
+    },
+  ])
+  const sectionDesc: Record<Section, string> = {
+    rules: 'page.rules',
+    lists: 'page.lists',
+    groups: 'groups.desc',
+    look: 'look.desc',
+    priceCheck: 'page.priceCheck',
+    account: 'page.account',
+    profiles: 'page.profiles',
+    updates: 'page.updates',
+    trade: 'page.trade',
+    general: 'page.general',
+  }
+  let section = $state<Section>('rules')
+  const sectionLabel = $derived(sections.flatMap((s) => s.items).find((s) => s.id === section)?.label ?? '')
+  // Index of the user group open in the Groups page.
+  let groupSel = $state(0)
+
   let meta = $state<Meta | null>(null)
   let cfg = $state<Config | null>(null)
   let st = $state<State | null>(null)
-  let view = $state<'main' | 'settings'>('main')
   let now = $state(Date.now())
   // Settings changed since the filter was last written.
   let dirty = $state(false)
@@ -58,7 +108,6 @@
   let dragFrom = $state<number | null>(null)
   let dragOver = $state<number | null>(null)
   let appUpdate = $state<AppUpdateState | null>(null)
-  let settingsTab = $state<'overlay' | 'filter'>('filter')
   let overlaySettings = $state<OverlaySettings | null>(null)
   let overlaySaveState = $state<'idle' | 'saving' | 'saved' | 'error'>('idle')
   let overlayError = $state('')
@@ -84,6 +133,39 @@
   async function refresh() {
     st = await AppService.GetState()
     leagues = (await AppService.Leagues()) ?? leagues
+    profiles = (await AppService.Profiles()) ?? profiles
+    overlaySettings = (await AppService.GetOverlaySettings()) ?? overlaySettings
+  }
+
+  // Settings that only steer the app, not what the filter says; changing them
+  // elsewhere does not call for a rewrite.
+  const appOnlyKeys = new Set([
+    'language',
+    'auto_update_enabled',
+    'auto_update_hours',
+    'notify_enabled',
+    'scan_budget_pct',
+    'price_source_url',
+    'exceptional_scan',
+  ])
+
+  // Settings saved by the other window (or by this one, echoed back). While
+  // this window still has an edit on its way, its own reply wins.
+  async function adoptConfig(next: Config) {
+    if (!cfg || saveState === 'saving') return
+    const differs = (Object.keys(next) as (keyof Config)[]).some(
+      (k) => !appOnlyKeys.has(k) && JSON.stringify(next[k]) !== JSON.stringify(cfg![k]),
+    )
+    const langChanged = languageOf(next.language) !== languageOf(cfg.language)
+    if (differs) dirty = true
+    cfg = next
+    if (langChanged) {
+      applyLanguage(next.language)
+      themes = (await AppService.Themes()) ?? themes
+      groups = (await AppService.StyleGroups()) ?? groups
+      languages = (await AppService.Languages()) ?? languages
+    }
+    profiles = (await AppService.Profiles()) ?? profiles
   }
 
   onMount(() => {
@@ -114,11 +196,17 @@
       }
     })
     const offAppUpdate = Events.On('app-update', (ev) => (appUpdate = ev.data))
+    const offConfig = Events.On('config', (ev) => adoptConfig(ev.data as Config))
+    const offSection = Events.On('settings-section', (ev) => {
+      if (win === 'settings') section = ev.data as Section
+    })
     const tick = setInterval(() => (now = Date.now()), 1000)
     window.addEventListener('focus', refresh)
     return () => {
       off()
       offAppUpdate()
+      offConfig()
+      offSection()
       clearInterval(tick)
       window.removeEventListener('focus', refresh)
     }
@@ -464,13 +552,27 @@
         threshold_unit: 'exalted',
       } as ItemGroup,
     ]
+    groupSel = cfg.item_groups.length - 1
     queueSave()
   }
 
   // Jump to the group's colours: the picker lives in the Appearance section.
   function openLook(id: string) {
     styleGroup = 'user:' + id
-    requestAnimationFrame(() => document.querySelector('#appearance')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))
+    section = 'look'
+  }
+
+  function openSection(id: Section) {
+    section = id
+    // A page is read from the top; the previous one's scroll means nothing here.
+    requestAnimationFrame(() => document.querySelector('.page')?.scrollTo(0, 0))
+  }
+
+  function itemCount(g: ItemGroup): string {
+    if (groupMode(g) === 'value') {
+      return `≥ ${g.threshold_value ?? 0} ${g.threshold_unit || 'exalted'}`
+    }
+    return t('groups.itemCount', g.items?.length ?? 0)
   }
 
   // Order decides which group's rules reach the filter first, so moving a card
@@ -482,6 +584,10 @@
     const [g] = list.splice(from, 1)
     list.splice(to, 0, g)
     cfg.item_groups = list
+    // The open group travels with its card.
+    if (groupSel === from) groupSel = to
+    else if (groupSel > from && groupSel <= to) groupSel--
+    else if (groupSel < from && groupSel >= to) groupSel++
     queueSave()
   }
 
@@ -514,6 +620,7 @@
     if (!cfg) return
     confirmDelete = ''
     cfg.item_groups = (cfg.item_groups ?? []).filter((g) => g.id !== id)
+    groupSel = Math.max(0, Math.min(groupSel, cfg.item_groups.length - 1))
     if (styleGroup === 'user:' + id) styleGroup = 'divine'
     queueSave()
   }
@@ -671,686 +778,810 @@
   const scanPct = $derived(st && st.scan.keys ? Math.min(1, st.scan.scanned / st.scan.keys) : 0)
 </script>
 
-<main>
-  <header>
-    <img src="/emblem.png" alt="" class="emblem" />
-    {#if view === 'main'}
+{#snippet thresholdCard(c: Config)}
+  <section class="card">
+    <div class="card-title">
+      <h2>{t('threshold.title')}</h2>
+      {#if divineEx && c.min_value_unit !== 'exalted'}<span class="aside num">≈ {money(thresholdEx, 0)}</span>{/if}
+    </div>
+    <p class="desc">
+      {t(c.filter_mode === 'dim' ? 'threshold.dim' : c.filter_mode === 'show_only' ? 'threshold.show' : 'threshold.hide')}
+    </p>
+    <div class="threshold">
+      <input
+        type="number"
+        class="num"
+        min="0"
+        step={c.min_value_unit === 'divine' ? 0.1 : 1}
+        bind:value={c.min_value}
+        oninput={() => queueSave()}
+      />
+      <Segmented
+        small
+        bind:value={c.min_value_unit}
+        onchange={() => queueSave()}
+        options={[
+          { value: 'exalted', label: 'Exalted' },
+          { value: 'chaos', label: 'Chaos' },
+          { value: 'divine', label: 'Divine' },
+        ]}
+      />
+    </div>
+    <div class="chips">
+      {#each c.min_value_unit === 'divine' ? [0.1, 0.5, 1, 5] : [5, 10, 50, 100] as v}
+        <button class:on={c.min_value === v} onclick={() => { c.min_value = v; queueSave() }}>{v}</button>
+      {/each}
+    </div>
+  </section>
+{/snippet}
+
+{#snippet baseCard(c: Config)}
+  <section class="card">
+    <div class="card-title">
+      <h2>{t('base.title')}</h2>
+      <span class="aside gold">{strictnessNames[c.strictness]}</span>
+    </div>
+    <input
+      type="range"
+      class="strict"
+      min="0"
+      max="6"
+      step="1"
+      bind:value={c.strictness}
+      onchange={() => queueSave()}
+      style="--p: {(c.strictness / 6) * 100}%"
+    />
+    <div class="scale"><span>{t('base.soft')}</span><span>{t('base.strict')}</span><span>{t('base.uber')}</span></div>
+
+    <h2 class="sub-title">{t('mode.title')}</h2>
+    <Segmented
+      bind:value={c.filter_mode}
+      onchange={() => queueSave()}
+      options={[
+        { value: 'hide', label: t('mode.hide') },
+        { value: 'dim', label: t('mode.dim') },
+        { value: 'show_only', label: t('mode.show') },
+      ]}
+    />
+  </section>
+{/snippet}
+
+{#snippet statusHead()}
+  <div class="status-head">
+    <span class="dot"></span>
+    <div class="status-text">
+      <strong>{status.title}</strong>
+      {#if status.sub}<span class="sub" title={status.sub}>{status.sub}</span>{/if}
+    </div>
+  </div>
+{/snippet}
+
+{#if win === 'panel'}
+  <main>
+    <header>
+      <img src="/emblem.png" alt="" class="emblem" />
       <div class="brand">
         <h1 lang="en">{t('app.title')}</h1>
         {#if cfg}<span class="league">{cfg.league_name}</span>{/if}
       </div>
-      <button class="icon" title={t('header.settings')} aria-label={t('header.settings')} onclick={() => (view = 'settings')}>
+      <button class="icon" title={t('header.settings')} aria-label={t('header.settings')} onclick={() => AppService.ShowSettings('')}>
         <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>
       </button>
-    {:else}
-      <div class="brand">
-        <h1>{t('header.settings')}</h1>
-        <span class="save {saveState}">
-          {#if saveState === 'saving'}{t('save.saving')}{:else if saveState === 'saved'}{t('save.saved')}{:else if saveState === 'error'}{t('save.error')}{/if}
-        </span>
-      </div>
-      <button class="icon" title={t('header.back')} aria-label={t('header.back')} onclick={() => (view = 'main')}>
-        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+      <button class="icon" title={t('header.hide')} aria-label={t('header.hide')} onclick={() => AppService.HidePanel()}>
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
       </button>
-    {/if}
-    <button class="icon" title={t('header.hide')} aria-label={t('header.hide')} onclick={() => AppService.HidePanel()}>
-      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
-    </button>
-  </header>
+    </header>
 
-  {#if cfg && view === 'main'}
-    <div class="scroll">
-      <!-- Status -->
-      <section class="card status {status.tone}">
-        <div class="status-head">
-          <span class="dot"></span>
-          <div class="status-text">
-            <strong>{status.title}</strong>
-            {#if status.sub}<span class="sub" title={status.sub}>{status.sub}</span>{/if}
-          </div>
-        </div>
-        {#if st?.running}
-          <div class="bar"><span style="width: {Math.round((st.progress || 0.05) * 100)}%"></span></div>
-        {/if}
-        {#if dirty && !st?.running}
-          <p class="notice">{t('status.dirty')}</p>
-        {/if}
-        {#if st?.lastError && !st.running}
-          <p class="notice bad">
-            {t(
-              'status.writeFailed',
-              st.lastOkAtMs ? t('status.fileFrom', relative(st.lastOkAtMs, now)) : t('status.fileNever'),
-            )}
-          </p>
-        {/if}
-        <button class="primary" class:pulse={dirty} disabled={st?.running} onclick={updateNow}>
-          {st?.running ? t('button.updating') : st?.lastError ? t('button.retry') : t('button.updateNow')}
-        </button>
-        <div class="meta-row">
+    {#if cfg}
+      <div class="scroll">
+        <!-- Status -->
+        <section class="card status {status.tone}">
+          {@render statusHead()}
           {#if st?.running}
-            <span>&nbsp;</span>
-          {:else if st?.nextRetryAtMs}
-            <span>{t('meta.autoRetry', clock(st.nextRetryAtMs))} <em>({until(st.nextRetryAtMs, now)})</em></span>
-          {:else if st?.nextRunAtMs}
-            <span>{t('meta.next', clock(st.nextRunAtMs))} <em>({until(st.nextRunAtMs, now)})</em></span>
-          {:else if !cfg.auto_update_enabled}
-            <span>{t('meta.autoOff')}</span>
+            <div class="bar"><span style="width: {Math.round((st.progress || 0.05) * 100)}%"></span></div>
           {/if}
-          <span class="reload">{t('meta.reload')}</span>
-        </div>
-        {#if actionError}<p class="error">{actionError}</p>{/if}
-      </section>
-
-      <!-- Threshold -->
-      <section class="card">
-        <div class="card-title">
-          <h2>{t('threshold.title')}</h2>
-          {#if divineEx && cfg.min_value_unit !== 'exalted'}<span class="aside num">≈ {money(thresholdEx, 0)}</span>{/if}
-        </div>
-        <p class="desc">
-          {t(cfg.filter_mode === 'dim' ? 'threshold.dim' : cfg.filter_mode === 'show_only' ? 'threshold.show' : 'threshold.hide')}
-        </p>
-        <div class="threshold">
-          <input
-            type="number"
-            class="num"
-            min="0"
-            step={cfg.min_value_unit === 'divine' ? 0.1 : 1}
-            bind:value={cfg.min_value}
-            oninput={() => queueSave()}
-          />
-          <Segmented
-            small
-            bind:value={cfg.min_value_unit}
-            onchange={() => queueSave()}
-            options={[
-              { value: 'exalted', label: 'Exalted' },
-              { value: 'chaos', label: 'Chaos' },
-              { value: 'divine', label: 'Divine' },
-            ]}
-          />
-        </div>
-        <div class="chips">
-          {#each cfg.min_value_unit === 'divine' ? [0.1, 0.5, 1, 5] : [5, 10, 50, 100] as v}
-            <button class:on={cfg.min_value === v} onclick={() => { cfg!.min_value = v; queueSave() }}>{v}</button>
-          {/each}
-        </div>
-      </section>
-
-      <!-- Strictness + mode -->
-      <section class="card">
-        <div class="card-title">
-          <h2>{t('base.title')}</h2>
-          <span class="aside gold">{strictnessNames[cfg.strictness]}</span>
-        </div>
-        <input
-          type="range"
-          class="strict"
-          min="0"
-          max="6"
-          step="1"
-          bind:value={cfg.strictness}
-          onchange={() => queueSave()}
-          style="--p: {(cfg.strictness / 6) * 100}%"
-        />
-        <div class="scale"><span>{t('base.soft')}</span><span>{t('base.strict')}</span><span>{t('base.uber')}</span></div>
-
-        <h2 class="sub-title">{t('mode.title')}</h2>
-        <Segmented
-          bind:value={cfg.filter_mode}
-          onchange={() => queueSave()}
-          options={[
-            { value: 'hide', label: t('mode.hide') },
-            { value: 'dim', label: t('mode.dim') },
-            { value: 'show_only', label: t('mode.show') },
-          ]}
-        />
-      </section>
-
-      <!-- Exceptional scan -->
-      <section class="card">
-        <Toggle
-          bind:checked={cfg.exceptional_scan}
-          label={t('scan.toggle')}
-          hint={t('scan.hint')}
-          onchange={() => queueSave(false)}
-        />
-        {#if st && cfg.exceptional_scan}
-          <div class="bar thin"><span class="cyan" style="width: {scanPct * 100}%"></span></div>
-          <div class="scan-line num">
-            <span>{t('scan.scanned', st.scan.scanned, st.scan.keys || '—')}</span>
-            <span class="cyan-text">{t('scan.valuable', st.scan.valuable)}</span>
-          </div>
-          {#if st.scan.current}
-            <div class="scan-line muted">
-              <span class="ellipsis">{t('scan.next', st.scan.current)}</span>
-              <span class="num">{st.scan.nextAtMs > now + 1000 ? until(st.scan.nextAtMs, now) : t('scan.searching')}</span>
-            </div>
+          {#if dirty && !st?.running}
+            <p class="notice">{t('status.dirty')}</p>
           {/if}
-          {#if st.scan.last}
-            <div class="scan-line muted"><span class="ellipsis">{t('scan.last', st.scan.last)}</span></div>
-          {/if}
-          {#if st.scan.etaSec > 0}
-            <p class="scan-note">
+          {#if st?.lastError && !st.running}
+            <p class="notice bad">
               {t(
-                'scan.note',
-                Math.round(st.scan.etaSec / Math.max(1, st.scan.keys - st.scan.scanned)),
-                until(now + st.scan.etaSec * 1000, now),
+                'status.writeFailed',
+                st.lastOkAtMs ? t('status.fileFrom', relative(st.lastOkAtMs, now)) : t('status.fileNever'),
               )}
             </p>
           {/if}
-        {/if}
-      </section>
-
-      <!-- Summary -->
-      {#if last}
-        <section class="stats">
-          <div><strong class="num">{last.valuableCurrency}</strong><span>{t('stats.currency')}</span></div>
-          <div><strong class="num">{last.valuableUniques}</strong><span>{t('stats.uniqueBases')}</span></div>
-          <div><strong class="num cyan-text">{last.valuableExcept}</strong><span>{t('stats.exceptional')}</span></div>
-        </section>
-        <p class="stats-caption">{t('stats.caption', Math.round(divineEx))}</p>
-      {/if}
-    </div>
-  {:else if cfg && view === 'settings'}
-    <div class="scroll settings">
-      <nav class="settings-tabs" aria-label={t('settings.section')}>
-        <button class:on={settingsTab === 'overlay'} onclick={() => (settingsTab = 'overlay')}>{t('settings.overlay')}</button>
-        <button class:on={settingsTab === 'filter'} onclick={() => (settingsTab = 'filter')}>{t('settings.filter')}</button>
-      </nav>
-      {#if settingsTab === 'overlay' && overlaySettings}
-        <section class="card overlay-settings-card">
-          <div class="card-title">
-            <h2>{t('overlay.title')}</h2>
-            <span class="aside save {overlaySaveState}">
-              {overlaySaveState === 'saving' ? t('save.saving') : overlaySaveState === 'saved' ? t('save.saved') : ''}
-            </span>
-          </div>
-          <p class="desc">{t('overlay.desc')}</p>
-          <Toggle bind:checked={overlaySettings.enabled} label={t('overlay.enable')} hint={t('overlay.enableHint')} onchange={queueOverlaySave} />
-          <label class="field stack">
-            <span>{t('overlay.hotkey')}</span>
-            <input bind:value={overlaySettings.hotkey} onchange={queueOverlaySave} spellcheck="false" placeholder="Alt+E" />
-          </label>
-          <p class="desc hint">{t('overlay.hotkeyHint')}</p>
-          <label class="field stack">
-            <span>{t('overlay.marketHotkey')}</span>
-            <input bind:value={overlaySettings.market_hotkey} onchange={queueOverlaySave} spellcheck="false" placeholder="Alt+M" />
-          </label>
-          <p class="desc hint">{t('overlay.marketHotkeyHint')}</p>
-        </section>
-
-        <AccountLink />
-
-        <section class="card overlay-settings-card">
-          <h2>{t('overlay.size')}</h2>
-          <Toggle bind:checked={overlaySettings.auto_scale} label={t('overlay.autoScale')} hint={t('overlay.autoScaleHint')} onchange={queueOverlaySave} />
-          <Segmented
-            small
-            bind:value={overlaySettings.ui_scale}
-            onchange={queueOverlaySave}
-            options={[75, 100, 125, 150, 175].map((v) => ({ value: v, label: `%${v}` }))}
-          />
-          <p class="desc hint">{t('overlay.scaleHint')}</p>
-        </section>
-
-        <section class="card overlay-settings-card">
-          <h2>{t('overlay.catalog')}</h2>
-          <p class="desc">{t('overlay.catalogDesc')}</p>
-          <div class="catalog-summary">
-            <div><strong class="num">{catalogStats || '—'}</strong><span>{t('overlay.affixes')}</span></div>
-            <div><strong class="num">{catalogItems || '—'}</strong><span>{t('overlay.items')}</span></div>
-          </div>
-          {#if catalogUpdatedAt}<p class="desc hint">{t('overlay.catalogUpdated', relative(catalogUpdatedAt, now))}</p>{/if}
-          <div class="presets">
-            <button type="button" onclick={refreshCatalog}>{t('overlay.refreshCatalog')}</button>
-            <button type="button" onclick={() => AppService.PreviewOverlay()}>{t('overlay.preview')}</button>
-            <button type="button" onclick={() => AppService.ShowMarket()}>{t('overlay.openMarket')}</button>
-          </div>
-          {#if overlayError}<p class="error">{overlayError}</p>{/if}
-        </section>
-      {:else}
-      <section class="card">
-        <h2>{t('profile.title')}</h2>
-        <p class="desc">{t('profile.desc')}</p>
-        <label class="field">
-          <span>{t('profile.title')}</span>
-          <select value={activeProfile} onchange={(e) => switchProfile(e.currentTarget.value)}>
-            {#each profiles as p (p.name)}
-              <option value={p.name}>{p.name}</option>
-            {/each}
-          </select>
-        </label>
-        <div class="group-head">
-          <input
-            class="group-name"
-            bind:value={newProfile}
-            placeholder={t('profile.namePlaceholder')}
-            onkeydown={(e) => e.key === 'Enter' && saveProfileAs()}
-            spellcheck="false"
-          />
-          <button type="button" class="group-del" onclick={saveProfileAs} disabled={!newProfile.trim()}>
-            {t('profile.saveAs')}
+          <button class="primary" class:pulse={dirty} disabled={st?.running} onclick={updateNow}>
+            {st?.running ? t('button.updating') : st?.lastError ? t('button.retry') : t('button.updateNow')}
           </button>
-          <button type="button" class="group-del" onclick={renameProfile} disabled={!newProfile.trim()}>
-            {t('profile.rename')}
-          </button>
-        </div>
-        <div class="presets">
-          <button type="button" onclick={exportProfile}>{t('profile.export')}</button>
-          <button type="button" onclick={importProfile}>{t('profile.import')}</button>
-          <button
-            type="button"
-            class:confirm={confirmProfileDelete}
-            disabled={profiles.length < 2}
-            onclick={() => (confirmProfileDelete ? deleteProfile() : (confirmProfileDelete = true))}
-            onblur={() => (confirmProfileDelete = false)}
-          >
-            {confirmProfileDelete ? t('profile.deleteConfirm') : t('profile.delete')}
-          </button>
-        </div>
-        <p class="desc hint">{t('profile.everything')}</p>
-        {#if profileMsg}<p class="desc warn">{profileMsg}</p>{/if}
-        {#if profileErr}<p class="error">{profileErr}</p>{/if}
-      </section>
-
-      <section class="card">
-        <h2>{t('gear.title')}</h2>
-        <Toggle bind:checked={cfg.include_gear} label={t('gear.strict')} hint={t('gear.strictHint')} onchange={() => queueSave()} />
-        <TierSlider
-          bind:value={cfg.t5_rare_tier}
-          min={0}
-          max={5}
-          label={t('tier.t5rare')}
-          hint={t('tier.t5rareHint')}
-          onchange={() => queueSave()}
-        />
-        <TierSlider
-          bind:value={cfg.rare_jewel_tier}
-          min={0}
-          max={5}
-          label={t('tier.jewels')}
-          hint={t('tier.jewelsHint')}
-          onchange={() => queueSave()}
-        />
-        <label class="field">
-          <span>{t('gear.quality')}</span>
-          <select bind:value={cfg.quality_threshold} onchange={() => queueSave()}>
-            <option value={0}>{t('gear.qualityOff')}</option>
-            <option value={15}>%15+</option>
-            <option value={20}>%20+</option>
-          </select>
-        </label>
-      </section>
-
-      <section class="card">
-        <h2>{t('rules.title')}</h2>
-        <TierSlider
-          bind:value={cfg.waystone_tier}
-          min={1}
-          max={15}
-          prefix="T"
-          label={t('tier.waystones')}
-          hint={t('tier.waystonesHint')}
-          onchange={() => queueSave()}
-        />
-        <TierSlider
-          bind:value={cfg.uncut_gem_level}
-          min={1}
-          max={20}
-          label={t('tier.uncut')}
-          hint={t('tier.uncutHint')}
-          onchange={() => queueSave()}
-        />
-        <TierSlider
-          bind:value={cfg.uncut_support_level}
-          min={1}
-          max={5}
-          label={t('tier.support')}
-          hint={t('tier.supportHint')}
-          onchange={() => queueSave()}
-        />
-        <Toggle bind:checked={cfg.boss_keys_and_tablets} label={t('rules.pinnacle')} onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.hide_exalt} label={t('rules.hideExalt')} onchange={() => queueSave()} />
-        <Toggle bind:checked={cfg.hide_gold} label={t('rules.hideGold')} onchange={() => queueSave()} />
-      </section>
-
-      <section class="card">
-        <h2>{t('lists.title')}</h2>
-        <h3>{t('lists.showTop')} <span class="h3-note">{t('lists.showTopNote')}</span></h3>
-        <p class="desc">{t('lists.showTopDesc')}</p>
-        <ListEditor bind:items={cfg.whitelist} uniqueVariants placeholder={t('lists.searchItem')} onchange={() => queueSave()} />
-        <h3>{t('lists.chance')} <span class="h3-note">{t('lists.chanceNote')}</span></h3>
-        <ListEditor bind:items={cfg.chance_bases} placeholder={t('lists.searchBase')} onchange={() => queueSave()} />
-      </section>
-
-      <section class="card">
-        <h2>{t('groups.title')}</h2>
-        <p class="desc">{t('groups.desc')}</p>
-        <p class="desc hint">{t('groups.order')}</p>
-        {#each cfg.item_groups ?? [] as g, i (g.id || i)}
-          <div
-            class="group"
-            class:drag-over={dragOver === i && dragFrom !== i}
-            ondragover={(e) => {
-              if (dragFrom === null) return
-              e.preventDefault()
-              dragOver = i
-            }}
-            ondrop={(e) => {
-              e.preventDefault()
-              if (dragFrom !== null) moveGroup(dragFrom, i)
-              dragFrom = dragOver = null
-            }}
-            role="listitem"
-          >
-            <div class="group-head">
-              <button
-                type="button"
-                class="grip"
-                draggable="true"
-                aria-label={t('groups.reorder')}
-                title={t('groups.reorder')}
-                ondragstart={() => (dragFrom = i)}
-                ondragend={() => (dragFrom = dragOver = null)}
-                onkeydown={(e) => onGripKey(e, i)}
-              >
-                <svg viewBox="0 0 24 24"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01" /></svg>
-              </button>
-              <input
-                class="group-name"
-                bind:value={cfg.item_groups![i].name}
-                placeholder={t('groups.namePlaceholder')}
-                onchange={() => queueSave()}
-                spellcheck="false"
-              />
-              <button
-                type="button"
-                class="group-del"
-                class:confirm={confirmDelete === g.id}
-                onclick={() => (confirmDelete === g.id ? removeGroup(g.id) : (confirmDelete = g.id))}
-                onblur={() => (confirmDelete = '')}
-              >
-                {confirmDelete === g.id ? t('groups.deleteConfirm') : t('groups.delete')}
-              </button>
-            </div>
-            <Segmented
-              small
-              value={groupMode(g)}
-              onchange={(v) => setGroupMode(i, v as 'show' | 'hide' | 'value')}
-              options={[
-                { value: 'show', label: t('groups.modeShow') },
-                { value: 'hide', label: t('groups.modeHide') },
-                { value: 'value', label: t('groups.modeValue') },
-              ]}
-            />
-            {#if groupMode(g) === 'value'}
-              <p class="desc">{t('groups.valueDesc')}</p>
-              <div class="threshold group-threshold">
-                <input
-                  type="number"
-                  class="num"
-                  min="0"
-                  step={g.threshold_unit === 'divine' ? 0.1 : 1}
-                  bind:value={cfg.item_groups![i].threshold_value}
-                  oninput={() => queueSave()}
-                  aria-label={t('groups.valueAmount')}
-                />
-                <Segmented
-                  small
-                  value={g.threshold_unit || 'exalted'}
-                  onchange={(v) => {
-                    cfg!.item_groups![i].threshold_unit = v
-                    queueSave()
-                  }}
-                  options={[
-                    { value: 'exalted', label: 'Exalted' },
-                    { value: 'chaos', label: 'Chaos' },
-                    { value: 'divine', label: 'Divine' },
-                  ]}
-                />
-              </div>
-              {#if groupThresholdEx(g) > 0}
-                <p class="desc hint" class:warn={groupThresholdTooLow(g)}>
-                  {groupThresholdTooLow(g)
-                    ? t('groups.valueTooLow', money(groupThresholdEx(g), 0), money(thresholdEx, 0))
-                    : t('groups.valueEquivalent', money(groupThresholdEx(g), 0))}
-                </p>
-              {/if}
-            {:else}
-              {#if groupMode(g) === 'show'}
-                <Toggle
-                  bind:checked={cfg.item_groups![i].always}
-                  label={t('groups.always')}
-                  hint={t('groups.alwaysHint')}
-                  onchange={() => queueSave()}
-                />
-              {/if}
-              <ListEditor
-                bind:items={cfg.item_groups![i].items}
-                uniqueVariants={groupMode(g) === 'show'}
-                placeholder={groupMode(g) === 'hide' ? t('lists.searchHide') : t('lists.searchItem')}
-                onchange={() => queueSave()}
-              />
-              {#if duplicatesOf(i)}
-                <p class="desc warn">{t('groups.duplicates', duplicatesOf(i))}</p>
-              {/if}
+          <div class="meta-row">
+            {#if st?.running}
+              <span>&nbsp;</span>
+            {:else if st?.nextRetryAtMs}
+              <span>{t('meta.autoRetry', clock(st.nextRetryAtMs))} <em>({until(st.nextRetryAtMs, now)})</em></span>
+            {:else if st?.nextRunAtMs}
+              <span>{t('meta.next', clock(st.nextRunAtMs))} <em>({until(st.nextRunAtMs, now)})</em></span>
+            {:else if !cfg.auto_update_enabled}
+              <span>{t('meta.autoOff')}</span>
             {/if}
-            {#if groupMode(g) !== 'hide' && g.id}
-              <button type="button" class="look-link" onclick={() => openLook(g.id)}>
-                {t('groups.lookLink', g.name)}
-              </button>
-            {/if}
+            <span class="reload">{t('meta.reload')}</span>
           </div>
-        {:else}
-          <p class="desc hint">{t('groups.empty')}</p>
-        {/each}
-        <div class="presets">
-          <button type="button" onclick={addGroup} disabled={(cfg.item_groups ?? []).length >= (meta?.maxItemGroups ?? 12)}>
-            {t('groups.add')}
-          </button>
-        </div>
-        {#if (cfg.item_groups ?? []).length >= (meta?.maxItemGroups ?? 12)}
-          <p class="desc hint">{t('groups.limit', meta?.maxItemGroups ?? 12)}</p>
-        {/if}
-      </section>
+          {#if actionError}<p class="error">{actionError}</p>{/if}
+        </section>
 
-      <section class="card" id="appearance">
-        <h2>{t('look.title')}</h2>
-        <p class="desc">{t('look.desc')}</p>
-        <div class="presets">
-          <button type="button" onclick={applyNeverSink} disabled={!nsThemes.length}>{t('look.applyNeverSink')}</button>
-          <button type="button" onclick={resetStyles}>{t('look.reset')}</button>
-        </div>
-        <div class="groups" role="tablist">
-          {#each allGroups as g (g.id)}
-            <button type="button" role="tab" aria-selected={g.id === styleGroup} class:on={g.id === styleGroup} onclick={() => (styleGroup = g.id)}>
-              <span lang={g.id === 'divine' ? 'en' : undefined}>{g.label}</span>
-              {#if customised(g)}<i class="custom-dot" title={t('look.customised')}></i>{/if}
-            </button>
-          {/each}
-        </div>
-        {#if selGroup}
-          <StylePreview group={selGroup} look={lookOf(selGroup, paletteOf(selGroup))} sound={soundLabel(selGroup)} />
-          <div class="picker">
-            <ThemePicker
-              group={selGroup}
-              value={styleValue(selGroup)}
-              {themes}
-              {nsThemes}
-              custom={cfg.custom_styles?.[selGroup.id]}
-              colours={styleOptions.colours ?? []}
-              shapes={styleOptions.shapes ?? []}
-              current={lookOf(selGroup, paletteOf(selGroup))}
-              onselect={(id) => setStyle(selGroup.id, id)}
-              oncustom={(cs) => setCustom(selGroup.id, cs)}
-            />
-          </div>
-          <label class="field">
-            <span>{t('look.sound')}</span>
-            <span class="sound-row">
-              <select value={cfg.sounds?.[selGroup.id] ?? ''} onchange={(e) => setSound(selGroup.id, e.currentTarget.value)}>
-                <option value="">
-                  {t(
-                    'look.soundDefault',
-                    selGroup.defaultSound ? t('look.soundDefaultGame', selGroup.defaultSound) : t('look.soundDefaultSilent'),
-                  )}
-                </option>
-                <option value="none">{t('look.soundNone')}</option>
-                {#each gameSoundIDs as id, i}
-                  <option value={id}>{gameSoundLabel(id, i)}</option>
-                {/each}
-                {#each sounds as f (f)}
-                  <option value={'file:' + f}>{f}</option>
-                {/each}
-              </select>
-              {#if soundFile(selGroup) || soundGameID(selGroup)}
-                <button
-                  type="button"
-                  class="play"
-                  title={t('look.play')}
-                  aria-label={t('look.playAria')}
-                  onclick={() => previewSound(selGroup)}
-                >
-                  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                </button>
-              {/if}
-            </span>
-          </label>
-          {#if soundIsGame(selGroup)}
-            <p class="desc hint">{t('look.gameSoundNote')}</p>
-          {/if}
-          <button type="button" class="ghost" onclick={addSound}>{t('look.addSound')}</button>
-          {#if soundError}<p class="error">{soundError}</p>{/if}
-          <p class="desc hint">{t('look.soundHint')}</p>
-        {/if}
-      </section>
+        {@render thresholdCard(cfg)}
+        {@render baseCard(cfg)}
 
-      <section class="card">
-        <h2>{t('auto.title')}</h2>
-        <Toggle bind:checked={cfg.auto_update_enabled} label={t('auto.enable')} onchange={() => queueSave(false)} />
-        {#if cfg.auto_update_enabled}
-          <Segmented
-            small
-            bind:value={cfg.auto_update_hours}
-            onchange={() => queueSave(false)}
-            options={[1, 2, 4, 6, 12].map((h) => ({ value: h, label: t('auto.hours', h) }))}
-          />
-        {/if}
-        <Toggle bind:checked={cfg.notify_enabled} label={t('auto.notify')} onchange={() => queueSave(false)} />
-      </section>
-
-      {#if appUpdate?.status !== 'disabled'}
+        <!-- Exceptional scan -->
         <section class="card">
-          <h2>{t('appUpdate.title')}</h2>
-          <p class="desc">{t('appUpdate.desc')}</p>
-          {#if appUpdate?.status === 'checking'}
-            <p class="desc hint">{t('appUpdate.checking')}</p>
-          {:else if appUpdate?.status === 'downloading'}
-            <p class="desc hint">{t('appUpdate.downloading', appUpdate.progress ?? 0)}</p>
-          {:else if appUpdate?.status === 'available'}
-            <p class="notice">{t('appUpdate.available', appUpdate.latestVersion ?? '')}</p>
-            {#if !appUpdate.canInstall}<p class="desc warn">{t('appUpdate.noPermission')}</p>{/if}
-          {:else if appUpdate?.status === 'ready'}
-            <p class="notice">{t('appUpdate.ready', appUpdate.latestVersion ?? '')}</p>
-            <p class="desc hint">{t('appUpdate.installNote')}</p>
-          {:else if appUpdate?.status === 'up_to_date'}
-            <p class="desc hint">{t('appUpdate.upToDate', appUpdate.currentVersion)}</p>
-          {:else if appUpdate?.status === 'error'}
-            <p class="error">{t('appUpdate.error')} {appUpdate.error}</p>
+          <Toggle
+            bind:checked={cfg.exceptional_scan}
+            label={t('scan.toggle')}
+            hint={t('scan.hint')}
+            onchange={() => queueSave(false)}
+          />
+          {#if st && cfg.exceptional_scan}
+            <div class="bar thin"><span class="cyan" style="width: {scanPct * 100}%"></span></div>
+            <div class="scan-line num">
+              <span>{t('scan.scanned', st.scan.scanned, st.scan.keys || '—')}</span>
+              <span class="cyan-text">{t('scan.valuable', st.scan.valuable)}</span>
+            </div>
+            {#if st.scan.current}
+              <div class="scan-line muted">
+                <span class="ellipsis">{t('scan.next', st.scan.current)}</span>
+                <span class="num">{st.scan.nextAtMs > now + 1000 ? until(st.scan.nextAtMs, now) : t('scan.searching')}</span>
+              </div>
+            {/if}
+            {#if st.scan.last}
+              <div class="scan-line muted"><span class="ellipsis">{t('scan.last', st.scan.last)}</span></div>
+            {/if}
+            {#if st.scan.etaSec > 0}
+              <p class="scan-note">
+                {t(
+                  'scan.note',
+                  Math.round(st.scan.etaSec / Math.max(1, st.scan.keys - st.scan.scanned)),
+                  until(now + st.scan.etaSec * 1000, now),
+                )}
+              </p>
+            {/if}
           {/if}
-          {#if appUpdate?.error && appUpdate.status !== 'error'}
-            <p class="error">{t('appUpdate.error')} {appUpdate.error}</p>
-          {/if}
-          {#if appUpdateActionError}<p class="error">{appUpdateActionError}</p>{/if}
-          <div class="presets">
-            {#if appUpdate?.status === 'available' && appUpdate.canInstall}
-              <button type="button" onclick={downloadAppUpdate}>{t('appUpdate.download')}</button>
-            {/if}
-            {#if appUpdate?.status === 'ready'}
-              <button type="button" class="primary" onclick={installAppUpdate}>{t('appUpdate.install')}</button>
-            {/if}
-            {#if appUpdate?.releaseUrl}
-              <button type="button" onclick={openAppUpdatePage}>{t('appUpdate.release')}</button>
-            {/if}
-            {#if appUpdate?.status !== 'checking' && appUpdate?.status !== 'downloading' && appUpdate?.status !== 'installing'}
-              <button type="button" onclick={checkForAppUpdate}>{t('appUpdate.check')}</button>
-            {/if}
-          </div>
         </section>
-      {/if}
 
-      <section class="card">
-        <h2>{t('trade.title')}</h2>
-        <p class="desc">{t('trade.desc')}</p>
-        <Segmented
-          small
-          bind:value={cfg.scan_budget_pct}
-          onchange={() => queueSave(false)}
-          options={[20, 40, 60].map((p) => ({ value: p, label: t('trade.budget', p) }))}
-        />
-        <h3>{t('share.title')}</h3>
-        <p class="desc">{t('share.desc')}</p>
-        <div class="presets">
-          <button type="button" onclick={exportScan}>{t('share.export')}</button>
-          <button type="button" onclick={importScan}>{t('share.import')}</button>
-        </div>
-        {#if shareMsg}<p class="desc hint ellipsis" title={shareMsg}>{shareMsg}</p>{/if}
-        {#if shareErr}<p class="error">{shareErr}</p>{/if}
-      </section>
-
-      <section class="card">
-        <h2>{t('general.title')}</h2>
-        <label class="field">
-          <span>{t('general.language')}</span>
-          <select bind:value={cfg.language} onchange={() => queueSave(false)}>
-            {#each languages as l (l.id)}
-              <option value={l.id}>{l.auto ? t('general.languageAuto', l.label) : l.label}</option>
-            {/each}
-          </select>
-        </label>
-        <label class="field">
-          <span>{t('general.league')}</span>
-          <select bind:value={cfg.league_name} onchange={() => queueSave()}>
-            {#each leagueOptions as l (l)}
-              <option value={l}>{l}</option>
-            {/each}
-          </select>
-        </label>
-        {#if leagueUnlisted}
-          <p class="desc hint">{t('general.leagueUnlisted')}</p>
+        <!-- Summary -->
+        {#if last}
+          <section class="stats">
+            <div><strong class="num">{last.valuableCurrency}</strong><span>{t('stats.currency')}</span></div>
+            <div><strong class="num">{last.valuableUniques}</strong><span>{t('stats.uniqueBases')}</span></div>
+            <div><strong class="num cyan-text">{last.valuableExcept}</strong><span>{t('stats.exceptional')}</span></div>
+          </section>
+          <p class="stats-caption">{t('stats.caption', Math.round(divineEx))}</p>
         {/if}
-        <label class="field stack">
-          <span>{t('general.filterName')}</span>
-          <input bind:value={cfg.filter_name} onchange={() => queueSave()} spellcheck="false" />
-        </label>
-        {#if renamedFilter}
-          <p class="notice">{t('general.filterNameChanged', cfg.filter_name, renamedFilter)}</p>
-        {/if}
-        <div class="presets">
-          <button type="button" onclick={exportFilter}>{t('filter.export')}</button>
-        </div>
-        <p class="desc hint">{t('filter.exportHint')}</p>
-        <label class="field stack">
-          <span>{t('general.customBase')}</span>
-          <input bind:value={cfg.custom_base_filter} onchange={() => queueSave()} placeholder={t('general.customBasePlaceholder')} spellcheck="false" />
-        </label>
-        <label class="field stack">
-          <span>{t('general.priceServer')}</span>
-          <input bind:value={cfg.price_source_url} onchange={() => queueSave(false)} placeholder="https://…/prices.json" spellcheck="false" />
-        </label>
-      </section>
-	  {/if}
 
-      <section class="actions">
-        <button onclick={() => AppService.OpenGameFolder()}>{t('actions.filterFolder')}</button>
-        <button onclick={() => AppService.OpenDataFolder()}>{t('actions.dataFolder')}</button>
-        <button class="danger" onclick={() => AppService.Quit()}>{t('actions.quit')}</button>
-      </section>
-      {#if meta}<p class="version">v{meta.version}{meta.testMode ? t('footer.testMode') : ''}</p>{/if}
-    </div>
-  {/if}
-</main>
+        <section class="actions">
+          <button onclick={() => AppService.ShowSettings('')}>{t('header.settings')}</button>
+          {#if overlaySettings?.enabled}
+            <button onclick={() => AppService.ShowMarket()}>{t('panel.market')} · {overlaySettings.market_hotkey}</button>
+          {/if}
+        </section>
+      </div>
+    {/if}
+  </main>
+{:else}
+  <main class="settings-win">
+    <header class="titlebar">
+      <img src="/emblem.png" alt="" class="emblem small" />
+      <h1 lang="en">{t('app.title')}</h1>
+      <span class="crumb">{t('header.settings')} · {sectionLabel}</span>
+      <span class="save {saveState}">
+        {#if saveState === 'saving'}{t('save.saving')}{:else if saveState === 'saved'}{t('save.saved')}{:else if saveState === 'error'}{t('save.error')}{/if}
+      </span>
+      <button class="wbtn" title={t('window.minimise')} aria-label={t('window.minimise')} onclick={() => Window.Minimise()}>
+        <svg viewBox="0 0 24 24"><path d="M6 12h12" /></svg>
+      </button>
+      <button class="wbtn" title={t('window.maximise')} aria-label={t('window.maximise')} onclick={() => Window.ToggleMaximise()}>
+        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" /></svg>
+      </button>
+      <button class="wbtn close" title={t('window.close')} aria-label={t('window.close')} onclick={() => Window.Close()}>
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    </header>
+
+    {#if cfg}
+      <div class="frame">
+        <aside class="side">
+          <nav aria-label={t('settings.section')}>
+            {#each sections as s (s.head)}
+              <div class="nav-head">{s.head}</div>
+              {#each s.items as it (it.id)}
+                <button class:on={section === it.id} aria-current={section === it.id ? 'page' : undefined} onclick={() => openSection(it.id)}>
+                  <span>{it.label}</span>
+                  {#if it.id === 'groups' && cfg.item_groups?.length}<span class="count num">{cfg.item_groups.length}</span>{/if}
+                </button>
+              {/each}
+            {/each}
+          </nav>
+          <div class="side-status status {status.tone}">
+            {@render statusHead()}
+            {#if dirty && !st?.running}<p class="notice">{t('status.dirty')}</p>{/if}
+            <button class="primary" class:pulse={dirty} disabled={st?.running} onclick={updateNow}>
+              {st?.running ? t('button.updating') : st?.lastError ? t('button.retry') : t('button.updateNow')}
+            </button>
+            {#if actionError}<p class="error">{actionError}</p>{/if}
+          </div>
+        </aside>
+
+        <div class="content">
+          <div class="page-head">
+            <h2 class="page-title">{sectionLabel}</h2>
+            <p>{t(sectionDesc[section])}</p>
+          </div>
+
+          {#if section === 'groups'}
+            <div class="ld">
+              <div class="ld-list" role="list">
+                {#each cfg.item_groups ?? [] as g, i (g.id || i)}
+                  <div
+                    class="ld-item"
+                    class:on={groupSel === i}
+                    class:drag-over={dragOver === i && dragFrom !== i}
+                    ondragover={(e) => {
+                      if (dragFrom === null) return
+                      e.preventDefault()
+                      dragOver = i
+                    }}
+                    ondrop={(e) => {
+                      e.preventDefault()
+                      if (dragFrom !== null) moveGroup(dragFrom, i)
+                      dragFrom = dragOver = null
+                    }}
+                    role="listitem"
+                  >
+                    <button
+                      type="button"
+                      class="grip"
+                      draggable="true"
+                      aria-label={t('groups.reorder')}
+                      title={t('groups.reorder')}
+                      ondragstart={() => (dragFrom = i)}
+                      ondragend={() => (dragFrom = dragOver = null)}
+                      onkeydown={(e) => onGripKey(e, i)}
+                    >
+                      <svg viewBox="0 0 24 24"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01" /></svg>
+                    </button>
+                    <button type="button" class="ld-pick" onclick={() => (groupSel = i)}>
+                      <span class="mode-badge {groupMode(g)}">
+                        {groupMode(g) === 'hide' ? t('groups.modeHide') : groupMode(g) === 'value' ? t('groups.modeValue') : t('groups.modeShow')}
+                      </span>
+                      <span class="ld-text">
+                        <span class="ld-name">{g.name || t('groups.unnamed')}</span>
+                        <small class="num">{itemCount(g)}</small>
+                      </span>
+                    </button>
+                  </div>
+                {:else}
+                  <p class="desc hint pad">{t('groups.empty')}</p>
+                {/each}
+                <div class="presets pad">
+                  <button type="button" onclick={addGroup} disabled={(cfg.item_groups ?? []).length >= (meta?.maxItemGroups ?? 12)}>
+                    {t('groups.add')}
+                  </button>
+                </div>
+                {#if (cfg.item_groups ?? []).length >= (meta?.maxItemGroups ?? 12)}
+                  <p class="desc hint pad">{t('groups.limit', meta?.maxItemGroups ?? 12)}</p>
+                {/if}
+                <p class="desc hint pad">{t('groups.order')}</p>
+              </div>
+
+              <div class="ld-detail page">
+                {#if cfg.item_groups?.[groupSel]}
+                  {@const i = groupSel}
+                  {@const g = cfg.item_groups[groupSel]}
+                  <div class="group-head">
+                    <input
+                      class="group-name"
+                      bind:value={cfg.item_groups[i].name}
+                      placeholder={t('groups.namePlaceholder')}
+                      onchange={() => queueSave()}
+                      spellcheck="false"
+                    />
+                    <button
+                      type="button"
+                      class="group-del"
+                      class:confirm={confirmDelete === g.id}
+                      onclick={() => (confirmDelete === g.id ? removeGroup(g.id) : (confirmDelete = g.id))}
+                      onblur={() => (confirmDelete = '')}
+                    >
+                      {confirmDelete === g.id ? t('groups.deleteConfirm') : t('groups.delete')}
+                    </button>
+                  </div>
+                  <Segmented
+                    value={groupMode(g)}
+                    onchange={(v) => setGroupMode(i, v as 'show' | 'hide' | 'value')}
+                    options={[
+                      { value: 'show', label: t('groups.modeShow') },
+                      { value: 'hide', label: t('groups.modeHide') },
+                      { value: 'value', label: t('groups.modeValue') },
+                    ]}
+                  />
+                  <section class="card">
+                    {#if groupMode(g) === 'value'}
+                      <p class="desc">{t('groups.valueDesc')}</p>
+                      <div class="threshold group-threshold">
+                        <input
+                          type="number"
+                          class="num"
+                          min="0"
+                          step={g.threshold_unit === 'divine' ? 0.1 : 1}
+                          bind:value={cfg.item_groups[i].threshold_value}
+                          oninput={() => queueSave()}
+                          aria-label={t('groups.valueAmount')}
+                        />
+                        <Segmented
+                          small
+                          value={g.threshold_unit || 'exalted'}
+                          onchange={(v) => {
+                            cfg!.item_groups![i].threshold_unit = v
+                            queueSave()
+                          }}
+                          options={[
+                            { value: 'exalted', label: 'Exalted' },
+                            { value: 'chaos', label: 'Chaos' },
+                            { value: 'divine', label: 'Divine' },
+                          ]}
+                        />
+                      </div>
+                      {#if groupThresholdEx(g) > 0}
+                        <p class="desc hint" class:warn={groupThresholdTooLow(g)}>
+                          {groupThresholdTooLow(g)
+                            ? t('groups.valueTooLow', money(groupThresholdEx(g), 0), money(thresholdEx, 0))
+                            : t('groups.valueEquivalent', money(groupThresholdEx(g), 0))}
+                        </p>
+                      {/if}
+                    {:else}
+                      {#if groupMode(g) === 'show'}
+                        <Toggle
+                          bind:checked={cfg.item_groups[i].always}
+                          label={t('groups.always')}
+                          hint={t('groups.alwaysHint')}
+                          onchange={() => queueSave()}
+                        />
+                      {/if}
+                      <ListEditor
+                        bind:items={cfg.item_groups[i].items}
+                        uniqueVariants={groupMode(g) === 'show'}
+                        placeholder={groupMode(g) === 'hide' ? t('lists.searchHide') : t('lists.searchItem')}
+                        onchange={() => queueSave()}
+                      />
+                      {#if duplicatesOf(i)}
+                        <p class="desc warn">{t('groups.duplicates', duplicatesOf(i))}</p>
+                      {/if}
+                    {/if}
+                  </section>
+                  {#if groupMode(g) !== 'hide' && g.id}
+                    <button type="button" class="ghost look-jump" onclick={() => openLook(g.id)}>
+                      {t('groups.lookLink', g.name || t('groups.unnamed'))}
+                    </button>
+                  {/if}
+                {:else}
+                  <p class="desc hint">{t('groups.pick')}</p>
+                {/if}
+              </div>
+            </div>
+          {:else if section === 'look'}
+            <div class="ld">
+              <div class="ld-list" role="tablist">
+                <div class="presets pad">
+                  <button type="button" onclick={applyNeverSink} disabled={!nsThemes.length}>{t('look.applyNeverSink')}</button>
+                  <button type="button" onclick={resetStyles}>{t('look.reset')}</button>
+                </div>
+                <div class="list-head">{t('look.builtIn')}</div>
+                {#each allGroups as g (g.id)}
+                  {#if g.id.startsWith('user:') && g.id === allGroups.find((x) => x.id.startsWith('user:'))?.id}
+                    <div class="list-head">{t('groups.title')}</div>
+                  {/if}
+                  <button
+                    type="button"
+                    role="tab"
+                    class="ld-item look-item"
+                    class:on={g.id === styleGroup}
+                    aria-selected={g.id === styleGroup}
+                    onclick={() => (styleGroup = g.id)}
+                  >
+                    <span class="look-sw"><Swatch look={lookOf(g, paletteOf(g))} text="Aa" /></span>
+                    <span class="ld-text">
+                      <span class="ld-name" lang={g.id === 'divine' ? 'en' : undefined}>{g.label}</span>
+                      <small>{soundLabel(g)}</small>
+                    </span>
+                    {#if customised(g)}<i class="custom-dot" title={t('look.customised')}></i>{/if}
+                  </button>
+                {/each}
+              </div>
+              <div class="ld-detail page">
+                {#if selGroup}
+                  <StylePreview group={selGroup} look={lookOf(selGroup, paletteOf(selGroup))} sound={soundLabel(selGroup)} />
+                  <section class="card">
+                    <div class="picker">
+                      <ThemePicker
+                        group={selGroup}
+                        value={styleValue(selGroup)}
+                        {themes}
+                        {nsThemes}
+                        custom={cfg.custom_styles?.[selGroup.id]}
+                        colours={styleOptions.colours ?? []}
+                        shapes={styleOptions.shapes ?? []}
+                        current={lookOf(selGroup, paletteOf(selGroup))}
+                        onselect={(id) => setStyle(selGroup.id, id)}
+                        oncustom={(cs) => setCustom(selGroup.id, cs)}
+                      />
+                    </div>
+                  </section>
+                  <section class="card">
+                    <label class="field">
+                      <span>{t('look.sound')}</span>
+                      <span class="sound-row">
+                        <select value={cfg.sounds?.[selGroup.id] ?? ''} onchange={(e) => setSound(selGroup.id, e.currentTarget.value)}>
+                          <option value="">
+                            {t(
+                              'look.soundDefault',
+                              selGroup.defaultSound ? t('look.soundDefaultGame', selGroup.defaultSound) : t('look.soundDefaultSilent'),
+                            )}
+                          </option>
+                          <option value="none">{t('look.soundNone')}</option>
+                          {#each gameSoundIDs as id, i}
+                            <option value={id}>{gameSoundLabel(id, i)}</option>
+                          {/each}
+                          {#each sounds as f (f)}
+                            <option value={'file:' + f}>{f}</option>
+                          {/each}
+                        </select>
+                        {#if soundFile(selGroup) || soundGameID(selGroup)}
+                          <button
+                            type="button"
+                            class="play"
+                            title={t('look.play')}
+                            aria-label={t('look.playAria')}
+                            onclick={() => previewSound(selGroup)}
+                          >
+                            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                          </button>
+                        {/if}
+                      </span>
+                    </label>
+                    {#if soundIsGame(selGroup)}
+                      <p class="desc hint">{t('look.gameSoundNote')}</p>
+                    {/if}
+                    <button type="button" class="ghost" onclick={addSound}>{t('look.addSound')}</button>
+                    {#if soundError}<p class="error">{soundError}</p>{/if}
+                    <p class="desc hint">{t('look.soundHint')}</p>
+                  </section>
+                {/if}
+              </div>
+            </div>
+          {:else}
+            <div class="page">
+              {#if section === 'rules'}
+                <div class="cols">
+                  <div class="col">
+                    {@render thresholdCard(cfg)}
+                    {@render baseCard(cfg)}
+                  </div>
+                  <div class="col">
+                    <section class="card">
+                      <h2>{t('gear.title')}</h2>
+                      <Toggle bind:checked={cfg.include_gear} label={t('gear.strict')} hint={t('gear.strictHint')} onchange={() => queueSave()} />
+                      <TierSlider
+                        bind:value={cfg.t5_rare_tier}
+                        min={0}
+                        max={5}
+                        label={t('tier.t5rare')}
+                        hint={t('tier.t5rareHint')}
+                        onchange={() => queueSave()}
+                      />
+                      <TierSlider
+                        bind:value={cfg.rare_jewel_tier}
+                        min={0}
+                        max={5}
+                        label={t('tier.jewels')}
+                        hint={t('tier.jewelsHint')}
+                        onchange={() => queueSave()}
+                      />
+                      <label class="field">
+                        <span>{t('gear.quality')}</span>
+                        <select bind:value={cfg.quality_threshold} onchange={() => queueSave()}>
+                          <option value={0}>{t('gear.qualityOff')}</option>
+                          <option value={15}>%15+</option>
+                          <option value={20}>%20+</option>
+                        </select>
+                      </label>
+                    </section>
+                  </div>
+                  <div class="col">
+                    <section class="card">
+                      <h2>{t('rules.title')}</h2>
+                      <TierSlider
+                        bind:value={cfg.waystone_tier}
+                        min={1}
+                        max={15}
+                        prefix="T"
+                        label={t('tier.waystones')}
+                        hint={t('tier.waystonesHint')}
+                        onchange={() => queueSave()}
+                      />
+                      <TierSlider
+                        bind:value={cfg.uncut_gem_level}
+                        min={1}
+                        max={20}
+                        label={t('tier.uncut')}
+                        hint={t('tier.uncutHint')}
+                        onchange={() => queueSave()}
+                      />
+                      <TierSlider
+                        bind:value={cfg.uncut_support_level}
+                        min={1}
+                        max={5}
+                        label={t('tier.support')}
+                        hint={t('tier.supportHint')}
+                        onchange={() => queueSave()}
+                      />
+                      <Toggle bind:checked={cfg.boss_keys_and_tablets} label={t('rules.pinnacle')} onchange={() => queueSave()} />
+                      <Toggle bind:checked={cfg.hide_exalt} label={t('rules.hideExalt')} onchange={() => queueSave()} />
+                      <Toggle bind:checked={cfg.hide_gold} label={t('rules.hideGold')} onchange={() => queueSave()} />
+                    </section>
+                  </div>
+                </div>
+              {:else if section === 'lists'}
+                <div class="cols">
+                  <section class="card">
+                    <h2>{t('lists.showTop')} <span class="h3-note">{t('lists.showTopNote')}</span></h2>
+                    <p class="desc">{t('lists.showTopDesc')}</p>
+                    <ListEditor bind:items={cfg.whitelist} uniqueVariants placeholder={t('lists.searchItem')} onchange={() => queueSave()} />
+                  </section>
+                  <section class="card">
+                    <h2>{t('lists.chance')} <span class="h3-note">{t('lists.chanceNote')}</span></h2>
+                    <ListEditor bind:items={cfg.chance_bases} placeholder={t('lists.searchBase')} onchange={() => queueSave()} />
+                  </section>
+                </div>
+              {:else if section === 'priceCheck'}
+                {#if overlaySettings}
+                  <div class="cols">
+                    <div class="col">
+                      <section class="card overlay-settings-card">
+                        <div class="card-title">
+                          <h2>{t('overlay.title')}</h2>
+                          <span class="aside save {overlaySaveState}">
+                            {overlaySaveState === 'saving' ? t('save.saving') : overlaySaveState === 'saved' ? t('save.saved') : ''}
+                          </span>
+                        </div>
+                        <p class="desc">{t('overlay.desc')}</p>
+                        <Toggle bind:checked={overlaySettings.enabled} label={t('overlay.enable')} hint={t('overlay.enableHint')} onchange={queueOverlaySave} />
+                        <label class="field stack">
+                          <span>{t('overlay.hotkey')}</span>
+                          <input bind:value={overlaySettings.hotkey} onchange={queueOverlaySave} spellcheck="false" placeholder="Alt+E" />
+                        </label>
+                        <p class="desc hint">{t('overlay.hotkeyHint')}</p>
+                        <label class="field stack">
+                          <span>{t('overlay.marketHotkey')}</span>
+                          <input bind:value={overlaySettings.market_hotkey} onchange={queueOverlaySave} spellcheck="false" placeholder="Alt+M" />
+                        </label>
+                        <p class="desc hint">{t('overlay.marketHotkeyHint')}</p>
+                      </section>
+                    </div>
+                    <div class="col">
+                      <section class="card overlay-settings-card">
+                        <h2>{t('overlay.size')}</h2>
+                        <Toggle bind:checked={overlaySettings.auto_scale} label={t('overlay.autoScale')} hint={t('overlay.autoScaleHint')} onchange={queueOverlaySave} />
+                        <Segmented
+                          small
+                          bind:value={overlaySettings.ui_scale}
+                          onchange={queueOverlaySave}
+                          options={[75, 100, 125, 150, 175].map((v) => ({ value: v, label: `%${v}` }))}
+                        />
+                        <p class="desc hint">{t('overlay.scaleHint')}</p>
+                      </section>
+
+                      <section class="card overlay-settings-card">
+                        <h2>{t('overlay.catalog')}</h2>
+                        <p class="desc">{t('overlay.catalogDesc')}</p>
+                        <div class="catalog-summary">
+                          <div><strong class="num">{catalogStats || '—'}</strong><span>{t('overlay.affixes')}</span></div>
+                          <div><strong class="num">{catalogItems || '—'}</strong><span>{t('overlay.items')}</span></div>
+                        </div>
+                        {#if catalogUpdatedAt}<p class="desc hint">{t('overlay.catalogUpdated', relative(catalogUpdatedAt, now))}</p>{/if}
+                        <div class="presets">
+                          <button type="button" onclick={refreshCatalog}>{t('overlay.refreshCatalog')}</button>
+                          <button type="button" onclick={() => AppService.PreviewOverlay()}>{t('overlay.preview')}</button>
+                          <button type="button" onclick={() => AppService.ShowMarket()}>{t('overlay.openMarket')}</button>
+                        </div>
+                        {#if overlayError}<p class="error">{overlayError}</p>{/if}
+                      </section>
+                    </div>
+                  </div>
+                {/if}
+              {:else if section === 'account'}
+                <div class="narrow"><AccountLink /></div>
+              {:else if section === 'profiles'}
+                <div class="narrow">
+                  <section class="card">
+                    <h2>{t('profile.title')}</h2>
+                    <p class="desc">{t('profile.desc')}</p>
+                    <label class="field">
+                      <span>{t('profile.title')}</span>
+                      <select value={activeProfile} onchange={(e) => switchProfile(e.currentTarget.value)}>
+                        {#each profiles as p (p.name)}
+                          <option value={p.name}>{p.name}</option>
+                        {/each}
+                      </select>
+                    </label>
+                    <div class="group-head">
+                      <input
+                        class="group-name"
+                        bind:value={newProfile}
+                        placeholder={t('profile.namePlaceholder')}
+                        onkeydown={(e) => e.key === 'Enter' && saveProfileAs()}
+                        spellcheck="false"
+                      />
+                      <button type="button" class="group-del" onclick={saveProfileAs} disabled={!newProfile.trim()}>
+                        {t('profile.saveAs')}
+                      </button>
+                      <button type="button" class="group-del" onclick={renameProfile} disabled={!newProfile.trim()}>
+                        {t('profile.rename')}
+                      </button>
+                    </div>
+                    <div class="presets top-gap">
+                      <button type="button" onclick={exportProfile}>{t('profile.export')}</button>
+                      <button type="button" onclick={importProfile}>{t('profile.import')}</button>
+                      <button
+                        type="button"
+                        class:confirm={confirmProfileDelete}
+                        disabled={profiles.length < 2}
+                        onclick={() => (confirmProfileDelete ? deleteProfile() : (confirmProfileDelete = true))}
+                        onblur={() => (confirmProfileDelete = false)}
+                      >
+                        {confirmProfileDelete ? t('profile.deleteConfirm') : t('profile.delete')}
+                      </button>
+                    </div>
+                    <p class="desc hint">{t('profile.everything')}</p>
+                    {#if profileMsg}<p class="desc warn">{profileMsg}</p>{/if}
+                    {#if profileErr}<p class="error">{profileErr}</p>{/if}
+                  </section>
+                </div>
+              {:else if section === 'updates'}
+                <div class="cols">
+                  <section class="card">
+                    <h2>{t('auto.title')}</h2>
+                    <Toggle bind:checked={cfg.auto_update_enabled} label={t('auto.enable')} onchange={() => queueSave(false)} />
+                    {#if cfg.auto_update_enabled}
+                      <Segmented
+                        small
+                        bind:value={cfg.auto_update_hours}
+                        onchange={() => queueSave(false)}
+                        options={[1, 2, 4, 6, 12].map((h) => ({ value: h, label: t('auto.hours', h) }))}
+                      />
+                    {/if}
+                    <Toggle bind:checked={cfg.notify_enabled} label={t('auto.notify')} onchange={() => queueSave(false)} />
+                  </section>
+
+                  {#if appUpdate?.status !== 'disabled'}
+                    <section class="card">
+                      <h2>{t('appUpdate.title')}</h2>
+                      <p class="desc">{t('appUpdate.desc')}</p>
+                      {#if appUpdate?.status === 'checking'}
+                        <p class="desc hint">{t('appUpdate.checking')}</p>
+                      {:else if appUpdate?.status === 'downloading'}
+                        <p class="desc hint">{t('appUpdate.downloading', appUpdate.progress ?? 0)}</p>
+                      {:else if appUpdate?.status === 'available'}
+                        <p class="notice">{t('appUpdate.available', appUpdate.latestVersion ?? '')}</p>
+                        {#if !appUpdate.canInstall}<p class="desc warn">{t('appUpdate.noPermission')}</p>{/if}
+                      {:else if appUpdate?.status === 'ready'}
+                        <p class="notice">{t('appUpdate.ready', appUpdate.latestVersion ?? '')}</p>
+                        <p class="desc hint">{t('appUpdate.installNote')}</p>
+                      {:else if appUpdate?.status === 'up_to_date'}
+                        <p class="desc hint">{t('appUpdate.upToDate', appUpdate.currentVersion)}</p>
+                      {:else if appUpdate?.status === 'error'}
+                        <p class="error">{t('appUpdate.error')} {appUpdate.error}</p>
+                      {/if}
+                      {#if appUpdate?.error && appUpdate.status !== 'error'}
+                        <p class="error">{t('appUpdate.error')} {appUpdate.error}</p>
+                      {/if}
+                      {#if appUpdateActionError}<p class="error">{appUpdateActionError}</p>{/if}
+                      <div class="presets top-gap">
+                        {#if appUpdate?.status === 'available' && appUpdate.canInstall}
+                          <button type="button" onclick={downloadAppUpdate}>{t('appUpdate.download')}</button>
+                        {/if}
+                        {#if appUpdate?.status === 'ready'}
+                          <button type="button" class="primary" onclick={installAppUpdate}>{t('appUpdate.install')}</button>
+                        {/if}
+                        {#if appUpdate?.releaseUrl}
+                          <button type="button" onclick={openAppUpdatePage}>{t('appUpdate.release')}</button>
+                        {/if}
+                        {#if appUpdate?.status !== 'checking' && appUpdate?.status !== 'downloading' && appUpdate?.status !== 'installing'}
+                          <button type="button" onclick={checkForAppUpdate}>{t('appUpdate.check')}</button>
+                        {/if}
+                      </div>
+                    </section>
+                  {/if}
+                </div>
+              {:else if section === 'trade'}
+                <div class="narrow">
+                  <section class="card">
+                    <h2>{t('trade.title')}</h2>
+                    <p class="desc">{t('trade.desc')}</p>
+                    <Segmented
+                      small
+                      bind:value={cfg.scan_budget_pct}
+                      onchange={() => queueSave(false)}
+                      options={[20, 40, 60].map((p) => ({ value: p, label: t('trade.budget', p) }))}
+                    />
+                  </section>
+                  <section class="card">
+                    <h2>{t('share.title')}</h2>
+                    <p class="desc">{t('share.desc')}</p>
+                    <div class="presets">
+                      <button type="button" onclick={exportScan}>{t('share.export')}</button>
+                      <button type="button" onclick={importScan}>{t('share.import')}</button>
+                    </div>
+                    {#if shareMsg}<p class="desc hint ellipsis" title={shareMsg}>{shareMsg}</p>{/if}
+                    {#if shareErr}<p class="error">{shareErr}</p>{/if}
+                  </section>
+                </div>
+              {:else if section === 'general'}
+                <div class="narrow">
+                  <section class="card">
+                    <h2>{t('general.title')}</h2>
+                    <label class="field">
+                      <span>{t('general.language')}</span>
+                      <select bind:value={cfg.language} onchange={() => queueSave(false)}>
+                        {#each languages as l (l.id)}
+                          <option value={l.id}>{l.auto ? t('general.languageAuto', l.label) : l.label}</option>
+                        {/each}
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>{t('general.league')}</span>
+                      <select bind:value={cfg.league_name} onchange={() => queueSave()}>
+                        {#each leagueOptions as l (l)}
+                          <option value={l}>{l}</option>
+                        {/each}
+                      </select>
+                    </label>
+                    {#if leagueUnlisted}
+                      <p class="desc hint">{t('general.leagueUnlisted')}</p>
+                    {/if}
+                    <label class="field stack">
+                      <span>{t('general.filterName')}</span>
+                      <input bind:value={cfg.filter_name} onchange={() => queueSave()} spellcheck="false" />
+                    </label>
+                    {#if renamedFilter}
+                      <p class="notice">{t('general.filterNameChanged', cfg.filter_name, renamedFilter)}</p>
+                    {/if}
+                    <div class="presets top-gap">
+                      <button type="button" onclick={exportFilter}>{t('filter.export')}</button>
+                    </div>
+                    <p class="desc hint">{t('filter.exportHint')}</p>
+                    <label class="field stack">
+                      <span>{t('general.customBase')}</span>
+                      <input bind:value={cfg.custom_base_filter} onchange={() => queueSave()} placeholder={t('general.customBasePlaceholder')} spellcheck="false" />
+                    </label>
+                    <label class="field stack">
+                      <span>{t('general.priceServer')}</span>
+                      <input bind:value={cfg.price_source_url} onchange={() => queueSave(false)} placeholder="https://…/prices.json" spellcheck="false" />
+                    </label>
+                  </section>
+                  <section class="actions">
+                    <button onclick={() => AppService.OpenGameFolder()}>{t('actions.filterFolder')}</button>
+                    <button onclick={() => AppService.OpenDataFolder()}>{t('actions.dataFolder')}</button>
+                    <button class="danger" onclick={() => AppService.Quit()}>{t('actions.quit')}</button>
+                  </section>
+                  {#if meta}<p class="version">v{meta.version}{meta.testMode ? t('footer.testMode') : ''}</p>{/if}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
+  </main>
+{/if}
 
 <style>
   main {
@@ -1499,70 +1730,12 @@
     border: 0;
     background: none;
   }
-  .settings h2 {
-    margin-bottom: 10px;
-  }
-
-  .settings-tabs {
-    position: sticky;
-    top: 0;
-    z-index: 8;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    margin: -12px -12px 12px;
-    padding: 6px 12px 0;
-    background: linear-gradient(var(--bg) 75%, transparent);
-  }
-
-  .settings-tabs button {
-    padding: 10px;
-    border: 1px solid var(--line-strong);
-    border-bottom-color: var(--gold-dim);
-    background: var(--sunk);
-    color: var(--muted);
-    font-family: var(--serif);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-
-  .settings-tabs button + button { border-left: 0; }
-  .settings-tabs button.on { color: var(--gold-bright); background: var(--surface-2); box-shadow: inset 0 -2px var(--gold); }
   .overlay-settings-card .field.stack { margin-top: 7px; }
   .catalog-summary { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0; }
   .catalog-summary div { padding:10px; text-align:center; border:1px solid var(--line); background:var(--sunk); }
   .catalog-summary strong,.catalog-summary span { display:block; }
   .catalog-summary strong { color:var(--gold-bright); font-size:19px; }
   .catalog-summary span { color:var(--muted); font-size:10px; text-transform:uppercase; }
-  h3 {
-    margin: 12px 0 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-2);
-  }
-  .groups {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-bottom: 4px;
-  }
-  .groups button {
-    position: relative;
-    padding: 5px 10px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
-    background: var(--sunk);
-    color: var(--text-2);
-    font-size: 12px;
-  }
-  .groups button:hover {
-    color: var(--text);
-    border-color: var(--line-strong);
-  }
-  .groups button.on {
-    border-color: var(--gold-dim);
-    background: var(--surface-3);
-    color: var(--gold-bright);
-  }
   .custom-dot {
     display: inline-block;
     width: 6px;
@@ -1614,20 +1787,9 @@
   .picker {
     margin: 10px 0 4px;
   }
-  .group {
-    border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
-    padding: 10px;
-    margin: 10px 0;
-    display: grid;
-    gap: 8px;
-  }
   .group-head {
     display: flex;
     gap: 6px;
-  }
-  .group.drag-over {
-    border-color: var(--gold-bright);
   }
   .grip {
     width: 24px;
@@ -1664,15 +1826,6 @@
   .presets button.confirm {
     color: var(--bad);
     border-color: var(--bad);
-  }
-  .look-link {
-    justify-self: start;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--muted);
-    font-size: 11px;
-    text-decoration: underline;
   }
   .sound-row {
     display: flex;
@@ -2039,6 +2192,322 @@
     text-align: center;
     color: var(--muted);
     font-size: 11px;
+  }
+
+  /* Tray panel footer */
+  .scroll > .actions {
+    margin-top: 2px;
+  }
+
+  /* Settings window: an ordinary window beside the game, so it gets the
+     frame the game's own option screens have — a title band, a list of
+     sections down the left, the page on the right. */
+  main.settings-win {
+    border-radius: 0;
+  }
+  .titlebar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 0 4px 0 12px;
+    border-bottom: 1px solid var(--line-strong);
+    background: linear-gradient(#1b1f25, #121518);
+  }
+  .emblem.small {
+    width: 22px;
+    height: 22px;
+  }
+  .crumb {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .wbtn {
+    width: 38px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-2);
+  }
+  .wbtn:hover {
+    background: var(--surface-3);
+    color: var(--text);
+  }
+  .wbtn.close:hover {
+    background: #8a2c27;
+    color: #fff;
+  }
+  .wbtn svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+  }
+  .frame {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+  }
+  .side {
+    flex: none;
+    width: 212px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--line-strong);
+    background: rgba(0, 0, 0, 0.25);
+  }
+  .side nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0 10px;
+  }
+  .nav-head,
+  .list-head {
+    padding: 12px 16px 4px;
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+  }
+  .list-head {
+    padding-left: 12px;
+  }
+  .side nav button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 16px;
+    border: 0;
+    border-left: 2px solid transparent;
+    background: none;
+    color: var(--text-2);
+    text-align: left;
+  }
+  .side nav button:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .side nav button.on {
+    color: var(--gold-bright);
+    border-left-color: var(--gold);
+    background: linear-gradient(90deg, rgba(194, 174, 126, 0.13), transparent);
+  }
+  .count {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .side-status {
+    padding: 12px;
+    border-top: 1px solid var(--line-strong);
+    background: rgba(0, 0, 0, 0.25);
+  }
+  .side-status .status-text strong {
+    font-size: 13px;
+  }
+  .side-status .primary {
+    margin-top: 10px;
+    padding: 8px;
+    font-size: 11.5px;
+  }
+  .side-status .notice {
+    margin-top: 8px;
+    font-size: 11.5px;
+  }
+  .content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .page-head {
+    flex: none;
+    padding: 14px 20px 11px;
+    border-bottom: 1px solid var(--line);
+  }
+  .page-title {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+  }
+  .page-head p {
+    margin: 3px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .page {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  /* A page scrolls as a whole; its blocks must not be squeezed to fit. */
+  .page > :global(*) {
+    flex-shrink: 0;
+  }
+  .ld-list .presets {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  .col,
+  .narrow {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+  .narrow {
+    max-width: 640px;
+  }
+  h2 .h3-note {
+    font-family: var(--sans);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .top-gap {
+    margin-top: 10px;
+  }
+
+  /* List on the left, the picked entry on the right: Groups and Appearance. */
+  .ld {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 264px 1fr;
+  }
+  .ld-list {
+    overflow-y: auto;
+    padding-bottom: 12px;
+    border-right: 1px solid var(--line-strong);
+    background: rgba(0, 0, 0, 0.18);
+  }
+  .ld-detail {
+    min-width: 0;
+  }
+  .ld-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px 8px 4px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-left: 2px solid transparent;
+    background: none;
+    color: var(--text-2);
+    text-align: left;
+  }
+  .ld-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .ld-item.on {
+    color: var(--gold-bright);
+    border-left-color: var(--gold);
+    background: linear-gradient(90deg, rgba(194, 174, 126, 0.13), transparent);
+  }
+  .ld-item.drag-over {
+    box-shadow: inset 0 0 0 1px var(--gold-bright);
+  }
+  .ld-pick {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+  }
+  .ld-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .ld-name,
+  .ld-text small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ld-text small {
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .mode-badge {
+    flex: none;
+    min-width: 54px;
+    padding: 1px 5px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    font-size: 10.5px;
+    text-align: center;
+  }
+  .mode-badge.hide {
+    color: var(--bad);
+    border-color: rgba(192, 86, 79, 0.45);
+  }
+  .mode-badge.value {
+    color: var(--gold);
+    border-color: var(--gold-dim);
+  }
+  .look-item {
+    padding-left: 12px;
+  }
+  .look-sw {
+    flex: none;
+    display: flex;
+    width: 46px;
+  }
+  .look-sw :global(.swatch) {
+    width: 100%;
+    padding: 1px 4px;
+  }
+  .pad {
+    margin: 0;
+    padding: 10px 12px 0;
+  }
+  .group-name {
+    padding: 7px 9px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    user-select: text;
+  }
+  .group-name:focus {
+    outline: none;
+    border-color: var(--gold-dim);
+  }
+  .look-jump {
+    align-self: flex-start;
   }
 
   @keyframes pulse {

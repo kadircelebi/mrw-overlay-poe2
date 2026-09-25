@@ -4,6 +4,7 @@ var tr = map[string]string{
 	"app.description": "Canlı piyasa fiyatlarıyla güncellenen PoE2 loot filtresi",
 
 	"tray.open":        "Paneli aç",
+	"tray.settings":    "Ayarlar",
 	"tray.update":      "Şimdi güncelle",
 	"tray.appUpdate":   "Uygulama güncellemesini denetle",
 	"tray.openFolder":  "Filtre klasörünü aç",

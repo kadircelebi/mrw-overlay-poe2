@@ -88,6 +88,7 @@ type AppService struct {
 	overlayDraft        trade.EvaluateRequest
 	overlayWindow       application.Window
 	marketWindow        application.Window
+	settingsWindow      application.Window
 	overlayHotkey       string
 	confineOnce         sync.Once
 	rebindOverlay       func(old, next overlay.Settings) error
@@ -219,7 +220,32 @@ func (s *AppService) SaveConfig(c filter.Config) (filter.Config, error) {
 		return saved, err
 	}
 	s.applyLanguage(saved, before)
+	s.configChanged(saved)
 	return saved, nil
+}
+
+// configChanged tells every window about settings that just landed: the tray
+// panel and the settings window each hold their own copy, and either can be
+// the one that changed it.
+func (s *AppService) configChanged(cfg filter.Config) {
+	if s.app != nil {
+		s.app.Event.Emit("config", cfg)
+	}
+}
+
+// ShowSettings opens the settings window, on a given section when one is
+// named, and puts the tray panel away: the two are never needed at once.
+func (s *AppService) ShowSettings(section string) {
+	if s.settingsWindow == nil {
+		return
+	}
+	if section != "" {
+		s.settingsWindow.EmitEvent("settings-section", section)
+	}
+	s.HidePanel()
+	s.settingsWindow.Show()
+	s.settingsWindow.UnMinimise()
+	s.settingsWindow.Focus()
 }
 
 // applyLanguage switches the Go side (and the tray menu, which is built once)
@@ -265,6 +291,7 @@ func (s *AppService) SwitchProfile(name string) (filter.Config, error) {
 		return saved, err
 	}
 	s.applyLanguage(saved, before)
+	s.configChanged(saved)
 	_ = s.eng.UpdateNow()
 	return saved, nil
 }
@@ -322,8 +349,8 @@ func (s *AppService) ExportFilter() (string, error) {
 // user cancelled.
 func (s *AppService) saveToFile(name, filterName, pattern string, data []byte) (string, error) {
 	dlg := s.app.Dialog.SaveFile().SetFilename(name).AddFilter(filterName, pattern)
-	if s.panel != nil {
-		dlg = dlg.AttachToWindow(s.panel)
+	if w := s.dialogOwner(); w != nil {
+		dlg = dlg.AttachToWindow(w)
 	}
 	path, err := dlg.PromptForSingleSelection()
 	if err != nil || path == "" {
@@ -335,11 +362,23 @@ func (s *AppService) saveToFile(name, filterName, pattern string, data []byte) (
 	return path, nil
 }
 
+// dialogOwner is the window a file dialog belongs to. It has to be a visible
+// one: the tray panel hides on focus loss and would take the result with it.
+func (s *AppService) dialogOwner() application.Window {
+	if s.settingsWindow != nil && s.settingsWindow.IsVisible() {
+		return s.settingsWindow
+	}
+	if s.panel != nil {
+		return s.panel
+	}
+	return nil
+}
+
 // pickFile asks for a file and returns its path; "" means cancelled.
 func (s *AppService) pickFile(filterName, pattern string) (string, error) {
 	dlg := s.app.Dialog.OpenFile().CanChooseFiles(true).AddFilter(filterName, pattern)
-	if s.panel != nil {
-		dlg = dlg.AttachToWindow(s.panel)
+	if w := s.dialogOwner(); w != nil {
+		dlg = dlg.AttachToWindow(w)
 	}
 	return dlg.PromptForSingleSelection()
 }

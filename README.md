@@ -3,8 +3,8 @@
 Sistem tepsisinde çalışan, NeverSink'in Path of Exile 2 loot filtresini **canlı piyasa fiyatlarıyla** güncelleyen masaüstü uygulaması (Wails v3 + Svelte).
 
 <p align="center">
-  <img src="docs/panel.png" alt="Ana panel" width="300" />
-  <img src="docs/groups.png" alt="Kendi eşya grupların" width="300" />
+  <img src="docs/panel.png" alt="Tepsi paneli" width="260" />
+  <img src="docs/settings.png" alt="Ayarlar penceresi" width="560" />
 </p>
 
 Bir değer eşiği belirlersin — örneğin 50 exalted. Uygulama piyasayı düzenli olarak tarar, eşiği geçen her şeyi yerde göze çarpacak şekilde işaretler, altında kalanları gizler veya soluklaştırır. Fiyatlar değiştikçe filtre kendi kendine güncellenir; lig ilerledikçe listeni elle düzeltmen gerekmez.
@@ -40,7 +40,7 @@ Gereksinim: Windows 10/11 ve WebView2 (Windows 11'de yüklü gelir). Ayarlar ve 
 
 ## Ayarlar
 
-Panelde, tepsi simgesine tıklayınca açılır.
+Tepsi simgesine tıklayınca küçük panel açılır: durum, **Şimdi güncelle**, değer eşiği ve NeverSink seviyesi orada. Geri kalan her şey paneldeki ⚙ düğmesiyle (ya da tepsi menüsündeki **Ayarlar** ile) açılan ayrı pencerede durur. Solda bölümler, sağda sayfa var. Bu pencere oyuna tıklayınca kaybolmaz, oyunun yanında açık kalabilir. Böylece bir rengi değiştirip oyunda Reload ile hemen deneyebilirsin.
 
 | Bölüm | Ne yapar |
 |---|---|
@@ -50,17 +50,19 @@ Panelde, tepsi simgesine tıklayınca açılır.
 | **Özel kurallar** | Waystone, uncut gem ve uncut support gem eşikleri (kaydıraçla; "Gösterme" ve "Hiçbiri" durakları dahil), pinnacle anahtarları; Exalted Orb ve altını gizleme. |
 | **Listeler** | "Her zaman göster" (en güçlü vurgu) ve chance tabanları. Fiyattan bağımsız çalışır. |
 | **Gruplarım** | Kendi listelerin ve değer katmanların, en fazla 12 tane. Bir grup eşyaları gösterebilir, gizleyebilir veya kendi Exalted/Chaos/Divine fiyat eşiğine ulaşan bütün fiyatlı eşyalara ayrı görünüm ve ses verebilir. |
-| **Görünüm** | Her eşya grubu (yerleşik olanlar ve kendi grupların) için renk teması ve ses. Uygulamanın hazır temaları, NeverSink'in kendi 68 stili veya kendi renklerin — minimap simgesinin rengi ve şekli dahil. Değişiklikler panelde canlı önizlenir. |
+| **Görünüm** | Her eşya grubu (yerleşik olanlar ve kendi grupların) için renk teması ve ses. Uygulamanın hazır temaları, NeverSink'in kendi 68 stili veya kendi renklerin — minimap simgesinin rengi ve şekli dahil. Değişiklikler ayar penceresinde canlı önizlenir. |
 | **Otomatik güncelleme** | Aralık (varsayılan 4 saat) ve bildirimler. Kapatırsan "Şimdi güncelle" ile elle çalıştırırsın. |
 | **Uygulama güncellemeleri** | GitHub Releases'i günde bir denetler. Yeni exe'yi indirir, SHA-256 ile doğrular ve onayından sonra yeniden başlatarak güvenli biçimde değiştirir. |
 | **Trade taraması** | Exceptional taban taramasını aç/kapat ve trade kotasının ne kadarını kullanacağını seç (%10–80, varsayılan %40). |
 | **Profiller** | Farklı farm türleri için ayrı ayar setleri. Tek tıkla geçilir, yeniden adlandırılabilir, filtre hemen yeniden yazılır ve dosya olarak paylaşılabilir. |
 | **Overlay** | İsteğe bağlı fiyat sorgulayıcı, **varsayılan olarak kapalı**. Açınca oyunda bir eşyanın üzerine gelip kısayola (varsayılan Alt+E) basarsın: küçük pencere eşyayı okur, affix, DPS, nadirlik ve özellikleri tıklanarak aramaya eklenip çıkarılabilir ve resmi trade sitesinde arar. ▣ düğmesi gelişmiş filtreli geniş pazarı açar. Pencereler oyun penceresinin içinde kalır ve başka uygulamaya geçince gizlenir. |
+| **Hesap** | İsteğe bağlı. pathofexile.com oturumunu küçük bir tarayıcı eklentisiyle (Chromium tabanlı tarayıcılar, depoda `browser-extension/`) uygulamaya taşır. Overlay aramaları girişli yapılır (Weighted Sum gibi daha karmaşık sorgular çalışır) ve ilandaki düğmeyle satıcının hideout'una gidebilirsin. Oturum bu bilgisayarda şifreli saklanır, yalnızca senin başlattığın trade aramalarında kullanılır. |
 | **Genel** | Dil, lig, oyundaki filtre adı, filtre dosyasını dışa aktarma, filtre ve veri klasörleri. |
 
-Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için güncelle" der: önce **Güncelle**, sonra oyunda **Reload**.
+Ayarı değiştirdiğinde hem panel hem ayar penceresi "Ayarlar değişti, filtreye yansıması için güncelle" der: önce **Güncelle**, sonra oyunda **Reload**.
 
-<p align="center"><img src="docs/appearance.png" alt="Görünüm bölümü" width="300" /></p>
+<p align="center"><img src="docs/groups.png" alt="Kendi eşya grupların" width="700" /></p>
+<p align="center"><img src="docs/appearance.png" alt="Görünüm ve sesler" width="700" /></p>
 
 ## Sık karşılaşılanlar
 
@@ -96,9 +98,9 @@ Ayarı değiştirdiğinde panel "Ayarlar değişti, filtreye yansıması için g
 
 **Baştan başlamak istiyorum.** Uygulamadan çık ve `%APPDATA%\PoE2Filtre` klasörünü sil; uygulama bir sonraki açılışta varsayılan ayarlarla başlar.
 
-**Farklı içerikler için farklı ayarlar istiyorum.** Ayarlar → Profiller. Şu ankini "Farklı kaydet" ile adlandır, ayarları değiştir, sonra listeden tek tıkla geç. Profil bütün ayarları taşır — lig ve oyundaki filtre adı dahil; filtre adı değişirse panel söyler, oyunda o filtreyi seçmen gerekir.
+**Farklı içerikler için farklı ayarlar istiyorum.** Ayarlar → Profiller. Şu ankini "Farklı kaydet" ile adlandır, ayarları değiştir, sonra listeden tek tıkla geç. Profil bütün ayarları taşır — lig ve oyundaki filtre adı dahil; filtre adı değişirse uygulama söyler, oyunda o filtreyi seçmen gerekir.
 
-**Taramayı baştan beklemek istemiyorum.** [`paylasim/`](paylasim/) klasöründe tamamlanmış bir exceptional taraması (1203 anahtar, Forbidden Rites) ve örnek bir profil var. Taramayı Ayarlar → Tarama sonuçlarını paylaş → İçe aktar ile al; kendi taze kayıtların ezilmez, yalnızca eksik ya da daha eski olanlar güncellenir.
+**Taramayı baştan beklemek istemiyorum.** [`paylasim/`](paylasim/) klasöründe tamamlanmış bir exceptional taraması (1203 anahtar, Forbidden Rites) ve örnek bir profil var. Taramayı Ayarlar → Trade taraması → Tarama sonuçlarını paylaş → İçe aktar ile al; kendi taze kayıtların ezilmez, yalnızca eksik ya da daha eski olanlar güncellenir.
 
 **Ayarlarımı arkadaşıma vermek istiyorum.** Profiller → Dışa aktar bir dosya çıkarır; arkadaşın İçe aktar ile alır ve o profille oynamaya başlar. Yalnızca üretilen filtreyi vermek istiyorsan Genel → "Filtre dosyasını dışa aktar" yeterli, karşı tarafın uygulamayı kurması bile gerekmez.
 
@@ -139,11 +141,11 @@ The price-check overlay is off by default. When the user turns it on and presses
 
 ## Güncelleme ve kaldırma
 
-Uygulama GitHub Releases'i günde bir kez denetler. Yeni sürüm varsa Ayarlar → **Uygulama güncellemeleri** bölümünden indirip kurabilirsin. Dosya GitHub'ın yayınladığı SHA-256 özetiyle doğrulanır; uygulama kapanır, exe'yi değiştirir ve yeniden açılır. Başlatma başarısız olursa önceki exe geri getirilir. Ayrı bir güncelleme sunucusu veya hesap gerekmez.
+Uygulama GitHub Releases'i günde bir kez denetler. Yeni sürüm varsa Ayarlar → **Güncellemeler** bölümünden indirip kurabilirsin. Dosya GitHub'ın yayınladığı SHA-256 özetiyle doğrulanır; uygulama kapanır, exe'yi değiştirir ve yeniden açılır. Başlatma başarısız olursa önceki exe geri getirilir. Ayrı bir güncelleme sunucusu veya hesap gerekmez.
 
 Güncelleyici ilk kez v1.8.0 ile geldiği için v1.7.0'dan v1.8.0'a geçiş bir kez elle yapılır; sonraki sürümler uygulama içinden kurulabilir.
 
-Exe'nin bulunduğu klasöre yazma izni yoksa panel otomatik kurulum yerine release sayfasını açar; bu durumda yeni exe'yi uygulama kapalıyken elle eskisinin üstüne koy. Her iki yöntemde de ayarların `%APPDATA%\PoE2Filtre` altında durduğu için korunur.
+Exe'nin bulunduğu klasöre yazma izni yoksa uygulama otomatik kurulum yerine release sayfasını açar; bu durumda yeni exe'yi uygulama kapalıyken elle eskisinin üstüne koy. Her iki yöntemde de ayarların `%APPDATA%\PoE2Filtre` altında durduğu için korunur.
 
 Kaldırmak için: uygulamadan çık, exe'yi sil, `%APPDATA%\PoE2Filtre` klasörünü sil ve oyunda başka bir filtre seç. Yazılmış `auto_updated.filter` dosyası `Belgeler\My Games\Path of Exile 2` altında kalır, onu da silebilirsin.
 
@@ -178,8 +180,8 @@ go run ./cmd/genicon  # simgeleri yeniden çiz
 
 | Klasör | Görev |
 |---|---|
-| `main.go`, `service.go` | Tepsi, panel penceresi, arayüze açılan API |
-| `frontend/` | Svelte panel |
+| `main.go`, `service.go` | Tepsi, panel ve ayar pencereleri, arayüze açılan API |
+| `frontend/` | Svelte arayüzü (panel, ayarlar, overlay, pazar) |
 | `internal/engine` | Güncelleme akışı, zamanlayıcı, tarayıcı yönetimi (arayüzden bağımsız) |
 | `internal/appupdate` | GitHub release denetimi, SHA-256 doğrulama ve geri alınabilir Windows exe değişimi |
 | `internal/prices` | `prices.json` şeması: uygulama ile ileride sunucunun ortak sözleşmesi |

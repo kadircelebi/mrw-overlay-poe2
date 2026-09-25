@@ -24,7 +24,7 @@ import (
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
-var version = "2.1.1"
+var version = "2.2.0"
 
 //go:embed all:frontend/dist
 var frontend embed.FS
@@ -184,9 +184,30 @@ func main() {
 		e.Cancel()
 	})
 
+	// Settings live in a window of their own: an ordinary one that stays open
+	// beside the game, so a colour can be changed and tried with Reload
+	// without the panel vanishing on every click in between.
+	settingsWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:             "settings",
+		Title:            "MrW POE2 Filter",
+		Width:            980,
+		Height:           700,
+		MinWidth:         760,
+		MinHeight:        520,
+		Frameless:        true,
+		Hidden:           true,
+		BackgroundColour: application.NewRGB(15, 13, 17),
+		URL:              "/?view=settings",
+	})
+	settingsWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		settingsWindow.Hide()
+		e.Cancel()
+	})
+
 	trayMenu := func() *application.Menu {
 		m := app.NewMenu()
 		m.Add(i18n.T("tray.open")).OnClick(func(*application.Context) { tray.ShowWindow() })
+		m.Add(i18n.T("tray.settings")).OnClick(func(*application.Context) { svc.ShowSettings("") })
 		m.Add(i18n.T("tray.update")).OnClick(func(*application.Context) { _ = svc.UpdateNow() })
 		m.Add(i18n.T("tray.appUpdate")).OnClick(func(*application.Context) {
 			tray.ShowWindow()
@@ -207,7 +228,7 @@ func main() {
 	tray.AttachWindow(panel).WindowOffset(8)
 
 	svc.app, svc.tray, svc.panel = app, tray, panel
-	svc.overlayWindow, svc.marketWindow = overlayWindow, marketWindow
+	svc.overlayWindow, svc.marketWindow, svc.settingsWindow = overlayWindow, marketWindow, settingsWindow
 	// The overlay's global shortcuts: price check (Alt+E) and the full market
 	// window (Alt+M). Both exist only while the overlay is switched on.
 	shortcuts := func(s overlay.Settings) [][2]any {

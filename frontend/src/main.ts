@@ -8,6 +8,8 @@ import MarketApp from './MarketApp.svelte'
 import { installWheelNumbers } from './lib/wheelNumbers'
 
 const view = new URLSearchParams(location.search).get('view')
-const Component = view === 'overlay' ? OverlayApp : view === 'market' ? MarketApp : App
-mount(Component, { target: document.getElementById('app')! })
+const target = document.getElementById('app')!
+if (view === 'overlay') mount(OverlayApp, { target })
+else if (view === 'market') mount(MarketApp, { target })
+else mount(App, { target, props: { win: view === 'settings' ? 'settings' : 'panel' } })
 installWheelNumbers()

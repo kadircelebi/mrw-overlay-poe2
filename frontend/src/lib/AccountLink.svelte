@@ -134,6 +134,16 @@
 </section>
 
 <style>
+  /* The card frame of the settings pages; the parent's styles do not reach
+     into this component, so it carries its own copy. */
+  .account { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(0, 0, 0, 0.22); }
+  .account h2 { margin: -12px -14px 10px; padding: 7px 14px 6px; border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, 0.025); font-family: var(--serif); font-weight: 600; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+  .account .desc { margin: 4px 0 10px; color: var(--muted); font-size: 12px; }
+  .account .hint { margin-top: 8px; }
+  .account button { padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text-2); font-size: 11.5px; }
+  .account button:hover { color: var(--gold-bright); border-color: var(--gold-dim); }
+  .account button.ghost { background: transparent; }
+  .account button.primary { padding: 8px 14px; border-color: #8d7f5c; background: linear-gradient(180deg, #2c333b, #191d22); color: var(--gold-bright); font-family: var(--serif); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
   .account .state { margin: 8px 0; color: var(--muted); }
   .account .state.ok { color: #9fc48a; }
   .account .state.wait { color: var(--gold-bright); }

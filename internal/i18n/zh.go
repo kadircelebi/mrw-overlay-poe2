@@ -7,6 +7,7 @@ var zh = map[string]string{
 	"app.description": "依即時市場價格自動更新的 PoE2 撿物過濾器",
 
 	"tray.open":        "開啟面板",
+	"tray.settings":    "設定",
 	"tray.update":      "立即更新",
 	"tray.appUpdate":   "檢查應用程式更新",
 	"tray.openFolder":  "開啟過濾器資料夾",

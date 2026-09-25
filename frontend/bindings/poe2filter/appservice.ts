@@ -433,6 +433,14 @@ export function ShowMarketWithQuery($in: trade$0.EvaluateRequest): $CancellableP
 }
 
 /**
+ * ShowSettings opens the settings window, on a given section when one is
+ * named, and puts the tray panel away: the two are never needed at once.
+ */
+export function ShowSettings(section: string): $CancellablePromise<void> {
+    return $Call.ByID(1323617618, section);
+}
+
+/**
  * StyleGroups lists the drop groups whose colours can be changed.
  */
 export function StyleGroups(): $CancellablePromise<filter$0.StyleGroup[] | null> {
