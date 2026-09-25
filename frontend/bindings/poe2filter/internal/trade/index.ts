@@ -6,9 +6,12 @@ export type {
     EvaluatedItem,
     EvaluatedListing,
     EvaluatedMod,
+    EvaluatedModPart,
     EvaluatedProperty,
     Evaluation,
     ImportResult,
+    QuotaStatus,
+    QuotaWindow,
     SelectedFilter,
     SelectedStat,
     SelectedStatGroup

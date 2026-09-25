@@ -535,6 +535,18 @@ func (e *Engine) State() State {
 	return s
 }
 
+// Prices returns the latest price snapshot (from disk before the first update
+// of this session), or nil when none has been written yet.
+func (e *Engine) Prices() *prices.Snapshot {
+	e.snapMu.Lock()
+	snap := e.snap
+	e.snapMu.Unlock()
+	if snap == nil {
+		snap, _ = prices.Load(e.snapshotPath())
+	}
+	return snap
+}
+
 // SearchItems returns items matching query for the custom lists (max limit).
 func (e *Engine) SearchItems(query string, limit int) []insights.SearchItem {
 	q := strings.ToLower(strings.TrimSpace(query))

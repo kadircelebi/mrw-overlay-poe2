@@ -61,6 +61,40 @@ func (s *AppService) GetTradeCatalog() (overlay.Catalog, error) {
 	return s.overlayCatalog.Load(context.Background())
 }
 
+// TradeCurrencies lists the currencies listings are priced in, with icons,
+// without sending the whole stat catalog to a window that only shows prices.
+func (s *AppService) TradeCurrencies() ([]overlay.CurrencyEntry, error) {
+	catalog, err := s.overlayCatalog.Load(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return catalog.Currencies, nil
+}
+
+// QuoteCurrency prices a stackable item from the filter's price snapshot.
+func (s *AppService) QuoteCurrency(name string) overlay.CurrencyQuote {
+	return overlay.QuoteCurrency(s.eng.Prices(), name)
+}
+
+// UniqueIcons maps unique names to their art, from the last price snapshot
+// (poe.ninja sends an icon with each unique). An unidentified unique shows
+// these so the player can tell the candidates apart by their look.
+func (s *AppService) UniqueIcons() map[string]string {
+	out := map[string]string{}
+	snap := s.eng.Prices()
+	if snap == nil {
+		return out
+	}
+	for _, base := range snap.UniqueBases {
+		for _, u := range base.Uniques {
+			if u.Icon != "" && out[u.Name] == "" {
+				out[u.Name] = u.Icon
+			}
+		}
+	}
+	return out
+}
+
 func (s *AppService) RefreshTradeCatalog() (overlay.Catalog, error) {
 	return s.overlayCatalog.Refresh(context.Background())
 }
@@ -154,25 +188,135 @@ func (s *AppService) EvaluateOverlay(in trade.EvaluateRequest, refresh bool) (tr
 
 func (s *AppService) evaluateOverlayFresh(in trade.EvaluateRequest) (trade.Evaluation, error) {
 	if wait := s.overlayClient.Search.NextIn(); wait > 5*time.Second {
-		seconds := int((wait + time.Second - 1) / time.Second)
-		return trade.Evaluation{}, fmt.Errorf("GGG arama kotası beklemede; %d saniye sonra tekrar deneyin", seconds)
+		return trade.Evaluation{}, errors.New(quotaWaitMessage(s.overlayClient.Search.Status()))
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	result, err := s.overlayClient.Evaluate(ctx, in)
 	if err == nil {
+		s.tagListingStats(result.Listings)
 		return result, nil
 	}
 	var apiErr *trade.APIError
 	switch {
 	case errors.As(err, &apiErr) && apiErr.Status == 429:
-		return trade.Evaluation{}, errors.New("GGG arama kotası dolu; kısa bir süre sonra tekrar deneyin")
+		return trade.Evaluation{}, errors.New(quotaPenaltyMessage(s.overlayClient.Search.Status()))
 	case strings.Contains(strings.ToLower(err.Error()), "content exceeded"):
 		return trade.Evaluation{}, errors.New("Arama GGG için fazla geniş; base type, rarity veya birkaç affix filtresi ekleyin")
 	case errors.Is(err, context.DeadlineExceeded):
 		return trade.Evaluation{}, errors.New("GGG araması zaman aşımına uğradı; biraz sonra tekrar deneyin")
 	default:
 		return trade.Evaluation{}, err
+	}
+}
+
+// FetchOverlayListings loads the next page of a search the overlay already
+// ran. It uses fetch quota only, so the result list can grow as it scrolls.
+func (s *AppService) FetchOverlayListings(searchID string, ids []string) ([]trade.EvaluatedListing, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	listings, err := s.overlayClient.FetchEvaluated(ctx, searchID, ids)
+	var apiErr *trade.APIError
+	switch {
+	case err == nil:
+		s.tagListingStats(listings)
+		return listings, nil
+	case errors.As(err, &apiErr) && apiErr.Status == 429:
+		return nil, errors.New("GGG ilan yükleme sınırına ulaşıldı; birkaç saniye sonra tekrar kaydırın")
+	case errors.Is(err, context.DeadlineExceeded):
+		return nil, errors.New("İlanlar zaman aşımına uğradı; biraz sonra tekrar deneyin")
+	default:
+		return nil, err
+	}
+}
+
+// tagListingStats gives every listing mod line its trade stat, so Market can
+// sort by any affix it shows. GGG names the stat of each line itself; the
+// catalog wording is the fallback for a line that came without one.
+func (s *AppService) tagListingStats(listings []trade.EvaluatedListing) {
+	catalog, err := s.overlayCatalog.Load(context.Background())
+	if err != nil {
+		return
+	}
+	for li := range listings {
+		item := &listings[li].Item
+		for mi := range item.Mods {
+			mod := &item.Mods[mi]
+			if mod.StatID != "" {
+				continue
+			}
+			kind := mod.Type
+			if kind == "fractured" || kind == "desecrated" {
+				kind = "explicit"
+			}
+			mod.StatID = overlay.ListingStatID(mod.Description, kind, item.StatHashes, catalog)
+		}
+	}
+}
+
+// OverlayQuota reports how full GGG's search windows are for this IP, so the
+// overlay can show who is spending the quota and why a search waits.
+func (s *AppService) OverlayQuota() trade.QuotaStatus {
+	return s.overlayClient.Search.Status()
+}
+
+func quotaWaitMessage(st trade.QuotaStatus) string {
+	wait := formatWait(st.WaitSec)
+	switch st.WaitReason {
+	case trade.WaitPenalty:
+		return quotaPenaltyMessage(st)
+	case trade.WaitShared:
+		w := quotaWindow(st, st.WaitWindowSec)
+		return fmt.Sprintf("Bu IP'nin %s arama penceresi dolmak üzere (%d/%d; trade sitesi ve diğer uygulamalar dahil). %s sonra tekrar deneyin", windowLabel(st.WaitWindowSec), w.Hits, w.Limit, wait)
+	case trade.WaitOurs:
+		w := quotaWindow(st, st.WaitWindowSec)
+		return fmt.Sprintf("Uygulamanın kendi sınırı: %s penceresinde %d aramaya ulaşıldı (GGG sınırı %d). %s sonra tekrar deneyin", windowLabel(st.WaitWindowSec), w.Allowed, w.Limit, wait)
+	}
+	return fmt.Sprintf("GGG arama kotası beklemede; %s sonra tekrar deneyin", wait)
+}
+
+func quotaPenaltyMessage(st trade.QuotaStatus) string {
+	wait := formatWait(int(time.Until(st.RestrictedUntil).Seconds() + 0.999))
+	if st.RestrictedWindowSec > 0 {
+		w := quotaWindow(st, st.RestrictedWindowSec)
+		return fmt.Sprintf("GGG bu IP'ye arama cezası verdi: %s penceresinde %d arama sınırı aşıldı. Ceza %s sonra biter", windowLabel(st.RestrictedWindowSec), w.Limit, wait)
+	}
+	return fmt.Sprintf("GGG bu IP'ye arama cezası verdi (hangi pencere olduğunu bildirmedi). Ceza %s sonra biter", wait)
+}
+
+func quotaWindow(st trade.QuotaStatus, periodSec int) trade.QuotaWindow {
+	for _, w := range st.Windows {
+		if w.PeriodSec == periodSec {
+			return w
+		}
+	}
+	return trade.QuotaWindow{PeriodSec: periodSec}
+}
+
+func windowLabel(sec int) string {
+	switch {
+	case sec >= 3600 && sec%3600 == 0:
+		return fmt.Sprintf("%d saatlik", sec/3600)
+	case sec >= 60 && sec%60 == 0:
+		return fmt.Sprintf("%d dakikalık", sec/60)
+	default:
+		return fmt.Sprintf("%d saniyelik", sec)
+	}
+}
+
+func formatWait(sec int) string {
+	switch {
+	case sec <= 0:
+		return "birazdan"
+	case sec < 60:
+		return fmt.Sprintf("%d sn", sec)
+	case sec < 3600:
+		if sec%60 == 0 {
+			return fmt.Sprintf("%d dk", sec/60)
+		}
+		return fmt.Sprintf("%d dk %d sn", sec/60, sec%60)
+	default:
+		return fmt.Sprintf("%d sa %d dk", sec/3600, sec%3600/60)
 	}
 }
 

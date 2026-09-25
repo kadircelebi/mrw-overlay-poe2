@@ -8,7 +8,7 @@
     "build:dev": "vite build --minify false --mode development",
     "build": "vite build --mode production",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json && node scripts/check-locales.mjs",
+    "check": "svelte-check --tsconfig ./tsconfig.json && node scripts/check-locales.mjs && node scripts/check-encoding.mjs",
     "check:locales": "node scripts/check-locales.mjs"
   },
   "dependencies": {

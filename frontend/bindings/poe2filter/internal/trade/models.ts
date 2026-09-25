@@ -10,6 +10,13 @@ export interface EvaluateRequest {
     "stats": SelectedStat[] | null;
     "groups": SelectedStatGroup[] | null;
     "filters": SelectedFilter[] | null;
+
+    /**
+     * Sort is a trade sort key ("price", "dps", "stat.explicit.stat_…");
+     * empty means price. SortDir is "asc" or "desc".
+     */
+    "sort"?: string;
+    "sortDir"?: string;
 }
 
 export interface EvaluatedItem {
@@ -21,7 +28,17 @@ export interface EvaluatedItem {
     "unidentified": boolean;
     "fractured": boolean;
     "corrupted": boolean;
+
+    /**
+     * TwiceCorrupted is the trade site's doubleCorrupted flag.
+     */
+    "twiceCorrupted": boolean;
     "sanctified": boolean;
+
+    /**
+     * Sockets counts the augmentable (rune) sockets, filled or empty.
+     */
+    "sockets": number;
 
     /**
      * DPS figures are computed from the listing's weapon properties, the same
@@ -49,6 +66,25 @@ export interface EvaluatedMod {
     "description": string;
     "name"?: string;
     "tier"?: string;
+
+    /**
+     * StatID is the trade stat of this line, so the result list can sort by
+     * any affix it shows. Empty when the line matched no stat for certain.
+     */
+    "statId"?: string;
+
+    /**
+     * Parts splits a line that sums several affixes, so each affix shows its
+     * own share. GGG sends only the sum and each affix's roll range, so a
+     * share is the narrowest range the sum allows, exact when it is pinned.
+     */
+    "parts"?: EvaluatedModPart[] | null;
+}
+
+export interface EvaluatedModPart {
+    "name"?: string;
+    "tier"?: string;
+    "description": string;
 }
 
 export interface EvaluatedProperty {
@@ -60,6 +96,12 @@ export interface Evaluation {
     "searchId": string;
     "tradeUrl": string;
     "total": number;
+
+    /**
+     * ResultIDs are every listing the search returned (GGG caps it at 100);
+     * Listings holds the first page, the rest are fetched as the list scrolls.
+     */
+    "resultIds": string[] | null;
     "listings": EvaluatedListing[] | null;
 }
 
@@ -73,12 +115,59 @@ export interface ImportResult {
     "skipped": number;
 }
 
+/**
+ * QuotaStatus explains the quota for diagnostics: how full each window is,
+ * whether GGG restricted the IP, and what the next request would wait for.
+ */
+export interface QuotaStatus {
+    "windows": QuotaWindow[] | null;
+
+    /**
+     * zero before the first response
+     */
+    "observedAt": string;
+
+    /**
+     * RestrictedUntil is set while GGG penalises the IP; RestrictedWindowSec
+     * names the window that was exceeded (0 when GGG did not say).
+     */
+    "restrictedUntil": string;
+    "restrictedWindowSec": number;
+    "waitSec": number;
+    "waitReason": string;
+    "waitWindowSec": number;
+}
+
+/**
+ * QuotaWindow is one GGG rate-limit window as last seen.
+ */
+export interface QuotaWindow {
+    "periodSec": number;
+    "limit": number;
+
+    /**
+     * our budgeted share of Limit
+     */
+    "allowed": number;
+
+    /**
+     * estimated current use by everything on this IP
+     */
+    "hits": number;
+    "penaltySec": number;
+}
+
 export interface SelectedFilter {
     "group": string;
     "id": string;
     "min"?: number | null;
     "max"?: number | null;
     "option"?: string;
+
+    /**
+     * Input is a free-text filter such as the seller account name.
+     */
+    "input"?: string;
 }
 
 export interface SelectedStat {
@@ -92,5 +181,6 @@ export interface SelectedStat {
 export interface SelectedStatGroup {
     "type": string;
     "min"?: number | null;
+    "max"?: number | null;
     "stats": SelectedStat[] | null;
 }

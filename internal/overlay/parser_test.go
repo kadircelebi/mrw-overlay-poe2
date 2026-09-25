@@ -1,6 +1,7 @@
 package overlay
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -82,6 +83,7 @@ Energy Shield: 503 (augmented)
 	if err != nil {
 		t.Fatal(err)
 	}
+	item.Mods = ownMods(item.Mods)
 	if item.Name != "Rapture Salvation" || item.BaseType != "Kamasan Tiara" || item.Quality != 40 {
 		t.Fatalf("wrong item: %+v", item)
 	}
@@ -146,6 +148,7 @@ Fractured Item`
 	if err != nil {
 		t.Fatal(err)
 	}
+	item.Mods = ownMods(item.Mods)
 	if !item.Fractured || len(item.Mods) != 3 {
 		t.Fatalf("fractured item was not parsed: %+v", item)
 	}
@@ -413,6 +416,7 @@ Spells fire Projectiles in a circle`
 	if err != nil {
 		t.Fatal(err)
 	}
+	item.Mods = ownMods(item.Mods)
 	var got []string
 	for _, m := range item.Mods {
 		got = append(got, m.StatID)
@@ -442,7 +446,253 @@ Grenade Skills have +1 Cooldown Use`
 	if err != nil {
 		t.Fatal(err)
 	}
+	item.Mods = ownMods(item.Mods)
 	if len(item.Mods) != 1 || item.Mods[0].StatID != "desecrated.stat_2250681686" || !item.Mods[0].Selected {
 		t.Fatalf("mods=%+v", item.Mods)
+	}
+}
+
+func TestListingStatIDUsesHashesForSameWording(t *testing.T) {
+	catalog := Catalog{Stats: []StatGroup{{Entries: []StatEntry{
+		{ID: "explicit.stat_1", Text: "#% increased Physical Damage", Type: "explicit"},
+		{ID: "explicit.stat_2", Text: "#% increased Physical Damage (Local)", Type: "explicit"},
+		{ID: "explicit.stat_3", Text: "# to maximum Mana", Type: "explicit"},
+	}}}}
+	if got := ListingStatID("+250 to maximum Mana", "explicit", nil, catalog); got != "explicit.stat_3" {
+		t.Fatalf("mana = %q", got)
+	}
+	if got := ListingStatID("150% increased Physical Damage", "explicit", []string{"stat_2"}, catalog); got != "explicit.stat_2" {
+		t.Fatalf("local physical = %q", got)
+	}
+	if got := ListingStatID("150% increased Physical Damage", "explicit", nil, catalog); got != "explicit.stat_1" {
+		t.Fatalf("no hash falls back to first = %q", got)
+	}
+	if got := ListingStatID("Something unknown", "explicit", nil, catalog); got != "" {
+		t.Fatalf("unknown = %q", got)
+	}
+}
+
+func emptyAffixes(item Item) map[string]float64 {
+	out := map[string]float64{}
+	for _, mod := range item.Mods {
+		if mod.Type == "pseudo" {
+			out[mod.StatID] = mod.Values[0]
+			if mod.Selected {
+				out["selected"] = 1
+			}
+		}
+	}
+	return out
+}
+
+func TestEmptyAffixSlotsCountHeadersNotLines(t *testing.T) {
+	// Two prefixes and two suffixes: one of each is open.
+	boots := "Item Class: Boots\nRarity: Rare\nRapture Hoof\nSerpentscale Boots\n--------\nItem Level: 82\n--------\n" +
+		"{ Prefix Modifier \"Vaporous\" (Tier: 1) — Evasion }\n+162(147-176) to Evasion Rating\n" +
+		"{ Prefix Modifier \"Mirage's\" (Tier: 1) — Evasion }\n100(92-100)% increased Evasion Rating\n" +
+		"{ Suffix Modifier \"of Recuperation\" (Tier: 1) — Life }\n22(18.1-23) Life Regeneration per second\n" +
+		"{ Suffix Modifier \"of Diversion\" (Tier: 2) — Evasion }\nGain Deflection Rating equal to 18(18-20)% of Evasion Rating\n"
+	item, err := ParseItem(boots, testCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := emptyAffixes(item)
+	if got[emptyPrefixStat] != 1 || got[emptySuffixStat] != 1 || got["selected"] != 0 {
+		t.Fatalf("boots empty affixes = %v", got)
+	}
+
+	// Seven stat lines, but three prefix and three suffix headers (a hybrid,
+	// a desecrated two-line prefix, a fractured suffix): nothing is open.
+	shoes := "Item Class: Boots\nRarity: Rare\nAnarchy Dash\nCharmed Shoes\n--------\nItem Level: 79\n--------\n" +
+		"20% increased Armour, Evasion and Energy Shield (rune)\n--------\n" +
+		"{ Prefix Modifier \"Illusory\" (Tier: 1) — Evasion, Energy Shield }\n96(92-100)% increased Evasion and Energy Shield\n" +
+		"{ Prefix Modifier \"Trickster's\" (Tier: 1) }\n41(39-42)% increased Evasion and Energy Shield\n+126(95-136) to Stun Threshold\n" +
+		"{ Desecrated Prefix Modifier \"Cherub's\" (Tier: 1) — Evasion, Energy Shield }\n+70(65-78) to Evasion Rating\n+24(22-25) to maximum Energy Shield\n" +
+		"{ Fractured Suffix Modifier \"of Chronomancy\" (Tier: 1) }\nSkills have 15(11-15)% chance to not remove Charges but still count as consuming them\n" +
+		"{ Suffix Modifier \"of Chronomancy\" (Tier: 1) }\n36(30-40)% increased Skill Effect Duration\n" +
+		"{ Suffix Modifier \"of Flexure\" (Tier: 1) — Evasion }\nGain Deflection Rating equal to 23(21-23)% of Evasion Rating\n" +
+		"--------\nCorrupted\n--------\nFractured Item\n"
+	item, err = ParseItem(shoes, testCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := emptyAffixes(item); len(got) != 0 {
+		t.Fatalf("shoes empty affixes = %v", got)
+	}
+
+	// A plain copy has no headers, so the slots are unknown.
+	plain := "Item Class: Boots\nRarity: Rare\nRapture Hoof\nSerpentscale Boots\n--------\nItem Level: 82\n--------\n+162 to Evasion Rating\n"
+	item, err = ParseItem(plain, testCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := emptyAffixes(item); len(got) != 0 {
+		t.Fatalf("plain copy empty affixes = %v", got)
+	}
+}
+
+// ownMods drops the empty-slot pseudo stats, for tests about the item's own
+// modifier lines.
+func ownMods(mods []ItemMod) []ItemMod {
+	out := []ItemMod{}
+	for _, mod := range mods {
+		if mod.Type != "pseudo" {
+			out = append(out, mod)
+		}
+	}
+	return out
+}
+
+func TestJewelAffixSlotsAreTwoPerSide(t *testing.T) {
+	jewel := "Item Class: Jewels\nRarity: Rare\nViper Ichor\nEmerald\n--------\nItem Level: 80\n--------\n" +
+		"{ Prefix Modifier \"Honed\" (Tier: 1) }\n15(5-15)% increased Projectile Damage\n" +
+		"{ Suffix Modifier \"of the Spear\" (Tier: 1) }\n17(10-20)% increased Critical Damage Bonus with Spears\n"
+	item, err := ParseItem(jewel, testCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := emptyAffixes(item)
+	if got[emptyPrefixStat] != 1 || got[emptySuffixStat] != 1 {
+		t.Fatalf("jewel empty affixes = %v", got)
+	}
+	// Past the usual count (a special craft or corruption): full, not negative.
+	full := jewel + "{ Suffix Modifier \"of Rupture\" (Tier: 1) }\n9(6-16)% increased Critical Hit Chance for Attacks\n" +
+		"{ Suffix Modifier \"of Unmaking\" (Tier: 1) }\n20(10-20)% increased Critical Damage Bonus for Attack Damage\n"
+	item, err = ParseItem(full, testCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := emptyAffixes(item); got[emptySuffixStat] != 0 || got[emptyPrefixStat] != 1 {
+		t.Fatalf("overfull jewel empty affixes = %v", got)
+	}
+}
+
+func TestSameStatAffixesAreSummedLikeTheTradeIndex(t *testing.T) {
+	catalog := Catalog{Stats: []StatGroup{{Entries: []StatEntry{
+		{ID: "explicit.stat_1999113824", Text: "#% increased Evasion and Energy Shield", Type: "explicit"},
+		{ID: "explicit.stat_915769802", Text: "# to Stun Threshold", Type: "explicit"},
+	}}}}
+	raw := "Item Class: Boots\nRarity: Rare\nAnarchy Dash\nCharmed Shoes\n--------\nItem Level: 79\n--------\n" +
+		"{ Prefix Modifier \"Illusory\" (Tier: 1) — Evasion, Energy Shield }\n96(92-100)% increased Evasion and Energy Shield\n" +
+		"{ Prefix Modifier \"Trickster's\" (Tier: 2) }\n41(39-42)% increased Evasion and Energy Shield\n+126(95-136) to Stun Threshold\n"
+	item, err := ParseItem(raw, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mods := ownMods(item.Mods)
+	if len(mods) != 2 {
+		t.Fatalf("mods = %+v", mods)
+	}
+	m := mods[0]
+	if m.StatID != "explicit.stat_1999113824" || m.Values[0] != 137 || m.Text != "137% increased Evasion and Energy Shield" ||
+		fmt.Sprint(m.Tiers) != "[1 2]" || m.Name != "Illusory + Trickster's" || !m.Selected {
+		t.Fatalf("merged = %+v", m)
+	}
+	if mods[1].Text != "+126(95-136) to Stun Threshold" || len(mods[1].Tiers) != 0 {
+		t.Fatalf("stun = %+v", mods[1])
+	}
+	// Both prefixes are still counted as two slots.
+	if got := emptyAffixes(item); got[emptyPrefixStat] != 1 {
+		t.Fatalf("empty = %v", got)
+	}
+}
+
+func TestWaystoneIsSearchedByItsTotals(t *testing.T) {
+	raw := "Item Class: Waystones\nRarity: Rare\nForsaken Path\nWaystone (Tier 15)\n--------\n" +
+		"Revives Available: 0 (augmented)\nItem Rarity: +26% (augmented)\nPack Size: +9% (augmented)\nMonster Rarity: +60% (augmented)\n" +
+		"Monster Effectiveness: +15% (augmented)\nWaystone Drop Chance: +90% (augmented)\n--------\nItem Level: 81\n--------\n" +
+		"{ Prefix Modifier \"Tough\" (Tier: 1) }\n21(20-25)% more Monster Life\n" +
+		"--------\nCan be used in a Map Device, allowing you to enter a Map. Waystones can only be used once.\n--------\nCorrupted\n"
+	catalog := Catalog{Stats: []StatGroup{{Entries: []StatEntry{{ID: "explicit.stat_95249895", Text: "#% more Monster Life", Type: "explicit"}}}}}
+	item, err := ParseItem(raw, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, p := range item.Properties {
+		got[p.Name] = p.Value
+	}
+	want := map[string]string{"Revives Available": "0", "Item Rarity": "+26%", "Pack Size": "+9%", "Monster Rarity": "+60%", "Monster Effectiveness": "+15%", "Waystone Drop Chance": "+90%"}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("properties = %v", got)
+	}
+	if item.BaseType != "Waystone (Tier 15)" || !item.Corrupted {
+		t.Fatalf("item = %+v", item)
+	}
+	for _, mod := range item.Mods {
+		if mod.Selected || mod.Type == "pseudo" {
+			t.Fatalf("waystone mod should be optional and have no empty slots: %+v", mod)
+		}
+	}
+	if len(item.Mods) != 1 || item.Mods[0].StatID == "" {
+		t.Fatalf("mods = %+v", item.Mods)
+	}
+}
+
+func TestWeaponsAndArmourMatchTheLocalStat(t *testing.T) {
+	catalog := Catalog{Stats: []StatGroup{{Entries: []StatEntry{
+		{ID: "explicit.stat_2866361420", Text: "#% increased Armour", Type: "explicit"},
+		{ID: "explicit.stat_1062208444", Text: "#% increased Armour (Local)", Type: "explicit"},
+		{ID: "explicit.stat_774059442", Text: "# to maximum Runic Ward", Type: "explicit"},
+		{ID: "explicit.stat_3336230913", Text: "# to maximum Runic Ward", Type: "explicit"},
+	}}}}
+	shield := "Item Class: Shields\nRarity: Unique\nSvalinn\nRunemastered Crucible Tower Shield\n--------\nItem Level: 82\n--------\n" +
+		"{ Unique Modifier — Armour }\n324(200-300)% increased Armour\n{ Unique Modifier }\n+96(50-100) to maximum Runic Ward\n"
+	item, err := ParseItem(shield, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if item.Mods[0].StatID != "explicit.stat_1062208444" || item.Mods[1].StatID != "explicit.stat_774059442" {
+		t.Fatalf("shield mods = %+v", item.Mods)
+	}
+	// The same wording on jewellery is the global stat.
+	ring := "Item Class: Rings\nRarity: Rare\nDoom Loop\nIron Ring\n--------\nItem Level: 82\n--------\n" +
+		"{ Prefix Modifier \"Plated\" (Tier: 1) }\n30% increased Armour\n"
+	item, err = ParseItem(ring, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if item.Mods[0].StatID != "explicit.stat_2866361420" {
+		t.Fatalf("ring mod = %+v", item.Mods[0])
+	}
+}
+
+func TestAmbiguousStatsKeepTheirTwins(t *testing.T) {
+	catalog := Catalog{Stats: []StatGroup{{Entries: []StatEntry{
+		{ID: "explicit.stat_2866361420", Text: "#% increased Armour", Type: "explicit"},
+		{ID: "explicit.stat_1062208444", Text: "#% increased Armour (Local)", Type: "explicit"},
+		{ID: "explicit.stat_774059442", Text: "# to maximum Runic Ward", Type: "explicit"},
+		{ID: "explicit.stat_3336230913", Text: "# to maximum Runic Ward", Type: "explicit"},
+		{ID: "explicit.stat_1", Text: "Chance to Block Damage is Lucky", Type: "explicit"},
+	}}}}
+	raw := "Item Class: Shields\nRarity: Unique\nSvalinn\nCrucible Tower Shield\n--------\nItem Level: 82\n--------\n" +
+		"{ Unique Modifier }\n324(200-300)% increased Armour\n{ Unique Modifier }\n+96(50-100) to maximum Runic Ward\n{ Unique Modifier }\nChance to Block Damage is Lucky\n"
+	item, err := ParseItem(raw, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := []string{}
+	for _, m := range item.Mods {
+		got = append(got, m.StatID+"+"+strings.Join(m.AltStatIDs, ","))
+	}
+	want := "explicit.stat_1062208444+explicit.stat_2866361420 explicit.stat_774059442+explicit.stat_3336230913 explicit.stat_1+"
+	if strings.Join(got, " ") != want {
+		t.Fatalf("stats = %v", got)
+	}
+}
+
+func TestRequiredLevelIgnoresAttributes(t *testing.T) {
+	for raw, want := range map[string]int{
+		"Requires: 30 (augmented) Str, 30 (augmented) Dex": 0,
+		"Requires: Level 65, 87 (augmented) Str":           65,
+		"Requires: Level 44, 52 Dex":                       44,
+	} {
+		item, err := ParseItem("Item Class: Body Armours\nRarity: Unique\nExplorer Armour\n--------\n"+raw+"\n--------\nItem Level: 82\n--------\nUnidentified\n", Catalog{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if item.RequiredLevel != want {
+			t.Errorf("%q: required level %d, want %d", raw, item.RequiredLevel, want)
+		}
 	}
 }

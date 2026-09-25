@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -42,6 +43,12 @@ type TradeFilter struct {
 	Text   string     `json:"text"`
 	MinMax bool       `json:"minMax"`
 	Option optionList `json:"option"`
+	// Input is set for free-text filters (the seller account name).
+	Input *FilterInput `json:"input,omitempty"`
+}
+
+type FilterInput struct {
+	Placeholder string `json:"placeholder"`
 }
 
 type FilterGroup struct {
@@ -65,10 +72,50 @@ type ItemGroup struct {
 // Catalog is the normalized data the two overlay windows consume. The raw
 // endpoint responses remain on disk so new GGG fields are not destroyed.
 type Catalog struct {
-	Stats       []StatGroup   `json:"stats"`
-	Items       []ItemGroup   `json:"items"`
-	Filters     []FilterGroup `json:"filters"`
-	UpdatedAtMs int64         `json:"updatedAtMs"`
+	Stats   []StatGroup   `json:"stats"`
+	Items   []ItemGroup   `json:"items"`
+	Filters []FilterGroup `json:"filters"`
+	// Currencies are the trade site's exchange items by the id listings price
+	// in ("divine", "exalted"), with their name and icon.
+	Currencies  []CurrencyEntry `json:"currencies"`
+	UpdatedAtMs int64           `json:"updatedAtMs"`
+}
+
+type CurrencyEntry struct {
+	ID    string `json:"id"`
+	Text  string `json:"text"`
+	Image string `json:"image"`
+}
+
+type staticGroup struct {
+	ID      string `json:"id"`
+	Entries []struct {
+		ID    string `json:"id"`
+		Text  string `json:"text"`
+		Image string `json:"image"`
+	} `json:"entries"`
+}
+
+// iconBase serves the trade site's images (item and currency icons alike).
+const iconBase = "https://web.poecdn.com"
+
+func currenciesFrom(groups []staticGroup) []CurrencyEntry {
+	out := []CurrencyEntry{}
+	seen := map[string]bool{}
+	for _, group := range groups {
+		for _, e := range group.Entries {
+			if e.ID == "" || e.Image == "" || seen[e.ID] {
+				continue
+			}
+			seen[e.ID] = true
+			image := e.Image
+			if strings.HasPrefix(image, "/") {
+				image = iconBase + image
+			}
+			out = append(out, CurrencyEntry{ID: e.ID, Text: e.Text, Image: image})
+		}
+	}
+	return out
 }
 
 type response[T any] struct {
@@ -192,7 +239,15 @@ func (s *CatalogStore) load(ctx context.Context) (Catalog, error) {
 	if filtersAt.Before(updated) {
 		updated = filtersAt
 	}
-	return Catalog{Stats: stats.Result, Items: items.Result, Filters: filters.Result, UpdatedAtMs: updated.UnixMilli()}, nil
+	// Currency icons are a nicety: without them prices fall back to names.
+	currencies := []CurrencyEntry{}
+	if staticRaw, _, err := s.readOrFetch(ctx, "static", "trade_static.json"); err == nil {
+		var static response[staticGroup]
+		if json.Unmarshal(staticRaw, &static) == nil {
+			currencies = currenciesFrom(static.Result)
+		}
+	}
+	return Catalog{Stats: stats.Result, Items: items.Result, Filters: filters.Result, Currencies: currencies, UpdatedAtMs: updated.UnixMilli()}, nil
 }
 
 func (s *CatalogStore) readOrFetch(ctx context.Context, endpoint, filename string) ([]byte, time.Time, error) {

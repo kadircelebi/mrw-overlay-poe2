@@ -2,18 +2,24 @@
   import { onMount } from 'svelte'
   import { Events } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter'
-  import type { Catalog, Item, ItemEntry, Snapshot } from '../bindings/poe2filter/internal/overlay/models'
+  import type { Catalog, CurrencyQuote, Item, ItemEntry, Snapshot } from '../bindings/poe2filter/internal/overlay/models'
   import type { Evaluation, SelectedFilter } from '../bindings/poe2filter/internal/trade/models'
+  import CurrencyCard from './lib/CurrencyCard.svelte'
+  import QuotaBadge from './lib/QuotaBadge.svelte'
   import OverlayItemCard from './lib/OverlayItemCard.svelte'
   import TradeResults from './lib/TradeResults.svelte'
-  import { allOn, buildRequest, categoryFor, choicesFor, propertyFiltersFor, resetChoiceRanges, resetPropertyRanges, type ItemToggles, type ModChoice, type PropertyFilter } from './lib/overlayQuery'
+  import { searchedStats, allOn, buildRequest, categoryFor, choicesFor, propertyFiltersFor, resetChoiceRanges, resetPropertyRanges, type ItemToggles, type ModChoice, type PropertyFilter } from './lib/overlayQuery'
 
   let item = $state<Item | null>(null)
+  // Set for stackable items the price list knows: they get a worth card
+  // instead of the affix card.
+  let quote = $state<CurrencyQuote | null>(null)
   let catalog = $state<Catalog | null>(null)
   let choices = $state<ModChoice[]>([])
   let toggles = $state<ItemToggles>({ ...allOn })
   let propertyFilters = $state<PropertyFilter[]>([])
   let result = $state<Evaluation | null>(null)
+  let searched = $state<string[]>([])
   let loading = $state(false)
   let error = $state('')
   let exact = $state(true)
@@ -51,6 +57,14 @@
     })
   })
 
+  // Unique art by name (from the price snapshot), so the candidates of an
+  // unidentified unique can be told apart by their look, as in game.
+  let uniqueIcons = $state<Record<string, string | undefined>>({})
+  $effect(() => {
+    if (!unidentifiedCandidates.length) return
+    AppService.UniqueIcons().then((icons) => { uniqueIcons = icons ?? {} }).catch(() => {})
+  })
+
   function needsUniqueSelection(value: Item): boolean {
     return value.unidentified && value.rarity === 'unique' && !value.name
   }
@@ -58,6 +72,7 @@
   function accept(snap: Snapshot) {
     error = snap.error ?? ''
     result = null
+    quote = null
     if (!snap.item) {
       item = null
       choices = []
@@ -65,6 +80,7 @@
     }
     exact = true
     item = snap.item
+    loadQuote(snap.item)
     choices = choicesFor(snap.item, false)
     toggles = { ...allOn }
     propertyFilters = propertyFiltersFor(snap.item)
@@ -74,7 +90,8 @@
     twiceCorrupted = snap.item.twiceCorrupted ? 'true' : ''
     mirrored = snap.item.mirrored ? 'true' : ''
     sanctified = snap.item.sanctified ? 'true' : ''
-    useItemLevel = snap.item.itemLevel > 0
+    // A waystone's tier (its base) sets what drops; its item level does not.
+    useItemLevel = snap.item.itemLevel > 0 && snap.item.class !== 'Waystones'
     itemLevelMin = snap.item.itemLevel || undefined
     itemLevelMax = undefined
     useQuality = snap.item.quality > 0
@@ -84,6 +101,15 @@
     requiredLevelMin = undefined
     requiredLevelMax = snap.item.requiredLevel || undefined
     if (!needsUniqueSelection(snap.item)) queueEvaluate(40)
+  }
+
+  function loadQuote(value: Item) {
+    if (!(value.stackSize > 0 || value.rarity === 'currency')) return
+    // item is a state proxy, so compare the copied text rather than identity.
+    const raw = value.raw
+    AppService.QuoteCurrency(value.baseType || value.name).then((q) => {
+      if (item?.raw === raw && q.found) quote = q
+    }).catch(() => {})
   }
 
   onMount(() => {
@@ -109,7 +135,7 @@
     if (mirrored) out.push({ group: 'misc_filters', id: 'mirrored', option: mirrored })
     if (sanctified) out.push({ group: 'misc_filters', id: 'sanctified', option: sanctified })
     for (const prop of propertyFilters) {
-      if (prop.enabled) out.push({ group: 'equipment_filters', id: prop.id, min: prop.min, max: prop.max })
+      if (prop.enabled) out.push({ group: prop.group, id: prop.id, min: prop.min, max: prop.max })
     }
     if (useItemLevel) out.push({ group: 'type_filters', id: 'ilvl', min: itemLevelMin, max: itemLevelMax })
     if (useQuality) out.push({ group: 'type_filters', id: 'quality', min: qualityMin, max: qualityMax })
@@ -129,7 +155,9 @@
     loading = true
     error = ''
     try {
-      result = await AppService.EvaluateOverlay(buildRequest(item, choices, status, selectedFilters(), [], toggles), refresh)
+      const request = buildRequest(item, choices, status, selectedFilters(), [], toggles)
+      searched = searchedStats(request)
+      result = await AppService.EvaluateOverlay(request, refresh)
     } catch (e) {
       error = cleanError(e)
       result = null
@@ -225,6 +253,7 @@
     <span class="mark">⚖</span>
     <strong>MrW Overlay</strong>
     {#if item}<span class="league">Evaluate · {item.rarity}</span>{/if}
+    <QuotaBadge />
     <button title="Geniş pazarı aç" onclick={openMarket}>▣</button>
     <button title="Kapat" onclick={() => AppService.HideOverlay()}>×</button>
   </header>
@@ -238,7 +267,10 @@
           {#if unidentifiedCandidates.length}
             <div class="unique-options">
               {#each unidentifiedCandidates as candidate (`${candidate.name}-${candidate.type}`)}
-                <button type="button" onclick={() => chooseUnidentifiedUnique(candidate)}><strong>{candidate.name}</strong><span>{candidate.type}</span></button>
+                <button type="button" onclick={() => chooseUnidentifiedUnique(candidate)}>
+                  {#if candidate.name && uniqueIcons[candidate.name]}<img src={uniqueIcons[candidate.name]} alt="" />{/if}
+                  <strong>{candidate.name}</strong><span>{candidate.type}</span>
+                </button>
               {/each}
             </div>
           {:else}
@@ -246,6 +278,9 @@
           {/if}
         </section>
       {:else}
+        {#if quote}
+        <CurrencyCard {item} {quote} />
+        {:else}
         <OverlayItemCard
           {item}
           {choices}
@@ -265,6 +300,7 @@
           {propertyFilters}
           onpropertychange={updatePropertyFilter}
         />
+        {/if}
       <div class="mode-row">
         <button class:on={exact} onclick={() => setMode(true)}><i></i> Exact Match</button>
         <button class:on={!exact} onclick={() => setMode(false)}><i></i> Broad (-10%)</button>
@@ -295,7 +331,7 @@
         </select>
       </div>
       <button class="search-button" disabled={loading} onclick={() => evaluate(true)}>{loading ? 'Searching…' : 'Search'}</button>
-      <TradeResults {result} {loading} {error} />
+      <TradeResults {result} {loading} {error} {searched} />
       {/if}
     </div>
   {:else}
@@ -316,7 +352,7 @@
   header button { --wails-draggable:no-drag; width:26px; height:25px; border:0; background:transparent; color:#a6a89e; font-size:18px; }
   header button:hover { color:var(--gold-bright); background:#252722; }
   .body { min-height:0; overflow:auto; padding:10px; }
-  .unique-picker{padding:18px;border:1px solid #4a4030;background:radial-gradient(circle at top,rgba(120,76,25,.12),transparent 60%),#0b0d0d;text-align:center}.unique-picker>small{color:#d54a45;text-transform:uppercase;letter-spacing:.08em}.unique-picker h2{margin:6px 0 14px;color:var(--gold-bright);font:16px var(--serif)}.unique-picker>p{color:var(--muted)}.unique-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.unique-options button{padding:14px 8px;border:1px solid #625337;background:#151713;color:var(--gold-bright)}.unique-options button:hover{border-color:#b59b62;background:#24251e}.unique-options strong,.unique-options span{display:block}.unique-options strong{font:12px var(--serif)}.unique-options span{margin-top:5px;color:var(--muted);font-size:10px}
+  .unique-picker{padding:18px;border:1px solid #4a4030;background:radial-gradient(circle at top,rgba(120,76,25,.12),transparent 60%),#0b0d0d;text-align:center}.unique-picker>small{color:#d54a45;text-transform:uppercase;letter-spacing:.08em}.unique-picker h2{margin:6px 0 14px;color:var(--gold-bright);font:16px var(--serif)}.unique-picker>p{color:var(--muted)}.unique-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.unique-options button{padding:14px 8px;border:1px solid #625337;background:#151713;color:var(--gold-bright)}.unique-options button:hover{border-color:#b59b62;background:#24251e}.unique-options img{display:block;width:64px;height:96px;margin:0 auto 8px;object-fit:contain;filter:drop-shadow(0 2px 6px #000)}.unique-options strong,.unique-options span{display:block}.unique-options strong{font:12px var(--serif)}.unique-options span{margin-top:5px;color:var(--muted);font-size:10px}
   .mode-row { display:flex; justify-content:center; gap:20px; padding:7px; border:1px solid #34342e; border-top:0; background:#111311; }
   .mode-row button { border:0; background:none; color:#a7a89e; }
   .mode-row i { display:inline-block; width:11px; height:11px; margin-right:6px; transform:rotate(45deg); border:1px solid #766b4f; }

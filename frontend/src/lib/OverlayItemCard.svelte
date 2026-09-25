@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Item } from '../../bindings/poe2filter/internal/overlay/models'
+  import type { Item, ItemMod } from '../../bindings/poe2filter/internal/overlay/models'
   import { rarityOptions, type ItemToggles, type ModChoice, type PropertyFilter } from './overlayQuery'
 
   type MetaFilter = { enabled: boolean; min?: number; max?: number }
@@ -48,12 +48,19 @@
 
   function label(choice: ModChoice): string {
     const mod = choice.mod
+    if (mod.type === 'pseudo') return 'Pseudo'
     const affix = mod.affix ? mod.affix[0].toUpperCase() + mod.affix.slice(1) : mod.type
     const special = ['fractured', 'crafted', 'desecrated'].includes(mod.type)
       ? `${mod.type[0].toUpperCase()}${mod.type.slice(1)} `
       : ''
-    const tier = mod.tier ? ` T${mod.tier}` : ''
-    return `${special}${affix}${tier}`
+    return `${special}${affix}${tiers(mod)}`
+  }
+
+  // Affixes of the same stat are summed into one line; its label lists every
+  // tier ("Prefix T1+T2") as the trade site sees one value.
+  function tiers(mod: ItemMod): string {
+    if (mod.tiers?.length) return mod.tiers.some((tier) => tier > 0) ? ` ${mod.tiers.map((tier) => tier ? `T${tier}` : '—').join('+')}` : ''
+    return mod.tier ? ` T${mod.tier}` : ''
   }
 </script>
 
@@ -139,7 +146,7 @@
     {:else}
       {#each item.mods ?? [] as mod}
         <div class="plain-mod" class:implicit={mod.type === 'implicit'} class:fractured={mod.type === 'fractured'} class:crafted={mod.type === 'crafted'} class:desecrated={mod.type === 'desecrated'}>
-          {#if mod.tier || mod.name}<small>{['fractured', 'crafted', 'desecrated'].includes(mod.type) ? `${mod.type} ` : ''}{mod.affix || mod.type}{mod.tier ? ` T${mod.tier}` : ''}{mod.name ? ` · ${mod.name}` : ''}</small>{/if}
+          {#if mod.tier || mod.tiers?.length || mod.name}<small>{['fractured', 'crafted', 'desecrated'].includes(mod.type) ? `${mod.type} ` : ''}{mod.affix || mod.type}{tiers(mod)}{mod.name ? ` · ${mod.name}` : ''}</small>{/if}
           <span>{mod.text}</span>
         </div>
       {/each}

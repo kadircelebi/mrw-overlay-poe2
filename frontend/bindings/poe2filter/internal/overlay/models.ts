@@ -13,13 +13,44 @@ export interface Catalog {
     "stats": StatGroup[] | null;
     "items": ItemGroup[] | null;
     "filters": FilterGroup[] | null;
+
+    /**
+     * Currencies are the trade site's exchange items by the id listings price
+     * in ("divine", "exalted"), with their name and icon.
+     */
+    "currencies": CurrencyEntry[] | null;
     "updatedAtMs": number;
+}
+
+export interface CurrencyEntry {
+    "id": string;
+    "text": string;
+    "image": string;
+}
+
+/**
+ * CurrencyQuote is what the overlay shows for a stackable item: its value in
+ * the price snapshot the filter already uses, so no trade search is needed.
+ */
+export interface CurrencyQuote {
+    "found": boolean;
+    "name": string;
+    "category": string;
+    "valueEx": number;
+    "divineEx": number;
+    "chaosEx": number;
+    "league": string;
+    "generatedAt": string;
 }
 
 export interface FilterGroup {
     "id": string;
     "title": string;
     "filters": TradeFilter[] | null;
+}
+
+export interface FilterInput {
+    "placeholder": string;
 }
 
 export interface Item {
@@ -36,6 +67,17 @@ export interface Item {
      * RuneSockets counts the "S" entries of the Sockets line.
      */
     "runeSockets": number;
+
+    /**
+     * Exceptional is set when the game prefixed the name with "Exceptional":
+     * extra sockets or quality are then what the item is priced by.
+     */
+    "exceptional": boolean;
+
+    /**
+     * StackSize is the count of a stackable item ("Stack Size: 808/5000").
+     */
+    "stackSize": number;
     "unidentified": boolean;
     "fractured": boolean;
     "corrupted": boolean;
@@ -73,6 +115,18 @@ export interface ItemMod {
     "tier": number;
     "values": number[] | null;
     "selected": boolean;
+
+    /**
+     * Tiers lists each affix's tier when several affixes of the same stat
+     * were merged into this line ("P1+P1"); empty for a single affix.
+     */
+    "tiers"?: number[] | null;
+
+    /**
+     * AltStatIDs are catalog stats with the same wording as StatID (a local
+     * or global twin); searches accept any of them through a count group.
+     */
+    "altStatIds"?: string[] | null;
 }
 
 export interface ItemProperty {
@@ -128,6 +182,11 @@ export interface TradeFilter {
     "text": string;
     "minMax": boolean;
     "option": optionList;
+
+    /**
+     * Input is set for free-text filters (the seller account name).
+     */
+    "input"?: FilterInput | null;
 }
 
 export interface optionList {

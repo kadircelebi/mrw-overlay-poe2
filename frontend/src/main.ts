@@ -5,7 +5,9 @@ import './app.css'
 import App from './App.svelte'
 import OverlayApp from './OverlayApp.svelte'
 import MarketApp from './MarketApp.svelte'
+import { installWheelNumbers } from './lib/wheelNumbers'
 
 const view = new URLSearchParams(location.search).get('view')
 const Component = view === 'overlay' ? OverlayApp : view === 'market' ? MarketApp : App
 mount(Component, { target: document.getElementById('app')! })
+installWheelNumbers()

@@ -32,6 +32,22 @@ type Limiter struct {
 	serverState  []int       // current hits per rule as reported by the server
 	stateAt      time.Time
 	blockedUntil time.Time
+	// blockedBy is the window whose penalty caused blockedUntil (0 when the
+	// server did not say, e.g. a bare 429 with only Retry-After).
+	blockedBy time.Duration
+}
+
+// Why a request has to wait.
+const (
+	WaitPenalty = "penalty" // GGG restricted this IP
+	WaitShared  = "shared"  // the server's counter (all apps on this IP) is at our budget
+	WaitOurs    = "ours"    // our own requests are at our budget
+	WaitPacing  = "pacing"  // background scanner spacing
+)
+
+type waitCause struct {
+	kind   string
+	window time.Duration
 }
 
 // NewLimiter creates a limiter seeded with known rules; the server's headers
@@ -69,9 +85,17 @@ func (l *Limiter) allowed(r Rule) int {
 
 // nextSlot returns the earliest time a request may be sent (locked).
 func (l *Limiter) nextSlot(now time.Time) time.Time {
+	next, _ := l.nextSlotWhy(now)
+	return next
+}
+
+// nextSlotWhy also reports which limit decided the slot.
+func (l *Limiter) nextSlotWhy(now time.Time) (time.Time, waitCause) {
 	next := now
+	var why waitCause
 	if l.blockedUntil.After(next) {
 		next = l.blockedUntil
+		why = waitCause{WaitPenalty, l.blockedBy}
 	}
 	for i, r := range l.rules {
 		allowed := l.allowed(r)
@@ -81,7 +105,7 @@ func (l *Limiter) nextSlot(now time.Time) time.Time {
 			if n := len(l.history); n > 0 {
 				spaced := l.history[n-1].Add(r.Period / time.Duration(allowed))
 				if spaced.After(next) {
-					next = spaced
+					next, why = spaced, waitCause{WaitPacing, r.Period}
 				}
 			}
 		}
@@ -95,7 +119,7 @@ func (l *Limiter) nextSlot(now time.Time) time.Time {
 		}
 		if len(ours) >= allowed {
 			if t := ours[len(ours)-allowed].Add(r.Period); t.After(next) {
-				next = t
+				next, why = t, waitCause{WaitOurs, r.Period}
 			}
 		}
 
@@ -103,11 +127,11 @@ func (l *Limiter) nextSlot(now time.Time) time.Time {
 		// conservative: assume those hits stay until their window passes.
 		if i < len(l.serverState) && now.Sub(l.stateAt) < r.Period && l.serverState[i] >= allowed {
 			if t := l.stateAt.Add(r.Period); t.After(next) {
-				next = t
+				next, why = t, waitCause{WaitShared, r.Period}
 			}
 		}
 	}
-	return next
+	return next, why
 }
 
 // Wait blocks until a request may be sent, then records it.
@@ -175,6 +199,7 @@ func (l *Limiter) Observe(resp *http.Response) {
 	if rules := parseRules(resp.Header.Get("X-Rate-Limit-Ip")); len(rules) > 0 {
 		l.rules = rules
 	}
+	namedBy := false
 	if state := resp.Header.Get("X-Rate-Limit-Ip-State"); state != "" {
 		var hits []int
 		for _, part := range strings.Split(state, ",") {
@@ -188,6 +213,9 @@ func (l *Limiter) Observe(resp *http.Response) {
 			if secs, _ := strconv.Atoi(f[2]); secs > 0 {
 				if t := now.Add(time.Duration(secs) * time.Second); t.After(l.blockedUntil) {
 					l.blockedUntil = t
+					period, _ := strconv.Atoi(f[1])
+					l.blockedBy = time.Duration(period) * time.Second
+					namedBy = true
 				}
 			}
 		}
@@ -201,8 +229,66 @@ func (l *Limiter) Observe(resp *http.Response) {
 		}
 		if t := now.Add(wait); t.After(l.blockedUntil) {
 			l.blockedUntil = t
+			if !namedBy {
+				l.blockedBy = 0
+			}
 		}
 	}
+}
+
+// QuotaWindow is one GGG rate-limit window as last seen.
+type QuotaWindow struct {
+	PeriodSec  int `json:"periodSec"`
+	Limit      int `json:"limit"`
+	Allowed    int `json:"allowed"` // our budgeted share of Limit
+	Hits       int `json:"hits"`    // estimated current use by everything on this IP
+	PenaltySec int `json:"penaltySec"`
+}
+
+// QuotaStatus explains the quota for diagnostics: how full each window is,
+// whether GGG restricted the IP, and what the next request would wait for.
+type QuotaStatus struct {
+	Windows    []QuotaWindow `json:"windows"`
+	ObservedAt time.Time     `json:"observedAt"` // zero before the first response
+	// RestrictedUntil is set while GGG penalises the IP; RestrictedWindowSec
+	// names the window that was exceeded (0 when GGG did not say).
+	RestrictedUntil     time.Time `json:"restrictedUntil"`
+	RestrictedWindowSec int       `json:"restrictedWindowSec"`
+	WaitSec             int       `json:"waitSec"`
+	WaitReason          string    `json:"waitReason"`
+	WaitWindowSec       int       `json:"waitWindowSec"`
+}
+
+// Status estimates the current use of every window: the server's last count
+// while its window has not passed, plus our own requests sent since then.
+func (l *Limiter) Status() QuotaStatus {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := time.Now()
+	st := QuotaStatus{ObservedAt: l.stateAt}
+	for i, r := range l.rules {
+		w := QuotaWindow{PeriodSec: int(r.Period / time.Second), Limit: r.Hits, Allowed: l.allowed(r), PenaltySec: int(r.Penalty / time.Second)}
+		since := time.Time{}
+		if i < len(l.serverState) && now.Sub(l.stateAt) < r.Period {
+			w.Hits, since = l.serverState[i], l.stateAt
+		}
+		for _, t := range l.history {
+			if t.After(since) && now.Sub(t) < r.Period {
+				w.Hits++
+			}
+		}
+		st.Windows = append(st.Windows, w)
+	}
+	if l.blockedUntil.After(now) {
+		st.RestrictedUntil = l.blockedUntil
+		st.RestrictedWindowSec = int(l.blockedBy / time.Second)
+	}
+	if slot, why := l.nextSlotWhy(now); slot.After(now) {
+		st.WaitSec = int((slot.Sub(now) + time.Second - 1) / time.Second)
+		st.WaitReason = why.kind
+		st.WaitWindowSec = int(why.window / time.Second)
+	}
+	return st
 }
 
 func parseRules(h string) []Rule {

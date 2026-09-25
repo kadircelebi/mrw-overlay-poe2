@@ -34,6 +34,7 @@ type ninjaResponse struct {
 		BaseType     string  `json:"baseType"`
 		PrimaryValue float64 `json:"primaryValue"` // in Divine Orbs
 		ListingCount int     `json:"listingCount"`
+		Icon         string  `json:"icon"`
 	} `json:"lines"`
 }
 
@@ -55,6 +56,7 @@ type NinjaUnique struct {
 	Category string
 	ValueDiv float64
 	Listings int
+	Icon     string
 }
 
 // GroundBase returns the directly droppable base represented by a poe.ninja
@@ -114,6 +116,7 @@ func FetchNinjaUniques(ctx context.Context, c *http.Client, league string) Ninja
 					Category: typ,
 					ValueDiv: line.PrimaryValue,
 					Listings: line.ListingCount,
+					Icon:     line.Icon,
 				})
 			}
 		}(typ)
@@ -132,6 +135,7 @@ func (r NinjaResult) ToExalted(divineEx float64) map[string][]prices.Unique {
 				Category: u.Category,
 				ValueEx:  u.ValueDiv * divineEx,
 				Listings: u.Listings,
+				Icon:     u.Icon,
 			})
 		}
 	}

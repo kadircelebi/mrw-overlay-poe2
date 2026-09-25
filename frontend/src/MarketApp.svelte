@@ -5,16 +5,27 @@
   import type { Catalog, Item, ItemEntry, SavedSearch, Snapshot, StatEntry, TradeFilter } from '../bindings/poe2filter/internal/overlay/models'
   import type { EvaluateRequest, Evaluation, SelectedFilter, SelectedStat, SelectedStatGroup } from '../bindings/poe2filter/internal/trade/models'
   import TradeResults from './lib/TradeResults.svelte'
-  import { allOn, buildRequest, categoryFor, choicesFor, searchLabel, type ModChoice } from './lib/overlayQuery'
+  import QuotaBadge from './lib/QuotaBadge.svelte'
+  import { allOn, buildRequest, categoryFor, choicesFor, nextSort, searchLabel, searchedStats, statSortKey, type ModChoice, type SortOption, type SortState } from './lib/overlayQuery'
 
-  type FilterState = { min?: number; max?: number; option?: string }
-  type StatGroupState = { key: number; type: string; min?: number; choiceKeys: string[]; weights: Record<string, number | undefined> }
+  type FilterState = { min?: number; max?: number; option?: string; input?: string }
+  type StatGroupState = { key: number; type: string; min?: number; max?: number; choiceKeys: string[]; weights: Record<string, number | undefined> }
+
+  // A fresh search starts from an empty item: the item box, stats and filters
+  // are then filled by hand, and whatever is filled goes into the query.
+  function blankItem(): Item {
+    return {
+      raw: '', class: '', rarity: '', name: '', baseType: '',
+      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, exceptional: false, stackSize: 0, unidentified: false, fractured: false, corrupted: false, twiceCorrupted: false, mirrored: false, sanctified: false, properties: [], mods: [],
+    }
+  }
 
   let catalog = $state<Catalog | null>(null)
-  let item = $state<Item | null>(null)
+  let item = $state<Item | null>(blankItem())
   let choices = $state<ModChoice[]>([])
   let statGroups = $state<StatGroupState[]>([])
   let result = $state<Evaluation | null>(null)
+  let searched = $state<string[]>([])
   let loading = $state(false)
   let error = $state('')
   let itemQuery = $state('')
@@ -29,6 +40,8 @@
   let saveName = $state('')
   let saveError = $state('')
   let nextGroupKey = 1
+  const defaultSort: SortState = { key: 'price', dir: 'asc' }
+  let sort = $state<SortState>({ ...defaultSort })
 
   const itemEntries = $derived((catalog?.items ?? []).flatMap((group) => group.entries ?? []))
   const statEntries = $derived((catalog?.stats ?? []).flatMap((group) => group.entries ?? []))
@@ -47,7 +60,75 @@
     ['weight', 'Weighted Sum'], ['weight2', 'Weighted Sum v2'], ['skill', 'Mercenary Skill Group'],
   ] as const
 
+  // Stats can be sorted by only while the query filters on them, as on the
+  // trade site; each selected stat offers itself as a sort chip.
+  const statSortOptions = $derived.by((): SortOption[] => {
+    const seen = new Set<string>()
+    const out: SortOption[] = []
+    for (const group of statGroups) for (const key of group.choiceKeys) {
+      const choice = choiceForKey(key)
+      const sortKey = choice?.selected ? statSortKey(choice.mod.statId) : ''
+      if (!sortKey || seen.has(sortKey)) continue
+      seen.add(sortKey)
+      out.push({ key: sortKey, label: shortStat(choice!.mod.text), title: choice!.mod.text })
+    }
+    return out
+  })
+
+  // A sort label names the stat, not this item's roll: "#% increased Armour".
+  function shortStat(text: string) {
+    const label = text.replace(/\n/g, ' ').replace(/\([^()]*\)/g, '').replace(/[+-]?\d+(\.\d+)?/g, '#')
+    return label.length > 34 ? `${label.slice(0, 32)}…` : label
+  }
+
+  // A stat picked from a listing's affix need not be in the query (GGG sorts
+  // by any stat); it keeps a chip of its own while it is the sort.
+  let pickedStat = $state<SortOption | null>(null)
+  const sortOptions = $derived(pickedStat && !statSortOptions.some((option) => option.key === pickedStat!.key)
+    ? [...statSortOptions, pickedStat]
+    : statSortOptions)
+
+  // A new sort is a new search (GGG sorts all listings, not just the ones
+  // shown). The cache still answers a sort that was run a moment ago.
+  function setSort(key: string, label?: string) {
+    if (loading) return
+    sort = nextSort(sort, key)
+    if (key.startsWith('stat.') && label && !statSortOptions.some((option) => option.key === key)) {
+      const text = label.replace(/\n/g, ' ')
+      pickedStat = { key, label: shortStat(text.replace(/[+-]?\d+(\.\d+)?/g, '#')), title: text }
+    } else if (!key.startsWith('stat.') || statSortOptions.some((option) => option.key === key)) {
+      pickedStat = null
+    }
+    if (canSearch) search(false)
+  }
+
   function groupNeedsMin(type: string) { return type === 'count' || type === 'weight' || type === 'weight2' }
+
+  // Rarity alone does not narrow a search; anything else the user filled does.
+  const canSearch = $derived.by(() => {
+    if (!item) return false
+    if (item.baseType || (item.rarity === 'unique' && item.name)) return true
+    if (requestGroups().length) return true
+    return activeFilters().some((filter) => !(filter.group === 'type_filters' && filter.id === 'rarity'))
+  })
+
+  function newSearch() {
+    item = blankItem()
+    choices = []
+    statGroups = [{ key: nextGroupKey++, type: 'and', choiceKeys: [], weights: {} }]
+    filters = {}
+    status = 'securable'
+    sort = { ...defaultSort }
+    pickedStat = null
+    itemQuery = ''
+    statQuery = ''
+    saveName = ''
+    saveError = ''
+    showItemSuggestions = false
+    showStatSuggestions = false
+    result = null
+    error = ''
+  }
 
   function accept(snap: Snapshot, draft?: EvaluateRequest) {
     if (!snap.item) return
@@ -55,10 +136,16 @@
       ? { ...snap.item, name: draft.name || snap.item.name, baseType: draft.baseType, rarity: draft.rarity || snap.item.rarity }
       : snap.item
     item = selectedItem
+    sort = { ...defaultSort }
+    pickedStat = null
     choices = choicesFor(selectedItem, false)
     statGroups = [{ key: nextGroupKey++, type: 'and', choiceKeys: choices.filter((choice) => choice.mod.statId).map((choice) => choice.mod.key), weights: {} }]
     itemQuery = searchLabel(selectedItem)
     seedTypeFilters(selectedItem.rarity, selectedItem.class)
+    // An exceptional item is priced by its extra sockets.
+    if (selectedItem.exceptional && selectedItem.runeSockets > 0) {
+      filters = { ...filters, [stateKey('equipment_filters', 'rune_sockets')]: { min: selectedItem.runeSockets } }
+    }
     result = null
     error = ''
     if (draft?.baseType === snap.item.baseType) {
@@ -99,7 +186,7 @@
     status = draft.status || 'securable'
     filters = {}
     for (const filter of draft.filters ?? []) {
-      filters[stateKey(filter.group, filter.id)] = { min: filter.min ?? undefined, max: filter.max ?? undefined, option: filter.option }
+      filters[stateKey(filter.group, filter.id)] = { min: filter.min ?? undefined, max: filter.max ?? undefined, option: filter.option || undefined, input: filter.input || undefined }
     }
     for (const choice of choices) choice.selected = false
     const sourceGroups: SelectedStatGroup[] = draft.groups?.length
@@ -111,8 +198,17 @@
       const keys: string[] = []
       const weights: Record<string, number | undefined> = {}
       for (const selected of source.stats ?? []) {
-        const choice = choices.find((candidate) => candidate.mod.statId === selected.id && !used.has(candidate.mod.key))
-        if (!choice) continue
+        let choice = choices.find((candidate) => candidate.mod.statId === selected.id && !used.has(candidate.mod.key))
+        if (!choice) {
+          // A stat the item line does not name itself, such as the local or
+          // global twin in a count group: it gets a row of its own.
+          const stat = statEntries.find((entry) => entry.id === selected.id)
+          if (!stat) continue
+          choice = { selected: true, mod: { key: `draft-${selected.id}-${choices.length}`, statId: stat.id, text: stat.text, type: stat.type, affix: '', name: '', tier: 0, values: [], selected: true } }
+          choices = [...choices, choice]
+          // Keep working on the reactive copy the state now holds.
+          choice = choices[choices.length - 1]
+        }
         used.add(choice.mod.key)
         choice.selected = !selected.disabled
         choice.min = selected.min ?? undefined
@@ -120,7 +216,7 @@
         keys.push(choice.mod.key)
         weights[choice.mod.key] = selected.weight ?? undefined
       }
-      next.push({ key: nextGroupKey++, type: source.type || 'and', min: source.min ?? undefined, choiceKeys: keys, weights })
+      next.push({ key: nextGroupKey++, type: source.type || 'and', min: source.min ?? undefined, max: source.max ?? undefined, choiceKeys: keys, weights })
     }
     statGroups = next.length ? next : [{ key: nextGroupKey++, type: 'and', choiceKeys: [], weights: {} }]
     seedTypeFilters(draft.rarity, item.class)
@@ -129,14 +225,19 @@
   }
 
   function chooseItem(entry: ItemEntry) {
+    // A copied item's affixes belong to that item; stats picked by hand for a
+    // fresh search stay when the base is chosen afterwards.
+    const fromGame = !!item?.raw
+    const rarityKey = stateKey('type_filters', 'rarity')
+    const currentRarity = stateFor('type_filters', 'rarity').option ?? ''
+    const rarity = entry.name ? 'unique' : currentRarity === 'unique' || fromGame ? '' : currentRarity
     itemQuery = entry.name || entry.type
-    item = {
-      raw: '', class: '', rarity: entry.name ? 'unique' : '', name: entry.name ?? '', baseType: entry.type,
-      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, unidentified: false, fractured: false, corrupted: false, twiceCorrupted: false, mirrored: false, sanctified: false, properties: [], mods: [],
+    item = { ...blankItem(), rarity, name: entry.name ?? '', baseType: entry.type }
+    if (fromGame) {
+      choices = []
+      statGroups = [{ key: nextGroupKey++, type: 'and', choiceKeys: [], weights: {} }]
     }
-    choices = []
-    statGroups = [{ key: nextGroupKey++, type: 'and', choiceKeys: [], weights: {} }]
-    filters = { ...filters, [stateKey('type_filters', 'rarity')]: { option: item.rarity || undefined } }
+    filters = { ...filters, [rarityKey]: { option: rarity || undefined } }
     result = null
     showItemSuggestions = false
   }
@@ -205,7 +306,13 @@
 
   function setOption(group: string, id: string, value: string) {
     const key = stateKey(group, id)
-    filters = { ...filters, [key]: { ...filters[key], option: value } }
+    filters = { ...filters, [key]: { ...filters[key], option: value || undefined } }
+    markDirty()
+  }
+
+  function setInput(group: string, id: string, value: string) {
+    const key = stateKey(group, id)
+    filters = { ...filters, [key]: { ...filters[key], input: value.trim() ? value : undefined } }
     markDirty()
   }
 
@@ -214,17 +321,20 @@
     for (const [key, value] of Object.entries(filters)) {
       const dot = key.indexOf('.')
       if (dot < 0) continue
-      if (value.min === undefined && value.max === undefined && !value.option) continue
-      out.push({ group: key.slice(0, dot), id: key.slice(dot + 1), min: value.min, max: value.max, option: value.option })
+      const input = value.input?.trim()
+      if (value.min === undefined && value.max === undefined && !value.option && !input) continue
+      out.push({ group: key.slice(0, dot), id: key.slice(dot + 1), min: value.min, max: value.max, option: value.option, input })
     }
     return out
   }
 
   async function search(refresh = true) {
     if (loading) return
-    if (!item?.baseType) { error = 'Önce bir item veya base type seçin.'; return }
+    if (!canSearch) { error = 'Önce bir eşya, stat veya filtre seçin.'; return }
     loading = true; error = ''
-    try { result = await AppService.EvaluateOverlay(currentRequest(), refresh) }
+    const request = currentRequest()
+    searched = searchedStats(request)
+    try { result = await AppService.EvaluateOverlay({ ...request, sort: sort.key, sortDir: sort.dir }, refresh) }
     catch (e) { error = String(e).replace(/^RuntimeError:\s*/i, ''); result = null }
     finally { loading = false }
   }
@@ -234,9 +344,9 @@
   }
 
   async function saveCurrent() {
-    if (!item?.baseType) return
+    if (!item || !canSearch) return
     saveError = ''
-    const name = saveName.trim() || searchLabel(item)
+    const name = saveName.trim() || searchLabel(item) || 'Search'
     try {
       savedSearches = await AppService.SaveOverlaySearch(name, currentRequest()) ?? []
       saveName = ''
@@ -257,7 +367,7 @@
     const selected = (query.groups?.length ? query.groups.flatMap((group) => group.stats ?? []) : query.stats ?? [])
     item = {
       raw: '', class: '', rarity: query.rarity, name: query.name, baseType: query.baseType,
-      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0,
+      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, exceptional: false, stackSize: 0,
       unidentified: query.filters?.some((filter) => filter.group === 'misc_filters' && filter.id === 'identified' && filter.option === 'false') ?? false,
       fractured: query.filters?.some((filter) => filter.group === 'misc_filters' && filter.id === 'fractured_item' && filter.option === 'true') ?? false,
       corrupted: query.filters?.some((filter) => filter.group === 'misc_filters' && filter.id === 'corrupted' && filter.option === 'true') ?? false,
@@ -284,7 +394,8 @@
   function requestGroups(): SelectedStatGroup[] {
     return statGroups.map((group) => ({
       type: group.type,
-      min: group.min,
+      min: finiteOrUndefined(group.min),
+      max: finiteOrUndefined(group.max),
       stats: group.choiceKeys.map(choiceForKey).filter((choice): choice is ModChoice => !!choice && choice.selected && !!choice.mod.statId).map((choice): SelectedStat => ({
         id: choice.mod.statId,
         min: group.type === 'weight' || group.type === 'weight2' ? undefined : choice.min,
@@ -295,12 +406,16 @@
   }
 
   function filterOptions(filter: TradeFilter) { return filter.option?.options ?? [] }
+
+  // An emptied number box binds null; the query must not carry it.
+  function finiteOrUndefined(value: number | null | undefined) { return typeof value === 'number' && Number.isFinite(value) ? value : undefined }
 </script>
 
 <main class="market-shell">
   <header>
     <span class="mark">⚖</span><strong>MrW Overlay · Market</strong>
-    <span class="league">{item ? searchLabel(item) : 'Advanced Search'}</span>
+    <span class="league">{(item && searchLabel(item)) || 'Advanced Search'}</span>
+    <QuotaBadge />
     <button title="Filtreleri göster/gizle" onclick={() => (showAdvanced = !showAdvanced)}>⌁</button>
     <button title="Kapat" onclick={() => AppService.HideMarket()}>×</button>
   </header>
@@ -310,8 +425,8 @@
       {#if !savedCollapsed}
         <div class="saved-title"><strong>Explorer</strong></div>
         <div class="save-box">
-          <input bind:value={saveName} placeholder={item ? searchLabel(item) : 'Search name'} />
-          <button disabled={!item?.baseType} onclick={saveCurrent}>＋ Save</button>
+          <input bind:value={saveName} placeholder={(item && searchLabel(item)) || 'Search name'} />
+          <button disabled={!canSearch} onclick={saveCurrent}>＋ Save</button>
         </div>
         {#if saveError}<p class="save-error">{saveError}</p>{/if}
         <div class="saved-list">
@@ -329,17 +444,18 @@
     </aside>
     <section class="search-pane">
       <div class="tabs"><button class="on">Search</button><button disabled>Exchange</button><button disabled>Live Search</button></div>
+      <button class="new-search" title="Eşyayı, statları ve filtreleri temizle" onclick={newSearch}>＋ New Search</button>
       <div class="item-search">
         <input bind:value={itemQuery} onfocus={() => (showItemSuggestions = true)} oninput={() => (showItemSuggestions = true)} placeholder="Search items…" spellcheck="false" />
-        <button disabled={!item?.baseType || loading} onclick={() => search(true)}>{loading ? '…' : '⌕'}</button>
+        <button disabled={!canSearch || loading} onclick={() => search(true)}>{loading ? '…' : '⌕'}</button>
         {#if showItemSuggestions && itemSuggestions.length}
           <div class="suggestions">
             {#each itemSuggestions as entry}<button onclick={() => chooseItem(entry)}><b>{entry.name || entry.type}</b>{#if entry.name}<span>{entry.type}</span>{/if}</button>{/each}
           </div>
         {/if}
       </div>
-      <button class="search-button" disabled={!item?.baseType || loading} onclick={() => search(true)}>{loading ? 'Searching…' : 'Search'}</button>
-      <TradeResults {result} {loading} {error} expanded />
+      <button class="search-button" disabled={!canSearch || loading} onclick={() => search(true)}>{loading ? 'Searching…' : 'Search'}</button>
+      <TradeResults {result} {loading} {error} {searched} expanded {sort} {sortOptions} onsort={setSort} />
     </section>
 
     {#if showAdvanced}
@@ -354,7 +470,7 @@
                   <select bind:value={statGroup.type} onchange={markDirty}>
                     {#each statGroupTypes as option}<option value={option[0]}>{option[1]}</option>{/each}
                   </select>
-                  {#if groupNeedsMin(statGroup.type)}<input type="number" bind:value={statGroup.min} oninput={markDirty} placeholder={statGroup.type === 'count' ? 'count' : 'min sum'} />{/if}
+                  {#if groupNeedsMin(statGroup.type)}<span class="group-range"><input type="number" bind:value={statGroup.min} oninput={markDirty} placeholder="min" title={statGroup.type === 'count' ? 'En az kaç stat' : 'En az toplam'} /><input type="number" bind:value={statGroup.max} oninput={markDirty} placeholder="max" title={statGroup.type === 'count' ? 'En çok kaç stat' : 'En çok toplam'} /></span>{:else}<span></span>{/if}
                   <span>FILTER {statGroups.indexOf(statGroup) + 1}</span>
                   <button disabled={statGroups.length === 1} title="Grubu sil" onclick={() => removeStatGroup(statGroup.key)}>×</button>
                 </div>
@@ -368,6 +484,7 @@
                       {:else}
                         <span class="minmax"><input type="number" bind:value={choice.min} oninput={markDirty} placeholder="min" /><input type="number" bind:value={choice.max} oninput={markDirty} placeholder="max" /></span>
                       {/if}
+                      <button class="stat-sort" class:on={sort.key === statSortKey(choice.mod.statId)} disabled={!choice.selected || !choice.mod.statId || loading} title="Sonuçları bu stata göre sırala" onclick={() => setSort(statSortKey(choice.mod.statId))}>{sort.key === statSortKey(choice.mod.statId) ? (sort.dir === 'asc' ? '▲' : '▼') : '⇅'}</button>
                       <button title="Affixi gruptan çıkar" onclick={() => removeChoice(statGroup.key, choiceKey)}>×</button>
                     </div>
                   {/if}
@@ -395,13 +512,20 @@
                   <label class="filter-row">
                     <span>{filter.text}</span>
                     {#if filter.minMax}
-                      <span class="minmax"><input type="number" value={stateFor(group.id, filter.id).min ?? ''} oninput={(e) => setNumber(group.id, filter.id, 'min', e.currentTarget.value)} placeholder="min" /><input type="number" value={stateFor(group.id, filter.id).max ?? ''} oninput={(e) => setNumber(group.id, filter.id, 'max', e.currentTarget.value)} placeholder="max" /></span>
+                      <span class="filter-controls">
+                        {#if filterOptions(filter).length}
+                          <select value={stateFor(group.id, filter.id).option ?? ''} onchange={(e) => setOption(group.id, filter.id, e.currentTarget.value)}>
+                            {#each filterOptions(filter) as option}<option value={option.id ?? ''}>{option.text}</option>{/each}
+                          </select>
+                        {/if}
+                        <span class="minmax"><input type="number" value={stateFor(group.id, filter.id).min ?? ''} oninput={(e) => setNumber(group.id, filter.id, 'min', e.currentTarget.value)} placeholder="min" /><input type="number" value={stateFor(group.id, filter.id).max ?? ''} oninput={(e) => setNumber(group.id, filter.id, 'max', e.currentTarget.value)} placeholder="max" /></span>
+                      </span>
                     {:else if filterOptions(filter).length}
                       <select value={stateFor(group.id, filter.id).option ?? ''} onchange={(e) => setOption(group.id, filter.id, e.currentTarget.value)}>
-                        {#each filterOptions(filter) as option}<option value={option.id}>{option.text}</option>{/each}
+                        {#each filterOptions(filter) as option}<option value={option.id ?? ''}>{option.text}</option>{/each}
                       </select>
                     {:else}
-                      <input value={stateFor(group.id, filter.id).option ?? ''} oninput={(e) => setOption(group.id, filter.id, e.currentTarget.value)} placeholder="…" />
+                      <input value={stateFor(group.id, filter.id).input ?? ''} oninput={(e) => setInput(group.id, filter.id, e.currentTarget.value)} placeholder={filter.input?.placeholder || '…'} spellcheck="false" />
                     {/if}
                   </label>
                 {/each}
@@ -421,5 +545,7 @@
   .saved-pane{position:relative;min-width:0;overflow:hidden;border-right:1px solid #3a392f;background:#11130f}.saved-pane.collapsed{background:#20221d}.saved-toggle{position:absolute;z-index:3;top:7px;right:4px;width:19px;height:22px;border:1px solid #45443a;background:#24261f;color:#b8ae91}.saved-title{height:36px;display:flex;align-items:center;padding:0 26px 0 8px;border-bottom:1px solid #38382f;color:#d6ccb0;font-family:var(--serif);font-size:10px}.save-box{display:grid;gap:5px;padding:7px}.save-box input{min-width:0;width:100%;padding:6px;border:1px solid #414139;background:#171916;color:#ccc6b2;font-size:9px}.save-box button{padding:6px;border:1px solid #665b40;background:#20221d;color:var(--gold-bright);font-size:9px}.save-box button:disabled{opacity:.4}.save-error{margin:0 7px 7px;color:#df8179;font-size:8px}.saved-list{height:calc(100% - 98px);overflow:auto;padding:3px 5px 8px}.saved-list>small{display:block;padding:5px 3px;color:#777d76;text-transform:uppercase;font-size:7px}.saved-list>p{padding:6px 3px;color:#6f746f;font-size:8px}.saved-row{position:relative;display:grid;grid-template-columns:1fr 17px;width:100%;margin-bottom:4px;border:1px solid #30322b;background:#191b17}.saved-row:hover{border-color:#756847;background:#23251e}.saved-load{min-width:0;display:grid;grid-template-columns:12px 1fr;gap:2px 3px;padding:6px 3px 6px 5px;border:0;background:none;text-align:left}.saved-load>span{grid-row:1/3;color:#9f9067}.saved-load b{overflow:hidden;text-overflow:ellipsis;color:#d2c8aa;font-size:8px;white-space:nowrap}.saved-load i{overflow:hidden;text-overflow:ellipsis;color:#737a78;font-size:7px;font-style:normal;white-space:nowrap}.saved-delete{padding:0;border:0;border-left:1px solid #2f302a;background:none;color:#817a69;font-size:13px}.saved-delete:hover{color:#df8179}
   .search-pane{position:relative;min-width:0;padding:8px;overflow:auto;border-right:1px solid #37372f}.tabs{display:grid;grid-template-columns:repeat(3,1fr);margin:-8px -8px 8px}.tabs button{padding:8px 3px;border:0;border-bottom:1px solid #34362f;background:#171917;color:#898d85;font-size:9px}.tabs button.on{color:var(--gold-bright);border-bottom:2px solid var(--gold);background:#20221e}.item-search{position:relative;display:grid;grid-template-columns:1fr 34px;gap:5px;margin-bottom:7px}.item-search>input{min-width:0;padding:7px;border:1px solid #46463d;background:#111311;font-size:10px}.item-search>button{border:1px solid #5b543f;background:#20221e;color:var(--gold-bright);font-size:17px}.suggestions,.stat-suggestions{position:absolute;z-index:20;top:100%;left:0;right:39px;max-height:260px;overflow:auto;border:1px solid #555042;background:#111310;box-shadow:0 10px 30px #000}.suggestions button,.stat-suggestions button{display:flex;width:100%;justify-content:space-between;gap:8px;padding:7px;border:0;border-bottom:1px solid #282a25;background:transparent;text-align:left;font-size:9px}.suggestions button:hover,.stat-suggestions button:hover{background:#25271f}.suggestions span{color:var(--muted)}.search-button{position:sticky;bottom:0;width:100%;margin-top:7px;padding:8px;border:1px solid #8c7b50;background:#171917;color:var(--gold-bright);font-family:var(--serif);font-size:10px;font-weight:bold}.search-button:hover{background:#25261f}.search-button:disabled{opacity:.5}
   .advanced{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#171914}.advanced-title{display:flex;flex:0 0 auto;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #48483c;background:#2b2d27;color:#d8cfb1;font-family:var(--serif);font-size:10px}.advanced-title button{border:0;background:none;color:#999}.advanced-scroll{min-height:0;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:7px}.filter-group{border:1px solid #33352f;margin-bottom:7px;background:#11130f}.filter-group h2{margin:0 0 6px;padding:7px 8px;background:#30322c;color:#ddd4b5;font-family:var(--serif);font-size:10px}.filter-row,.status-line{display:grid;grid-template-columns:minmax(90px,.85fr) minmax(112px,1.15fr);align-items:center;gap:6px;padding:4px 8px;color:#d0c7a9}.filter-row>span:first-child{font-size:9px}.filter-row input,.filter-row select,.status-line select,.stat-add input{min-width:0;width:100%;padding:6px;border:1px solid #414139;border-radius:2px;background:#20221d;color:#ccc6b2;font-size:9px}.minmax{display:grid;grid-template-columns:1fr 1fr;gap:5px}.stat-add{position:relative;margin:7px 8px 9px}.stat-suggestions{right:0;max-height:320px}.stat-suggestions button{justify-content:flex-start}.stat-suggestions small{flex:0 0 52px;color:#77a070;text-transform:uppercase}.stat-suggestions span{color:#c3bda8}
-  .stat-group{margin:7px 8px;border:1px solid #34362f;background:#0d0f0d}.stat-group-head{display:grid;grid-template-columns:minmax(72px,105px) minmax(58px,76px) 1fr 22px;gap:5px;align-items:center;padding:5px;border-bottom:1px solid #303229}.stat-group-head select,.stat-group-head input{min-width:0;width:100%;padding:5px;border:1px solid #504b3c;background:#20221d;color:#d7cfb5;font-size:9px}.stat-group-head>span{color:#6f9c6c;font-size:8px;font-weight:bold}.stat-group-head button,.stat-choice>button{border:0;background:none;color:#9b9380;font-size:14px}.stat-group-head button:disabled{opacity:.25}.stat-choice{display:grid;grid-template-columns:minmax(0,1fr) 94px 20px;gap:5px;align-items:center;padding:5px;border-top:1px solid #23251f}.stat-choice.off{opacity:.5}.stat-choice>label{display:flex;gap:6px;align-items:flex-start;min-width:0;color:#aeb9d5;font-size:9px}.stat-choice>label input{position:absolute;opacity:0}.stat-choice>label i{flex:0 0 10px;width:10px;height:10px;margin-top:2px;transform:rotate(45deg);border:1px solid var(--gold-dim)}.stat-choice>label input:checked+i{background:var(--gold);box-shadow:inset 0 0 0 3px #17191b}.stat-choice>label span{overflow-wrap:anywhere}.stat-choice .minmax input,.stat-choice .weight input{min-width:0;width:100%;padding:4px;border:1px solid #3d3a31;background:#111313;color:var(--gold-bright)}.add-group{display:block;margin:0 8px 8px auto;padding:6px 8px;border:1px solid #716342;background:#191b17;color:var(--gold-bright);font-family:var(--serif);font-size:9px}
+  .stat-group{margin:7px 8px;border:1px solid #34362f;background:#0d0f0d}.stat-group-head{display:grid;grid-template-columns:minmax(72px,105px) minmax(90px,120px) 1fr 22px;gap:5px;align-items:center;padding:5px;border-bottom:1px solid #303229}.stat-group-head select,.stat-group-head input{min-width:0;width:100%;padding:5px;border:1px solid #504b3c;background:#20221d;color:#d7cfb5;font-size:9px}.stat-group-head>span{color:#6f9c6c;font-size:8px;font-weight:bold}.stat-group-head button,.stat-choice>button{border:0;background:none;color:#9b9380;font-size:14px}.stat-group-head button:disabled{opacity:.25}.stat-choice{display:grid;grid-template-columns:minmax(0,1fr) 94px 18px 20px;gap:5px;align-items:center;padding:5px;border-top:1px solid #23251f}.stat-choice.off{opacity:.5}.stat-choice>button.stat-sort{padding:0;font-size:11px;color:#6f6a5a}.stat-choice>button.stat-sort:hover:not(:disabled){color:var(--gold-bright)}.stat-choice>button.stat-sort.on{color:var(--gold-bright)}.stat-choice>button.stat-sort:disabled{opacity:.3}.stat-choice>label{display:flex;gap:6px;align-items:flex-start;min-width:0;color:#aeb9d5;font-size:9px}.stat-choice>label input{position:absolute;opacity:0}.stat-choice>label i{flex:0 0 10px;width:10px;height:10px;margin-top:2px;transform:rotate(45deg);border:1px solid var(--gold-dim)}.stat-choice>label input:checked+i{background:var(--gold);box-shadow:inset 0 0 0 3px #17191b}.stat-choice>label span{overflow-wrap:anywhere}.stat-choice .minmax input,.stat-choice .weight input{min-width:0;width:100%;padding:4px;border:1px solid #3d3a31;background:#111313;color:var(--gold-bright)}.add-group{display:block;margin:0 8px 8px auto;padding:6px 8px;border:1px solid #716342;background:#191b17;color:var(--gold-bright);font-family:var(--serif);font-size:9px}
+  .group-range{display:grid;grid-template-columns:1fr 1fr;gap:3px}.filter-controls{display:grid;gap:4px}
+  .new-search{display:block;width:100%;margin-bottom:7px;padding:6px;border:1px solid #5b543f;background:#191b17;color:var(--gold-bright);font-family:var(--serif);font-size:9px}.new-search:hover{background:#25261f}
 </style>

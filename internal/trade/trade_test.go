@@ -1,6 +1,7 @@
 package trade
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -132,5 +133,52 @@ func TestAddWeaponDPS(t *testing.T) {
 	addWeaponDPS(&armour)
 	if armour.DPS != 0 || len(armour.Properties) != 1 {
 		t.Fatalf("non-weapon got DPS: %+v", armour)
+	}
+}
+
+// A 429 names the exceeded window in X-Rate-Limit-Ip-State; the status must
+// keep that name even though Retry-After arrives in the same response.
+func TestQuotaStatusNamesThePenaltyWindow(t *testing.T) {
+	l := NewLimiter(0.8, nil)
+	resp := &http.Response{StatusCode: http.StatusTooManyRequests, Header: http.Header{}}
+	resp.Header.Set("X-Rate-Limit-Ip", "5:10:60,15:60:300,30:300:1800")
+	resp.Header.Set("X-Rate-Limit-Ip-State", "3:10:0,16:60:300,20:300:0")
+	resp.Header.Set("Retry-After", "300")
+	l.Observe(resp)
+	st := l.Status()
+	if st.RestrictedWindowSec != 60 || time.Until(st.RestrictedUntil) < 290*time.Second {
+		t.Fatalf("penalty not named: %+v", st)
+	}
+	if st.WaitReason != WaitPenalty || st.WaitSec < 290 {
+		t.Errorf("wait: %+v", st)
+	}
+	if len(st.Windows) != 3 || st.Windows[1].Hits != 16 || st.Windows[1].Limit != 15 || st.Windows[1].Allowed != 12 {
+		t.Errorf("windows: %+v", st.Windows)
+	}
+
+	// A bare 429 (no state header) is a penalty of unknown origin.
+	bare := &http.Response{StatusCode: http.StatusTooManyRequests, Header: http.Header{}}
+	bare.Header.Set("Retry-After", "900")
+	l.Observe(bare)
+	if st := l.Status(); st.RestrictedWindowSec != 0 || time.Until(st.RestrictedUntil) < 890*time.Second {
+		t.Errorf("bare 429: %+v", st)
+	}
+}
+
+// Requests sent after the last server count are added to it.
+func TestQuotaStatusCountsOwnRequestsSinceLastResponse(t *testing.T) {
+	l := NewLimiter(0.8, nil)
+	resp := &http.Response{StatusCode: http.StatusOK, Header: http.Header{}}
+	resp.Header.Set("X-Rate-Limit-Ip", "5:10:60,15:60:300")
+	resp.Header.Set("X-Rate-Limit-Ip-State", "2:10:0,9:60:0")
+	l.Observe(resp)
+	l.SetEvenPacing(false)
+	time.Sleep(5 * time.Millisecond) // a request always follows the response it is counted after
+	if err := l.Wait(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	st := l.Status()
+	if st.Windows[0].Hits != 3 || st.Windows[1].Hits != 10 || st.WaitSec != 0 {
+		t.Errorf("status: %+v", st)
 	}
 }

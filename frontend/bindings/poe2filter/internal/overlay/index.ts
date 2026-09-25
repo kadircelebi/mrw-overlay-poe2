@@ -3,7 +3,10 @@
 
 export type {
     Catalog,
+    CurrencyEntry,
+    CurrencyQuote,
     FilterGroup,
+    FilterInput,
     Item,
     ItemEntry,
     ItemGroup,

@@ -57,6 +57,9 @@ type Unique struct {
 	Category string  `json:"category"`
 	ValueEx  float64 `json:"value_ex"`
 	Listings int     `json:"listings"`
+	// Icon is the unique's art (poe.ninja), shown when an unidentified unique
+	// could be one of several.
+	Icon string `json:"icon,omitempty"`
 }
 
 // ExceptionalKind is the property that makes a base "exceptional".

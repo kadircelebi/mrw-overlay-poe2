@@ -101,6 +101,14 @@ export function ExportScan(): $CancellablePromise<string> {
 }
 
 /**
+ * FetchOverlayListings loads the next page of a search the overlay already
+ * ran. It uses fetch quota only, so the result list can grow as it scrolls.
+ */
+export function FetchOverlayListings(searchID: string, ids: string[] | null): $CancellablePromise<trade$0.EvaluatedListing[] | null> {
+    return $Call.ByID(1876850263, searchID, ids);
+}
+
+/**
  * GetAppUpdateState returns the cached application-update status without doing
  * network work, so opening the settings panel stays instant.
  */
@@ -246,6 +254,14 @@ export function OpenTradePage(rawURL: string): $CancellablePromise<void> {
 }
 
 /**
+ * OverlayQuota reports how full GGG's search windows are for this IP, so the
+ * overlay can show who is spending the quota and why a search waits.
+ */
+export function OverlayQuota(): $CancellablePromise<trade$0.QuotaStatus> {
+    return $Call.ByID(4137594098);
+}
+
+/**
  * ParseOverlayText is also useful for diagnostics: a copied item can be pasted
  * into the expanded market without needing to synthesize game input.
  */
@@ -289,6 +305,13 @@ export function Profiles(): $CancellablePromise<engine$0.ProfileInfo[] | null> {
  */
 export function Quit(): $CancellablePromise<void> {
     return $Call.ByID(2719743713);
+}
+
+/**
+ * QuoteCurrency prices a stackable item from the filter's price snapshot.
+ */
+export function QuoteCurrency(name: string): $CancellablePromise<overlay$0.CurrencyQuote> {
+    return $Call.ByID(2125667197, name);
 }
 
 export function RefreshTradeCatalog(): $CancellablePromise<overlay$0.Catalog> {
@@ -366,6 +389,23 @@ export function SwitchProfile(name: string): $CancellablePromise<filter$0.Config
  */
 export function Themes(): $CancellablePromise<filter$0.Theme[] | null> {
     return $Call.ByID(2570218280);
+}
+
+/**
+ * TradeCurrencies lists the currencies listings are priced in, with icons,
+ * without sending the whole stat catalog to a window that only shows prices.
+ */
+export function TradeCurrencies(): $CancellablePromise<overlay$0.CurrencyEntry[] | null> {
+    return $Call.ByID(2565769347);
+}
+
+/**
+ * UniqueIcons maps unique names to their art, from the last price snapshot
+ * (poe.ninja sends an icon with each unique). An unidentified unique shows
+ * these so the player can tell the candidates apart by their look.
+ */
+export function UniqueIcons(): $CancellablePromise<{ [_ in string]?: string } | null> {
+    return $Call.ByID(952393577);
 }
 
 /**
