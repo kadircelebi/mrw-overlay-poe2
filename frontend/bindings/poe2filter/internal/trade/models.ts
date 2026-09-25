@@ -33,6 +33,11 @@ export interface EvaluatedItem {
      * TwiceCorrupted is the trade site's doubleCorrupted flag.
      */
     "twiceCorrupted": boolean;
+
+    /**
+     * Mirrored is the trade site's duplicated flag (a Mirror of Kalandra copy).
+     */
+    "mirrored": boolean;
     "sanctified": boolean;
 
     /**

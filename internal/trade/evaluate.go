@@ -89,7 +89,9 @@ type EvaluatedItem struct {
 	Corrupted    bool   `json:"corrupted"`
 	// TwiceCorrupted is the trade site's doubleCorrupted flag.
 	TwiceCorrupted bool `json:"twiceCorrupted"`
-	Sanctified     bool `json:"sanctified"`
+	// Mirrored is the trade site's duplicated flag (a Mirror of Kalandra copy).
+	Mirrored   bool `json:"mirrored"`
+	Sanctified bool `json:"sanctified"`
 	// Sockets counts the augmentable (rune) sockets, filled or empty.
 	Sockets int `json:"sockets"`
 	// DPS figures are computed from the listing's weapon properties, the same
@@ -180,6 +182,7 @@ type evaluatedFetchResponse struct {
 			Fractured       bool              `json:"fractured"`
 			Corrupted       bool              `json:"corrupted"`
 			DoubleCorrupted bool              `json:"doubleCorrupted"`
+			Duplicated      bool              `json:"duplicated"`
 			Sanctified      bool              `json:"sanctified"`
 			Sockets         []json.RawMessage `json:"sockets"`
 			Properties      []struct {
@@ -312,7 +315,7 @@ func (c *Client) FetchEvaluated(ctx context.Context, searchID string, ids []stri
 		entry := EvaluatedListing{
 			ID: row.ID, Amount: row.Listing.Price.Amount, Currency: row.Listing.Price.Currency,
 			Account: account, HideoutToken: row.Listing.HideoutToken, Listed: row.Listing.Indexed,
-			Item: EvaluatedItem{Name: row.Item.Name, BaseType: row.Item.BaseType, Rarity: row.Item.Rarity, ItemLevel: row.Item.Ilvl, Icon: row.Item.Icon, Unidentified: !row.Item.Identified, Fractured: row.Item.Fractured, Corrupted: row.Item.Corrupted, TwiceCorrupted: row.Item.DoubleCorrupted, Sanctified: row.Item.Sanctified, Sockets: len(row.Item.Sockets), Properties: []EvaluatedProperty{}, Mods: []EvaluatedMod{}},
+			Item: EvaluatedItem{Name: row.Item.Name, BaseType: row.Item.BaseType, Rarity: row.Item.Rarity, ItemLevel: row.Item.Ilvl, Icon: row.Item.Icon, Unidentified: !row.Item.Identified, Fractured: row.Item.Fractured, Corrupted: row.Item.Corrupted, TwiceCorrupted: row.Item.DoubleCorrupted, Mirrored: row.Item.Duplicated, Sanctified: row.Item.Sanctified, Sockets: len(row.Item.Sockets), Properties: []EvaluatedProperty{}, Mods: []EvaluatedMod{}},
 		}
 		if entry.Item.BaseType == "" {
 			entry.Item.BaseType = row.Item.TypeLine

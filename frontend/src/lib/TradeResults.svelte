@@ -197,12 +197,13 @@
         </div>
       {/each}
     </div>
-    {#if row.item.unidentified || row.item.fractured || row.item.corrupted || row.item.sanctified}
+    {#if row.item.unidentified || row.item.fractured || row.item.corrupted || row.item.mirrored || row.item.sanctified}
       <div class="item-states">
-        {#if row.item.unidentified}<strong class="unidentified">Unidentified</strong>{/if}
-        {#if row.item.fractured}<strong class="fractured">Fractured Item</strong>{/if}
-        {#if row.item.corrupted}<strong class="corrupted">{row.item.twiceCorrupted ? 'Twice Corrupted' : 'Corrupted'}</strong>{/if}
-        {#if row.item.sanctified}<strong class="sanctified">Sanctified</strong>{/if}
+        {#if row.item.unidentified}<span class="unidentified">Unidentified</span>{/if}
+        {#if row.item.fractured}<span class="fractured">Fractured</span>{/if}
+        {#if row.item.corrupted}<span class="corrupted">{row.item.twiceCorrupted ? 'Twice Corrupted' : 'Corrupted'}</span>{/if}
+        {#if row.item.mirrored}<span class="mirrored">Mirrored</span>{/if}
+        {#if row.item.sanctified}<span class="sanctified">Sanctified</span>{/if}
       </div>
     {/if}
   </div>
@@ -333,8 +334,13 @@
   .preview .type-crafted p { color:#9d76b6; }
   .preview .type-desecrated p { color:#d68869; }
   .preview .type-rune p { color:#7e899d; }
-  .item-states { display:flex;justify-content:center;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid #3b3025;font-family:var(--serif);font-size:10px;text-transform:uppercase;letter-spacing:.08em; }
-  .item-states .unidentified { color:#d54a45; }.item-states .fractured { color:#9ed0d8; }.item-states .corrupted { color:#d54a45; }.item-states .sanctified { color:#d7bd74; }
+  /* Item states as small badges, in the colours the game uses for them. */
+  .item-states { display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-top:8px; }
+  .item-states span { padding:1px 6px;border:1px solid currentColor;border-radius:2px;font-size:8.5px;line-height:14px;text-transform:uppercase;letter-spacing:.06em;background:rgba(0,0,0,.35); }
+  .item-states .unidentified,.item-states .corrupted { color:#d54a45; }
+  .item-states .fractured { color:#9ed0d8; }
+  .item-states .mirrored { color:#8fa8e6; }
+  .item-states .sanctified { color:#d7bd74; }
   .loading { display:flex; justify-content:center; gap:5px; padding:18px; }
   .loading i,.loading span { width:7px; height:7px; transform:rotate(45deg); background:var(--gold-dim); animation:pulse 1s infinite alternate; }
   .loading span { animation-delay:.2s; }.loading i:last-child{animation-delay:.4s}
