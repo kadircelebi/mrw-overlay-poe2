@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "MrW POE2 Filter - pathofexile.com bridge",
+  "version": "1.0.1",
+  "description": "Hands your pathofexile.com session to the MrW POE2 Filter app on this computer, only when the app asks for it.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmPGXhjakfJ868h7mxQ/ujbbQbWX2yJpQP1PO1F/XuxIAOOcBMOE1SYxNKyWO1dq1GIyNevW7gdaq+2GVoNR+Un0XhLFQVypKv+g7rvpdgUkrNP1AMMvqZZGmW/6daEeXcV7vO4HQMnjFVhZMuOObr9ivoHsaH+uoMeic9neq7T5bgSuucQoooIomQZRJQ738FTmFShbjOO9yGBQ2Qw+U6Db8AOS6Hta3qjCJl9ZrY0chPWcs1fiIpY+zRibGQ2pu7RwlezFbP7SHfCFLfqCApUa+PaCmjhxoAIIo9w2sOSfJgd6arE8yNU5w7Ihn+rWHlezQ1P8Wr+Y3uReHy/tPIQIDAQAB",
+  "permissions": [
+    "cookies",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.pathofexile.com/*",
+    "http://127.0.0.1:47819/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.pathofexile.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "poe2-bridge@mrw-poe2-filter",
+      "strict_min_version": "128.0"
+    }
+  }
+}

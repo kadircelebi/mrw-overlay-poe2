@@ -18,6 +18,7 @@ import (
 	"poe2filter/internal/i18n"
 	"poe2filter/internal/insights"
 	"poe2filter/internal/overlay"
+	"poe2filter/internal/session"
 	"poe2filter/internal/trade"
 )
 
@@ -90,12 +91,18 @@ type AppService struct {
 	overlayHotkey       string
 	confineOnce         sync.Once
 	rebindOverlay       func(old, next overlay.Settings) error
+
+	// The pathofexile.com session from the browser extension (encrypted on
+	// disk) and the state of an ongoing "connect browser" request.
+	session *session.Store
+	link    browserLink
 }
 
 func newAppService(meta Meta) *AppService {
 	meta.MaxItemGroups = filter.MaxItemGroups
 	settingsPath := filepath.Join(meta.DataDir, "overlay.json")
-	return &AppService{
+	sessions := session.New(meta.DataDir)
+	svc := &AppService{
 		meta:                meta,
 		signal:              make(chan struct{}, 1),
 		overlaySettingsPath: settingsPath,
@@ -105,7 +112,12 @@ func newAppService(meta Meta) *AppService {
 		overlayClient:       trade.NewInteractiveClient(filter.LoadConfig(filepath.Join(meta.DataDir, "config.json")).LeagueName, 0.8),
 		overlayEvalCache:    make(map[string]overlayEvaluationCacheEntry),
 		overlayEvalFlights:  make(map[string]*overlayEvaluationFlight),
+		session:             sessions,
 	}
+	// Only the overlay's user-started searches go out signed in; the
+	// background exceptional scanner stays anonymous.
+	svc.overlayClient.SetSession(sessions.Load())
+	return svc
 }
 
 // changed is the engine's OnChange hook. It never blocks and never touches
@@ -124,6 +136,7 @@ func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOp
 		s.applyOverlayScale()
 		go s.pump()
 		go func() { _, _ = s.overlayCatalog.Load(ctx) }()
+		go s.refreshBrowserExtension()
 		if s.updater != nil {
 			var updateCtx context.Context
 			updateCtx, s.updateCancel = context.WithCancel(ctx)

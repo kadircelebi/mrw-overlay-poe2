@@ -35,6 +35,9 @@ type Limiter struct {
 	// blockedBy is the window whose penalty caused blockedUntil (0 when the
 	// server did not say, e.g. a bare 429 with only Retry-After).
 	blockedBy time.Duration
+	// policyRules is the last X-Rate-Limit-Rules header ("Ip", or
+	// "Account,Ip" once GGG treats the request as signed in).
+	policyRules string
 }
 
 // Why a request has to wait.
@@ -199,6 +202,9 @@ func (l *Limiter) Observe(resp *http.Response) {
 	if rules := parseRules(resp.Header.Get("X-Rate-Limit-Ip")); len(rules) > 0 {
 		l.rules = rules
 	}
+	if policy := resp.Header.Get("X-Rate-Limit-Rules"); policy != "" {
+		l.policyRules = policy
+	}
 	namedBy := false
 	if state := resp.Header.Get("X-Rate-Limit-Ip-State"); state != "" {
 		var hits []int
@@ -257,6 +263,9 @@ type QuotaStatus struct {
 	WaitSec             int       `json:"waitSec"`
 	WaitReason          string    `json:"waitReason"`
 	WaitWindowSec       int       `json:"waitWindowSec"`
+	// Rules is GGG's last X-Rate-Limit-Rules header; it names "Account" when
+	// the request was counted as signed in.
+	Rules string `json:"rules"`
 }
 
 // Status estimates the current use of every window: the server's last count
@@ -265,7 +274,7 @@ func (l *Limiter) Status() QuotaStatus {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := time.Now()
-	st := QuotaStatus{ObservedAt: l.stateAt}
+	st := QuotaStatus{ObservedAt: l.stateAt, Rules: l.policyRules}
 	for i, r := range l.rules {
 		w := QuotaWindow{PeriodSec: int(r.Period / time.Second), Limit: r.Hits, Allowed: l.allowed(r), PenaltySec: int(r.Penalty / time.Second)}
 		since := time.Time{}

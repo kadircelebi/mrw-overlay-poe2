@@ -195,6 +195,7 @@ func (s *AppService) evaluateOverlayFresh(in trade.EvaluateRequest) (trade.Evalu
 	result, err := s.overlayClient.Evaluate(ctx, in)
 	if err == nil {
 		s.tagListingStats(result.Listings)
+		result.SignedIn = s.overlayClient.SignedIn()
 		return result, nil
 	}
 	var apiErr *trade.APIError
@@ -203,6 +204,20 @@ func (s *AppService) evaluateOverlayFresh(in trade.EvaluateRequest) (trade.Evalu
 		return trade.Evaluation{}, errors.New(quotaPenaltyMessage(s.overlayClient.Search.Status()))
 	case strings.Contains(strings.ToLower(err.Error()), "content exceeded"):
 		return trade.Evaluation{}, errors.New("Arama GGG için fazla geniş; base type, rarity veya birkaç affix filtresi ekleyin")
+	case strings.Contains(strings.ToLower(err.Error()), "query is too complex"):
+		// Measured: without a login GGG refuses any Weighted Sum group, even
+		// one with a single stat, while And and Count groups pass.
+		if hasWeightGroup(in) && !s.overlayClient.SignedIn() {
+			return trade.Evaluation{}, errors.New("GGG, Weighted Sum gruplarını yalnızca pathofexile.com'a giriş yapmış aramalarda kabul ediyor. Ayarlar → Overlay → pathofexile.com hesabı ile tarayıcını bağlayabilir ya da grubu And veya Count yapabilirsin (ör. Count, en az 3)")
+		}
+		if s.overlayClient.SignedIn() {
+			// GGG adds this hint only for requests it did not count as signed in.
+			if strings.Contains(strings.ToLower(err.Error()), "logging in will increase") {
+				return trade.Evaluation{}, errors.New("GGG bu aramayı girişsiz saydı: bağlı oturum tanınmadı (süresi dolmuş ya da çıkış yapılmış olabilir). Ayarlar → Overlay → pathofexile.com hesabı → Yeniden bağlan")
+			}
+			return trade.Evaluation{}, errors.New("Arama GGG için fazla karmaşık; birkaç stat filtresini kaldırın")
+		}
+		return trade.Evaluation{}, errors.New("Arama GGG'nin girişsiz arama sınırı için fazla karmaşık; birkaç stat filtresini kaldırın ya da Ayarlar → Overlay'den pathofexile.com hesabını bağlayın")
 	case errors.Is(err, context.DeadlineExceeded):
 		return trade.Evaluation{}, errors.New("GGG araması zaman aşımına uğradı; biraz sonra tekrar deneyin")
 	default:
@@ -251,6 +266,30 @@ func (s *AppService) tagListingStats(listings []trade.EvaluatedListing) {
 			}
 			mod.StatID = overlay.ListingStatID(mod.Description, kind, item.StatHashes, catalog)
 		}
+	}
+}
+
+// TravelToHideout takes the player to the seller's hideout for an instant
+// buyout listing (needs the pathofexile.com session and the game running on
+// the same account).
+func (s *AppService) TravelToHideout(token string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	err := s.overlayClient.TravelToHideout(ctx, token)
+	var apiErr *trade.APIError
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, trade.ErrNotSignedIn):
+		return errors.New("Hideout'a gitmek için Ayarlar → Overlay → pathofexile.com hesabı ile tarayıcını bağla")
+	case errors.Is(err, trade.ErrHideoutDenied):
+		return errors.New("GGG isteği kabul etmedi: ilan satılmış olabilir, ya da oyun bu hesapla açık değil")
+	case errors.As(err, &apiErr) && (apiErr.Status == 401 || apiErr.Status == 403):
+		return errors.New("GGG oturumu kabul etmedi; Ayarlar'dan yeniden bağlan")
+	case errors.As(err, &apiErr) && apiErr.Status == 429:
+		return errors.New("GGG istek sınırına ulaşıldı; birkaç saniye sonra tekrar dene")
+	default:
+		return err
 	}
 }
 
@@ -496,6 +535,19 @@ func (s *AppService) watchGameFocus() {
 // showMarketWindow makes the expanded market a monitor-sized workspace rather
 // than a scaled modal. UI scale still controls the contents, but must never
 // make the window itself spill outside (or occupy only part of) the monitor.
+// toggleMarketFromHotkey opens the market window as it was left (a second
+// press hides it), without reading an item from the game.
+func (s *AppService) toggleMarketFromHotkey() {
+	if s.marketWindow == nil {
+		return
+	}
+	if s.marketWindow.IsVisible() && s.marketWindow.IsFocused() {
+		s.marketWindow.Hide()
+		return
+	}
+	s.showMarketWindow()
+}
+
 func (s *AppService) showMarketWindow() {
 	if s.marketWindow == nil {
 		return
@@ -571,4 +623,13 @@ func (s *AppService) applyOverlayScale() {
 	if s.marketWindow != nil {
 		s.marketWindow.SetZoom(marketScaleForScreen(settings, screen))
 	}
+}
+
+func hasWeightGroup(in trade.EvaluateRequest) bool {
+	for _, group := range in.Groups {
+		if kind := strings.ToLower(group.Type); kind == "weight" || kind == "weight2" {
+			return true
+		}
+	}
+	return false
 }

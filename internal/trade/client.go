@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -25,6 +26,26 @@ type Client struct {
 	league string
 	Search *Limiter
 	Fetch  *Limiter
+
+	// session is the player's pathofexile.com session (POESESSID). Only the
+	// interactive client gets one, and it is sent only to pathofexile.com.
+	// Signed-in searches get GGG's higher limits (e.g. Weighted Sum groups).
+	sessionMu sync.RWMutex
+	session   string
+}
+
+// SetSession sets, or with "" clears, the pathofexile.com session.
+func (c *Client) SetSession(value string) {
+	c.sessionMu.Lock()
+	c.session = value
+	c.sessionMu.Unlock()
+}
+
+// SignedIn reports whether searches go out with a session.
+func (c *Client) SignedIn() bool {
+	c.sessionMu.RLock()
+	defer c.sessionMu.RUnlock()
+	return c.session != ""
 }
 
 // NewClient creates a client that uses at most budget (0..1) of the IP quota.
@@ -136,6 +157,13 @@ func (c *Client) do(ctx context.Context, lim *Limiter, req *http.Request, out an
 	}
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "application/json")
+	c.sessionMu.RLock()
+	session := c.session
+	c.sessionMu.RUnlock()
+	// Go itself drops the Cookie header if a redirect leaves this host.
+	if session != "" && req.URL.Hostname() == "www.pathofexile.com" {
+		req.Header.Set("Cookie", "POESESSID="+session)
+	}
 
 	resp, err := c.http.Do(req.WithContext(ctx))
 	if err != nil {

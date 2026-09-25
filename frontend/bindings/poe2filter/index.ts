@@ -7,6 +7,8 @@ export {
 };
 
 export type {
+    BrowserLinkStatus,
+    ChromiumBrowser,
     LanguageOption,
     Meta,
     StyleOptions

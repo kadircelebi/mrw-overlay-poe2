@@ -123,6 +123,9 @@ type Evaluation struct {
 	// Listings holds the first page, the rest are fetched as the list scrolls.
 	ResultIDs []string           `json:"resultIds"`
 	Listings  []EvaluatedListing `json:"listings"`
+	// SignedIn reports that the search went out with a pathofexile.com
+	// session; only then can a listing's hideout travel be used.
+	SignedIn bool `json:"signedIn"`
 }
 
 type queryValue struct {

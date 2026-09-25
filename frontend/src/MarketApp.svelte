@@ -242,8 +242,11 @@
     showItemSuggestions = false
   }
 
+  // The same stat may be added again: once in an And group and once in a
+  // Weighted Sum or Count group, or twice in one group for an item that rolls
+  // it twice (Mageblood's "Legacy of Silver"). Each addition is its own row.
   function addStat(stat: StatEntry) {
-    if (!item || choices.some((choice) => choice.mod.statId === stat.id)) return
+    if (!item) return
     const choice: ModChoice = { selected: true, mod: { key: `manual-${stat.id}-${choices.length}`, statId: stat.id, text: stat.text, type: stat.type, affix: '', name: '', tier: 0, values: [], selected: true } }
     choices = [...choices, choice]
     if (!statGroups.length) statGroups = [{ key: nextGroupKey++, type: 'and', choiceKeys: [], weights: {} }]

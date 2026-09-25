@@ -14,22 +14,28 @@ import (
 
 // Settings are stored in overlay.json next to config.json.
 type Settings struct {
-	Enabled   bool   `json:"enabled"`
-	Hotkey    string `json:"hotkey"`
-	AutoScale bool   `json:"auto_scale"`
-	UIScale   int    `json:"ui_scale"`
+	Enabled bool   `json:"enabled"`
+	Hotkey  string `json:"hotkey"`
+	// MarketHotkey opens the full market window with a fresh search.
+	MarketHotkey string `json:"market_hotkey"`
+	AutoScale    bool   `json:"auto_scale"`
+	UIScale      int    `json:"ui_scale"`
 }
 
 // DefaultSettings leaves the overlay off: it registers a global shortcut and
 // sends keys to the game, so players opt in from Settings.
 func DefaultSettings() Settings {
-	return Settings{Enabled: false, Hotkey: "Alt+E", AutoScale: true, UIScale: 100}
+	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", AutoScale: true, UIScale: 100}
 }
 
 func (s *Settings) Normalize() {
 	s.Hotkey = strings.TrimSpace(s.Hotkey)
 	if s.Hotkey == "" {
 		s.Hotkey = "Alt+E"
+	}
+	s.MarketHotkey = strings.TrimSpace(s.MarketHotkey)
+	if s.MarketHotkey == "" {
+		s.MarketHotkey = "Alt+M"
 	}
 	if s.UIScale < 75 {
 		s.UIScale = 75

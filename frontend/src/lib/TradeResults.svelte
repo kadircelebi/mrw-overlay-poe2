@@ -124,6 +124,29 @@
     return groups
   }
 
+  // Hideout travel per listing: 'busy', 'ok', or '!' + the error.
+  let travel = $state<Record<string, string>>({})
+
+  async function goToHideout(row: EvaluatedListing) {
+    if (!row.hideoutToken) return
+    travel[row.id] = 'busy'
+    try {
+      await AppService.TravelToHideout(row.hideoutToken)
+      travel[row.id] = 'ok'
+    } catch (e) {
+      travel[row.id] = '!' + String(e).replace(/^RuntimeError:\s*/i, '')
+    }
+  }
+
+  function hideoutTitle(row: EvaluatedListing) {
+    const state = travel[row.id]
+    if (state?.startsWith('!')) return state.slice(1)
+    if (state === 'ok') return 'İstek gönderildi; oyunda satıcının hideout\'una götürülüyorsun'
+    if (!row.hideoutToken) return 'Bu ilan anında satın alınabilir değil'
+    if (!result?.signedIn) return 'Hideout\'a gitmek için Ayarlar → Overlay → pathofexile.com hesabı ile tarayıcını bağla'
+    return 'Satıcının hideout\'una git'
+  }
+
   function arrow(key: string) {
     return sort?.key === key ? (sort.dir === 'asc' ? '▲' : '▼') : ''
   }
@@ -218,7 +241,7 @@
           {#if hasDps}<span class="dps" title={row.item.dps ? `pDPS ${row.item.physicalDps} · eDPS ${row.item.elementalDps}` : ''}>{row.item.dps ? Math.round(row.item.dps) : ''}</span>{/if}
           <span class="account">{row.account}</span>
           <span>{listedAgo(row.listed)}</span>
-          <button type="button" class="hideout" disabled title={row.hideoutToken ? 'Iteme özel seyahat için güvenli Path of Exile oturum bağlantısı gerekiyor' : 'Bu yanıtta hideout token yok'}>↪</button>
+          <button type="button" class="hideout" class:sent={travel[row.id] === 'ok'} class:failed={travel[row.id]?.startsWith('!')} disabled={!row.hideoutToken || !result?.signedIn || travel[row.id] === 'busy'} title={hideoutTitle(row)} onclick={() => goToHideout(row)}>{travel[row.id] === 'busy' ? '…' : travel[row.id] === 'ok' ? '✓' : '↪'}</button>
         </div>
         {#if !expanded && preview?.id === row.id}{@render itemPreview(row)}{/if}
       </article>
@@ -285,7 +308,9 @@
   .listing .sortable.on em { color:var(--gold-bright); }
   .eye,.hideout { min-width:0;height:22px;padding:0;color:#a99c72;border:1px solid #56523f;text-align:center;border-radius:2px;background:#181a17; }
   .hideout { color:#d6ccb0;font-size:15px;background:#696855; }
-  .hideout:hover { background:#89856d;color:#fff; }.hideout:disabled{opacity:.3}
+  .hideout:hover:not(:disabled) { background:#89856d;color:#fff; }.hideout:disabled{opacity:.3}
+  .hideout.sent { background:#4d6b3f; color:#e4f5d6; }
+  .hideout.failed { background:#7a3a34; color:#ffe1dd; }
   .account { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#a6b887; }
   .preview { padding:10px 12px 12px; border-top:1px solid #594527; background:radial-gradient(circle at top,rgba(120,76,25,.11),transparent 55%),#090a0b; text-align:center; }
   .preview.full { padding:13px 14px 14px; border-top:0; }

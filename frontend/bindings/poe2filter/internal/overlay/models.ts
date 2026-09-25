@@ -152,6 +152,11 @@ export interface SelectOption {
 export interface Settings {
     "enabled": boolean;
     "hotkey": string;
+
+    /**
+     * MarketHotkey opens the full market window with a fresh search.
+     */
+    "market_hotkey": string;
     "auto_scale": boolean;
     "ui_scale": number;
 }

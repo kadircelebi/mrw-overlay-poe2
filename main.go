@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
@@ -23,7 +24,7 @@ import (
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
-var version = "2.0.2"
+var version = "2.1.0"
 
 //go:embed all:frontend/dist
 var frontend embed.FS
@@ -111,7 +112,7 @@ func main() {
 			application.NewService(svc),
 			application.NewService(notifier),
 		},
-		Assets: application.AssetOptions{Handler: application.AssetFileServerFS(frontend)},
+		Assets: application.AssetOptions{Handler: application.AssetFileServerFS(frontend), Middleware: sameOriginRuntime},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: "com.kadir.poe2filter",
 			OnSecondInstanceLaunch: func(application.SecondInstanceData) {
@@ -207,31 +208,56 @@ func main() {
 
 	svc.app, svc.tray, svc.panel = app, tray, panel
 	svc.overlayWindow, svc.marketWindow = overlayWindow, marketWindow
-	svc.rebindOverlay = func(old, next overlay.Settings) error {
-		if old.Enabled && old.Hotkey != "" && app.GlobalShortcut.IsRegistered(old.Hotkey) {
-			if err := app.GlobalShortcut.Unregister(old.Hotkey); err != nil {
-				return err
-			}
-		}
-		if !next.Enabled {
-			svc.overlayHotkey = ""
+	// The overlay's global shortcuts: price check (Alt+E) and the full market
+	// window (Alt+M). Both exist only while the overlay is switched on.
+	shortcuts := func(s overlay.Settings) [][2]any {
+		if !s.Enabled {
 			return nil
 		}
-		if err := app.GlobalShortcut.Register(next.Hotkey, svc.captureOverlay); err != nil {
-			if old.Enabled && old.Hotkey != "" {
-				_ = app.GlobalShortcut.Register(old.Hotkey, svc.captureOverlay)
+		return [][2]any{{s.Hotkey, svc.captureOverlay}, {s.MarketHotkey, svc.toggleMarketFromHotkey}}
+	}
+	register := func(list [][2]any) error {
+		var done []string
+		for _, sc := range list {
+			key := sc[0].(string)
+			if err := app.GlobalShortcut.Register(key, sc[1].(func())); err != nil {
+				for _, k := range done {
+					_ = app.GlobalShortcut.Unregister(k)
+				}
+				return fmt.Errorf("%s: %w", key, err)
+			}
+			done = append(done, key)
+		}
+		return nil
+	}
+	svc.rebindOverlay = func(old, next overlay.Settings) error {
+		if next.Enabled && strings.EqualFold(next.Hotkey, next.MarketHotkey) {
+			return fmt.Errorf("the price check and market shortcuts must differ (%s)", next.Hotkey)
+		}
+		for _, sc := range shortcuts(old) {
+			if key := sc[0].(string); app.GlobalShortcut.IsRegistered(key) {
+				_ = app.GlobalShortcut.Unregister(key)
+			}
+		}
+		svc.overlayHotkey = ""
+		if err := register(shortcuts(next)); err != nil {
+			if register(shortcuts(old)) == nil && old.Enabled {
+				svc.overlayHotkey = old.Hotkey
 			}
 			return err
 		}
-		svc.overlayHotkey = next.Hotkey
+		if next.Enabled {
+			svc.overlayHotkey = next.Hotkey
+		}
 		return nil
 	}
-	initialOverlay := svc.GetOverlaySettings()
-	if initialOverlay.Enabled {
-		if err := app.GlobalShortcut.Register(initialOverlay.Hotkey, svc.captureOverlay); err != nil {
-			log.Printf("overlay shortcut: %v", err)
-		} else {
-			svc.overlayHotkey = initialOverlay.Hotkey
+	if initial := svc.GetOverlaySettings(); initial.Enabled {
+		if err := svc.rebindOverlay(overlay.Settings{}, initial); err != nil {
+			// A taken market shortcut must not cost the price check.
+			log.Printf("overlay shortcuts: %v", err)
+			if app.GlobalShortcut.Register(initial.Hotkey, svc.captureOverlay) == nil {
+				svc.overlayHotkey = initial.Hotkey
+			}
 		}
 	}
 	go svc.watchGameFocus()

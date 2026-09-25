@@ -5,6 +5,7 @@
   import type { Config } from '../bindings/poe2filter/internal/filter/models'
   import type { State } from '../bindings/poe2filter/internal/engine/models'
   import Toggle from './lib/Toggle.svelte'
+  import AccountLink from './lib/AccountLink.svelte'
   import Segmented from './lib/Segmented.svelte'
   import ListEditor from './lib/ListEditor.svelte'
   import StylePreview from './lib/StylePreview.svelte'
@@ -872,7 +873,14 @@
             <input bind:value={overlaySettings.hotkey} onchange={queueOverlaySave} spellcheck="false" placeholder="Alt+E" />
           </label>
           <p class="desc hint">{t('overlay.hotkeyHint')}</p>
+          <label class="field stack">
+            <span>{t('overlay.marketHotkey')}</span>
+            <input bind:value={overlaySettings.market_hotkey} onchange={queueOverlaySave} spellcheck="false" placeholder="Alt+M" />
+          </label>
+          <p class="desc hint">{t('overlay.marketHotkeyHint')}</p>
         </section>
+
+        <AccountLink />
 
         <section class="card overlay-settings-card">
           <h2>{t('overlay.size')}</h2>

@@ -44,10 +44,40 @@ export function AddSound(): $CancellablePromise<string> {
 }
 
 /**
+ * BrowserLinkState is polled by Settings while a connection is in progress.
+ */
+export function BrowserLinkState(): $CancellablePromise<$models.BrowserLinkStatus> {
+    return $Call.ByID(2730218491);
+}
+
+/**
+ * CancelBrowserConnect stops waiting for the extension.
+ */
+export function CancelBrowserConnect(): $CancellablePromise<$models.BrowserLinkStatus> {
+    return $Call.ByID(1294041974);
+}
+
+/**
  * CheckForAppUpdate checks GitHub Releases now, regardless of the daily timer.
  */
 export function CheckForAppUpdate(): $CancellablePromise<appupdate$0.State> {
     return $Call.ByID(899838745);
+}
+
+/**
+ * ChromiumBrowsers lists the Chromium browsers found through Windows' "App
+ * Paths" registration, the default browser marked.
+ */
+export function ChromiumBrowsers(): $CancellablePromise<$models.ChromiumBrowser[] | null> {
+    return $Call.ByID(988412151);
+}
+
+/**
+ * ConnectBrowser starts (or restarts) a connection: a new code, the local
+ * listener, and optionally the default browser on pathofexile.com.
+ */
+export function ConnectBrowser(openBrowser: boolean): $CancellablePromise<$models.BrowserLinkStatus> {
+    return $Call.ByID(1678967024, openBrowser);
 }
 
 export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.SavedSearch[] | null> {
@@ -59,6 +89,13 @@ export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.S
  */
 export function DeleteProfile(name: string): $CancellablePromise<filter$0.Config> {
     return $Call.ByID(1212961758, name);
+}
+
+/**
+ * DisconnectBrowser forgets the stored session; searches go out anonymous.
+ */
+export function DisconnectBrowser(): $CancellablePromise<$models.BrowserLinkStatus> {
+    return $Call.ByID(1294868532);
 }
 
 /**
@@ -236,6 +273,14 @@ export function OpenAppUpdatePage(): $CancellablePromise<void> {
 }
 
 /**
+ * OpenBrowserExtensionFolder writes the extension out and shows its folder,
+ * which is what "Load unpacked" asks for.
+ */
+export function OpenBrowserExtensionFolder(): $CancellablePromise<string> {
+    return $Call.ByID(3006832587);
+}
+
+/**
  * OpenDataFolder opens the app's data folder in Explorer.
  */
 export function OpenDataFolder(): $CancellablePromise<void> {
@@ -243,10 +288,27 @@ export function OpenDataFolder(): $CancellablePromise<void> {
 }
 
 /**
+ * OpenExtensionsPage opens a browser on its extensions page. A browser only
+ * opens its internal pages when started with one, not through a link.
+ */
+export function OpenExtensionsPage(id: string): $CancellablePromise<void> {
+    return $Call.ByID(884454811, id);
+}
+
+/**
  * OpenGameFolder opens the PoE2 filter folder in Explorer.
  */
 export function OpenGameFolder(): $CancellablePromise<void> {
     return $Call.ByID(1629061476);
+}
+
+/**
+ * OpenLinkIn opens the pending connection link in a chosen browser, started
+ * directly with the link: the extension may live in a browser other than
+ * Windows' default, and opening through the default handler failed silently.
+ */
+export function OpenLinkIn(id: string): $CancellablePromise<void> {
+    return $Call.ByID(2250876661, id);
 }
 
 export function OpenTradePage(rawURL: string): $CancellablePromise<void> {
@@ -267,6 +329,14 @@ export function OverlayQuota(): $CancellablePromise<trade$0.QuotaStatus> {
  */
 export function ParseOverlayText(raw: string): $CancellablePromise<overlay$0.Snapshot> {
     return $Call.ByID(1780103724, raw);
+}
+
+/**
+ * PrepareBrowserExtension writes the extension into the data folder, where
+ * the browser can load it ("Load unpacked"), and returns that folder.
+ */
+export function PrepareBrowserExtension(): $CancellablePromise<string> {
+    return $Call.ByID(1908818204);
 }
 
 /**
@@ -397,6 +467,15 @@ export function Themes(): $CancellablePromise<filter$0.Theme[] | null> {
  */
 export function TradeCurrencies(): $CancellablePromise<overlay$0.CurrencyEntry[] | null> {
     return $Call.ByID(2565769347);
+}
+
+/**
+ * TravelToHideout takes the player to the seller's hideout for an instant
+ * buyout listing (needs the pathofexile.com session and the game running on
+ * the same account).
+ */
+export function TravelToHideout(token: string): $CancellablePromise<void> {
+    return $Call.ByID(1093932661, token);
 }
 
 /**

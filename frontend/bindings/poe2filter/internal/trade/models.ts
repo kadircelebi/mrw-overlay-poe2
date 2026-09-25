@@ -103,6 +103,12 @@ export interface Evaluation {
      */
     "resultIds": string[] | null;
     "listings": EvaluatedListing[] | null;
+
+    /**
+     * SignedIn reports that the search went out with a pathofexile.com
+     * session; only then can a listing's hideout travel be used.
+     */
+    "signedIn": boolean;
 }
 
 /**
@@ -136,6 +142,12 @@ export interface QuotaStatus {
     "waitSec": number;
     "waitReason": string;
     "waitWindowSec": number;
+
+    /**
+     * Rules is GGG's last X-Rate-Limit-Rules header; it names "Account" when
+     * the request was counted as signed in.
+     */
+    "rules": string;
 }
 
 /**
