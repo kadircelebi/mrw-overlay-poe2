@@ -85,6 +85,12 @@ var en = map[string]string{
 	"group.exceptional":        "Valuable exceptional",
 	"group.exceptionalUnknown": "Unpriced exceptional",
 	"group.t5rare":             "T5 rare",
+	"group.waystone":           "Waystones",
+	"group.rareJewel":          "Rare jewels",
+	"group.quality":            "High-quality gear",
+	"group.uncutGem":           "Uncut skill and spirit gems",
+	"group.uncutSupport":       "Uncut support gems",
+	"group.pinnacle":           "Pinnacle keys",
 	"group.chance":             "Chance bases",
 
 	// Style group defaults
@@ -95,6 +101,11 @@ var en = map[string]string{
 	"groupDefault.exceptional":        "Default (dark blue)",
 	"groupDefault.exceptionalUnknown": "Default (muted blue)",
 	"groupDefault.t5rare":             "Default (dark brown, gold text)",
+	"groupDefault.waystone":           "Default (dark red, red border)",
+	"groupDefault.rareJewel":          "Default (dark brown, gold text)",
+	"groupDefault.quality":            "Default (dark gold, gold border)",
+	"groupDefault.uncutGem":           "Default (dark green, green text)",
+	"groupDefault.pinnacle":           "Default (purple, gold border)",
 	"groupDefault.chance":             "Default (grey)",
 
 	// Comments in the generated filter

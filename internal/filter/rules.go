@@ -117,6 +117,20 @@ var (
 	styleExceptionalUnknown = &style{font: 36, text: "200 230 255 255", border: "0 150 200 255", bg: "0 25 45 220"}
 	styleT5Rare             = &style{font: 40, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
 		icon: "2 Yellow Diamond"}
+	styleWaystone = &style{font: 42, text: "255 255 255 255", border: "255 0 0 255", bg: "120 0 0 240",
+		beam: "Red", icon: "1 Red Square", sound: "2 300"}
+	// Top-tier rare jewels get the loud look; lower tiers keep the colours
+	// but drop the beam and the sound.
+	styleRareJewel = &style{font: 42, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
+		beam: "Yellow", icon: "1 Yellow Diamond", sound: "2 300"}
+	styleRareJewelQuiet = &style{font: 40, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
+		icon: "2 Yellow Diamond"}
+	styleQuality = &style{font: 40, text: "255 255 255 255", border: "255 215 0 255", bg: "40 30 0 240",
+		icon: "1 Yellow Diamond"}
+	styleUncutGem = &style{font: 42, text: "80 255 160 255", border: "0 255 130 255", bg: "5 50 20 255",
+		beam: "Green", icon: "1 Green Triangle", sound: "2 300"}
+	stylePinnacle = &style{font: 45, text: "255 255 255 255", border: "255 215 0 255", bg: "140 0 170 255",
+		beam: "Red", icon: "0 Red Star", sound: "6 300"}
 	styleDim = &style{font: 18, text: "120 120 120 180", border: "0 0 0 0", bg: "0 0 0 150"}
 )
 
@@ -493,12 +507,12 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		b.section(fmt.Sprintf(i18n.T("filter.sec.jewels"), tierLabel(cfg.RareJewelTier, "")))
 		if cfg.RareJewelTier != TierHide {
 			// The top tier gets the louder look; anything below is a quieter show.
-			st := &style{font: 42, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
-				beam: "Yellow", icon: "1 Yellow Diamond", sound: "2 300"}
+			st := styleRareJewel
 			if cfg.RareJewelTier < MaxRareTier {
-				st = &style{font: 40, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
-					icon: "2 Yellow Diamond"}
+				st = styleRareJewelQuiet
 			}
+			jp, _ := cfg.Palette(GroupRareJewel, ns)
+			st = st.with(jp).withSound(cfg.Sound(GroupRareJewel))
 			conds := []string{`Class == "Jewels"`, "Rarity Rare"}
 			if cfg.RareJewelTier > 0 {
 				conds = append(conds, fmt.Sprintf("UnidentifiedItemTier >= %d", cfg.RareJewelTier))
@@ -510,23 +524,26 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	}
 	if cfg.QualityThreshold > 0 {
 		b.section(fmt.Sprintf(i18n.T("filter.sec.quality"), cfg.QualityThreshold))
+		qp, _ := cfg.Palette(GroupQuality, ns)
 		b.rule("Show", []string{"Rarity Normal Magic Rare", fmt.Sprintf("Quality >= %d", cfg.QualityThreshold)}, "Class", gearClasses,
-			&style{font: 40, text: "255 255 255 255", border: "255 215 0 255", bg: "40 30 0 240", icon: "1 Yellow Diamond"})
+			styleQuality.with(qp).withSound(cfg.Sound(GroupQuality)))
 	}
 	if cfg.WaystoneTier != TierOff {
 		b.section(fmt.Sprintf(i18n.T("filter.sec.waystones"), tierLabel(cfg.WaystoneTier, "T")))
 		if cfg.WaystoneTier == TierHide {
 			b.rule("Hide", []string{`Class == "Waystones"`}, "", nil, nil)
 		} else {
+			wp, _ := cfg.Palette(GroupWaystone, ns)
 			b.rule("Show", []string{`Class == "Waystones"`, fmt.Sprintf("WaystoneTier >= %d", cfg.WaystoneTier)}, "", nil,
-				&style{font: 42, text: "255 255 255 255", border: "255 0 0 255", bg: "120 0 0 240",
-					beam: "Red", icon: "1 Red Square", sound: "2 300"})
+				styleWaystone.with(wp).withSound(cfg.Sound(GroupWaystone)))
 		}
 	}
 	// Skill and spirit gems share one slider; support gems have their own
 	// because they drop far more often.
-	gemStyle := &style{font: 42, text: "80 255 160 255", border: "0 255 130 255", bg: "5 50 20 255",
-		beam: "Green", icon: "1 Green Triangle", sound: "2 300"}
+	gp, _ := cfg.Palette(GroupUncutGem, ns)
+	gemStyle := styleUncutGem.with(gp).withSound(cfg.Sound(GroupUncutGem))
+	sp, _ := cfg.Palette(GroupUncutSupport, ns)
+	supportStyle := styleUncutGem.with(sp).withSound(cfg.Sound(GroupUncutSupport))
 	// No "==" here, unlike everywhere else: an uncut gem carries its level in
 	// its base type ("Uncut Support Gem (Level 5)"), so an exact match never
 	// fires and the rules below would silently do nothing. NeverSink matches
@@ -549,14 +566,14 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	case cfg.UncutSupportLevel == TierHide:
 		b.rule("Hide", []string{supportGems}, "", nil, nil)
 	default:
-		b.rule("Show", []string{supportGems, fmt.Sprintf("GemLevel >= %d", cfg.UncutSupportLevel)}, "", nil, gemStyle)
+		b.rule("Show", []string{supportGems, fmt.Sprintf("GemLevel >= %d", cfg.UncutSupportLevel)}, "", nil, supportStyle)
 		b.rule("Hide", []string{supportGems}, "", nil, nil)
 	}
 	if cfg.PinnacleKeys {
 		b.section(i18n.T("filter.sec.pinnacle"))
+		pp, _ := cfg.Palette(GroupPinnacle, ns)
 		b.rule("Show", []string{`Class == "Pinnacle Keys"`}, "", nil,
-			&style{font: 45, text: "255 255 255 255", border: "255 215 0 255", bg: "140 0 170 255",
-				beam: "Red", icon: "0 Red Star", sound: "6 300"})
+			stylePinnacle.with(pp).withSound(cfg.Sound(GroupPinnacle)))
 	}
 
 	// ---- 8.7 medium whitelist -----------------------------------------------

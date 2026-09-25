@@ -122,7 +122,12 @@
     return setting
   }
 
+  // The language this window shows. The select is bound straight to
+  // cfg.language, so cfg cannot tell whether a switch is still to be applied.
+  let shownLang = ''
+
   function applyLanguage(setting: string) {
+    shownLang = setting
     const lang = setting === 'auto' ? (languages.find((l) => l.auto)?.resolved ?? 'en') : setting
     setLang(lang)
     // CSS uppercase follows the document language: with lang="tr" the browser
@@ -156,7 +161,7 @@
     const differs = (Object.keys(next) as (keyof Config)[]).some(
       (k) => !appOnlyKeys.has(k) && JSON.stringify(next[k]) !== JSON.stringify(cfg![k]),
     )
-    const langChanged = languageOf(next.language) !== languageOf(cfg.language)
+    const langChanged = languageOf(next.language) !== languageOf(shownLang)
     if (differs) dirty = true
     cfg = next
     if (langChanged) {
@@ -256,7 +261,7 @@
         const saved = await AppService.SaveConfig($state.snapshot(cfg) as Config)
         // Ignore stale replies: the user may have kept editing meanwhile.
         if (seq !== saveSeq) return
-        const langChanged = languageOf(saved.language) !== languageOf(cfg?.language)
+        const langChanged = languageOf(saved.language) !== languageOf(shownLang)
         cfg = saved
         if (langChanged) {
           applyLanguage(saved.language)

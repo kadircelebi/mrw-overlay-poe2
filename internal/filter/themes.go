@@ -137,6 +137,12 @@ const (
 	GroupExceptional        = "exceptional"
 	GroupExceptionalUnknown = "exceptional_unknown"
 	GroupT5Rare             = "t5rare"
+	GroupRareJewel          = "rare_jewel"
+	GroupQuality            = "quality"
+	GroupWaystone           = "waystone"
+	GroupUncutGem           = "uncut_gem"
+	GroupUncutSupport       = "uncut_support"
+	GroupPinnacle           = "pinnacle"
 	GroupChance             = "chance"
 )
 
@@ -165,6 +171,24 @@ var StyleGroups = []StyleGroup{
 	{ID: GroupT5Rare, Sample: "Gold Ring", AllowDefault: true,
 		FontSize: 40, IconShape: "Diamond",
 		Default: Theme{BgColor: "40 25 0 255", TextColor: "255 215 0 255", Border: "255 180 0 255", Beam: "Yellow"}},
+	{ID: GroupRareJewel, Sample: "Time-Lost Ruby", AllowDefault: true,
+		DefaultSound: "2", FontSize: 42, HasBeam: true, IconShape: "Diamond",
+		Default: Theme{BgColor: "40 25 0 255", TextColor: "255 215 0 255", Border: "255 180 0 255", Beam: "Yellow"}},
+	{ID: GroupQuality, Sample: "Cavalry Boots", AllowDefault: true,
+		FontSize: 40, IconShape: "Diamond",
+		Default: Theme{BgColor: "40 30 0 240", TextColor: "255 255 255 255", Border: "255 215 0 255", Beam: "Yellow"}},
+	{ID: GroupWaystone, Sample: "Waystone (Tier 15)", AllowDefault: true,
+		DefaultSound: "2", FontSize: 42, HasBeam: true, IconShape: "Square",
+		Default: Theme{BgColor: "120 0 0 240", TextColor: "255 255 255 255", Border: "255 0 0 255", Beam: "Red"}},
+	{ID: GroupUncutGem, Sample: "Uncut Skill Gem (Level 20)", AllowDefault: true,
+		DefaultSound: "2", FontSize: 42, HasBeam: true, IconShape: "Triangle",
+		Default: Theme{BgColor: "5 50 20 255", TextColor: "80 255 160 255", Border: "0 255 130 255", Beam: "Green"}},
+	{ID: GroupUncutSupport, Sample: "Uncut Support Gem (Level 5)", AllowDefault: true,
+		DefaultSound: "2", FontSize: 42, HasBeam: true, IconShape: "Triangle",
+		Default: Theme{BgColor: "5 50 20 255", TextColor: "80 255 160 255", Border: "0 255 130 255", Beam: "Green"}},
+	{ID: GroupPinnacle, Sample: "Simulacrum", AllowDefault: true,
+		DefaultSound: "6", FontSize: 45, HasBeam: true, IconShape: "Star",
+		Default: Theme{BgColor: "140 0 170 255", TextColor: "255 255 255 255", Border: "255 215 0 255", Beam: "Red"}},
 	{ID: GroupChance, Sample: "Heavy Belt", AllowDefault: true,
 		FontSize: 38, IconShape: "Circle",
 		Default: Theme{BgColor: "10 30 50 240", TextColor: "0 240 255 255", Border: "0 200 255 255", Beam: "Cyan"}},
@@ -234,6 +258,12 @@ var NeverSinkPreset = map[string]string{
 	GroupExceptional:        "exotics_btier",
 	GroupExceptionalUnknown: "exotics_ctier",
 	GroupT5Rare:             "gear_tieredjewellery",
+	GroupRareJewel:          "gear_jewelrare",
+	GroupQuality:            "itemproperty_salvage1",
+	GroupWaystone:           "maps_regularhighest",
+	GroupUncutGem:           "typebased_gems1",
+	GroupUncutSupport:       "typebased_gems2",
+	GroupPinnacle:           "fragments_a",
 	GroupChance:             "itemproperty_achancing",
 }
 
@@ -404,6 +434,12 @@ var groupLabelKeys = map[string][2]string{
 	GroupExceptional:        {"group.exceptional", "groupDefault.exceptional"},
 	GroupExceptionalUnknown: {"group.exceptionalUnknown", "groupDefault.exceptionalUnknown"},
 	GroupT5Rare:             {"group.t5rare", "groupDefault.t5rare"},
+	GroupRareJewel:          {"group.rareJewel", "groupDefault.rareJewel"},
+	GroupQuality:            {"group.quality", "groupDefault.quality"},
+	GroupWaystone:           {"group.waystone", "groupDefault.waystone"},
+	GroupUncutGem:           {"group.uncutGem", "groupDefault.uncutGem"},
+	GroupUncutSupport:       {"group.uncutSupport", "groupDefault.uncutGem"},
+	GroupPinnacle:           {"group.pinnacle", "groupDefault.pinnacle"},
 	GroupChance:             {"group.chance", "groupDefault.chance"},
 }
 

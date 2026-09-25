@@ -763,3 +763,56 @@ func TestLegacyListsBecomeGroups(t *testing.T) {
 		t.Error("the old style key should be gone")
 	}
 }
+
+// Waystones used to carry a fixed red look nobody could change; they are a
+// style group now, with that same red as the default.
+func TestWaystoneFollowsItsStyleGroup(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.WaystoneTier = 15
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	if blockContaining(t, out, `Class == "Waystones"`, "SetBackgroundColor 120 0 0 240", "PlayEffect Red", "MinimapIcon 1 Red Square", "PlayAlertSound 2 300") < 0 {
+		t.Error("the default waystone look should stay as it was")
+	}
+
+	cfg.Styles = map[string]string{GroupWaystone: "neon_green"}
+	cfg.Sounds = map[string]string{GroupWaystone: "ShExalted"}
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	green := themeByID["neon_green"]
+	if blockContaining(t, out, `Class == "Waystones"`, "SetBackgroundColor "+green.BgColor, "PlayAlertSound ShExalted 300") < 0 {
+		t.Error("waystones should take the colours and sound picked for their group")
+	}
+}
+
+// Every rule that used to carry a fixed look now follows a style group; each
+// must take the picked colours and sound, and keep its old look by default.
+func TestFixedRulesFollowTheirStyleGroups(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.RareJewelTier, cfg.QualityThreshold, cfg.WaystoneTier = MaxRareTier, 20, 15
+	cfg.UncutGemLevel, cfg.UncutSupportLevel, cfg.PinnacleKeys = 18, 4, true
+	cases := []struct {
+		group, cond, defaultBg string
+	}{
+		{GroupRareJewel, `Class == "Jewels"`, "40 25 0 255"},
+		{GroupQuality, "Quality >= 20", "40 30 0 240"},
+		{GroupWaystone, `Class == "Waystones"`, "120 0 0 240"},
+		{GroupUncutGem, `"Uncut Skill Gem"`, "5 50 20 255"},
+		{GroupUncutSupport, `"Uncut Support Gem"`, "5 50 20 255"},
+		{GroupPinnacle, `Class == "Pinnacle Keys"`, "140 0 170 255"},
+	}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	for _, c := range cases {
+		if blockContaining(t, out, "Show", c.cond, "SetBackgroundColor "+c.defaultBg) < 0 {
+			t.Errorf("%s: the default look should stay as it was", c.group)
+		}
+	}
+
+	green := themeByID["neon_green"]
+	for _, c := range cases {
+		cfg.Styles = map[string]string{c.group: "neon_green"}
+		cfg.Sounds = map[string]string{c.group: "ShExalted"}
+		out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+		if blockContaining(t, out, "Show", c.cond, "SetBackgroundColor "+green.BgColor, "PlayAlertSound ShExalted 300") < 0 {
+			t.Errorf("%s: the rule should take the colours and sound picked for its group", c.group)
+		}
+	}
+}
