@@ -263,13 +263,13 @@ func (s *Scanner) Run(ctx context.Context) {
 		s.last = s.current
 		switch ks := s.st.Keys[keyOf(t.base, t.kind)]; {
 		case err != nil:
-			s.last += " — hata"
+			s.last += i18n.T("scan.last.error")
 		case ks == nil:
-			s.last += " — sınıf öğrenildi"
+			s.last += i18n.T("scan.last.classLearned")
 		case ks.Listings == 0:
-			s.last += " — ilan yok"
+			s.last += i18n.T("scan.last.noListings")
 		case ks.Samples == 0:
-			s.last += fmt.Sprintf(" — %d ilan", ks.Listings)
+			s.last += i18n.T("scan.last.listings", ks.Listings)
 		default:
 			s.last += fmt.Sprintf(" — %.0f ex", ks.ValueEx)
 		}

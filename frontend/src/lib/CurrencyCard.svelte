@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CurrencyQuote, Item } from '../../bindings/poe2filter/internal/overlay/models'
   import { listedAgo } from './overlayQuery'
+  import { t } from './i18n.svelte'
 
   let { item, quote }: { item: Item; quote: CurrencyQuote } = $props()
 
@@ -13,8 +14,9 @@
   const perDivine = $derived(quote.valueEx > 0 && quote.divineEx > 0 ? quote.divineEx / quote.valueEx : 0)
 
   const updated = $derived.by(() => {
-    const ago = listedAgo(quote.generatedAt)
-    return ago === '0m' ? 'az önce' : `${ago} önce`
+    const when = Date.parse(quote.generatedAt)
+    if (Number.isFinite(when) && Date.now() - when < 60000) return t('ov.cc.justNow')
+    return t('ov.cc.ago', listedAgo(quote.generatedAt))
   })
 
   function amount(n: number): string {
@@ -30,7 +32,7 @@
 <section class="currency-card">
   <div class="title">
     <strong>{quote.name}</strong>
-    <span class="stock">Stock <b>{stock.toLocaleString('en-US')}</b></span>
+    <span class="stock">{t('ov.cc.stock')} <b>{stock.toLocaleString('en-US')}</b></span>
   </div>
   <div class="worth">
     <div class="side">
@@ -49,14 +51,14 @@
     </div>
   </div>
   <div class="rates">
-    <span>Unit <b>{amount(quote.valueEx)}</b> ex</span>
+    <span>{t('ov.cc.unit')} <b>{amount(quote.valueEx)}</b> ex</span>
     {#if perDivine >= 1 && !isDivine}
-      <span><b>{amount(perDivine)}</b> per div</span>
+      <span><b>{amount(perDivine)}</b> {t('ov.cc.perDiv')}</span>
     {:else if perDivine > 0 && !isDivine}
-      <span><b>{amount(1 / perDivine)}</b> div each</span>
+      <span><b>{amount(1 / perDivine)}</b> {t('ov.cc.divEach')}</span>
     {/if}
   </div>
-  <p class="source" title="Filtrenin kullandığı fiyat listesi">Fiyat listesi · {quote.league} · {updated}</p>
+  <p class="source" title={t('ov.cc.sourceTitle')}>{t('ov.cc.source', quote.league, updated)}</p>
 </section>
 
 <style>

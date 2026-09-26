@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
+	"poe2filter/internal/i18n"
 	"poe2filter/internal/overlay"
 	"poe2filter/internal/trade"
 )
@@ -111,16 +111,34 @@ func (s *AppService) GetOverlayDraft() trade.EvaluateRequest {
 	return s.overlayDraft
 }
 
-func (s *AppService) GetSavedOverlaySearches() ([]overlay.SavedSearch, error) {
+func (s *AppService) GetSavedOverlaySearches() (overlay.SearchLibrary, error) {
 	return s.overlaySearches.List()
 }
 
-func (s *AppService) SaveOverlaySearch(name string, query trade.EvaluateRequest) ([]overlay.SavedSearch, error) {
-	return s.overlaySearches.Save(name, query)
+func (s *AppService) SaveOverlaySearch(name, folder string, query trade.EvaluateRequest) (overlay.SearchLibrary, error) {
+	return s.overlaySearches.Save(name, folder, query)
 }
 
-func (s *AppService) DeleteOverlaySearch(id string) ([]overlay.SavedSearch, error) {
+func (s *AppService) DeleteOverlaySearch(id string) (overlay.SearchLibrary, error) {
 	return s.overlaySearches.Delete(id)
+}
+
+// MoveOverlaySearch puts a saved search into a folder ("" = top level).
+func (s *AppService) MoveOverlaySearch(id, folder string) (overlay.SearchLibrary, error) {
+	return s.overlaySearches.Move(id, folder)
+}
+
+func (s *AppService) CreateSearchFolder(name string) (overlay.SearchLibrary, error) {
+	return s.overlaySearches.CreateFolder(name)
+}
+
+func (s *AppService) RenameSearchFolder(id, name string) (overlay.SearchLibrary, error) {
+	return s.overlaySearches.RenameFolder(id, name)
+}
+
+// DeleteSearchFolder removes a folder and moves its searches to the top level.
+func (s *AppService) DeleteSearchFolder(id string) (overlay.SearchLibrary, error) {
+	return s.overlaySearches.DeleteFolder(id)
 }
 
 // ParseOverlayText is also useful for diagnostics: a copied item can be pasted
@@ -203,23 +221,23 @@ func (s *AppService) evaluateOverlayFresh(in trade.EvaluateRequest) (trade.Evalu
 	case errors.As(err, &apiErr) && apiErr.Status == 429:
 		return trade.Evaluation{}, errors.New(quotaPenaltyMessage(s.overlayClient.Search.Status()))
 	case strings.Contains(strings.ToLower(err.Error()), "content exceeded"):
-		return trade.Evaluation{}, errors.New("Arama GGG için fazla geniş; base type, rarity veya birkaç affix filtresi ekleyin")
+		return trade.Evaluation{}, errors.New(i18n.T("overlay.err.tooBroad"))
 	case strings.Contains(strings.ToLower(err.Error()), "query is too complex"):
 		// Measured: without a login GGG refuses any Weighted Sum group, even
 		// one with a single stat, while And and Count groups pass.
 		if hasWeightGroup(in) && !s.overlayClient.SignedIn() {
-			return trade.Evaluation{}, errors.New("GGG, Weighted Sum gruplarını yalnızca pathofexile.com'a giriş yapmış aramalarda kabul ediyor. Ayarlar → Overlay → pathofexile.com hesabı ile tarayıcını bağlayabilir ya da grubu And veya Count yapabilirsin (ör. Count, en az 3)")
+			return trade.Evaluation{}, errors.New(i18n.T("overlay.err.weightNeedsLogin"))
 		}
 		if s.overlayClient.SignedIn() {
 			// GGG adds this hint only for requests it did not count as signed in.
 			if strings.Contains(strings.ToLower(err.Error()), "logging in will increase") {
-				return trade.Evaluation{}, errors.New("GGG bu aramayı girişsiz saydı: bağlı oturum tanınmadı (süresi dolmuş ya da çıkış yapılmış olabilir). Ayarlar → Overlay → pathofexile.com hesabı → Yeniden bağlan")
+				return trade.Evaluation{}, errors.New(i18n.T("overlay.err.sessionIgnored"))
 			}
-			return trade.Evaluation{}, errors.New("Arama GGG için fazla karmaşık; birkaç stat filtresini kaldırın")
+			return trade.Evaluation{}, errors.New(i18n.T("overlay.err.tooComplex"))
 		}
-		return trade.Evaluation{}, errors.New("Arama GGG'nin girişsiz arama sınırı için fazla karmaşık; birkaç stat filtresini kaldırın ya da Ayarlar → Overlay'den pathofexile.com hesabını bağlayın")
+		return trade.Evaluation{}, errors.New(i18n.T("overlay.err.tooComplexSignedOut"))
 	case errors.Is(err, context.DeadlineExceeded):
-		return trade.Evaluation{}, errors.New("GGG araması zaman aşımına uğradı; biraz sonra tekrar deneyin")
+		return trade.Evaluation{}, errors.New(i18n.T("overlay.err.searchTimeout"))
 	default:
 		return trade.Evaluation{}, err
 	}
@@ -237,9 +255,9 @@ func (s *AppService) FetchOverlayListings(searchID string, ids []string) ([]trad
 		s.tagListingStats(listings)
 		return listings, nil
 	case errors.As(err, &apiErr) && apiErr.Status == 429:
-		return nil, errors.New("GGG ilan yükleme sınırına ulaşıldı; birkaç saniye sonra tekrar kaydırın")
+		return nil, errors.New(i18n.T("overlay.err.fetchLimit"))
 	case errors.Is(err, context.DeadlineExceeded):
-		return nil, errors.New("İlanlar zaman aşımına uğradı; biraz sonra tekrar deneyin")
+		return nil, errors.New(i18n.T("overlay.err.fetchTimeout"))
 	default:
 		return nil, err
 	}
@@ -281,13 +299,13 @@ func (s *AppService) TravelToHideout(token string) error {
 	case err == nil:
 		return nil
 	case errors.Is(err, trade.ErrNotSignedIn):
-		return errors.New("Hideout'a gitmek için Ayarlar → Overlay → pathofexile.com hesabı ile tarayıcını bağla")
+		return errors.New(i18n.T("overlay.err.hideoutNeedsLogin"))
 	case errors.Is(err, trade.ErrHideoutDenied):
-		return errors.New("GGG isteği kabul etmedi: ilan satılmış olabilir, ya da oyun bu hesapla açık değil")
+		return errors.New(i18n.T("overlay.err.hideoutDenied"))
 	case errors.As(err, &apiErr) && (apiErr.Status == 401 || apiErr.Status == 403):
-		return errors.New("GGG oturumu kabul etmedi; Ayarlar'dan yeniden bağlan")
+		return errors.New(i18n.T("overlay.err.hideoutSession"))
 	case errors.As(err, &apiErr) && apiErr.Status == 429:
-		return errors.New("GGG istek sınırına ulaşıldı; birkaç saniye sonra tekrar dene")
+		return errors.New(i18n.T("overlay.err.hideoutLimit"))
 	default:
 		return err
 	}
@@ -306,21 +324,21 @@ func quotaWaitMessage(st trade.QuotaStatus) string {
 		return quotaPenaltyMessage(st)
 	case trade.WaitShared:
 		w := quotaWindow(st, st.WaitWindowSec)
-		return fmt.Sprintf("Bu IP'nin %s arama penceresi dolmak üzere (%d/%d; trade sitesi ve diğer uygulamalar dahil). %s sonra tekrar deneyin", windowLabel(st.WaitWindowSec), w.Hits, w.Limit, wait)
+		return i18n.T("overlay.quota.shared", windowLabel(st.WaitWindowSec), w.Hits, w.Limit, wait)
 	case trade.WaitOurs:
 		w := quotaWindow(st, st.WaitWindowSec)
-		return fmt.Sprintf("Uygulamanın kendi sınırı: %s penceresinde %d aramaya ulaşıldı (GGG sınırı %d). %s sonra tekrar deneyin", windowLabel(st.WaitWindowSec), w.Allowed, w.Limit, wait)
+		return i18n.T("overlay.quota.ours", windowLabel(st.WaitWindowSec), w.Allowed, w.Limit, wait)
 	}
-	return fmt.Sprintf("GGG arama kotası beklemede; %s sonra tekrar deneyin", wait)
+	return i18n.T("overlay.quota.wait", wait)
 }
 
 func quotaPenaltyMessage(st trade.QuotaStatus) string {
 	wait := formatWait(int(time.Until(st.RestrictedUntil).Seconds() + 0.999))
 	if st.RestrictedWindowSec > 0 {
 		w := quotaWindow(st, st.RestrictedWindowSec)
-		return fmt.Sprintf("GGG bu IP'ye arama cezası verdi: %s penceresinde %d arama sınırı aşıldı. Ceza %s sonra biter", windowLabel(st.RestrictedWindowSec), w.Limit, wait)
+		return i18n.T("overlay.quota.penaltyWindow", windowLabel(st.RestrictedWindowSec), w.Limit, wait)
 	}
-	return fmt.Sprintf("GGG bu IP'ye arama cezası verdi (hangi pencere olduğunu bildirmedi). Ceza %s sonra biter", wait)
+	return i18n.T("overlay.quota.penalty", wait)
 }
 
 func quotaWindow(st trade.QuotaStatus, periodSec int) trade.QuotaWindow {
@@ -335,27 +353,27 @@ func quotaWindow(st trade.QuotaStatus, periodSec int) trade.QuotaWindow {
 func windowLabel(sec int) string {
 	switch {
 	case sec >= 3600 && sec%3600 == 0:
-		return fmt.Sprintf("%d saatlik", sec/3600)
+		return i18n.T("overlay.window.hours", sec/3600)
 	case sec >= 60 && sec%60 == 0:
-		return fmt.Sprintf("%d dakikalık", sec/60)
+		return i18n.T("overlay.window.minutes", sec/60)
 	default:
-		return fmt.Sprintf("%d saniyelik", sec)
+		return i18n.T("overlay.window.seconds", sec)
 	}
 }
 
 func formatWait(sec int) string {
 	switch {
 	case sec <= 0:
-		return "birazdan"
+		return i18n.T("overlay.wait.soon")
 	case sec < 60:
-		return fmt.Sprintf("%d sn", sec)
+		return i18n.T("overlay.wait.sec", sec)
 	case sec < 3600:
 		if sec%60 == 0 {
-			return fmt.Sprintf("%d dk", sec/60)
+			return i18n.T("overlay.wait.min", sec/60)
 		}
-		return fmt.Sprintf("%d dk %d sn", sec/60, sec%60)
+		return i18n.T("overlay.wait.minSec", sec/60, sec%60)
 	default:
-		return fmt.Sprintf("%d sa %d dk", sec/3600, sec%3600/60)
+		return i18n.T("overlay.wait.hourMin", sec/3600, sec%3600/60)
 	}
 }
 
@@ -396,7 +414,7 @@ func (s *AppService) ShowMarketWithQuery(in trade.EvaluateRequest) {
 func (s *AppService) PreviewOverlay() {
 	snap := s.GetOverlaySnapshot()
 	if snap.Item == nil && snap.Error == "" {
-		snap.Error = "Hover an item in Path of Exile 2 and press the configured shortcut."
+		snap.Error = i18n.T("overlay.hover")
 	}
 	s.showOverlaySnapshot(snap)
 }
@@ -436,17 +454,18 @@ func (s *AppService) captureOverlay() {
 		}
 	}
 	if raw == "" || raw == sentinel {
-		s.showOverlaySnapshot(overlay.Snapshot{Error: "No item was copied. Hover an item in Path of Exile 2 and try again."})
+		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.noCopy")})
 		return
 	}
 	catalog, err := s.overlayCatalog.Load(context.Background())
 	if err != nil {
-		s.showOverlaySnapshot(overlay.Snapshot{Error: fmt.Sprintf("Trade catalog: %v", err)})
+		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.catalogFailed", err)})
 		return
 	}
 	item, err := overlay.ParseItem(raw, catalog)
 	if err != nil {
-		s.showOverlaySnapshot(overlay.Snapshot{Error: err.Error()})
+		// Whatever the parser tripped on, the copy was not a game item.
+		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.notAnItem")})
 		return
 	}
 	s.showOverlaySnapshot(overlay.Snapshot{Item: &item})

@@ -1,5 +1,6 @@
 import type { Item, ItemMod } from '../../bindings/poe2filter/internal/overlay/models'
 import type { EvaluateRequest, SelectedFilter, SelectedStat, SelectedStatGroup } from '../../bindings/poe2filter/internal/trade/models'
+import { t } from './i18n.svelte'
 
 export type ModChoice = {
   mod: ItemMod
@@ -186,10 +187,10 @@ export function listedAgo(iso: string): string {
   const when = Date.parse(iso)
   if (!Number.isFinite(when)) return iso
   const mins = Math.max(0, Math.floor((Date.now() - when) / 60000))
-  if (mins < 60) return `${mins}m`
+  if (mins < 60) return t('ov.ago.m', mins)
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h`
-  return `${Math.floor(hours / 24)}d`
+  if (hours < 24) return t('ov.ago.h', hours)
+  return t('ov.ago.d', Math.floor(hours / 24))
 }
 
 // The trade fetch call returns listings ten at a time.

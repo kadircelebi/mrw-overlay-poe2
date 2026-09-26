@@ -137,8 +137,27 @@ export interface ItemProperty {
 export interface SavedSearch {
     "id": string;
     "name": string;
+
+    /**
+     * folder id, "" at the top level
+     */
+    "folder"?: string;
     "query": trade$0.EvaluateRequest;
     "createdAt": string;
+}
+
+export interface SearchFolder {
+    "id": string;
+    "name": string;
+}
+
+/**
+ * SearchLibrary is everything the market's saved list shows: the folders in
+ * the user's order and the searches, each naming its folder.
+ */
+export interface SearchLibrary {
+    "folders": SearchFolder[] | null;
+    "searches": SavedSearch[] | null;
 }
 
 export interface SelectOption {

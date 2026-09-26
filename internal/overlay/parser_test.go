@@ -696,3 +696,81 @@ func TestRequiredLevelIgnoresAttributes(t *testing.T) {
 		}
 	}
 }
+
+// A tablet's "uses remaining" implicit is a pseudo stat on the trade site,
+// and the rare chest affix is named there in the singular ("an additional
+// Rare Chest") while the game prints the rolled count in the plural.
+func TestTabletUsesAndSingularCatalogWording(t *testing.T) {
+	raw := `Item Class: Tablet
+Rarity: Rare
+Legendary Incitement
+Irradiated Tablet
+--------
+Item Level: 80
+--------
+{ Implicit Modifier }
+Adds Irradiated to a Map (implicit)
+{ Implicit Modifier }
+6 uses remaining (implicit)
+--------
+{ Prefix Modifier "Treasurer's" (Tier: 1) }
+Map contains 2(2-3) additional Rare Chests
+{ Suffix Modifier "of the Exile" (Tier: 1) }
+Map has 76(70-100)% increased chance to contain Rogue Exiles`
+	catalog := Catalog{Stats: []StatGroup{
+		{ID: "pseudo", Entries: []StatEntry{{ID: "pseudo.pseudo_number_of_uses_remaining", Text: "# uses remaining (Tablets)", Type: "pseudo"}}},
+		{ID: "implicit", Entries: []StatEntry{{ID: "implicit.stat_irradiated", Text: "Adds Irradiated to a Map", Type: "implicit"}}},
+		{ID: "explicit", Entries: []StatEntry{
+			{ID: "explicit.stat_231864447", Text: "Map contains an additional Rare Chest", Type: "explicit"},
+			{ID: "explicit.stat_exiles", Text: "Map has #% increased chance to contain Rogue Exiles", Type: "explicit"},
+		}},
+	}}
+	item, err := ParseItem(raw, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"6 uses remaining":                                             "pseudo.pseudo_number_of_uses_remaining",
+		"Map contains 2(2-3) additional Rare Chests":                   "explicit.stat_231864447",
+		"Map has 76(70-100)% increased chance to contain Rogue Exiles": "explicit.stat_exiles",
+	}
+	for _, mod := range item.Mods {
+		for text, id := range want {
+			if strings.HasPrefix(mod.Text, text) {
+				if mod.StatID != id {
+					t.Errorf("%q: stat %q, want %q", mod.Text, mod.StatID, id)
+				}
+				delete(want, text)
+			}
+		}
+	}
+	for text := range want {
+		t.Errorf("line %q not parsed", text)
+	}
+}
+
+// A magic item prints its affix names around the base on one line; the
+// search needs the base alone ("Unknown item base type" otherwise).
+func TestMagicItemBaseIsPickedOutOfItsName(t *testing.T) {
+	catalog := Catalog{Items: []ItemGroup{
+		{ID: "map", Entries: []ItemEntry{{Type: "Delirium Tablet"}, {Type: "Irradiated Tablet"}}},
+		{ID: "jewel", Entries: []ItemEntry{{Type: "Emerald"}, {Type: "Time-Lost Emerald"}, {Type: "Emerald", Name: "Some Unique"}}},
+	}}
+	cases := map[string]string{
+		"Collector's Delirium Tablet of the Essence": "Delirium Tablet",
+		"Surging Emerald of Nocking":                 "Emerald",
+		"Surging Time-Lost Emerald":                  "Time-Lost Emerald",
+		"Delirium Tablet of the Essence":             "Delirium Tablet",
+		"Something Unknown of Nothing":               "Something Unknown of Nothing",
+	}
+	for name, want := range cases {
+		raw := "Item Class: Tablet\nRarity: Magic\n" + name + "\n--------\nItem Level: 80"
+		item, err := ParseItem(raw, catalog)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if item.BaseType != want || item.Name != name {
+			t.Errorf("%q: base %q name %q, want base %q", name, item.BaseType, item.Name, want)
+		}
+	}
+}

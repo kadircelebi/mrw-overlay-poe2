@@ -3,6 +3,7 @@
   import { AppService } from '../../bindings/poe2filter'
   import type { Evaluation, EvaluatedListing, EvaluatedMod } from '../../bindings/poe2filter/internal/trade/models'
   import { currencyInfo } from './currencies.svelte'
+  import { currentLang, t } from './i18n.svelte'
   import { currencyLabel, listedAgo, PAGE_SIZE, propertySortKey, statSortKey, type SortOption, type SortState } from './overlayQuery'
 
   let { result = null, loading = false, error = '', expanded = false, sort = null, sortOptions = [], onsort, searched = [] }: {
@@ -35,7 +36,7 @@
   // flips the direction.
   const chips = $derived.by(() => {
     if (!onsort || !sort) return []
-    const base: SortOption[] = [{ key: 'price', label: 'Price' }, { key: 'ilvl', label: 'Item Level' }]
+    const base: SortOption[] = [{ key: 'price', label: t('ov.sortPrice') }, { key: 'ilvl', label: 'Item Level' }]
     const active = [...base, ...PROPERTY_CHIPS, ...sortOptions].find((chip) => chip.key === sort.key)
     return [active ?? { key: sort.key, label: sort.key }]
   })
@@ -141,10 +142,10 @@
   function hideoutTitle(row: EvaluatedListing) {
     const state = travel[row.id]
     if (state?.startsWith('!')) return state.slice(1)
-    if (state === 'ok') return 'İstek gönderildi; oyunda satıcının hideout\'una götürülüyorsun'
-    if (!row.hideoutToken) return 'Bu ilan anında satın alınabilir değil'
-    if (!result?.signedIn) return 'Hideout\'a gitmek için Ayarlar → Overlay → pathofexile.com hesabı ile tarayıcını bağla'
-    return 'Satıcının hideout\'una git'
+    if (state === 'ok') return t('ov.hideout.sent')
+    if (!row.hideoutToken) return t('ov.hideout.notInstant')
+    if (!result?.signedIn) return t('ov.hideout.needLogin')
+    return t('ov.hideout.go')
   }
 
   function arrow(key: string) {
@@ -163,7 +164,7 @@
       {#if row.item.rarity}<span>Rarity <b>{row.item.rarity}</b></span>{/if}
       {#if row.item.itemLevel}
         {#if onsort}
-          <button type="button" class="prop-sort" class:on={sort?.key === 'ilvl'} title="Item level'a göre sırala" onclick={() => onsort?.('ilvl')}>Item Level <b>{row.item.itemLevel}</b> <i>{arrow('ilvl') || '⇅'}</i></button>
+          <button type="button" class="prop-sort" class:on={sort?.key === 'ilvl'} title={t('ov.sortByIlvl')} onclick={() => onsort?.('ilvl')}>Item Level <b>{row.item.itemLevel}</b> <i>{arrow('ilvl') || '⇅'}</i></button>
         {:else}
           <span>Item Level <b>{row.item.itemLevel}</b></span>
         {/if}
@@ -174,7 +175,7 @@
       {#each row.item.properties ?? [] as prop}
         {@const key = onsort ? propertySortKey(prop.name) : ''}
         {#if key}
-          <button type="button" class="prop-sort" class:on={sort?.key === key} title="Bu özelliğe göre sırala" onclick={() => onsort?.(key)}>{prop.name}{#if prop.value}: <b>{prop.value}</b>{/if} <i>{arrow(key) || '⇅'}</i></button>
+          <button type="button" class="prop-sort" class:on={sort?.key === key} title={t('ov.sortByProp')} onclick={() => onsort?.(key)}>{prop.name}{#if prop.value}: <b>{prop.value}</b>{/if} <i>{arrow(key) || '⇅'}</i></button>
         {:else}
           <span>{prop.name}{#if prop.value}: <b>{prop.value}</b>{/if}</span>
         {/if}
@@ -186,9 +187,9 @@
           {#if group.tier || group.name}<small>{group.tier} {group.name}</small>{/if}
           {#each group.lines as line}
             {@const key = onsort && line.mod.statId ? statSortKey(line.mod.statId) : ''}
-            <p class:searched={!!line.mod.statId && searchedSet.has(line.mod.statId)} title={line.mod.parts?.length ? `GGG bu affixleri tek satırda toplar: ${line.mod.description}. Her affixin payı, toplamın ve roll aralıklarının izin verdiği aralık.` : undefined}>
+            <p class:searched={!!line.mod.statId && searchedSet.has(line.mod.statId)} title={line.mod.parts?.length ? t('ov.summedAffix', line.mod.description) : undefined}>
               {#if key}
-                <button type="button" class="mod-sort" class:on={sort?.key === key} title="Sonuçları bu affixe göre sırala" onclick={() => onsort?.(key, line.mod.description)}>{line.text} <i>{arrow(key) || '⇅'}</i></button>
+                <button type="button" class="mod-sort" class:on={sort?.key === key} title={t('ov.sortByAffix')} onclick={() => onsort?.(key, line.mod.description)}>{line.text} <i>{arrow(key) || '⇅'}</i></button>
               {:else}
                 {line.text}
               {/if}
@@ -210,12 +211,12 @@
 {/snippet}
 
 <div class="results-head">
-  <span>{loading ? 'Searching…' : `${result?.total ?? 0} results`}{#if !loading && rows.length && ids.length}<small>&nbsp;· {rows.length} shown</small>{/if}</span>
+  <span>{loading ? t('ov.searching') : t('ov.results', result?.total ?? 0)}{#if !loading && rows.length && ids.length}<small>&nbsp;· {t('ov.shown', rows.length)}</small>{/if}</span>
   {#if result?.tradeUrl}<button type="button" onclick={() => window.dispatchEvent(new CustomEvent('open-trade', { detail: result!.tradeUrl }))}>pathofexile.com/trade ↗</button>{/if}
 </div>
 {#if chips.length}
   <div class="sort-bar" class:busy={loading}>
-    <span>Sort</span>
+    <span lang={currentLang()}>{t('ov.sort')}</span>
     {#each chips as chip (chip.key)}
       <button type="button" class:on={sort?.key === chip.key} disabled={loading} title={chip.title ?? chip.label} onclick={() => onsort?.(chip.key)}>{chip.label}{#if arrow(chip.key)} <i>{arrow(chip.key)}</i>{/if}</button>
     {/each}
@@ -225,16 +226,16 @@
 {#if loading}<div class="loading"><i></i><span></span><i></i></div>{/if}
 {#if !loading && rows.length}
   <div class="result-table" class:expanded class:dps={hasDps}>
-    {#if !expanded}<div class="table-head"><span></span><span>Price</span><span>iLvl</span>{#if hasDps}<span>DPS</span>{/if}<span>Account</span><span>Listed</span></div>{/if}
+    {#if !expanded}<div class="table-head"><span></span><span>{t('ov.sortPrice')}</span><span>iLvl</span>{#if hasDps}<span>DPS</span>{/if}<span>{t('ov.col.account')}</span><span>{t('ov.col.listed')}</span></div>{/if}
     {#each rows as row (row.id)}
       {@const coin = currencyInfo(row.currency)}
       <article class="listing-card" class:full={expanded}>
         {#if expanded}{@render itemPreview(row)}{/if}
         <div class="listing" class:on={!expanded && preview?.id === row.id}>
-          <button type="button" class="eye" title={expanded ? 'İlan' : 'Itemı göster'} onclick={(event) => { event.stopPropagation(); if (!expanded) toggle(row) }}>{expanded ? '●' : '◉'}</button>
+          <button type="button" class="eye" title={expanded ? t('ov.listing') : t('ov.showItem')} onclick={(event) => { event.stopPropagation(); if (!expanded) toggle(row) }}>{expanded ? '●' : '◉'}</button>
           {#if onsort}
-            <button type="button" class="price sortable" class:on={sort?.key === 'price'} title={`${row.amount} × ${coin?.text || currencyLabel(row.currency)} · fiyata göre sırala`} onclick={() => onsort?.('price')}>{row.amount}{#if coin?.image}<i>×</i><img src={coin.image} alt={coin.text} />{:else} <small>{currencyLabel(row.currency)}</small>{/if}<em>{arrow('price') || '⇅'}</em></button>
-            <button type="button" class="sortable" class:on={sort?.key === 'ilvl'} title="Item level'a göre sırala" onclick={() => onsort?.('ilvl')}>{row.item.itemLevel}<em>{arrow('ilvl')}</em></button>
+            <button type="button" class="price sortable" class:on={sort?.key === 'price'} title={t('ov.sortByPrice', `${row.amount} × ${coin?.text || currencyLabel(row.currency)}`)} onclick={() => onsort?.('price')}>{row.amount}{#if coin?.image}<i>×</i><img src={coin.image} alt={coin.text} />{:else} <small>{currencyLabel(row.currency)}</small>{/if}<em>{arrow('price') || '⇅'}</em></button>
+            <button type="button" class="sortable" class:on={sort?.key === 'ilvl'} title={t('ov.sortByIlvl')} onclick={() => onsort?.('ilvl')}>{row.item.itemLevel}<em>{arrow('ilvl')}</em></button>
           {:else}
             <strong class="price" title={`${row.amount} × ${coin?.text || currencyLabel(row.currency)}`}>{row.amount}{#if coin?.image}<i>×</i><img src={coin.image} alt={coin.text} />{:else} <small>{currencyLabel(row.currency)}</small>{/if}</strong>
             <span>{row.item.itemLevel}</span>
@@ -248,14 +249,14 @@
       </article>
     {/each}
   </div>
-  {#if moreError}<p class="result-error">{moreError} <button type="button" onclick={loadMore}>Tekrar dene</button></p>{/if}
+  {#if moreError}<p class="result-error">{moreError} <button type="button" onclick={loadMore}>{t('ov.retry')}</button></p>{/if}
   {#if hasMore}
-    <div class="more" bind:this={sentinel}>{#if moreLoading}<div class="loading"><i></i><span></span><i></i></div>{:else}<button type="button" onclick={loadMore}>Daha fazla ({ids.length - cursor})</button>{/if}</div>
+    <div class="more" bind:this={sentinel}>{#if moreLoading}<div class="loading"><i></i><span></span><i></i></div>{:else}<button type="button" onclick={loadMore}>{t('ov.more', ids.length - cursor)}</button>{/if}</div>
   {:else if ids.length && result && result.total > ids.length}
-    <p class="end">GGG bir aramada en fazla {ids.length} ilan veriyor; daha fazlası için filtreleri daraltın veya sıralamayı değiştirin.</p>
+    <p class="end">{t('ov.cap', ids.length)}</p>
   {/if}
 {:else if !loading && result}
-  <p class="empty">Bu filtrelerle ilan bulunamadı.</p>
+  <p class="empty">{t('ov.noListings')}</p>
 {/if}
 
 <style>

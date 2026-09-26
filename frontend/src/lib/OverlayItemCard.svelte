@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Item, ItemMod } from '../../bindings/poe2filter/internal/overlay/models'
   import { rarityOptions, type ItemToggles, type ModChoice, type PropertyFilter } from './overlayQuery'
+  import { t } from './i18n.svelte'
 
   type MetaFilter = { enabled: boolean; min?: number; max?: number }
   type MetaFilterID = 'itemLevel' | 'quality' | 'requiredLevel'
@@ -68,9 +69,9 @@
   <div class="item-title" class:unique={item.rarity === 'unique'} class:rare={item.rarity === 'rare'}>
     {#if toggles}
       {#if item.name && item.rarity === 'unique'}
-        <button type="button" class="title-toggle" class:off={!toggles.name} title="Aramaya dahil et / çıkar" onclick={() => ontoggle('name')}><strong>{item.name}</strong></button>
+        <button type="button" class="title-toggle" class:off={!toggles.name} title={t('ov.includeToggle')} onclick={() => ontoggle('name')}><strong>{item.name}</strong></button>
       {:else if item.name}<strong>{item.name}</strong>{/if}
-      <button type="button" class="title-toggle" class:off={!toggles.base} title="Aramaya dahil et / çıkar" onclick={() => ontoggle('base')}><span>{item.baseType}</span></button>
+      <button type="button" class="title-toggle" class:off={!toggles.base} title={t('ov.includeToggle')} onclick={() => ontoggle('base')}><span>{item.baseType}</span></button>
     {:else}
       {#if item.name}<strong>{item.name}</strong>{/if}
       <span>{item.baseType}</span>
@@ -90,11 +91,11 @@
     {/if}
     {#if metaFilters}
       <div class="meta-filter" class:off={!metaFilters.itemLevel.enabled}>
-        <label title="Aramaya dahil et"><input type="checkbox" checked={metaFilters.itemLevel.enabled} onchange={(event) => onmetachange('itemLevel', 'enabled', event.currentTarget.checked)} /><i></i><span>Item Level</span></label>
+        <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.itemLevel.enabled} onchange={(event) => onmetachange('itemLevel', 'enabled', event.currentTarget.checked)} /><i></i><span>Item Level</span></label>
         <span class="meta-range"><input type="number" value={metaFilters.itemLevel.min ?? ''} oninput={(event) => onmetachange('itemLevel', 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={metaFilters.itemLevel.max ?? ''} oninput={(event) => onmetachange('itemLevel', 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
       </div>
       <div class="meta-filter" class:off={!metaFilters.requiredLevel.enabled}>
-        <label title="Aramaya dahil et"><input type="checkbox" checked={metaFilters.requiredLevel.enabled} onchange={(event) => onmetachange('requiredLevel', 'enabled', event.currentTarget.checked)} /><i></i><span>Requires</span></label>
+        <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.requiredLevel.enabled} onchange={(event) => onmetachange('requiredLevel', 'enabled', event.currentTarget.checked)} /><i></i><span>Requires</span></label>
         <span class="meta-range"><input type="number" value={metaFilters.requiredLevel.min ?? ''} oninput={(event) => onmetachange('requiredLevel', 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={metaFilters.requiredLevel.max ?? ''} oninput={(event) => onmetachange('requiredLevel', 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
       </div>
     {:else}
@@ -106,7 +107,7 @@
     <div class="properties">
       {#if metaFilters}
         <div class="meta-filter quality-filter" class:off={!metaFilters.quality.enabled}>
-          <label title="Aramaya dahil et"><input type="checkbox" checked={metaFilters.quality.enabled} onchange={(event) => onmetachange('quality', 'enabled', event.currentTarget.checked)} /><i></i><span>{qualityProperty?.name ?? 'Quality'}</span></label>
+          <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.quality.enabled} onchange={(event) => onmetachange('quality', 'enabled', event.currentTarget.checked)} /><i></i><span>{qualityProperty?.name ?? 'Quality'}</span></label>
           <span class="meta-range"><input type="number" value={metaFilters.quality.min ?? ''} oninput={(event) => onmetachange('quality', 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={metaFilters.quality.max ?? ''} oninput={(event) => onmetachange('quality', 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
         </div>
       {:else if qualityProperty}
@@ -114,7 +115,7 @@
       {/if}
       {#each propertyFilters ?? [] as prop, index (prop.id)}
         <div class="meta-filter prop-filter" class:off={!prop.enabled}>
-          <label title="Aramaya dahil et"><input type="checkbox" checked={prop.enabled} onchange={(event) => onpropertychange(index, 'enabled', event.currentTarget.checked)} /><i></i><span>{prop.name}</span></label>
+          <label title={t('ov.include')}><input type="checkbox" checked={prop.enabled} onchange={(event) => onpropertychange(index, 'enabled', event.currentTarget.checked)} /><i></i><span>{prop.name}</span></label>
           <span class="meta-range"><input type="number" value={prop.min ?? ''} oninput={(event) => onpropertychange(index, 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={prop.max ?? ''} oninput={(event) => onpropertychange(index, 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
         </div>
       {/each}
@@ -155,22 +156,22 @@
   {#if item.unidentified || item.fractured || item.corrupted || item.twiceCorrupted || item.mirrored || item.sanctified}
     <div class="item-states">
       {#if item.unidentified}
-        <label class="state-control unidentified"><strong>Unidentified</strong>{#if stateFilters}<select value={stateFilters.unidentified} onchange={(event) => onstatechange('unidentified', event.currentTarget.value)}><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select>{/if}</label>
+        <label class="state-control unidentified"><strong>Unidentified</strong>{#if stateFilters}<select value={stateFilters.unidentified} onchange={(event) => onstatechange('unidentified', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
       {#if item.fractured}
-        <label class="state-control fractured"><strong>Fractured Item</strong>{#if stateFilters}<select value={stateFilters.fractured} onchange={(event) => onstatechange('fractured', event.currentTarget.value)}><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select>{/if}</label>
+        <label class="state-control fractured"><strong>Fractured Item</strong>{#if stateFilters}<select value={stateFilters.fractured} onchange={(event) => onstatechange('fractured', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
       {#if item.corrupted}
-        <label class="state-control corrupted"><strong>Corrupted</strong>{#if stateFilters}<select value={stateFilters.corrupted} onchange={(event) => onstatechange('corrupted', event.currentTarget.value)}><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select>{/if}</label>
+        <label class="state-control corrupted"><strong>Corrupted</strong>{#if stateFilters}<select value={stateFilters.corrupted} onchange={(event) => onstatechange('corrupted', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
       {#if item.twiceCorrupted}
-        <label class="state-control corrupted"><strong>Twice Corrupted</strong>{#if stateFilters}<select value={stateFilters.twiceCorrupted} onchange={(event) => onstatechange('twiceCorrupted', event.currentTarget.value)}><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select>{/if}</label>
+        <label class="state-control corrupted"><strong>Twice Corrupted</strong>{#if stateFilters}<select value={stateFilters.twiceCorrupted} onchange={(event) => onstatechange('twiceCorrupted', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
       {#if item.mirrored}
-        <label class="state-control mirrored"><strong>Mirrored</strong>{#if stateFilters}<select value={stateFilters.mirrored} onchange={(event) => onstatechange('mirrored', event.currentTarget.value)}><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select>{/if}</label>
+        <label class="state-control mirrored"><strong>Mirrored</strong>{#if stateFilters}<select value={stateFilters.mirrored} onchange={(event) => onstatechange('mirrored', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
       {#if item.sanctified}
-        <label class="state-control sanctified"><strong>Sanctified</strong>{#if stateFilters}<select value={stateFilters.sanctified} onchange={(event) => onstatechange('sanctified', event.currentTarget.value)}><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select>{/if}</label>
+        <label class="state-control sanctified"><strong>Sanctified</strong>{#if stateFilters}<select value={stateFilters.sanctified} onchange={(event) => onstatechange('sanctified', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
     </div>
   {/if}

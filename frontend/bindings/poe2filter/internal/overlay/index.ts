@@ -13,6 +13,8 @@ export type {
     ItemMod,
     ItemProperty,
     SavedSearch,
+    SearchFolder,
+    SearchLibrary,
     SelectOption,
     Settings,
     Snapshot,

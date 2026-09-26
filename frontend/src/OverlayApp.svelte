@@ -8,6 +8,8 @@
   import QuotaBadge from './lib/QuotaBadge.svelte'
   import OverlayItemCard from './lib/OverlayItemCard.svelte'
   import TradeResults from './lib/TradeResults.svelte'
+  import { t } from './lib/i18n.svelte'
+  import { followAppLanguage } from './lib/windowLang'
   import { searchedStats, allOn, buildRequest, categoryFor, choicesFor, propertyFiltersFor, resetChoiceRanges, resetPropertyRanges, type ItemToggles, type ModChoice, type PropertyFilter } from './lib/overlayQuery'
 
   let item = $state<Item | null>(null)
@@ -42,6 +44,7 @@
   let requiredLevelMin = $state<number | undefined>(undefined)
   let requiredLevelMax = $state<number | undefined>(undefined)
   let evaluateTimer: ReturnType<typeof setTimeout> | undefined
+  let hotkey = $state('Alt+E')
 
   type MetaFilterID = 'itemLevel' | 'quality' | 'requiredLevel'
   type MetaFilterField = 'enabled' | 'min' | 'max'
@@ -118,10 +121,13 @@
       accept(snap)
     }).catch((e) => (error = cleanError(e)))
     const off = Events.On('overlay-item', (event) => accept(event.data as Snapshot))
+    const offLang = followAppLanguage()
+    AppService.GetOverlaySettings().then((s) => { if (s?.hotkey) hotkey = s.hotkey }).catch(() => {})
     const openTrade = (event: Event) => AppService.OpenTradePage((event as CustomEvent<string>).detail)
     window.addEventListener('open-trade', openTrade)
     return () => {
       off()
+      offLang()
       window.removeEventListener('open-trade', openTrade)
     }
   })
@@ -252,10 +258,10 @@
   <header>
     <span class="mark">⚖</span>
     <strong>MrW Overlay</strong>
-    {#if item}<span class="league">Evaluate · {item.rarity}</span>{/if}
+    {#if item}<span class="league">{t('ov.priceCheck', item.rarity)}</span>{/if}
     <QuotaBadge />
-    <button title="Geniş pazarı aç" onclick={openMarket}>▣</button>
-    <button title="Kapat" onclick={() => AppService.HideOverlay()}>×</button>
+    <button title={t('ov.openMarket')} onclick={openMarket}>▣</button>
+    <button title={t('window.close')} onclick={() => AppService.HideOverlay()}>×</button>
   </header>
 
   {#if item}
@@ -263,7 +269,7 @@
       {#if needsUniqueSelection(item)}
         <section class="unique-picker">
           <small>Unidentified · {item.baseType}</small>
-          <h2>Bu hangi item?</h2>
+          <h2>{t('ov.whichItem')}</h2>
           {#if unidentifiedCandidates.length}
             <div class="unique-options">
               {#each unidentifiedCandidates as candidate (`${candidate.name}-${candidate.type}`)}
@@ -274,7 +280,7 @@
               {/each}
             </div>
           {:else}
-            <p>Bu base için GGG kataloğunda unique item bulunamadı.</p>
+            <p>{t('ov.noUnique')}</p>
           {/if}
         </section>
       {:else}
@@ -302,43 +308,43 @@
         />
         {/if}
       <div class="mode-row">
-        <button class:on={exact} onclick={() => setMode(true)}><i></i> Exact Match</button>
-        <button class:on={!exact} onclick={() => setMode(false)}><i></i> Broad (-10%)</button>
+        <button class:on={exact} onclick={() => setMode(true)}><i></i> {t('ov.exact')}</button>
+        <button class:on={!exact} onclick={() => setMode(false)}><i></i> {t('ov.broad')}</button>
       </div>
       <div class="filters">
-        <select bind:value={currency} onchange={markDirty} title="Para birimi">
-          <option value="">Exalted Orb Equivalent</option>
-          <option value="exalted_divine">Exalted or Divine Orbs</option>
+        <select bind:value={currency} onchange={markDirty} title={t('ov.currency')}>
+          <option value="">{t('ov.cur.equivalent')}</option>
+          <option value="exalted_divine">{t('ov.cur.exaltedDivine')}</option>
           <option value="exalted">Exalted Orb</option>
           <option value="chaos">Chaos Orb</option>
           <option value="divine">Divine Orb</option>
           <option value="annul">Orb of Annulment</option>
         </select>
-        <select bind:value={status} onchange={markDirty} title="Satış türü">
-          <option value="securable">Instant Buyout</option>
-          <option value="available">Instant + In Person</option>
-          <option value="onlineleague">In Person</option>
-          <option value="any">Any</option>
+        <select bind:value={status} onchange={markDirty} title={t('ov.saleType')}>
+          <option value="securable">{t('ov.status.securable')}</option>
+          <option value="available">{t('ov.status.available')}</option>
+          <option value="onlineleague">{t('ov.status.online')}</option>
+          <option value="any">{t('ov.any')}</option>
         </select>
-        <select bind:value={indexed} onchange={markDirty} title="İlan yaşı">
-          <option value="">Any Time</option>
-          <option value="3hours">Up to 3 Hours</option>
-          <option value="12hours">Up to 12 Hours</option>
-          <option value="1day">Up to a Day</option>
-          <option value="3days">Up to 3 Days</option>
-          <option value="1week">Up to a Week</option>
-          <option value="1month">Up to 1 Month</option>
+        <select bind:value={indexed} onchange={markDirty} title={t('ov.age')}>
+          <option value="">{t('ov.age.any')}</option>
+          <option value="3hours">{t('ov.age.3hours')}</option>
+          <option value="12hours">{t('ov.age.12hours')}</option>
+          <option value="1day">{t('ov.age.1day')}</option>
+          <option value="3days">{t('ov.age.3days')}</option>
+          <option value="1week">{t('ov.age.1week')}</option>
+          <option value="1month">{t('ov.age.1month')}</option>
         </select>
       </div>
-      <button class="search-button" disabled={loading} onclick={() => evaluate(true)}>{loading ? 'Searching…' : 'Search'}</button>
+      <button class="search-button" disabled={loading} onclick={() => evaluate(true)}>{loading ? t('ov.searching') : t('ov.search')}</button>
       <TradeResults {result} {loading} {error} {searched} />
       {/if}
     </div>
   {:else}
     <div class="capture-error">
       <span>◇</span>
-      <strong>Item okunamadı</strong>
-      <p>{error || 'Oyunda bir itemın üzerine gelip Alt + E tuşlarına basın.'}</p>
+      <strong>{t('ov.cantRead')}</strong>
+      <p>{error || t('ov.hoverHint', hotkey)}</p>
     </div>
   {/if}
 </main>

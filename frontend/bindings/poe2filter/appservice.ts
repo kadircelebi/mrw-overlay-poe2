@@ -80,7 +80,11 @@ export function ConnectBrowser(openBrowser: boolean): $CancellablePromise<$model
     return $Call.ByID(1678967024, openBrowser);
 }
 
-export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.SavedSearch[] | null> {
+export function CreateSearchFolder(name: string): $CancellablePromise<overlay$0.SearchLibrary> {
+    return $Call.ByID(2940423614, name);
+}
+
+export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.SearchLibrary> {
     return $Call.ByID(3425941931, id);
 }
 
@@ -89,6 +93,13 @@ export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.S
  */
 export function DeleteProfile(name: string): $CancellablePromise<filter$0.Config> {
     return $Call.ByID(1212961758, name);
+}
+
+/**
+ * DeleteSearchFolder removes a folder and moves its searches to the top level.
+ */
+export function DeleteSearchFolder(id: string): $CancellablePromise<overlay$0.SearchLibrary> {
+    return $Call.ByID(1455352089, id);
 }
 
 /**
@@ -179,7 +190,7 @@ export function GetOverlaySnapshot(): $CancellablePromise<overlay$0.Snapshot> {
     return $Call.ByID(2331437714);
 }
 
-export function GetSavedOverlaySearches(): $CancellablePromise<overlay$0.SavedSearch[] | null> {
+export function GetSavedOverlaySearches(): $CancellablePromise<overlay$0.SearchLibrary> {
     return $Call.ByID(2510875851);
 }
 
@@ -255,6 +266,13 @@ export function Leagues(): $CancellablePromise<string[] | null> {
  */
 export function ListSounds(): $CancellablePromise<string[] | null> {
     return $Call.ByID(2994670898);
+}
+
+/**
+ * MoveOverlaySearch puts a saved search into a folder ("" = top level).
+ */
+export function MoveOverlaySearch(id: string, folder: string): $CancellablePromise<overlay$0.SearchLibrary> {
+    return $Call.ByID(3191375457, id, folder);
 }
 
 /**
@@ -395,6 +413,10 @@ export function RenameProfile(oldName: string, newName: string): $CancellablePro
     return $Call.ByID(1831808545, oldName, newName);
 }
 
+export function RenameSearchFolder(id: string, name: string): $CancellablePromise<overlay$0.SearchLibrary> {
+    return $Call.ByID(1110231628, id, name);
+}
+
 /**
  * SaveConfig stores new settings and returns them normalised.
  */
@@ -402,8 +424,8 @@ export function SaveConfig(c: filter$0.Config): $CancellablePromise<filter$0.Con
     return $Call.ByID(2775748437, c);
 }
 
-export function SaveOverlaySearch(name: string, query: trade$0.EvaluateRequest): $CancellablePromise<overlay$0.SavedSearch[] | null> {
-    return $Call.ByID(1440462065, name, query);
+export function SaveOverlaySearch(name: string, folder: string, query: trade$0.EvaluateRequest): $CancellablePromise<overlay$0.SearchLibrary> {
+    return $Call.ByID(1440462065, name, folder, query);
 }
 
 export function SaveOverlaySettings(next: overlay$0.Settings): $CancellablePromise<overlay$0.Settings> {

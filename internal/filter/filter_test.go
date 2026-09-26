@@ -231,10 +231,11 @@ func TestUserValueGroupsUseHighestConvertedThreshold(t *testing.T) {
 	if blockContaining(t, out, "Rarity Unique", `"Silk Robe"`, "SetBackgroundColor "+themeByID["neon_red"].BgColor) < 0 {
 		t.Fatal("priced unique bases must use value groups too")
 	}
-	// The value-group rule must precede the legacy dedicated Divine rule.
-	legacyDivine := blockContaining(t, out, `Class == "Stackable Currency"`, `BaseType == "Divine Orb"`)
-	if legacyDivine < 0 || g2 > legacyDivine {
-		t.Fatalf("value group must win over the legacy Divine style: tier=%d legacy=%d", g2, legacyDivine)
+	// Divine Orb keeps its dedicated look even inside a value tier's range: its
+	// own rule comes first (changed after v2.2.1).
+	divine := blockContaining(t, out, `Class == "Stackable Currency"`, `BaseType == "Divine Orb"`)
+	if divine < 0 || divine > g2 {
+		t.Fatalf("the Divine rule must win over value groups: divine=%d tier=%d", divine, g2)
 	}
 	if st.ValuableCurrency != 4 || st.ValuableUniques != 1 || st.ValuableExcept != 1 {
 		t.Fatalf("tiered items missing from stats: %+v", st)
@@ -814,5 +815,50 @@ func TestFixedRulesFollowTheirStyleGroups(t *testing.T) {
 		if blockContaining(t, out, "Show", c.cond, "SetBackgroundColor "+green.BgColor, "PlayAlertSound ShExalted 300") < 0 {
 			t.Errorf("%s: the rule should take the colours and sound picked for its group", c.group)
 		}
+	}
+}
+
+// The listed prices of Divine and Chaos Orb and the rates the thresholds are
+// converted with come from different sources. A listed 390 ex against a 400 ex
+// rate must not drop Divine Orb from a "1 divine" tier into the one below.
+func TestDivineOrbCountsAsExactlyOneDivine(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.MinValue, cfg.MinValueUnit = 10, "exalted"
+	cfg.ItemGroups = []ItemGroup{
+		{ID: "g1", Name: "One Divine", Mode: ItemGroupModeValue, ThresholdValue: 1, ThresholdUnit: "divine"},
+		{ID: "g2", Name: "Five Chaos", Mode: ItemGroupModeValue, ThresholdValue: 5, ThresholdUnit: "chaos"},
+	}
+	snap := testSnapshot()
+	snap.Currency = append(snap.Currency, prices.CurrencyPrice{Name: "Divine Orb", Category: "currency", ValueEx: 390})
+	bases := map[string]string{"divine orb": "Divine Orb"}
+	for k, v := range testBases {
+		bases[k] = v
+	}
+	out, _ := GenerateDynamicFilterBlock(cfg, snap, bases, nil)
+	if blockContaining(t, out, "ONE DIVINE", `"Divine Orb"`) < 0 {
+		t.Error("Divine Orb belongs to the 1-divine tier")
+	}
+	if blockContaining(t, out, "FIVE CHAOS", `"Divine Orb"`) >= 0 {
+		t.Error("Divine Orb fell into a lower tier because of its listed price")
+	}
+
+	// A threshold in exalted just under the rate (the listed price is below
+	// it) still takes Divine Orb, and one above the rate does not.
+	cfg.ItemGroups = []ItemGroup{
+		{ID: "g1", Name: "Near Rate", Mode: ItemGroupModeValue, ThresholdValue: 395, ThresholdUnit: "exalted"},
+		{ID: "g2", Name: "Above Rate", Mode: ItemGroupModeValue, ThresholdValue: 410, ThresholdUnit: "exalted"},
+		{ID: "g3", Name: "One Chaos", Mode: ItemGroupModeValue, ThresholdValue: 1, ThresholdUnit: "chaos"},
+	}
+	snap.Currency = append(snap.Currency, prices.CurrencyPrice{Name: "Chaos Orb", Category: "currency", ValueEx: 49})
+	bases["chaos orb"] = "Chaos Orb"
+	out, _ = GenerateDynamicFilterBlock(cfg, snap, bases, nil)
+	if blockContaining(t, out, "NEAR RATE", `"Divine Orb"`) < 0 {
+		t.Error("a 395 ex tier should hold Divine Orb at a 400 ex rate")
+	}
+	if blockContaining(t, out, "ABOVE RATE", `"Divine Orb"`) >= 0 {
+		t.Error("a 410 ex tier should not hold Divine Orb at a 400 ex rate")
+	}
+	if blockContaining(t, out, "ONE CHAOS", `"Chaos Orb"`) < 0 {
+		t.Error("Chaos Orb belongs to a 1-chaos tier even when listed a little below the rate")
 	}
 }

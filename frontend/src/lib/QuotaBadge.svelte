@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { AppService } from '../../bindings/poe2filter'
   import type { QuotaStatus, QuotaWindow } from '../../bindings/poe2filter/internal/trade/models'
+  import { t } from './i18n.svelte'
 
   // GGG's search windows for this IP, as the last trade response reported
   // them plus our own searches since. Everything on the IP (the trade site,
@@ -31,9 +32,9 @@
   const level = $derived(penaltyLeft > 0 ? 'bad' : !tightest ? '' : tightest.hits >= tightest.limit ? 'bad' : tightest.hits >= tightest.allowed ? 'warn' : '')
 
   function windowName(sec: number): string {
-    if (sec >= 3600 && sec % 3600 === 0) return `${sec / 3600} sa`
-    if (sec >= 60 && sec % 60 === 0) return `${sec / 60} dk`
-    return `${sec} sn`
+    if (sec >= 3600 && sec % 3600 === 0) return t('ov.q.h', sec / 3600)
+    if (sec >= 60 && sec % 60 === 0) return t('ov.q.min', sec / 60)
+    return t('ov.q.s', sec)
   }
 
   function clock(sec: number): string {
@@ -42,28 +43,28 @@
   }
 
   const title = $derived.by(() => {
-    if (!status || !observed) return 'GGG arama kotası: henüz bir trade yanıtı alınmadı'
-    const lines = ['GGG arama kotası (bu IP, tüm uygulamalar dahil):']
+    if (!status || !observed) return t('ov.q.none')
+    const lines = [t('ov.q.head')]
     for (const w of status.windows ?? []) {
-      lines.push(`${windowName(w.periodSec)}: ${w.hits}/${w.limit}  · bizim sınırımız ${w.allowed} · aşılırsa ${windowName(w.penaltySec)} ceza`)
+      lines.push(t('ov.q.line', windowName(w.periodSec), w.hits, w.limit, w.allowed, windowName(w.penaltySec)))
     }
     if (penaltyLeft > 0) {
       lines.push('', status.restrictedWindowSec
-        ? `Ceza: ${windowName(status.restrictedWindowSec)} penceresi aşıldı, ${clock(penaltyLeft)} kaldı`
-        : `Ceza: GGG pencereyi bildirmedi, ${clock(penaltyLeft)} kaldı`)
+        ? t('ov.q.penaltyWindow', windowName(status.restrictedWindowSec), clock(penaltyLeft))
+        : t('ov.q.penalty', clock(penaltyLeft)))
     }
-    lines.push('', `Son GGG yanıtı: ${new Date(status.observedAt).toLocaleTimeString()}`)
+    lines.push('', t('ov.q.last', new Date(status.observedAt).toLocaleTimeString()))
     return lines.join('\n')
   })
 </script>
 
 <span class="quota {level}" {title}>
   {#if penaltyLeft > 0}
-    Ceza {clock(penaltyLeft)}{#if status?.restrictedWindowSec} · {windowName(status.restrictedWindowSec)}{/if}
+    {t('ov.q.badgePenalty', clock(penaltyLeft))}{#if status?.restrictedWindowSec} · {windowName(status.restrictedWindowSec)}{/if}
   {:else if observed && tightest}
     {tightest.hits}/{tightest.limit} · {windowName(tightest.periodSec)}
   {:else}
-    Kota —
+    {t('ov.q.badgeNone')}
   {/if}
 </span>
 

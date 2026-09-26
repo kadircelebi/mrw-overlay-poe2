@@ -17,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"poe2filter/internal/i18n"
 )
 
 // Connecting the browser: the app opens pathofexile.com with a one-time code
@@ -266,7 +268,7 @@ func (s *AppService) endLink(code string) {
 func (s *AppService) startLinkServer() error {
 	ln, err := net.Listen("tcp", linkAddr)
 	if err != nil {
-		return errors.New("tarayıcı bağlantısı için yerel port açılamadı (" + linkAddr + "); başka bir program kullanıyor olabilir")
+		return errors.New(i18n.T("account.err.port", linkAddr))
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/link", s.handleLink)

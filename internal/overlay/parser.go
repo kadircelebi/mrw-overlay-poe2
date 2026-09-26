@@ -3,8 +3,8 @@ package overlay
 import (
 	"errors"
 	"math"
-	"slices"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -73,6 +73,9 @@ var (
 	numberRE = regexp.MustCompile(`[+-]?\d+(?:\.\d+)?`)
 	spaceRE  = regexp.MustCompile(`\s+`)
 	signedRE = regexp.MustCompile(`[+-]#`)
+	// "an additional" in the catalog, with the plural endings after it.
+	anAdditionalRE = regexp.MustCompile(`\ban? additional\b`)
+	pluralRE       = regexp.MustCompile(`\b(\w+?)s\b`)
 )
 
 func ParseItem(raw string, catalog Catalog) (Item, error) {
@@ -181,6 +184,12 @@ func ParseItem(raw string, catalog Catalog) (Item, error) {
 		// An unidentified unique exposes only its base type. Treating that line
 		// as the unique name makes the trade API reject the query as unknown.
 		item.BaseType = title[0]
+	} else if item.Rarity == "magic" && len(title) == 1 {
+		// A magic item prints one line, affix names around the base:
+		// "Collector's Delirium Tablet of the Essence". The trade site knows
+		// only the base, so it is picked out of the line.
+		item.Name = title[0]
+		item.BaseType = magicBase(title[0], catalog)
 	} else if item.Rarity == "unique" || item.Rarity == "rare" || item.Rarity == "magic" {
 		item.Name = title[0]
 		if len(title) > 1 {
@@ -386,6 +395,28 @@ func exactStat(text, modType string, catalog Catalog) string {
 	return ""
 }
 
+// magicBase finds the catalog base type inside a magic item's name; the
+// longest one wins, so "Time-Lost Emerald" beats "Emerald". Without a match
+// the whole line is kept, as before.
+func magicBase(line string, catalog Catalog) string {
+	best := ""
+	padded := " " + line + " "
+	for _, group := range catalog.Items {
+		for _, e := range group.Entries {
+			if e.Name != "" || len(e.Type) <= len(best) {
+				continue
+			}
+			if strings.Contains(padded, " "+e.Type+" ") {
+				best = e.Type
+			}
+		}
+	}
+	if best == "" {
+		return line
+	}
+	return best
+}
+
 // matchMod finds the trade stat of an item line. The catalog often has the
 // same wording twice, a global stat and a "(Local)" one; weapons and armour
 // roll the local one (their own armour, damage, attack speed), everything
@@ -420,6 +451,14 @@ func matchMod(mod *ItemMod, catalog Catalog, local bool) {
 	if len(exact) == 0 {
 		if fallback != nil {
 			mod.StatID = fallback.ID
+			return
+		}
+		// Some lines the game prints as implicits are searched as pseudo
+		// stats: a tablet's "6 uses remaining" is "# uses remaining (Tablets)".
+		if wantType != "pseudo" {
+			if id := pseudoFor(want, catalog); id != "" {
+				mod.StatID = id
+			}
 		}
 		return
 	}
@@ -436,6 +475,17 @@ func matchMod(mod *ItemMod, catalog Catalog, local bool) {
 			mod.AltStatIDs = append(mod.AltStatIDs, e.ID)
 		}
 	}
+}
+
+func pseudoFor(want string, catalog Catalog) string {
+	for gi := range catalog.Stats {
+		for _, e := range catalog.Stats[gi].Entries {
+			if e.Type == "pseudo" && normalizeStat(e.Text) == want {
+				return e.ID
+			}
+		}
+	}
+	return ""
 }
 
 // localStatClasses are the item classes whose modifiers are local to the
@@ -458,6 +508,13 @@ func normalizeStat(s string) string {
 	// Cooldown Use") while the item's "+1" became "#" together with its sign.
 	s = signedRE.ReplaceAllString(s, "#")
 	s = strings.ToLower(s)
+	// The catalog names a count of one ("Map contains an additional Rare
+	// Chest"); the game prints the rolled count in the plural ("2 additional
+	// Rare Chests"). Both become "# additional rare chest".
+	s = anAdditionalRE.ReplaceAllString(s, "# additional")
+	if i := strings.Index(s, "# additional "); i >= 0 {
+		s = s[:i] + pluralRE.ReplaceAllString(s[i:], "$1")
+	}
 	s = strings.ReplaceAll(s, "slots", "slot")
 	s = strings.ReplaceAll(s, "damageable companion's", "damageable companion")
 	s = strings.ReplaceAll(s, "’", "'")

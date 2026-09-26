@@ -215,8 +215,20 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		if !ok {
 			continue
 		}
-		if c.ValueEx >= thr {
-			if tier := tierFor(c.ValueEx); tier != nil {
+		value := c.ValueEx
+		// A Divine Orb is worth exactly one divine by definition, a Chaos Orb
+		// one chaos. Their listed prices come from another source than the
+		// rates the thresholds are converted with (poe2scout 495 ex against
+		// poe.ninja's 507.5), and the gap dropped Divine Orb out of the user's
+		// own "1 divine" tier.
+		if name == "Divine Orb" && snap.Rates.DivineEx > 0 {
+			value = snap.Rates.DivineEx
+		}
+		if name == "Chaos Orb" && snap.Rates.ChaosEx > 0 {
+			value = snap.Rates.ChaosEx
+		}
+		if value >= thr {
+			if tier := tierFor(value); tier != nil {
 				tier.currency = append(tier.currency, name)
 			} else if name != "Divine Orb" {
 				valuableCur = append(valuableCur, cur{name, c.Category, c.ValueEx})
@@ -366,6 +378,15 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// wait until after them, so a valuable item keeps its stronger highlight.
 	b.userShowGroups(cfg, ns, uniqueToBase, canon, true)
 
+	// ---- 2. divine spotlight ----------------------------------------------
+	// Divine Orb keeps its own look even when a value tier's price range
+	// covers it: the dedicated group is the user's choice for exactly this
+	// item. Only an "always win" show group (above) outranks it.
+	dp, _ := cfg.Palette(GroupDivine, ns)
+	b.section(i18n.T("filter.sec.divine"))
+	b.rule("Show", []string{`Class == "Stackable Currency"`, `BaseType == "Divine Orb"`}, "", nil,
+		styleDivine.with(dp).withSound(cfg.Sound(GroupDivine)))
+
 	// ---- 3. user value tiers ----------------------------------------------
 	// Tiers are written from highest to lowest. The first matching block wins,
 	// so a 10-divine drop cannot be caught by a 1-divine tier below it.
@@ -403,14 +424,6 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			b.rule("Show", nil, "Class", classes, wst)
 		}
 	}
-
-	// ---- 4. divine spotlight ----------------------------------------------
-	// When a value tier caught Divine Orb above, its earlier rule wins. With no
-	// tiers the long-standing dedicated Divine appearance stays unchanged.
-	dp, _ := cfg.Palette(GroupDivine, ns)
-	b.section(i18n.T("filter.sec.divine"))
-	b.rule("Show", []string{`Class == "Stackable Currency"`, `BaseType == "Divine Orb"`}, "", nil,
-		styleDivine.with(dp).withSound(cfg.Sound(GroupDivine)))
 
 	// ---- 5. valuable currency and bulk items -------------------------------
 	if len(valuableCur) > 0 {
