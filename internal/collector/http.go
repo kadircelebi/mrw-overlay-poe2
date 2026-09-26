@@ -10,11 +10,11 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"poe2filter/internal/useragent"
 )
 
-// UserAgent identifies this tool honestly to every upstream service.
 // Upstreams (GGG in particular) ask tools not to impersonate browsers.
-const UserAgent = "poe2-filter/0.2"
 
 // NewHTTPClient returns the client used for all upstream requests.
 func NewHTTPClient() *http.Client {
@@ -27,7 +27,7 @@ func getJSON(ctx context.Context, c *http.Client, url string, out any) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("User-Agent", useragent.Value())
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.Do(req)

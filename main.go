@@ -21,6 +21,7 @@ import (
 	"poe2filter/internal/i18n"
 	"poe2filter/internal/overlay"
 	"poe2filter/internal/trade"
+	"poe2filter/internal/useragent"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
@@ -79,6 +80,7 @@ func main() {
 		return
 	}
 
+	useragent.Set("MrW-POE2-Filter", version)
 	svc := newAppService(Meta{
 		Version:  version,
 		DataDir:  *dataDir,

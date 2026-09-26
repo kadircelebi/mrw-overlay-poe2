@@ -72,19 +72,19 @@ const (
 
 // ExceptionalPrice is the observed price of an exceptional normal-rarity base.
 type ExceptionalPrice struct {
-	Base      string          `json:"base"`
-	Class     string          `json:"class,omitempty"`
-	Kind      ExceptionalKind `json:"kind"`
-	Min       int             `json:"min"`      // Sockets >= Min or Quality >= Min
+	Base  string          `json:"base"`
+	Class string          `json:"class,omitempty"`
+	Kind  ExceptionalKind `json:"kind"`
+	Min   int             `json:"min"` // Sockets >= Min or Quality >= Min
 	// MinIlvl/MaxIlvl bound the item level the price was searched for; 0 is
 	// unbounded. The shared scan servers price 79-81 and 82+ apart, since the
 	// affix tiers a crafter can roll depend on it.
-	MinIlvl int `json:"min_ilvl,omitempty"`
-	MaxIlvl int `json:"max_ilvl,omitempty"`
-	ValueEx   float64         `json:"value_ex"` // trimmed mean of the cheapest listings
-	Listings  int             `json:"listings"` // total matching listings on trade
-	Samples   int             `json:"samples"`  // listings used for ValueEx
-	ScannedAt time.Time       `json:"scanned_at"`
+	MinIlvl   int       `json:"min_ilvl,omitempty"`
+	MaxIlvl   int       `json:"max_ilvl,omitempty"`
+	ValueEx   float64   `json:"value_ex"` // trimmed mean of the cheapest listings
+	Listings  int       `json:"listings"` // total matching listings on trade
+	Samples   int       `json:"samples"`  // listings used for ValueEx
+	ScannedAt time.Time `json:"scanned_at"`
 }
 
 // SourceStatus records whether an upstream source was fresh in this snapshot.

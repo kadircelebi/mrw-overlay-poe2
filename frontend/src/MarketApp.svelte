@@ -588,6 +588,32 @@
   function inFolder(id: string) { return searches.filter((saved) => saved.folder === id) }
 
   // Folders open or closed, remembered on this machine only.
+  // ---- Collapsible filter sections --------------------------------------------
+  // Stat and type filters start open; the long lists (equipment,
+  // requirements, endgame…) start closed unless something in them is set. A
+  // section the player opened or closed stays that way (per browser profile).
+  const groupOpenKey = 'mrw.market.openGroups'
+  let groupOpen = $state<Record<string, boolean>>(readGroupOpen())
+  function readGroupOpen(): Record<string, boolean> {
+    try { return JSON.parse(localStorage.getItem(groupOpenKey) ?? '{}') ?? {} } catch { return {} }
+  }
+  function activeCount(groupId: string): number {
+    if (groupId === 'stats') {
+      return statGroups.reduce((n, group) => n + group.choiceKeys.filter((key) => choiceForKey(key)?.selected).length, 0)
+    }
+    let n = Object.entries(filters).filter(([key, v]) => key.startsWith(groupId + '.') &&
+      (v.min !== undefined || v.max !== undefined || !!v.option || !!v.input)).length
+    if (groupId === 'trade_filters' && status !== 'securable') n++
+    return n
+  }
+  function isOpen(groupId: string) {
+    return groupOpen[groupId] ?? (groupId === 'stats' || groupId === 'type_filters' || activeCount(groupId) > 0)
+  }
+  function toggleGroup(groupId: string) {
+    groupOpen = { ...groupOpen, [groupId]: !isOpen(groupId) }
+    try { localStorage.setItem(groupOpenKey, JSON.stringify(groupOpen)) } catch { /* not kept */ }
+  }
+
   const closedKey = 'mrw.market.closedFolders'
   let closedFolders = $state<Record<string, boolean>>(readClosed())
   function readClosed(): Record<string, boolean> {
@@ -801,8 +827,13 @@
       <aside class="advanced">
         <div class="advanced-title"><strong>⌁ {t('mk.advancedFilters')}</strong><button onclick={() => (showAdvanced = false)}>×</button></div>
         <div class="advanced-scroll">
-          <section class="filter-group">
-            <h2>{t('mk.statFilters')}</h2>
+          {#snippet groupHead(id: string, title: string)}
+            {@const n = activeCount(id)}
+            <h2><button type="button" class="group-toggle" aria-expanded={isOpen(id)} onclick={() => toggleGroup(id)}><em>{isOpen(id) ? '▾' : '▸'}</em><span>{title}</span>{#if n}<small>{t('mk.selectedN', n)}</small>{/if}</button></h2>
+          {/snippet}
+          <section class="filter-group" class:closed={!isOpen('stats')}>
+            {@render groupHead('stats', t('mk.statFilters'))}
+            {#if isOpen('stats')}
             {#each statGroups as statGroup (statGroup.key)}
               <div class="stat-group">
                 <div class="stat-group-head">
@@ -859,11 +890,13 @@
               {/if}
             </div>
             <button class="add-group" onclick={addStatGroup}>{t('mk.addGroup')}</button>
+            {/if}
           </section>
           {#each catalog?.filters ?? [] as group (group.id)}
             {#if group.id !== 'status_filters'}
-              <section class="filter-group">
-                <h2>{group.title}</h2>
+              <section class="filter-group" class:closed={!isOpen(group.id)}>
+                {@render groupHead(group.id, group.title)}
+                {#if isOpen(group.id)}
                 {#if group.id === 'trade_filters'}
                   <label class="status-line"><span>{t('mk.searchStatus')}</span><select bind:value={status} onchange={markDirty}><option value="securable">{t('ov.status.securable')}</option><option value="available">{t('ov.status.available')}</option><option value="onlineleague">{t('ov.status.online')}</option><option value="any">{t('ov.any')}</option></select></label>
                 {/if}
@@ -888,6 +921,7 @@
                     {/if}
                   </label>
                 {/each}
+                {/if}
               </section>
             {/if}
           {/each}
@@ -911,6 +945,19 @@
   .tier-pick{position:relative;display:flex;align-items:center;justify-content:space-between;height:100%;min-height:22px;padding:0 4px;border:1px solid #3d3a31;background:#111313;color:#6f6a5a;font-size:9px}.tier-pick.set{border-color:#6d5f3e;color:var(--gold-bright)}.tier-pick b{font-weight:bold}.tier-pick i{font-style:normal;font-size:8px;opacity:.7}.tier-pick:hover{border-color:var(--gold-dim)}.tier-pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
   .tier-miss{display:flex;align-items:center;justify-content:center;color:#d9924a;font-size:12px;cursor:help}.stat-choice.cannot>label span{color:#c9a27a}
   .stat-suggestions button.unlikely{opacity:.45}.stat-suggestions button.unlikely:hover{opacity:.8}
+  /* Collapsible section heads with the number of filters set in them. */
+  .filter-group.closed{margin-bottom:4px}.filter-group.closed h2{margin:0}
+  .filter-group h2{padding:0}.group-toggle{display:flex;align-items:center;gap:6px;width:100%;padding:7px 8px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+  .group-toggle em{font-style:normal;color:#9f9067;font-size:9px}.group-toggle span{flex:1}.group-toggle small{padding:1px 6px;border:1px solid #6d5f3e;border-radius:2px;color:var(--gold-bright);font-family:var(--sans,inherit);font-size:9px;letter-spacing:0}
+  .group-toggle:hover{background:#383a33}
+  /* One type scale for the market: 10px for text and fields, 9px for tags,
+     10.5px for section heads. Stat rows' min/max used to be the browser
+     default (≈13px) next to 9px filter rows. */
+  .filter-row>span:first-child,.filter-row input,.filter-row select,.status-line,.status-line select,.stat-add input,
+  .stat-choice>label,.stat-group-head select,.stat-group-head input,.stat-choice .minmax input,.stat-choice .weight input,
+  .stat-suggestions button,.tier-pick,.item-search>input,.save-box input,.save-box button,.new-search,.search-tab-pick,.tabs button{font-size:10px}
+  .filter-group h2,.advanced-title{font-size:10.5px}
+  .stat-group-head>span,.stat-suggestions small{font-size:9px}
   .group-range{display:grid;grid-template-columns:1fr 1fr;gap:3px}.filter-controls{display:grid;gap:4px}
   .live-pane{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}.live-pane>.tabs{margin:0}
   .new-search{display:block;width:100%;margin-bottom:7px;padding:6px;border:1px solid #5b543f;background:#191b17;color:var(--gold-bright);font-family:var(--serif);font-size:9px}.new-search:hover{background:#25261f}

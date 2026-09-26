@@ -15,6 +15,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"poe2filter/internal/useragent"
 )
 
 // GitHub uploads release assets with a fine-grained token that may only
@@ -61,7 +63,7 @@ func (g *GitHub) do(ctx context.Context, method, u, contentType string, body []b
 	req.Header.Set("Authorization", "Bearer "+g.Token)
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	req.Header.Set("User-Agent", "poe2scan")
+	req.Header.Set("User-Agent", useragent.Value())
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}

@@ -17,6 +17,7 @@ import (
 	"poe2filter/internal/prices"
 
 	"poe2filter/internal/i18n"
+	"poe2filter/internal/useragent"
 )
 
 // Provider returns a price snapshot.
@@ -69,17 +70,49 @@ func (l Local) Get(ctx context.Context) (*prices.Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
+	return attachAndSave(snap, prev, l.Exceptional, l.CachePath)
+}
+
+// attachAndSave adds the exceptional prices to a market snapshot (or keeps
+// the previous ones for the same league) and writes the cache.
+func attachAndSave(snap, prev *prices.Snapshot, ex ExceptionalSource, cachePath string) (*prices.Snapshot, error) {
+	if snap.Sources == nil {
+		snap.Sources = map[string]prices.SourceStatus{}
+	}
 	switch {
-	case l.Exceptional != nil:
-		snap.Exceptional = l.Exceptional.Results()
+	case ex != nil:
+		snap.Exceptional = ex.Results()
 		snap.Sources[collector.SourceExceptional] = prices.SourceStatus{OK: true, FetchedAt: snap.GeneratedAt}
 	case prev != nil && prev.League == snap.League:
 		snap.Exceptional = prev.Exceptional
 	}
-	if err := prices.Save(l.CachePath, snap); err != nil {
+	if err := prices.Save(cachePath, snap); err != nil {
 		return nil, fmt.Errorf("could not write the cache: %w", err)
 	}
 	return snap, nil
+}
+
+// SharedPrices is the hourly snapshot the scan servers publish; when it is
+// missing or stale the chain falls through to Local.
+type SharedPrices struct {
+	Store interface {
+		Prices(league string, maxAge time.Duration) (*prices.Snapshot, error)
+	}
+	League      string
+	MaxAge      time.Duration
+	CachePath   string
+	Exceptional ExceptionalSource // may be nil
+}
+
+func (p SharedPrices) Name() string { return "paylaşılan sunucular" }
+
+func (p SharedPrices) Get(ctx context.Context) (*prices.Snapshot, error) {
+	snap, err := p.Store.Prices(p.League, p.MaxAge)
+	if err != nil {
+		return nil, err
+	}
+	prev, _ := prices.Load(p.CachePath)
+	return attachAndSave(snap, prev, p.Exceptional, p.CachePath)
 }
 
 // Remote downloads a snapshot published by a collector server.
@@ -97,7 +130,7 @@ func (r Remote) Get(ctx context.Context) (*prices.Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", collector.UserAgent)
+	req.Header.Set("User-Agent", useragent.Value())
 	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
 	if err != nil {
 		return nil, err

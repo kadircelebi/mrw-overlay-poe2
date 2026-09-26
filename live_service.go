@@ -2,17 +2,20 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
 	"poe2filter/internal/gamesounds"
 	"poe2filter/internal/i18n"
 	"poe2filter/internal/overlay"
+	"poe2filter/internal/prices"
 	"poe2filter/internal/trade"
 )
 
@@ -150,6 +153,7 @@ func (s *AppService) StartLiveSearch(id string) ([]trade.LiveState, error) {
 			if err := s.live.Start(saved.ID, saved.Name, saved.Query); err != nil {
 				return s.live.States(), errors.New(describeLiveError(err))
 			}
+			s.rememberLive(id, true)
 			return s.live.States(), nil
 		}
 	}
@@ -158,7 +162,76 @@ func (s *AppService) StartLiveSearch(id string) ([]trade.LiveState, error) {
 
 func (s *AppService) StopLiveSearch(id string) []trade.LiveState {
 	s.live.Stop(id)
+	s.rememberLive(id, false)
 	return s.live.States()
+}
+
+// ---- Remembered live searches -----------------------------------------------
+// The searches the player started (and did not stop) are kept in
+// live_searches.json and started again when the app starts; quitting the app
+// stops them without forgetting them. Each restart costs one search.
+
+type liveFile struct {
+	IDs []string `json:"ids"`
+}
+
+func (s *AppService) livePath() string { return filepath.Join(s.meta.DataDir, "live_searches.json") }
+
+func (s *AppService) rememberedLive() []string {
+	var f liveFile
+	if raw, err := os.ReadFile(s.livePath()); err == nil {
+		_ = json.Unmarshal(raw, &f)
+	}
+	return f.IDs
+}
+
+func (s *AppService) rememberLive(id string, on bool) {
+	s.liveMu.Lock()
+	defer s.liveMu.Unlock()
+	ids := slices.DeleteFunc(s.rememberedLive(), func(x string) bool { return x == id })
+	if on {
+		ids = append(ids, id)
+	}
+	raw, err := json.Marshal(liveFile{IDs: ids})
+	if err == nil {
+		_ = prices.WriteFileAtomic(s.livePath(), raw)
+	}
+}
+
+// restoreLiveSearches starts the remembered searches again. Without a
+// pathofexile.com session it does nothing and keeps the list for later.
+func (s *AppService) restoreLiveSearches(ctx context.Context) {
+	ids := s.rememberedLive()
+	if len(ids) == 0 {
+		return
+	}
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(10 * time.Second): // let the session and catalog load
+	}
+	if !s.overlayClient.SignedIn() {
+		s.liveLog("restore: not signed in, remembered searches wait")
+		return
+	}
+	library, err := s.overlaySearches.List()
+	if err != nil {
+		return
+	}
+	for _, id := range ids {
+		found := false
+		for _, saved := range library.Searches {
+			if saved.ID == id {
+				found = true
+				if err := s.live.Start(saved.ID, saved.Name, saved.Query); err != nil {
+					s.liveLog(fmt.Sprintf("restore %s: %v", saved.Name, err))
+				}
+			}
+		}
+		if !found {
+			s.rememberLive(id, false)
+		}
+	}
 }
 
 // LiveResults are a live search's found listings, newest first.

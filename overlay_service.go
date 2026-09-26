@@ -132,6 +132,7 @@ func (s *AppService) SaveOverlaySearch(name, folder string, query trade.Evaluate
 
 func (s *AppService) DeleteOverlaySearch(id string) (overlay.SearchLibrary, error) {
 	s.live.Forget(id)
+	s.rememberLive(id, false)
 	return s.overlaySearches.Delete(id)
 }
 

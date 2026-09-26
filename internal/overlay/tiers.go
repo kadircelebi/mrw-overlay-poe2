@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"poe2filter/internal/prices"
+	"poe2filter/internal/useragent"
 )
 
 // Modifier tiers come from RePoE's export of the game data
@@ -445,7 +446,7 @@ func (s *TierStore) request(ctx context.Context, method, name string) (*http.Res
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "poe2-filter/overlay")
+	req.Header.Set("User-Agent", useragent.Value())
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, err

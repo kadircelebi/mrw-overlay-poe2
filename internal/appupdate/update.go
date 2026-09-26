@@ -17,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"poe2filter/internal/useragent"
 )
 
 const (
@@ -169,7 +171,7 @@ func (m *Manager) Check(ctx context.Context) (State, error) {
 	if err == nil {
 		req.Header.Set("Accept", "application/vnd.github+json")
 		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-		req.Header.Set("User-Agent", "MrW-POE2-Filter/"+m.current)
+		req.Header.Set("User-Agent", useragent.Value())
 	}
 	if err != nil {
 		return m.fail(err)
@@ -281,7 +283,7 @@ func (m *Manager) Download(ctx context.Context) (State, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, asset.BrowserDownloadURL, nil)
 	if err == nil {
 		req.Header.Set("Accept", "application/octet-stream")
-		req.Header.Set("User-Agent", "MrW-POE2-Filter/"+m.current)
+		req.Header.Set("User-Agent", useragent.Value())
 	}
 	if err != nil {
 		return m.fail(err)

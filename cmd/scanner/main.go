@@ -30,17 +30,21 @@ import (
 	"poe2filter/internal/prices"
 	"poe2filter/internal/publish"
 	"poe2filter/internal/trade"
+	"poe2filter/internal/useragent"
 )
+
+// version is set at build time: -ldflags "-X main.version=2.6.0".
+var version = "dev"
 
 // exitLeagueChanged asks systemd to restart the scanner for a new league.
 const exitLeagueChanged = 3
 
 type options struct {
 	shard, weights, league, dataDir, repo, tag, tokenFile string
-	budget                                               float64
-	publishEvery                                         time.Duration
-	maxScans                                             int
-	dryRun                                               bool
+	budget                                                float64
+	publishEvery                                          time.Duration
+	maxScans                                              int
+	dryRun, publishPrices                                 bool
 }
 
 func main() {
@@ -56,8 +60,10 @@ func main() {
 	flag.DurationVar(&o.publishEvery, "publish-every", 6*time.Hour, "how often to upload results")
 	flag.IntVar(&o.maxScans, "max-scans", 0, "stop after this many searches (testing)")
 	flag.BoolVar(&o.dryRun, "dry-run", false, "write the upload to the data directory instead of GitHub")
+	flag.BoolVar(&o.publishPrices, "publish-prices", false, "also publish the hourly currency/unique prices (prices.json.gz); one machine is enough")
 	flag.Parse()
 	log.SetFlags(0) // journald adds the time
+	useragent.Set("poe2scan", version)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -124,7 +130,20 @@ func run(ctx context.Context, o options) (int, error) {
 
 	// Exchange rates (to turn listing prices into Exalted) and the base list
 	// are refreshed in the background; the scanner waits for the first ones.
-	go every(ctx, 6*time.Hour, func() { refreshMarket(ctx, scanner, league, o.dataDir) })
+	// With -publish-prices the rates are refreshed hourly and published, so
+	// players need not ask poe.ninja and poe2scout themselves.
+	marketEvery := 6 * time.Hour
+	if o.publishPrices {
+		marketEvery = time.Hour
+	}
+	go every(ctx, marketEvery, func() {
+		snap := refreshMarket(ctx, scanner, league, o.dataDir)
+		if snap != nil && o.publishPrices {
+			if err := publishPrices(context.WithoutCancel(ctx), snap, uploader, o); err != nil {
+				log.Printf("publish prices: %v", err)
+			}
+		}
+	})
 	go every(ctx, 24*time.Hour, func() { refreshCandidates(ctx, scanner, o.dataDir) })
 	if o.league == "auto" {
 		go every(ctx, 6*time.Hour, func() {
@@ -221,17 +240,52 @@ func pickLeague(ctx context.Context, want string) (string, error) {
 
 var lastMarket *prices.Snapshot
 
-func refreshMarket(ctx context.Context, s *trade.Scanner, league, dir string) {
+func refreshMarket(ctx context.Context, s *trade.Scanner, league, dir string) *prices.Snapshot {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	snap, err := collector.Collect(ctx, collector.Options{League: league, Log: func(m string) { log.Print(strings.TrimSpace(m)) }}, lastMarket)
 	if err != nil {
 		log.Printf("exchange rates: %v", err)
-		return
+		return nil
 	}
 	lastMarket = snap
 	s.SetMarket(snap)
 	log.Printf("exchange rates: 1 divine = %.0f ex", snap.Rates.DivineEx)
+	return snap
+}
+
+// publishPrices uploads the market snapshot as prices.json.gz. Exceptional
+// prices travel in their own files, so they are left out here.
+func publishPrices(ctx context.Context, snap *prices.Snapshot, up *publish.GitHub, o options) error {
+	cp := *snap
+	cp.Exceptional = nil
+	raw, err := json.Marshal(&cp)
+	if err != nil {
+		return err
+	}
+	var buf bytes.Buffer
+	zw, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	if _, err := zw.Write(raw); err != nil {
+		return err
+	}
+	if err := zw.Close(); err != nil {
+		return err
+	}
+	if up == nil {
+		path := filepath.Join(o.dataDir, "prices.json.gz")
+		if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
+			return err
+		}
+		log.Printf("dry run: wrote %s (%d KB)", path, buf.Len()/1024)
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	if err := up.Put(ctx, "prices.json.gz", buf.Bytes(), "application/gzip"); err != nil {
+		return err
+	}
+	log.Printf("published prices.json.gz (%d KB)", buf.Len()/1024)
+	return nil
 }
 
 func refreshCandidates(ctx context.Context, s *trade.Scanner, dir string) {
@@ -245,7 +299,7 @@ func refreshCandidates(ctx context.Context, s *trade.Scanner, dir string) {
 	// NeverSink's exceptional list only orders the work; without it every
 	// base is still scanned.
 	preferred := map[string]bool{}
-	if path, err := neversink.Ensure(ctx, 6, filepath.Join(dir, "neversink"), 24*time.Hour, "poe2scan"); err == nil {
+	if path, err := neversink.Ensure(ctx, 6, filepath.Join(dir, "neversink"), 24*time.Hour, useragent.Value()); err == nil {
 		if raw, err := os.ReadFile(path); err == nil {
 			preferred = neversink.ExceptionalBases(string(raw))
 		}

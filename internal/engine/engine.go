@@ -24,6 +24,7 @@ import (
 	"poe2filter/internal/provider"
 	"poe2filter/internal/shared"
 	"poe2filter/internal/trade"
+	"poe2filter/internal/useragent"
 )
 
 // Options configures an Engine.
@@ -393,7 +394,7 @@ func (e *Engine) basePath(ctx context.Context, cfg filter.Config) (string, error
 		}
 		e.logf("%s", i18n.T("log.customBaseMissing"))
 	}
-	return neversink.Ensure(ctx, cfg.Strictness, filepath.Join(e.dataDir, "neversink"), 12*time.Hour, collector.UserAgent)
+	return neversink.Ensure(ctx, cfg.Strictness, filepath.Join(e.dataDir, "neversink"), 12*time.Hour, useragent.Value())
 }
 
 // run refreshes prices and writes the filter. Only one run at a time.
@@ -468,6 +469,11 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	var chain provider.Chain
 	if cfg.PriceSourceURL != "" {
 		chain = append(chain, provider.Remote{URL: cfg.PriceSourceURL, League: cfg.LeagueName, CachePath: e.snapshotPath()})
+	} else if cfg.SharedScan {
+		// Published hourly; older than three hours means the server is
+		// behind, and the prices are collected here instead.
+		chain = append(chain, provider.SharedPrices{Store: e.shared, League: cfg.LeagueName, MaxAge: 3 * time.Hour,
+			CachePath: e.snapshotPath(), Exceptional: exceptional})
 	}
 	local := provider.Local{
 		Options:   collector.Options{League: cfg.LeagueName, Log: func(s string) { e.logf("%s", strings.TrimSpace(s)) }},

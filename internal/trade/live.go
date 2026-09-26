@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+
+	"poe2filter/internal/useragent"
 )
 
 // Live search: the trade site's "Activate Live Search". A search is run once
@@ -324,7 +326,7 @@ func (m *LiveManager) loop(ctx context.Context, run *liveRun, in EvaluateRequest
 
 		header := http.Header{}
 		header.Set("Origin", "https://www.pathofexile.com")
-		header.Set("User-Agent", userAgent)
+		header.Set("User-Agent", useragent.Value())
 		if session := m.opts.Client.sessionValue(); session != "" {
 			header.Set("Cookie", "POESESSID="+session)
 		}

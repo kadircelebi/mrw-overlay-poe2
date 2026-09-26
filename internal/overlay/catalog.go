@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"poe2filter/internal/prices"
+	"poe2filter/internal/useragent"
 )
 
 const catalogBaseURL = "https://www.pathofexile.com/api/trade2/data"
@@ -265,7 +266,7 @@ func (s *CatalogStore) readOrFetch(ctx context.Context, endpoint, filename strin
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, catalogBaseURL+"/"+endpoint, nil)
 	if err == nil {
 		req.Header.Set("Accept", "application/json")
-		req.Header.Set("User-Agent", "poe2-filter/overlay")
+		req.Header.Set("User-Agent", useragent.Value())
 		if resp, getErr := s.client.Do(req); getErr == nil {
 			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {

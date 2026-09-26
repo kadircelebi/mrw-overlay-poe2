@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"poe2filter/internal/prices"
+	"poe2filter/internal/useragent"
 )
 
 type itemsData struct {
@@ -39,7 +40,7 @@ func EquipmentBaseTypes(ctx context.Context, cachePath string) ([]string, error)
 		if err != nil {
 			return nil, err
 		}
-		req.Header.Set("User-Agent", userAgent)
+		req.Header.Set("User-Agent", useragent.Value())
 		resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
 		if err == nil {
 			defer resp.Body.Close()

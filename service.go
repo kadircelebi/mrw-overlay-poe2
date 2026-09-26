@@ -82,22 +82,23 @@ type AppService struct {
 	overlayTiers        *overlay.TierStore
 	live                *trade.LiveManager
 	liveAlert           liveAlerts
+	liveMu              sync.Mutex // guards live_searches.json
 	// notify shows a Windows notification (set by main); a later one with
 	// the same id replaces it.
-	notify func(id, title, body string)
-	overlaySearches     *overlay.SearchStore
-	overlayClient       *trade.Client
-	overlayEvalMu       sync.Mutex
-	overlayEvalCache    map[string]overlayEvaluationCacheEntry
-	overlayEvalFlights  map[string]*overlayEvaluationFlight
-	overlaySnapshot     overlay.Snapshot
-	overlayDraft        trade.EvaluateRequest
-	overlayWindow       application.Window
-	marketWindow        application.Window
-	settingsWindow      application.Window
-	overlayHotkey       string
-	confineOnce         sync.Once
-	rebindOverlay       func(old, next overlay.Settings) error
+	notify             func(id, title, body string)
+	overlaySearches    *overlay.SearchStore
+	overlayClient      *trade.Client
+	overlayEvalMu      sync.Mutex
+	overlayEvalCache   map[string]overlayEvaluationCacheEntry
+	overlayEvalFlights map[string]*overlayEvaluationFlight
+	overlaySnapshot    overlay.Snapshot
+	overlayDraft       trade.EvaluateRequest
+	overlayWindow      application.Window
+	marketWindow       application.Window
+	settingsWindow     application.Window
+	overlayHotkey      string
+	confineOnce        sync.Once
+	rebindOverlay      func(old, next overlay.Settings) error
 
 	// The pathofexile.com session from the browser extension (encrypted on
 	// disk) and the state of an ongoing "connect browser" request.
@@ -155,6 +156,7 @@ func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOp
 			}
 		}()
 		go s.refreshBrowserExtension()
+		go s.restoreLiveSearches(ctx)
 		if s.updater != nil {
 			var updateCtx context.Context
 			updateCtx, s.updateCancel = context.WithCancel(ctx)

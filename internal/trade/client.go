@@ -13,11 +13,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"poe2filter/internal/useragent"
 )
 
 const (
-	apiBase   = "https://www.pathofexile.com/api/trade2"
-	userAgent = "poe2-filter/0.2"
+	apiBase = "https://www.pathofexile.com/api/trade2"
 )
 
 // Client is a rate-limited PoE2 trade API client.
@@ -178,7 +179,7 @@ func (c *Client) do(ctx context.Context, lim *Limiter, req *http.Request, out an
 	if err := lim.Wait(ctx); err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", useragent.Value())
 	req.Header.Set("Accept", "application/json")
 	c.sessionMu.RLock()
 	session := c.session

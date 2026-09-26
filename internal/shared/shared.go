@@ -23,6 +23,7 @@ import (
 
 	"poe2filter/internal/prices"
 	"poe2filter/internal/trade"
+	"poe2filter/internal/useragent"
 )
 
 const (
@@ -35,6 +36,11 @@ const (
 )
 
 var fileRE = regexp.MustCompile(`^exceptional-[a-z0-9_-]{1,32}\.json\.gz$`)
+
+// pricesFile is the hourly currency/unique snapshot one server publishes.
+const pricesFile = "prices.json.gz"
+
+func wanted(name string) bool { return fileRE.MatchString(name) || name == pricesFile }
 
 // Status is what the panel shows about the shared prices.
 type Status struct {
@@ -103,7 +109,7 @@ func (s *Store) get(ctx context.Context, url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "poe2-filter")
+	req.Header.Set("User-Agent", useragent.Value())
 	resp, err := s.HTTP.Do(req)
 	if err != nil {
 		return nil, err
@@ -131,7 +137,7 @@ func (s *Store) download(ctx context.Context) error {
 	}
 	keep := map[string]bool{}
 	for _, a := range rel.Assets {
-		if !fileRE.MatchString(a.Name) || a.Size > maxFile || !strings.HasPrefix(a.URL, "https://") {
+		if !wanted(a.Name) || a.Size > maxFile || !strings.HasPrefix(a.URL, "https://") {
 			continue
 		}
 		keep[a.Name] = true
@@ -146,7 +152,11 @@ func (s *Store) download(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if _, err := decode(data); err != nil {
+		if a.Name == pricesFile {
+			if _, err := decodePrices(data); err != nil {
+				return fmt.Errorf("%s: %w", a.Name, err)
+			}
+		} else if _, err := decode(data); err != nil {
 			return fmt.Errorf("%s: %w", a.Name, err)
 		}
 		if err := prices.WriteFileAtomic(path, data); err != nil {
@@ -158,11 +168,54 @@ func (s *Store) download(ctx context.Context) error {
 	entries, _ := os.ReadDir(s.Dir)
 	for _, e := range entries {
 		name := strings.TrimSuffix(e.Name(), ".stamp")
-		if fileRE.MatchString(name) && !keep[name] {
+		if wanted(name) && !keep[name] {
 			_ = os.Remove(filepath.Join(s.Dir, e.Name()))
 		}
 	}
 	return nil
+}
+
+func gunzip(gz []byte) ([]byte, error) {
+	zr, err := gzip.NewReader(bytes.NewReader(gz))
+	if err != nil {
+		return nil, err
+	}
+	return io.ReadAll(io.LimitReader(zr, 8*maxFile))
+}
+
+func decodePrices(gz []byte) (*prices.Snapshot, error) {
+	raw, err := gunzip(gz)
+	if err != nil {
+		return nil, err
+	}
+	var snap prices.Snapshot
+	if err := json.Unmarshal(raw, &snap); err != nil {
+		return nil, err
+	}
+	if err := snap.Validate(); err != nil {
+		return nil, err
+	}
+	return &snap, nil
+}
+
+// Prices returns the published currency/unique snapshot when it is for the
+// league and not older than maxAge; otherwise the caller collects itself.
+func (s *Store) Prices(league string, maxAge time.Duration) (*prices.Snapshot, error) {
+	raw, err := os.ReadFile(filepath.Join(s.Dir, pricesFile))
+	if err != nil {
+		return nil, fmt.Errorf("no shared prices yet")
+	}
+	snap, err := decodePrices(raw)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.EqualFold(strings.TrimSpace(snap.League), strings.TrimSpace(league)) {
+		return nil, fmt.Errorf("shared prices are for %s", snap.League)
+	}
+	if age := time.Since(snap.GeneratedAt); age > maxAge {
+		return nil, fmt.Errorf("shared prices are %s old", age.Round(time.Minute))
+	}
+	return snap, nil
 }
 
 // shareFile is the scanner's export format (trade.Share).
@@ -175,11 +228,7 @@ type shareFile struct {
 }
 
 func decode(gz []byte) (*shareFile, error) {
-	zr, err := gzip.NewReader(bytes.NewReader(gz))
-	if err != nil {
-		return nil, err
-	}
-	raw, err := io.ReadAll(io.LimitReader(zr, 8*maxFile))
+	raw, err := gunzip(gz)
 	if err != nil {
 		return nil, err
 	}

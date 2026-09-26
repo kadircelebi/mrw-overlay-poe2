@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"poe2filter/internal/prices"
 )
 
 type fakeRelease struct {
@@ -160,5 +162,44 @@ func TestSharedRefreshDownloadsOnlyWhatChanged(t *testing.T) {
 	}
 	if r := s.Results(); len(r) != 1 || s.Status().Error == "" {
 		t.Fatalf("cache lost while down: %+v %+v", r, s.Status())
+	}
+}
+
+func pricesGz(t *testing.T, league string, at time.Time) []byte {
+	t.Helper()
+	snap := prices.Snapshot{SchemaVersion: prices.SchemaVersion, League: league, GeneratedAt: at,
+		Rates:    prices.Rates{DivineEx: 490, ChaosEx: 64},
+		Currency: []prices.CurrencyPrice{{Name: "Divine Orb", ValueEx: 490}}}
+	raw, _ := json.Marshal(snap)
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	zw.Write(raw)
+	zw.Close()
+	return buf.Bytes()
+}
+
+func TestSharedPricesAreUsedOnlyWhenFreshAndForTheLeague(t *testing.T) {
+	now := time.Now().UTC()
+	f := &fakeRelease{gets: map[string]int{}, updated: map[string]time.Time{"prices.json.gz": now},
+		files: map[string][]byte{"prices.json.gz": pricesGz(t, "Forbidden Rites", now.Add(-30*time.Minute))}}
+	srv := f.server(t)
+	defer srv.Close()
+	s := newStore(t, srv)
+	if err := s.Refresh(context.Background(), "Forbidden Rites"); err != nil {
+		t.Fatal(err)
+	}
+	snap, err := s.Prices("forbidden rites", 3*time.Hour)
+	if err != nil || snap.Rates.DivineEx != 490 {
+		t.Fatalf("fresh prices refused: %v", err)
+	}
+	if _, err := s.Prices("Forbidden Rites", 10*time.Minute); err == nil {
+		t.Fatal("stale prices accepted")
+	}
+	if _, err := s.Prices("Standard", 3*time.Hour); err == nil {
+		t.Fatal("another league's prices accepted")
+	}
+	// Exceptional merging ignores the prices file.
+	if len(s.Results()) != 0 || s.Status().Files != 0 {
+		t.Fatalf("prices counted as exceptional data: %+v", s.Status())
 	}
 }
