@@ -132,6 +132,10 @@ var (
 	stylePinnacle = &style{font: 45, text: "255 255 255 255", border: "255 215 0 255", bg: "140 0 170 255",
 		beam: "Red", icon: "0 Red Star", sound: "6 300"}
 	styleDim = &style{font: 18, text: "120 120 120 180", border: "0 0 0 0", bg: "0 0 0 150"}
+	// styleKeep is the "always show" list: never hidden, but plain, so a cheap
+	// entry does not look like a valuable drop. Valuable entries are caught
+	// earlier by their value tier or price section.
+	styleKeep = &style{font: 38, text: "235 235 235 255", border: "150 150 160 255", bg: "30 30 34 230"}
 )
 
 // gearClasses are equipment classes (jewels and flasks excluded).
@@ -174,9 +178,12 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		name, cat string
 		ex        float64
 	}
+	// An exceptional price is per kind and minimum, and (for the shared scan
+	// servers' prices) per item level range: 79-81 and 82+ price apart.
 	type exGroup struct {
-		kind prices.ExceptionalKind
-		min  int
+		kind             prices.ExceptionalKind
+		min              int
+		minIlvl, maxIlvl int
 	}
 	type valueTier struct {
 		group       ItemGroup
@@ -275,13 +282,19 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	}
 
 	valuableEx := map[exGroup][]string{}
+	// bucketFloor is the lowest item level with a price range; below it the
+	// scan servers price nothing, and NeverSink decides.
+	bucketFloor := 0
 	cheapEx := map[exGroup][]string{}
 	for _, e := range snap.Exceptional {
 		name, ok := canon(e.Base)
 		if !ok {
 			continue
 		}
-		g := exGroup{e.Kind, e.Min}
+		g := exGroup{e.Kind, e.Min, e.MinIlvl, e.MaxIlvl}
+		if e.MinIlvl > 0 && (bucketFloor == 0 || e.MinIlvl < bucketFloor) {
+			bucketFloor = e.MinIlvl
+		}
 		switch {
 		case e.Samples > 0 && e.ValueEx >= thr:
 			if tier := tierFor(e.ValueEx); tier != nil {
@@ -304,15 +317,31 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			if gs[i].kind != gs[j].kind {
 				return gs[i].kind < gs[j].kind
 			}
-			return gs[i].min < gs[j].min
+			if gs[i].min != gs[j].min {
+				return gs[i].min < gs[j].min
+			}
+			// An item level range is more specific than none: first match wins.
+			if (gs[i].minIlvl > 0) != (gs[j].minIlvl > 0) {
+				return gs[i].minIlvl > 0
+			}
+			return gs[i].minIlvl > gs[j].minIlvl
 		})
 		return gs
 	}
-	exCond := func(g exGroup) string {
+	exCond := func(g exGroup) []string {
+		var c []string
 		if g.kind == prices.KindQuality {
-			return fmt.Sprintf("Quality >= %d", g.min)
+			c = []string{fmt.Sprintf("Quality >= %d", g.min)}
+		} else {
+			c = []string{fmt.Sprintf("Sockets >= %d", g.min)}
 		}
-		return fmt.Sprintf("Sockets >= %d", g.min)
+		if g.minIlvl > 0 {
+			c = append(c, fmt.Sprintf("ItemLevel >= %d", g.minIlvl))
+		}
+		if g.maxIlvl > 0 {
+			c = append(c, fmt.Sprintf("ItemLevel <= %d", g.maxIlvl))
+		}
+		return c
 	}
 	st.ValuableCurrency = len(valuableCur)
 	for _, t := range tiers {
@@ -404,24 +433,8 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		b.rule("Show", []string{"Rarity Unique"}, "BaseType", tier.uniques, tierStyle)
 		for _, g := range exGroups(tier.exceptional) {
 			sort.Strings(tier.exceptional[g])
-			b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic Rare", exCond(g)},
+			b.rule("Show", append([]string{"Corrupted False", "Rarity Normal Magic Rare"}, exCond(g)...),
 				"BaseType", tier.exceptional[g], tierStyle)
-		}
-	}
-
-	// ---- 3.5 user whitelist -----------------------------------------------
-	// Value tiers come first so even default entries such as Mirror of Kalandra
-	// receive the user's highest matching price style. The whitelist still
-	// guarantees that anything not covered by a tier is shown prominently.
-	if len(cfg.Whitelist) > 0 {
-		uniqueBases, bases, classes := resolveShowList(cfg.Whitelist, uniqueToBase, canon)
-		if len(uniqueBases)+len(bases)+len(classes) > 0 {
-			b.section(i18n.T("filter.sec.whitelist"))
-			wl, _ := cfg.Palette(GroupWhitelist, ns)
-			wst := styleMax.with(wl).withSound(cfg.Sound(GroupWhitelist))
-			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, wst)
-			b.rule("Show", nil, "BaseType", bases, wst)
-			b.rule("Show", nil, "Class", classes, wst)
 		}
 	}
 
@@ -500,7 +513,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		b.section(i18n.T("filter.sec.except"))
 		for _, g := range exGroups(valuableEx) {
 			sort.Strings(valuableEx[g])
-			b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic Rare", exCond(g)},
+			b.rule("Show", append([]string{"Corrupted False", "Rarity Normal Magic Rare"}, exCond(g)...),
 				"BaseType", valuableEx[g], styleExceptional.with(exPal).withSound(cfg.Sound(GroupExceptional)))
 		}
 	}
@@ -594,6 +607,23 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// its stronger highlight; before the hides, so it is never hidden.
 	b.userShowGroups(cfg, ns, uniqueToBase, canon, false)
 
+	// ---- 8.8 user "always show" list ----------------------------------------
+	// "Always show" means "never hide", not "highlight": an entry that is worth
+	// something was already styled by its value tier or price section above;
+	// what is left (a cheap catalyst, a junk unique on a Headhunter base) is
+	// shown plainly instead of disappearing under the threshold hides below.
+	if len(cfg.Whitelist) > 0 {
+		uniqueBases, bases, classes := resolveShowList(cfg.Whitelist, uniqueToBase, canon)
+		if len(uniqueBases)+len(bases)+len(classes) > 0 {
+			b.section(i18n.T("filter.sec.whitelist"))
+			wl, _ := cfg.Palette(GroupWhitelist, ns)
+			wst := styleKeep.with(wl).withSound(cfg.Sound(GroupWhitelist))
+			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, wst)
+			b.rule("Show", nil, "BaseType", bases, wst)
+			b.rule("Show", nil, "Class", classes, wst)
+		}
+	}
+
 	// ---- 9. below-threshold items ------------------------------------------
 	if cfg.FilterMode == "hide" || cfg.FilterMode == "dim" {
 		action, dim := "Hide", (*style)(nil)
@@ -610,7 +640,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		b.rule(action, []string{"Rarity Unique"}, "BaseType", cheapUniqueBases, dim)
 		for _, g := range exGroups(cheapEx) {
 			sort.Strings(cheapEx[g])
-			b.rule(action, []string{"Corrupted False", "Rarity Normal Magic", exCond(g)}, "BaseType", cheapEx[g], dim)
+			b.rule(action, append([]string{"Corrupted False", "Rarity Normal Magic"}, exCond(g)...), "BaseType", cheapEx[g], dim)
 		}
 		st.CheapCurrency = len(cheapCur)
 	} else {
@@ -620,13 +650,21 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// ---- 10/11. strict equipment cleanup -----------------------------------
 	if cfg.IncludeGear {
 		// Exceptional items we have not priced (yet) are shown, never hidden.
+		// With the scan servers' prices, which start at item level 79, lower
+		// items are not "unpriced": they are not worth pricing.
 		b.section(i18n.T("filter.sec.unpriced"))
 		unk, _ := cfg.Palette(GroupExceptionalUnknown, ns)
 		styleUnk := styleExceptionalUnknown.with(unk).withSound(cfg.Sound(GroupExceptionalUnknown))
-		b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic", "Sockets >= 2"}, "Class", trade.SocketClasses(2), styleUnk)
-		b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic", "Sockets >= 3"}, "Class", trade.SocketClasses(3), styleUnk)
-		b.rule("Show", []string{"Corrupted False", "Rarity Normal Magic",
-			fmt.Sprintf("Quality >= %d", trade.ExceptionalQualityMin)}, "Class", gearClasses, styleUnk)
+		unpriced := func(c string) []string {
+			conds := []string{"Corrupted False", "Rarity Normal Magic", c}
+			if bucketFloor > 0 {
+				conds = append(conds, fmt.Sprintf("ItemLevel >= %d", bucketFloor))
+			}
+			return conds
+		}
+		b.rule("Show", unpriced("Sockets >= 2"), "Class", trade.SocketClasses(2), styleUnk)
+		b.rule("Show", unpriced("Sockets >= 3"), "Class", trade.SocketClasses(3), styleUnk)
+		b.rule("Show", unpriced(fmt.Sprintf("Quality >= %d", trade.ExceptionalQualityMin)), "Class", gearClasses, styleUnk)
 		st.UnknownExceptOn = true
 
 		b.section("11. HIDE ALL OTHER NORMAL, MAGIC AND RARE EQUIPMENT")

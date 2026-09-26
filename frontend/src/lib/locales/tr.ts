@@ -112,8 +112,15 @@ export const tr: Record<string, string> = {
   'mode.dim': 'Soluk',
   'mode.show': 'Göster',
 
-  'scan.toggle': 'Exceptional taraması',
+  'shared.toggle': 'Paylaşılan exceptional fiyatları',
+  'shared.hint': 'Tarama sunucularının fiyatları (ilvl 79–81 ve 82+); bilgisayarın arama yapmaz',
+  'shared.keys': '{0} fiyat',
+  'shared.newest': 'en yenisi {0}',
+  'shared.error': 'Şu an alınamıyor, eldeki veri kullanılıyor',
+  'shared.none': '{0} için paylaşılan veri yok',
+  'scan.toggle': 'Bilgisayarımda tara',
   'scan.hint': "Fazladan soketli ve %21+ kaliteli tabanları trade'den fiyatlar",
+  'scan.hintShared': 'Paylaşılan fiyatlar bu ligi kapsadığı için duraklatıldı; kapsamayan liglerde çalışır',
   'scan.scanned': '{0} / {1} tarandı',
   'scan.valuable': '{0} değerli',
   'scan.next': 'Sırada: {0}',
@@ -152,10 +159,10 @@ export const tr: Record<string, string> = {
   'rules.hideGold': "Gold'u gizle",
 
   'lists.title': 'Listeler',
-  'lists.showTop': 'Her zaman göster — öne çıkar',
-  'lists.showTopNote': 'değer grubu yoksa güçlü vurgu',
+  'lists.showTop': 'Her zaman göster',
+  'lists.showTopNote': 'eşiğin altında da gizlenmez',
   'lists.showTopDesc':
-    "Bir eşya değer grubuna girerse o grubun görünümünü alır; diğerleri bu listeyle güçlü biçimde gösterilir. Değerli unique tabanları zaten otomatik işlenir.",
+    "Buradaki eşyalar asla gizlenmez. Eşiği geçen eşya değer grubunun ya da fiyat bölümünün görünümünü alır; geçmeyen sade biçimde gösterilir (görünümü Görünüm ve sesler'den değişir). Unique için taban yazılır, filtre unique'in adını göremez: \"Heavy Belt | Unique\" her unique Heavy Belt'i kapsar.",
   'lists.showMid': 'Her zaman göster — orta',
   'lists.showMidNote': 'asla gizlenmez, orta vurgu',
   'lists.showMidDesc':

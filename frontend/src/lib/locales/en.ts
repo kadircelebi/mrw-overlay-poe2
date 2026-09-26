@@ -115,7 +115,14 @@ export const en: Record<string, string> = {
   'mode.show': 'Show',
 
   // Exceptional scan
-  'scan.toggle': 'Exceptional scan',
+  'shared.toggle': 'Shared exceptional prices',
+  'shared.hint': 'Prices from the scan servers (ilvl 79–81 and 82+); your PC runs no searches',
+  'shared.keys': '{0} prices',
+  'shared.newest': 'newest {0}',
+  'shared.error': 'Unavailable right now, using what is here',
+  'shared.none': 'No shared data for {0}',
+  'scan.hintShared': 'Paused because the shared prices cover this league; runs for leagues they do not',
+  'scan.toggle': 'Scan on my PC',
   'scan.hint': 'Prices bases with extra sockets or 21%+ quality from trade',
   'scan.scanned': '{0} / {1} scanned',
   'scan.valuable': '{0} valuable',
@@ -159,10 +166,10 @@ export const en: Record<string, string> = {
 
   // Lists
   'lists.title': 'Lists',
-  'lists.showTop': 'Always show — spotlight',
-  'lists.showTopNote': 'strong highlight outside value tiers',
+  'lists.showTop': 'Always show',
+  'lists.showTopNote': 'never hidden, even below the threshold',
   'lists.showTopDesc':
-    'An item in a value tier uses that tier’s look; everything else in this list gets a strong highlight. Valuable unique bases are already handled automatically.',
+    'Items here are never hidden. One above the threshold takes its value tier’s or price section’s look; one below it is shown plainly (change the look under Appearance & sounds). For a unique, enter its base; the filter cannot see a unique’s name, so "Heavy Belt | Unique" covers every unique Heavy Belt.',
   'lists.showMid': 'Always show — medium',
   'lists.showMidNote': 'never hidden, medium highlight',
   'lists.showMidDesc':

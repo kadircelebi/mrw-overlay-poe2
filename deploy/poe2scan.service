@@ -1,0 +1,73 @@
+# Exceptional price scan server (cmd/scanner).
+#
+# Install:  /opt/poe2scan/poe2scan (root-owned binary), the GitHub token in
+#           /etc/poe2scan/github-token (root, 0600), this file in
+#           /etc/systemd/system/, then: systemctl enable --now poe2scan
+# Per machine: set User= to the account it runs as and -shard / -budget in
+# ExecStart (office 0.79, home 0.52).
+#
+# The service is boxed in: it cannot gain privileges (the user's sudo is of no
+# use to it), sees no home directories, writes only /var/lib/poe2scan, and
+# may not reach the local network or this machine's own services — only the
+# internet (GGG, poe.ninja, poe2scout, GitHub) and the local DNS stub.
+
+[Unit]
+Description=poe2scan exceptional price scanner
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=poe2scan
+ExecStart=/opt/poe2scan/poe2scan -shard office -budget 0.79
+# Exit code 3 = new league: start again right away.
+Restart=always
+RestartSec=30
+RestartPreventExitStatus=1
+
+StateDirectory=poe2scan
+StateDirectoryMode=0700
+LoadCredential=github-token:/etc/poe2scan/github-token
+UMask=0077
+
+# Filesystem
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+
+# Privileges
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+
+# Network: internet only. No unix sockets (PostgreSQL's socket, D-Bus), no
+# LAN, no localhost services; DNS goes to systemd-resolved's stub.
+RestrictAddressFamilies=AF_INET AF_INET6
+IPAddressDeny=localhost link-local multicast 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 100.64.0.0/10 fc00::/7
+IPAddressAllow=127.0.0.53
+
+# Resources
+MemoryMax=512M
+CPUQuota=50%
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

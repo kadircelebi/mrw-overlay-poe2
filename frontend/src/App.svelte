@@ -917,15 +917,33 @@
         {@render thresholdCard(cfg)}
         {@render baseCard(cfg)}
 
-        <!-- Exceptional scan -->
+        <!-- Exceptional prices: shared by the scan servers, else scanned here -->
         <section class="card">
+          <Toggle
+            bind:checked={cfg.shared_scan}
+            label={t('shared.toggle')}
+            hint={t('shared.hint')}
+            onchange={() => queueSave()}
+          />
+          {#if st && cfg.shared_scan}
+            <div class="scan-line num">
+              {#if st.sharedUsed}
+                <span>{t('shared.keys', st.shared.keys)}</span>
+                <span class="muted">{t('shared.newest', relative(st.shared.newestMs, now))}</span>
+              {:else if st.shared.error}
+                <span class="muted ellipsis" title={st.shared.error}>{t('shared.error')}</span>
+              {:else}
+                <span class="muted">{t('shared.none', cfg.league_name)}</span>
+              {/if}
+            </div>
+          {/if}
           <Toggle
             bind:checked={cfg.exceptional_scan}
             label={t('scan.toggle')}
-            hint={t('scan.hint')}
+            hint={st?.sharedUsed ? t('scan.hintShared') : t('scan.hint')}
             onchange={() => queueSave(false)}
           />
-          {#if st && cfg.exceptional_scan}
+          {#if st && cfg.exceptional_scan && !st.sharedUsed}
             <div class="bar thin"><span class="cyan" style="width: {scanPct * 100}%"></span></div>
             <div class="scan-line num">
               <span>{t('scan.scanned', st.scan.scanned, st.scan.keys || '—')}</span>

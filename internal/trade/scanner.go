@@ -27,6 +27,37 @@ var (
 	}
 )
 
+// tradeClassNames maps the item class a trade listing names in its first
+// property to the class the game (and the loot filter) uses. The listing
+// says "Body Armour", "Helmet", "[Shield]", "[Mace|Two Hand Mace]"; the
+// socket tables above are keyed by "Body Armours", "Helmets", "Shields".
+var tradeClassNames = map[string]string{
+	"Body Armour": "Body Armours", "Helmet": "Helmets", "Boot": "Boots", "Glove": "Gloves",
+	"Shield": "Shields", "Buckler": "Bucklers", "Focus": "Foci", "Quiver": "Quivers",
+	"Bow": "Bows", "Crossbow": "Crossbows", "Quarterstaff": "Quarterstaves", "Staff": "Staves",
+	"Talisman": "Talismans", "Two Hand Mace": "Two Hand Maces", "One Hand Mace": "One Hand Maces",
+	"Spear": "Spears", "Sceptre": "Sceptres", "Wand": "Wands", "Claw": "Claws", "Dagger": "Daggers",
+	"Flail": "Flails", "One Hand Sword": "One Hand Swords", "Two Hand Sword": "Two Hand Swords",
+	"One Hand Axe": "One Hand Axes", "Two Hand Axe": "Two Hand Axes",
+}
+
+// NormalizeClass turns a trade listing's class name into the game's item
+// class: "[Mace|Two Hand Mace]" -> "Two Hand Maces", "Helmet" -> "Helmets".
+// Names already in the game's form pass through.
+func NormalizeClass(name string) string {
+	name = strings.TrimSpace(name)
+	if strings.HasPrefix(name, "[") && strings.HasSuffix(name, "]") {
+		name = strings.TrimSuffix(strings.TrimPrefix(name, "["), "]")
+		if i := strings.LastIndex(name, "|"); i >= 0 {
+			name = name[i+1:]
+		}
+	}
+	if plural, ok := tradeClassNames[name]; ok {
+		return plural
+	}
+	return name
+}
+
 // ExceptionalQualityMin is the lowest quality a base can only drop with as exceptional.
 const ExceptionalQualityMin = 21
 
@@ -78,6 +109,68 @@ type Scanner struct {
 	last       string        // last finished key with its result
 	wake       chan struct{} // nudges Run when market or candidates arrive
 	onChange   func()        // called after each scan (outside the lock)
+	buckets    []IlvlBucket  // item level ranges scanned apart; none = any level
+	shard      func(key string) bool
+	refresh    RefreshPolicy
+}
+
+// IlvlBucket is an item level range priced as its own key; 0 leaves a bound
+// open. The app scans without buckets (any level); the shared scan servers
+// price 79-81 and 82+ apart.
+type IlvlBucket struct{ Min, Max int }
+
+func (b IlvlBucket) suffix() string {
+	switch {
+	case b.Min == 0 && b.Max == 0:
+		return ""
+	case b.Max == 0:
+		return fmt.Sprintf("|ilvl%d+", b.Min)
+	default:
+		return fmt.Sprintf("|ilvl%d-%d", b.Min, b.Max)
+	}
+}
+
+func (b IlvlBucket) label() string {
+	switch {
+	case b.Min == 0 && b.Max == 0:
+		return ""
+	case b.Max == 0:
+		return fmt.Sprintf(" · ilvl %d+", b.Min)
+	default:
+		return fmt.Sprintf(" · ilvl %d-%d", b.Min, b.Max)
+	}
+}
+
+// RefreshPolicy is how long a result stays fresh before it is searched again.
+type RefreshPolicy struct {
+	Error, Empty, Hot, Normal time.Duration
+}
+
+// DefaultRefresh suits a player's own PC: its share of the quota is small.
+var DefaultRefresh = RefreshPolicy{Error: time.Hour, Empty: 72 * time.Hour, Hot: 6 * time.Hour, Normal: 48 * time.Hour}
+
+// SetIlvlBuckets makes every base and kind a key per item level range.
+func (s *Scanner) SetIlvlBuckets(b []IlvlBucket) {
+	s.mu.Lock()
+	s.buckets = append([]IlvlBucket(nil), b...)
+	s.mu.Unlock()
+	s.nudge()
+}
+
+// SetShard limits the scanner to the keys the filter accepts, so several
+// machines can split the work without talking to each other.
+func (s *Scanner) SetShard(accept func(key string) bool) {
+	s.mu.Lock()
+	s.shard = accept
+	s.mu.Unlock()
+	s.nudge()
+}
+
+// SetRefresh changes how often results are searched again.
+func (s *Scanner) SetRefresh(p RefreshPolicy) {
+	s.mu.Lock()
+	s.refresh = p
+	s.mu.Unlock()
 }
 
 // SetOnChange registers a callback run after every scan attempt.
@@ -89,7 +182,7 @@ func (s *Scanner) SetOnChange(f func()) {
 
 // NewScanner loads (or starts) the persistent scan state.
 func NewScanner(client *Client, statePath string, log func(string)) *Scanner {
-	s := &Scanner{client: client, statePath: statePath, log: log, hotEx: 25, wake: make(chan struct{}, 1)}
+	s := &Scanner{client: client, statePath: statePath, log: log, hotEx: 25, wake: make(chan struct{}, 1), refresh: DefaultRefresh}
 	s.st = scanState{Version: scanStateVersion, League: client.league,
 		Classes: map[string]string{}, Keys: map[string]*keyState{}}
 	if data, err := os.ReadFile(statePath); err == nil {
@@ -97,6 +190,11 @@ func NewScanner(client *Client, statePath string, log func(string)) *Scanner {
 		if json.Unmarshal(data, &loaded) == nil && loaded.Version == scanStateVersion && loaded.League == client.league {
 			if loaded.Classes == nil {
 				loaded.Classes = map[string]string{}
+			}
+			// Classes learned before NormalizeClass existed ("Helmet")
+			// never matched the socket tables.
+			for base, class := range loaded.Classes {
+				loaded.Classes[base] = NormalizeClass(class)
 			}
 			if loaded.Keys == nil {
 				loaded.Keys = map[string]*keyState{}
@@ -154,9 +252,11 @@ func (s *Scanner) SetHotThreshold(ex float64) {
 func keyOf(base string, kind prices.ExceptionalKind) string { return base + "|" + string(kind) }
 
 type target struct {
+	key      string
 	base     string
 	kind     prices.ExceptionalKind
 	min      int
+	bucket   IlvlBucket
 	priority int
 	state    *keyState
 }
@@ -165,14 +265,23 @@ type target struct {
 func (s *Scanner) refreshAfter(k *keyState) time.Duration {
 	switch {
 	case k.LastError != "":
-		return time.Hour
+		return s.refresh.Error
 	case k.Listings == 0:
-		return 72 * time.Hour
+		return s.refresh.Empty
 	case k.ValueEx >= s.hotEx:
-		return 6 * time.Hour
+		return s.refresh.Hot
 	default:
-		return 48 * time.Hour
+		return s.refresh.Normal
 	}
+}
+
+// bucketList is the item level ranges to scan (locked); one open range when
+// none are set, which keeps the app's keys as they always were.
+func (s *Scanner) bucketList() []IlvlBucket {
+	if len(s.buckets) == 0 {
+		return []IlvlBucket{{}}
+	}
+	return s.buckets
 }
 
 // next picks the most urgent due target (locked).
@@ -197,11 +306,17 @@ func (s *Scanner) next(now time.Time) *target {
 			}{prices.KindSockets, ExceptionalSocketMin(class)})
 		}
 		for _, k := range kinds {
-			ks := s.st.Keys[keyOf(c.Base, k.kind)]
-			if ks != nil && ks.Min == k.min && now.Sub(ks.LastAttempt) < s.refreshAfter(ks) {
-				continue
+			for _, b := range s.bucketList() {
+				key := keyOf(c.Base, k.kind) + b.suffix()
+				if s.shard != nil && !s.shard(key) {
+					continue
+				}
+				ks := s.st.Keys[key]
+				if ks != nil && ks.Min == k.min && now.Sub(ks.LastAttempt) < s.refreshAfter(ks) {
+					continue
+				}
+				due = append(due, target{key: key, base: c.Base, kind: k.kind, min: k.min, bucket: b, priority: c.Priority, state: ks})
 			}
-			due = append(due, target{base: c.Base, kind: k.kind, min: k.min, priority: c.Priority, state: ks})
 		}
 	}
 	if len(due) == 0 {
@@ -245,7 +360,7 @@ func (s *Scanner) Run(ctx context.Context) {
 		}
 
 		s.mu.Lock()
-		s.current = keyLabel(t.base, t.kind, t.min)
+		s.current = keyLabel(t.base, t.kind, t.min) + t.bucket.label()
 		notify := s.onChange
 		s.mu.Unlock()
 		if notify != nil {
@@ -261,7 +376,7 @@ func (s *Scanner) Run(ctx context.Context) {
 		}
 		s.mu.Lock()
 		s.last = s.current
-		switch ks := s.st.Keys[keyOf(t.base, t.kind)]; {
+		switch ks := s.st.Keys[t.key]; {
 		case err != nil:
 			s.last += i18n.T("scan.last.error")
 		case ks == nil:
@@ -290,6 +405,10 @@ func (s *Scanner) scan(ctx context.Context, t *target) error {
 	} else {
 		q.SetMin("equipment_filters", "rune_sockets", t.min)
 	}
+	if t.bucket.Min > 0 || t.bucket.Max > 0 {
+		q.SetRange("type_filters", "ilvl", t.bucket.Min, t.bucket.Max)
+	}
+	blank := prices.ExceptionalPrice{Base: t.base, Kind: t.kind, Min: t.min, MinIlvl: t.bucket.Min, MaxIlvl: t.bucket.Max}
 
 	record := func(p prices.ExceptionalPrice, err error) {
 		s.mu.Lock()
@@ -297,25 +416,26 @@ func (s *Scanner) scan(ctx context.Context, t *target) error {
 		ks := &keyState{ExceptionalPrice: p, LastAttempt: time.Now().UTC()}
 		if err != nil {
 			// Keep the last good price; only note the failure.
-			if old := s.st.Keys[keyOf(t.base, t.kind)]; old != nil {
+			if old := s.st.Keys[t.key]; old != nil {
 				ks.ExceptionalPrice = old.ExceptionalPrice
 			} else {
-				ks.ExceptionalPrice = prices.ExceptionalPrice{Base: t.base, Kind: t.kind, Min: t.min}
+				ks.ExceptionalPrice = blank
 			}
 			ks.LastError = err.Error()
 		}
-		s.st.Keys[keyOf(t.base, t.kind)] = ks
+		s.st.Keys[t.key] = ks
 	}
 
 	res, err := s.client.RunSearch(ctx, q)
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
-			record(prices.ExceptionalPrice{Base: t.base, Kind: t.kind, Min: t.min}, err)
+			record(blank, err)
 		}
 		return err
 	}
 	// Timestamp the result when the search actually ran, not when it was queued.
-	price := prices.ExceptionalPrice{Base: t.base, Kind: t.kind, Min: t.min, Listings: res.Total, ScannedAt: time.Now().UTC()}
+	price := blank
+	price.Listings, price.ScannedAt = res.Total, time.Now().UTC()
 	if res.Total == 0 || len(res.Result) == 0 {
 		record(price, nil)
 		return nil
@@ -346,7 +466,7 @@ func (s *Scanner) scan(ctx context.Context, t *target) error {
 	// items; drop it and let the next pass search with the right minimum.
 	if t.kind == prices.KindSockets && ExceptionalSocketMin(class) != t.min {
 		s.mu.Lock()
-		delete(s.st.Keys, keyOf(t.base, t.kind))
+		delete(s.st.Keys, t.key)
 		s.mu.Unlock()
 		return nil
 	}
@@ -450,9 +570,16 @@ func (s *Scanner) Status() Status {
 	st := Status{Candidates: len(s.candidates), Current: s.current, Last: s.last,
 		NextAt: time.Now().Add(next).UnixMilli()}
 	for _, c := range s.candidates {
-		st.Keys++ // quality
+		kinds := []prices.ExceptionalKind{prices.KindQuality}
 		if class := s.st.Classes[c.Base]; class == "" || ExceptionalSocketMin(class) > 0 {
-			st.Keys++ // sockets
+			kinds = append(kinds, prices.KindSockets)
+		}
+		for _, kind := range kinds {
+			for _, b := range s.bucketList() {
+				if key := keyOf(c.Base, kind) + b.suffix(); s.shard == nil || s.shard(key) {
+					st.Keys++
+				}
+			}
 		}
 	}
 	for _, k := range s.st.Keys {

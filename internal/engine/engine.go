@@ -22,6 +22,7 @@ import (
 	"poe2filter/internal/neversink"
 	"poe2filter/internal/prices"
 	"poe2filter/internal/provider"
+	"poe2filter/internal/shared"
 	"poe2filter/internal/trade"
 )
 
@@ -78,8 +79,12 @@ type State struct {
 	FailCount     int        `json:"failCount"`
 	Last          *RunResult `json:"last"`
 	Scan          ScanState  `json:"scan"`
-	Warnings      []string   `json:"warnings"`
-	Log           []string   `json:"log"`
+	// Shared is the scan servers' prices; SharedUsed means they cover the
+	// league and are what the filter uses (the own scanner then idles).
+	Shared     shared.Status `json:"shared"`
+	SharedUsed bool          `json:"sharedUsed"`
+	Warnings   []string      `json:"warnings"`
+	Log        []string      `json:"log"`
 }
 
 // Engine owns the pipeline, scanner and schedule.
@@ -105,6 +110,8 @@ type Engine struct {
 
 	profileMu sync.Mutex
 
+	shared *shared.Store
+
 	scanMu     sync.Mutex
 	scanner    *trade.Scanner
 	scanCancel context.CancelFunc
@@ -122,7 +129,9 @@ type Engine struct {
 // New loads (and migrates) the config from opt.Dir.
 func New(opt Options) *Engine {
 	e := &Engine{opt: opt, dataDir: filepath.Join(opt.Dir, "data"), stop: make(chan struct{})}
+	e.shared = shared.New(filepath.Join(e.dataDir, "shared"))
 	e.cfg = filter.LoadConfig(e.configPath())
+	e.shared.LoadCached(e.cfg.LeagueName)
 	_ = e.cfg.Save(e.configPath()) // persist migrated format
 	e.loadLeagues()
 	e.st.Step = i18n.T("step.ready")
@@ -360,12 +369,17 @@ func (e *Engine) ensureScanner(run bool) {
 		e.scanner.SetBudget(float64(cfg.ScanBudgetPct) / 100)
 	}
 
+	covered := cfg.SharedScan && cfg.PriceSourceURL == "" && e.shared.Covers(cfg.LeagueName)
+	want := cfg.ExceptionalScan && !covered
 	switch {
-	case !cfg.ExceptionalScan && e.scanCancel != nil:
+	case !want && e.scanCancel != nil:
 		e.scanCancel()
 		e.scanCancel = nil
 		msg = i18n.T("log.scanStopped")
-	case cfg.ExceptionalScan && run && e.scanCancel == nil:
+		if covered {
+			msg = i18n.T("log.scanShared")
+		}
+	case want && run && e.scanCancel == nil:
 		ctx, cancel := context.WithCancel(context.Background())
 		e.scanCancel = cancel
 		go e.scanner.Run(ctx)
@@ -433,6 +447,24 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	scanner := e.scanner
 	e.scanMu.Unlock()
 
+	// The scan servers' prices, when they cover the league, replace the own
+	// scanner's; the scanner is then paused so it stops spending quota.
+	var exceptional provider.ExceptionalSource
+	if scanner != nil {
+		exceptional = scanner
+	}
+	if cfg.SharedScan && cfg.PriceSourceURL == "" {
+		sctx, cancel := context.WithTimeout(ctx, time.Minute)
+		if err := e.shared.Refresh(sctx, cfg.LeagueName); err != nil {
+			e.logf("%s", i18n.T("log.sharedFailed", err))
+		}
+		cancel()
+		if e.shared.Covers(cfg.LeagueName) {
+			exceptional = e.shared
+		}
+		e.ensureScanner(true)
+	}
+
 	var chain provider.Chain
 	if cfg.PriceSourceURL != "" {
 		chain = append(chain, provider.Remote{URL: cfg.PriceSourceURL, League: cfg.LeagueName, CachePath: e.snapshotPath()})
@@ -441,8 +473,8 @@ func (e *Engine) run(ctx context.Context) (err error) {
 		Options:   collector.Options{League: cfg.LeagueName, Log: func(s string) { e.logf("%s", strings.TrimSpace(s)) }},
 		CachePath: e.snapshotPath(),
 	}
-	if scanner != nil && cfg.PriceSourceURL == "" {
-		local.Exceptional = scanner
+	if exceptional != nil && cfg.PriceSourceURL == "" {
+		local.Exceptional = exceptional
 	}
 	chain = append(chain, local, provider.Cache{Path: e.snapshotPath()})
 
@@ -526,6 +558,8 @@ func (e *Engine) State() State {
 	}
 	e.stMu.Unlock()
 
+	s.Shared = e.shared.Status()
+	s.SharedUsed = cfg.SharedScan && cfg.PriceSourceURL == "" && e.shared.Covers(cfg.LeagueName)
 	if scanner != nil {
 		ss := scanner.Status()
 		s.Scan = ScanState{Enabled: scanning, Candidates: ss.Candidates, Keys: ss.Keys,

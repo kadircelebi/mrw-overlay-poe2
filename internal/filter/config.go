@@ -68,7 +68,7 @@ const (
 
 // configVersion marks the meaning of the stored fields, not the app version.
 // Version 2 split the old "off" into TierHide and TierOff.
-const configVersion = 2
+const configVersion = 3
 
 // Slider ranges, mirroring what the game can produce.
 const (
@@ -129,7 +129,11 @@ type Config struct {
 
 	// Exceptional base scanning on the trade API.
 	ExceptionalScan bool `json:"exceptional_scan"`
-	ScanBudgetPct   int  `json:"scan_budget_pct"` // share of the IP rate limit, 10..80
+	// SharedScan uses the exceptional prices the scan servers publish. When
+	// they cover the league, the player's own scanner stays idle (and keeps
+	// their trade quota free); otherwise ExceptionalScan decides.
+	SharedScan    bool `json:"shared_scan"`
+	ScanBudgetPct int  `json:"scan_budget_pct"` // share of the IP rate limit, 10..80
 
 	// When set, prices come from this collector server URL first.
 	PriceSourceURL string `json:"price_source_url"`
@@ -186,6 +190,7 @@ func DefaultConfig() Config {
 		ConfigVersion:     configVersion,
 		Language:          string(i18n.Auto),
 		ExceptionalScan:   true,
+		SharedScan:        true,
 		ScanBudgetPct:     40,
 		AutoUpdateEnabled: true,
 		AutoUpdateHours:   4,
@@ -464,16 +469,28 @@ func (c *Config) clampTiers() {
 // "hide" stop. Back then a single off position meant "no rule" for most
 // sliders, but for rare jewels and support gems it actually hid them, so those
 // two move to TierHide and keep behaving the way the user set them.
+//
+// Version 3: the "always show" list stopped being a spotlight and became
+// "never hide, plainly". A look picked for the old meaning (often the loudest
+// style with a sound) would make every cheap entry scream, so it is reset to
+// the new plain default once.
 func (c *Config) migrateTierMeaning() {
 	if c.ConfigVersion >= configVersion {
 		c.ConfigVersion = configVersion
 		return
 	}
-	if c.RareJewelTier == TierOff {
-		c.RareJewelTier = TierHide
+	if c.ConfigVersion < 2 {
+		if c.RareJewelTier == TierOff {
+			c.RareJewelTier = TierHide
+		}
+		if c.UncutSupportLevel == TierOff {
+			c.UncutSupportLevel = TierHide
+		}
 	}
-	if c.UncutSupportLevel == TierOff {
-		c.UncutSupportLevel = TierHide
+	if c.ConfigVersion < 3 {
+		delete(c.Styles, GroupWhitelist)
+		delete(c.Sounds, GroupWhitelist)
+		delete(c.CustomStyles, GroupWhitelist)
 	}
 	c.ConfigVersion = configVersion
 }

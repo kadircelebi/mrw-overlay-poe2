@@ -32,6 +32,8 @@ var en = map[string]string{
 	"log.retry":             "Retrying the failed update (attempt %d)",
 	"log.scheduled":         "Scheduled update (every %d hours)",
 	"log.scanStopped":       "Exceptional scan stopped.",
+	"log.scanShared":        "Shared exceptional prices cover this league; the scan on this PC is paused and your trade quota stays yours.",
+	"log.sharedFailed":      "Could not get the shared exceptional prices (%v); carrying on with what is here.",
 	"log.customBaseMissing": "[Warning] Custom base filter not found, using NeverSink.",
 	"log.basesFailed":       "[Warning] Could not fetch the exceptional base list: %v",
 	"log.written":           "Filter written: %d valuable currency, %d unique bases, %d exceptional",
@@ -79,7 +81,7 @@ var en = map[string]string{
 	// Style group names
 	"group.divine":             "Divine Orb",
 	"group.currency":           "Valuable currency",
-	"group.whitelist":          "Always show (spotlight)",
+	"group.whitelist":          "Always show (never hide)",
 	"group.whitelistMid":       "Always show (medium)",
 	"group.unique":             "Valuable uniques",
 	"group.exceptional":        "Valuable exceptional",
@@ -95,7 +97,7 @@ var en = map[string]string{
 
 	// Style group defaults
 	"groupDefault.currency":           "Default (category colours)",
-	"groupDefault.whitelist":          "Default (red, gold border)",
+	"groupDefault.whitelist":          "Default (plain, grey border)",
 	"groupDefault.whitelistMid":       "Default (purple)",
 	"groupDefault.unique":             "Default (dark red)",
 	"groupDefault.exceptional":        "Default (dark blue)",
@@ -116,7 +118,7 @@ var en = map[string]string{
 	"filter.writtenAt":     "Filter written:   %s",
 	"filter.lowValue":      "Low-value action: %s",
 	"filter.sec.divine":    "2. DIVINE ORB SPOTLIGHT",
-	"filter.sec.whitelist": "3. USER WHITELIST (always shown)",
+	"filter.sec.whitelist": "8.8 ALWAYS SHOW LIST (never hidden, plain)",
 	"filter.sec.currency":  "4. VALUABLE CURRENCY & BULK ITEMS",
 	"filter.sec.unique":    "5. VALUABLE UNIQUE BASES (best unique on the base >= threshold)",
 	"filter.sec.chance":    "6. CHANCE & CRAFTING BASES",

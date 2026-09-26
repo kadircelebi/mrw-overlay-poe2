@@ -99,6 +99,13 @@ export interface Config {
     "exceptional_scan": boolean;
 
     /**
+     * SharedScan uses the exceptional prices the scan servers publish. When
+     * they cover the league, the player's own scanner stays idle (and keeps
+     * their trade quota free); otherwise ExceptionalScan decides.
+     */
+    "shared_scan": boolean;
+
+    /**
      * share of the IP rate limit, 10..80
      */
     "scan_budget_pct": number;

@@ -119,6 +119,23 @@ func NewBaseQuery(base, rarity string) *Query {
 	return q
 }
 
+// SetRange sets a numeric range inside a filter group; 0 leaves a bound open.
+func (q *Query) SetRange(group, filter string, min, max int) {
+	g, ok := q.Query.Filters[group]
+	if !ok {
+		g = filterGroup{Filters: map[string]any{}}
+	}
+	var r Range
+	if min > 0 {
+		r.Min = &min
+	}
+	if max > 0 {
+		r.Max = &max
+	}
+	g.Filters[filter] = r
+	q.Query.Filters[group] = g
+}
+
 // SetMin sets a numeric minimum inside a filter group.
 func (q *Query) SetMin(group, filter string, min int) {
 	g, ok := q.Query.Filters[group]
@@ -270,7 +287,7 @@ func (c *Client) FetchListings(ctx context.Context, searchID string, ids []strin
 		for i, p := range r.Item.Properties {
 			// The first property is the item class, e.g. "Boots".
 			if i == 0 && len(p.Values) == 0 {
-				l.Class = p.Name
+				l.Class = NormalizeClass(p.Name)
 			}
 			if strings.Contains(p.Name, "Quality") && len(p.Values) > 0 && len(p.Values[0]) > 0 {
 				if s, ok := p.Values[0][0].(string); ok {

@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -221,7 +222,7 @@ func TestUserValueGroupsUseHighestConvertedThreshold(t *testing.T) {
 	if blockContaining(t, out, "THREE CHAOS", `"Mirror of Kalandra"`) >= 0 {
 		t.Fatal("a high-value item must belong only to the highest threshold it reaches")
 	}
-	whitelistMirror := blockContaining(t, out, `"Mirror of Kalandra"`, "SetBackgroundColor 180 0 0 255")
+	whitelistMirror := blockContaining(t, out, `"Mirror of Kalandra"`, "SetBackgroundColor "+styleKeep.bg)
 	if whitelistMirror < 0 || g3 > whitelistMirror {
 		t.Fatalf("value group must win over the default Mirror whitelist style: tier=%d whitelist=%d", g3, whitelistMirror)
 	}
@@ -369,7 +370,7 @@ func TestStyleGroupsApplyAndMigrate(t *testing.T) {
 	}
 	// Defaults reproduce the built-in look exactly.
 	def, _ := DefaultConfig().Palette(GroupWhitelist, nil)
-	if *styleMax.with(def) != *styleMax {
+	if *styleKeep.with(def) != *styleKeep {
 		t.Fatal("default whitelist palette differs from built-in style")
 	}
 }
@@ -860,5 +861,79 @@ func TestDivineOrbCountsAsExactlyOneDivine(t *testing.T) {
 	}
 	if blockContaining(t, out, "ONE CHAOS", `"Chaos Orb"`) < 0 {
 		t.Error("Chaos Orb belongs to a 1-chaos tier even when listed a little below the rate")
+	}
+}
+
+// "Always show" means "never hide": a cheap entry is shown plainly, after the
+// valuable sections (so a valuable entry keeps their look) and before the
+// threshold hides; it neither beams nor plays a sound.
+func TestAlwaysShowListNeverHidesButDoesNotSpotlight(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Whitelist = []string{"Orb of Alchemy", "Mirror of Kalandra"}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+
+	keep := blockContaining(t, out, "Show", `"Orb of Alchemy"`, "SetBackgroundColor "+styleKeep.bg)
+	hide := blockContaining(t, out, "Hide", `"Orb of Alchemy"`)
+	if keep < 0 || (hide >= 0 && hide < keep) {
+		t.Fatalf("a cheap listed item must be shown before it is hidden (keep=%d hide=%d)\n%s", keep, hide, out)
+	}
+	blocks := strings.Split(out, "\n\n")
+	if strings.Contains(blocks[keep], "PlayEffect") || strings.Contains(blocks[keep], "PlayAlertSound") {
+		t.Fatalf("the always-show list must be plain:\n%s", blocks[keep])
+	}
+	valuable := blockContaining(t, out, "Show", `"Mirror of Kalandra"`)
+	if valuable < 0 || valuable > keep || strings.Contains(blocks[valuable], styleKeep.bg) {
+		t.Fatalf("a valuable listed item must keep its price style first (valuable=%d keep=%d)", valuable, keep)
+	}
+}
+
+func TestOldSpotlightLookIsResetOnce(t *testing.T) {
+	var c Config
+	if err := json.Unmarshal([]byte(`{"config_version": 2, "styles": {"whitelist": "ns:apex_stier", "unique": "neon_green"}, "sounds": {"whitelist": "6"}}`), &c); err != nil {
+		t.Fatal(err)
+	}
+	c.Normalize()
+	if _, ok := c.Styles[GroupWhitelist]; ok {
+		t.Fatal("old whitelist look kept")
+	}
+	if _, ok := c.Sounds[GroupWhitelist]; ok {
+		t.Fatal("old whitelist sound kept")
+	}
+	if c.Styles[GroupUnique] != "neon_green" || c.ConfigVersion != configVersion {
+		t.Fatalf("other looks must stay: %v v%d", c.Styles, c.ConfigVersion)
+	}
+	// A look chosen after the change is kept.
+	c.Styles[GroupWhitelist] = "neon_red"
+	c.Normalize()
+	if c.Styles[GroupWhitelist] != "neon_red" {
+		t.Fatal("a new whitelist look was reset")
+	}
+}
+
+// The scan servers price exceptional bases per item level range. Each range
+// gets its own rules, and items below the lowest range are left to NeverSink
+// instead of being shown as "not priced yet".
+func TestExceptionalPricesPerItemLevelRange(t *testing.T) {
+	cfg := DefaultConfig()
+	snap := testSnapshot()
+	snap.Exceptional = []prices.ExceptionalPrice{
+		{Base: "Knight Armour", Kind: prices.KindQuality, Min: 21, MinIlvl: 82, ValueEx: 300, Listings: 40, Samples: 8},
+		{Base: "Knight Armour", Kind: prices.KindQuality, Min: 21, MinIlvl: 79, MaxIlvl: 81, ValueEx: 2, Listings: 400, Samples: 8},
+	}
+	out, _ := GenerateDynamicFilterBlock(cfg, snap, testBases, nil)
+
+	show := blockContaining(t, out, "Show", `"Knight Armour"`, "Quality >= 21", "ItemLevel >= 82")
+	if show < 0 || strings.Contains(strings.Split(out, "\n\n")[show], "ItemLevel <=") {
+		t.Fatalf("82+ price not shown on its own:\n%s", out)
+	}
+	hide := blockContaining(t, out, "Hide", `"Knight Armour"`, "Quality >= 21", "ItemLevel >= 79", "ItemLevel <= 81")
+	if hide < 0 || hide < show {
+		t.Fatalf("cheap 79-81 range must be hidden after the 82+ show (show=%d hide=%d)", show, hide)
+	}
+	if blockContaining(t, out, "Hide", `"Knight Armour"`, "Quality >= 21", "ItemLevel >= 82") >= 0 {
+		t.Fatal("the 82+ range must not be hidden")
+	}
+	if blockContaining(t, out, "Show", "Sockets >= 2", "ItemLevel >= 79", `Class ==`) < 0 {
+		t.Fatalf("unpriced exceptional rules must start at the lowest priced item level:\n%s", out)
 	}
 }
