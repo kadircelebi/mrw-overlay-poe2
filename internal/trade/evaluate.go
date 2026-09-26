@@ -219,37 +219,46 @@ type evaluatedModLine struct {
 	} `json:"mods"`
 }
 
-// Evaluate runs one user-requested price search and fetches the first ten
-// listings. Search and fetch use the same conservative limiters as the scanner.
-func (c *Client) Evaluate(ctx context.Context, in EvaluateRequest) (Evaluation, error) {
+// search runs a request's query and returns GGG's search id and first result
+// ids, and the league it ran in. It spends one search of the quota.
+func (c *Client) search(ctx context.Context, in EvaluateRequest) (evaluateSearchResponse, string, error) {
 	query, err := buildEvaluateQuery(in)
 	if err != nil {
-		return Evaluation{}, err
+		return evaluateSearchResponse{}, "", err
 	}
 	league := strings.TrimSpace(in.League)
 	if league == "" {
 		league = c.league
 	}
-
 	sortKey, sortDir, err := evaluateSort(in)
 	if err != nil {
-		return Evaluation{}, err
+		return evaluateSearchResponse{}, "", err
 	}
 	body, err := json.Marshal(map[string]interface{}{
 		"query": query,
 		"sort":  map[string]string{sortKey: sortDir},
 	})
 	if err != nil {
-		return Evaluation{}, err
+		return evaluateSearchResponse{}, "", err
 	}
 	searchURL := fmt.Sprintf("%s/search/poe2/%s", apiBase, url.PathEscape(league))
 	req, err := http.NewRequest(http.MethodPost, searchURL, bytes.NewReader(body))
 	if err != nil {
-		return Evaluation{}, err
+		return evaluateSearchResponse{}, "", err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	var search evaluateSearchResponse
 	if err := c.do(ctx, c.Search, req, &search); err != nil {
+		return evaluateSearchResponse{}, "", err
+	}
+	return search, league, nil
+}
+
+// Evaluate runs one user-requested price search and fetches the first ten
+// listings. Search and fetch use the same conservative limiters as the scanner.
+func (c *Client) Evaluate(ctx context.Context, in EvaluateRequest) (Evaluation, error) {
+	search, league, err := c.search(ctx, in)
+	if err != nil {
 		return Evaluation{}, err
 	}
 	out := Evaluation{
@@ -303,6 +312,28 @@ func (c *Client) FetchEvaluated(ctx context.Context, searchID string, ids []stri
 	if err := c.do(ctx, c.Fetch, fetchReq, &fetched); err != nil {
 		return nil, err
 	}
+	return evaluatedListings(fetched), nil
+}
+
+// FetchLiveToken loads the listings a live search pushed. GGG sends a token
+// ({"result": "<token>", "count": N}) instead of listing ids; the trade site
+// fetches /fetch/<token> for them, with no query id.
+func (c *Client) FetchLiveToken(ctx context.Context, token string) ([]EvaluatedListing, error) {
+	if len(token) < 8 || len(token) > 8192 || !liveTokenRE.MatchString(token) {
+		return nil, fmt.Errorf("invalid live search token")
+	}
+	req, err := http.NewRequest(http.MethodGet, apiBase+"/fetch/"+token, nil)
+	if err != nil {
+		return nil, err
+	}
+	var fetched evaluatedFetchResponse
+	if err := c.do(ctx, c.Fetch, req, &fetched); err != nil {
+		return nil, err
+	}
+	return evaluatedListings(fetched), nil
+}
+
+func evaluatedListings(fetched evaluatedFetchResponse) []EvaluatedListing {
 	listings := []EvaluatedListing{}
 	for _, row := range fetched.Result {
 		if row.Listing.Price == nil {
@@ -319,6 +350,11 @@ func (c *Client) FetchEvaluated(ctx context.Context, searchID string, ids []stri
 		}
 		if entry.Item.BaseType == "" {
 			entry.Item.BaseType = row.Item.TypeLine
+		}
+		// A magic item's name is its whole type line ("Athlete's Sirenscale
+		// Gloves of Archaeology"), as the game shows it.
+		if strings.EqualFold(row.Item.Rarity, "magic") && row.Item.Name == "" && row.Item.TypeLine != entry.Item.BaseType {
+			entry.Item.Name = row.Item.TypeLine
 		}
 		for _, p := range row.Item.Properties {
 			name, value := formatTradeProperty(p.Name, p.Values)
@@ -355,11 +391,12 @@ func (c *Client) FetchEvaluated(ctx context.Context, searchID string, ids []stri
 		appendMods("enchant", row.Item.EnchantMods)
 		listings = append(listings, entry)
 	}
-	return listings, nil
+	return listings
 }
 
 var (
 	listingIDRE = regexp.MustCompile(`^[0-9a-f]{16,128}$`)
+	liveTokenRE = regexp.MustCompile(`^[A-Za-z0-9._\-]+$`)
 	// sortKeyRE admits the trade site's sort keys: plain names ("price",
 	// "pdps") and stat paths ("stat.explicit.stat_1509134228",
 	// "stat.pseudo.pseudo_total_life"). GGG rejects unknown keys itself.

@@ -7,6 +7,9 @@ export type ModChoice = {
   selected: boolean
   min?: number
   max?: number
+  // The modifier tier picked from the market's tier list, kept to tell apart
+  // tiers whose ranges touch; the list shows it only while min is its minimum.
+  tier?: string
 }
 
 // ItemToggles are the parts of the item title the user can click out of a
@@ -80,6 +83,12 @@ export function searchLabel(item: { rarity: string; name: string; baseType: stri
 
 export function categoryFor(itemClass: string): string {
   return categories[itemClass] ?? ''
+}
+
+// classForCategory is the item class a trade category searches ("armour.chest"
+// is Body Armours); '' for categories that span several classes.
+export function classForCategory(category: string): string {
+  return Object.entries(categories).find(([, id]) => id === category)?.[0] ?? ''
 }
 
 // modValue is the number the trade site compares for a modifier. "Adds X to Y

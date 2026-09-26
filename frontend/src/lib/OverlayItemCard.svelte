@@ -66,7 +66,7 @@
 </script>
 
 <article class="item-card" class:compact>
-  <div class="item-title" class:unique={item.rarity === 'unique'} class:rare={item.rarity === 'rare'}>
+  <div class="item-title" class:unique={item.rarity === 'unique'} class:rare={item.rarity === 'rare'} class:magic={item.rarity === 'magic'} class:normal={item.rarity === 'normal'}>
     {#if toggles}
       {#if item.name && item.rarity === 'unique'}
         <button type="button" class="title-toggle" class:off={!toggles.name} title={t('ov.includeToggle')} onclick={() => ontoggle('name')}><strong>{item.name}</strong></button>
@@ -191,7 +191,9 @@
   .mod-row.off .mod-copy { opacity:.5; }
   .item-title strong { font-size: 17px; }
   .item-title.unique { color:#d68d45; border-color:#7a4d22; }
-  .item-title.rare { color:#d7d08a; }
+  .item-title.rare { color:#ebe27a; }
+  .item-title.magic { color:#8f94ff; border-color:#3b3f78; }
+  .item-title.normal { color:#c8c8c8; }
   .item-meta { display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 10px 5px; color:var(--muted); font-size:11px; text-transform:uppercase; }
   .item-meta b { color:var(--text); }
   .item-class{padding:0 3px}.properties { display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; padding:3px 10px 8px; color:#8192b4; font-size:11px; border-bottom:1px solid #29251e; }

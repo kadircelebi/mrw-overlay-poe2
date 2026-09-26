@@ -127,6 +127,26 @@ export interface ImportResult {
 }
 
 /**
+ * LiveState is what the market lists for one live search. ID is the saved
+ * search it belongs to.
+ */
+export interface LiveState {
+    "id": string;
+    "name": string;
+    "status": string;
+    "error"?: string;
+    "searchId"?: string;
+    "tradeUrl"?: string;
+
+    /**
+     * Found counts the listings pushed since the search was started.
+     */
+    "found": number;
+    "startedAtMs"?: number;
+    "lastFoundMs"?: number;
+}
+
+/**
  * QuotaStatus explains the quota for diagnostics: how full each window is,
  * whether GGG restricted the IP, and what the next request would wait for.
  */

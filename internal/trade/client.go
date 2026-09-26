@@ -41,6 +41,12 @@ func (c *Client) SetSession(value string) {
 	c.sessionMu.Unlock()
 }
 
+func (c *Client) sessionValue() string {
+	c.sessionMu.RLock()
+	defer c.sessionMu.RUnlock()
+	return c.session
+}
+
 // SignedIn reports whether searches go out with a session.
 func (c *Client) SignedIn() bool {
 	c.sessionMu.RLock()

@@ -178,6 +178,13 @@ export interface Settings {
     "market_hotkey": string;
     "auto_scale": boolean;
     "ui_scale": number;
+
+    /**
+     * LiveSound is the game alert sound played when a live search finds a
+     * listing ("none" = silent); LiveNotify shows a Windows notification.
+     */
+    "live_sound": string;
+    "live_notify": boolean;
 }
 
 /**
@@ -199,6 +206,32 @@ export interface StatGroup {
     "id": string;
     "label": string;
     "entries": StatEntry[] | null;
+}
+
+/**
+ * Tier is one tier of a modifier family: T1 is the best, the one needing the
+ * highest item level. Min and Max are what the trade site compares ("Adds X to
+ * Y" by the average of the two).
+ */
+export interface Tier {
+    "tier": number;
+    "name": string;
+    "level": number;
+    "min": number;
+    "max": number;
+}
+
+/**
+ * TierTable is the tiers of one stat line of one modifier family on a base.
+ * A hybrid family rolls another stat too (With names it); its tiers are
+ * smaller than the plain family's, so the two are offered apart.
+ */
+export interface TierTable {
+    "stat": string;
+    "affix": string;
+    "hybrid": boolean;
+    "with"?: string;
+    "tiers": Tier[] | null;
 }
 
 export interface TradeFilter {

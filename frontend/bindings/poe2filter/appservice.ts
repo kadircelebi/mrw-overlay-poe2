@@ -72,6 +72,10 @@ export function ChromiumBrowsers(): $CancellablePromise<$models.ChromiumBrowser[
     return $Call.ByID(988412151);
 }
 
+export function ClearLiveResults(id: string): $CancellablePromise<trade$0.LiveState[] | null> {
+    return $Call.ByID(4277663785, id);
+}
+
 /**
  * ConnectBrowser starts (or restarts) a connection: a new code, the local
  * listener, and optionally the default browser on pathofexile.com.
@@ -269,6 +273,20 @@ export function ListSounds(): $CancellablePromise<string[] | null> {
 }
 
 /**
+ * LiveResults are a live search's found listings, newest first.
+ */
+export function LiveResults(id: string): $CancellablePromise<trade$0.EvaluatedListing[] | null> {
+    return $Call.ByID(1915515630, id);
+}
+
+/**
+ * LiveSearches lists the live searches started in this session.
+ */
+export function LiveSearches(): $CancellablePromise<trade$0.LiveState[] | null> {
+    return $Call.ByID(2009755176);
+}
+
+/**
  * MoveOverlaySearch puts a saved search into a folder ("" = top level).
  */
 export function MoveOverlaySearch(id: string, folder: string): $CancellablePromise<overlay$0.SearchLibrary> {
@@ -446,6 +464,14 @@ export function SearchItems(query: string): $CancellablePromise<insights$0.Searc
     return $Call.ByID(3116757694, query);
 }
 
+/**
+ * SetLiveAlerts changes how a live search announces a find, without touching
+ * the overlay's shortcuts.
+ */
+export function SetLiveAlerts(sound: string, notify: boolean): $CancellablePromise<overlay$0.Settings> {
+    return $Call.ByID(43895751, sound, notify);
+}
+
 export function ShowMarket(): $CancellablePromise<void> {
     return $Call.ByID(1587891371);
 }
@@ -460,6 +486,26 @@ export function ShowMarketWithQuery($in: trade$0.EvaluateRequest): $CancellableP
  */
 export function ShowSettings(section: string): $CancellablePromise<void> {
     return $Call.ByID(1323617618, section);
+}
+
+/**
+ * StartLiveSearch opens a live search for a saved search.
+ */
+export function StartLiveSearch(id: string): $CancellablePromise<trade$0.LiveState[] | null> {
+    return $Call.ByID(1516956964, id);
+}
+
+/**
+ * StatTiers returns the modifier tier tables of a base, or of an item class
+ * when the search names only a category. An empty list means none are known
+ * (the tiers could not be built yet, or the item rolls no tiered stats).
+ */
+export function StatTiers(baseType: string, itemClass: string): $CancellablePromise<overlay$0.TierTable[] | null> {
+    return $Call.ByID(500001301, baseType, itemClass);
+}
+
+export function StopLiveSearch(id: string): $CancellablePromise<trade$0.LiveState[] | null> {
+    return $Call.ByID(2361367652, id);
 }
 
 /**

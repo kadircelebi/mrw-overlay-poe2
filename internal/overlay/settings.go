@@ -20,13 +20,20 @@ type Settings struct {
 	MarketHotkey string `json:"market_hotkey"`
 	AutoScale    bool   `json:"auto_scale"`
 	UIScale      int    `json:"ui_scale"`
+	// LiveSound is the game alert sound played when a live search finds a
+	// listing ("none" = silent); LiveNotify shows a Windows notification.
+	LiveSound  string `json:"live_sound"`
+	LiveNotify bool   `json:"live_notify"`
 }
 
 // DefaultSettings leaves the overlay off: it registers a global shortcut and
 // sends keys to the game, so players opt in from Settings.
 func DefaultSettings() Settings {
-	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", AutoScale: true, UIScale: 100}
+	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true}
 }
+
+// DefaultLiveSound is a short chime distinct from the loot filter's drops.
+const DefaultLiveSound = "ShExalted"
 
 func (s *Settings) Normalize() {
 	s.Hotkey = strings.TrimSpace(s.Hotkey)
@@ -36,6 +43,10 @@ func (s *Settings) Normalize() {
 	s.MarketHotkey = strings.TrimSpace(s.MarketHotkey)
 	if s.MarketHotkey == "" {
 		s.MarketHotkey = "Alt+M"
+	}
+	s.LiveSound = strings.TrimSpace(s.LiveSound)
+	if s.LiveSound == "" {
+		s.LiveSound = DefaultLiveSound
 	}
 	if s.UIScale < 75 {
 		s.UIScale = 75

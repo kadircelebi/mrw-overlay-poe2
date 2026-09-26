@@ -20,5 +20,7 @@ export type {
     Snapshot,
     StatEntry,
     StatGroup,
+    Tier,
+    TierTable,
     TradeFilter
 } from "./models.js";

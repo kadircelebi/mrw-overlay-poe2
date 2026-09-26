@@ -2,13 +2,14 @@
   import { onMount } from 'svelte'
   import { Events } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter'
-  import type { Catalog, Item, ItemEntry, SavedSearch, SearchLibrary, Snapshot, StatEntry, TradeFilter } from '../bindings/poe2filter/internal/overlay/models'
+  import type { Catalog, Item, ItemEntry, SavedSearch, SearchLibrary, Snapshot, StatEntry, Tier, TierTable, TradeFilter } from '../bindings/poe2filter/internal/overlay/models'
   import type { EvaluateRequest, Evaluation, SelectedFilter, SelectedStat, SelectedStatGroup } from '../bindings/poe2filter/internal/trade/models'
   import TradeResults from './lib/TradeResults.svelte'
+  import LiveSearch from './lib/LiveSearch.svelte'
   import QuotaBadge from './lib/QuotaBadge.svelte'
   import { t } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
-  import { allOn, buildRequest, categoryFor, choicesFor, nextSort, searchLabel, searchedStats, statSortKey, type ModChoice, type SortOption, type SortState } from './lib/overlayQuery'
+  import { allOn, buildRequest, categoryFor, choicesFor, classForCategory, nextSort, searchLabel, searchedStats, statSortKey, type ModChoice, type SortOption, type SortState } from './lib/overlayQuery'
 
   type FilterState = { min?: number; max?: number; option?: string; input?: string }
   type StatGroupState = { key: number; type: string; min?: number; max?: number; choiceKeys: string[]; weights: Record<string, number | undefined> }
@@ -36,6 +37,8 @@
   let filters = $state<Record<string, FilterState>>({})
   let status = $state('securable')
   let showAdvanced = $state(true)
+  // The market's top tabs: the search itself or the live searches.
+  let mode = $state<'search' | 'live'>('search')
   let savedCollapsed = $state(false)
   let library = $state<SearchLibrary>({ folders: [], searches: [] })
   let saveName = $state('')
@@ -142,7 +145,11 @@
   const statSuggestions = $derived.by(() => {
     const q = statQuery.trim().toLocaleLowerCase()
     if (q.length < 2) return []
-    return statEntries.filter((entry) => entry.text.toLocaleLowerCase().includes(q)).slice(0, 24)
+    const hits = statEntries.filter((entry) => entry.text.toLocaleLowerCase().includes(q))
+    // With a known base, the modifiers it rolls come first; ones it cannot
+    // roll stay in the list, last and dimmed (the data can lag a new patch).
+    if (rollable.size) hits.sort((a, b) => rollRank(b.id) - rollRank(a.id))
+    return hits.slice(0, rollable.size ? 32 : 24)
   })
   const statGroupTypes = [
     ['and', 'And'], ['not', 'Not'], ['if', 'If'], ['count', 'Count'],
@@ -192,6 +199,110 @@
   }
 
   function groupNeedsMin(type: string) { return type === 'count' || type === 'weight' || type === 'weight2' }
+
+  // ---- Modifier tiers -----------------------------------------------------------
+  // The tier tables of the searched base, or of the chosen category's class.
+  // Picking a tier writes its minimum into min (max stays open: "T2" means T2
+  // or better); a min typed by hand shows the tier it falls in.
+  let tierTables = $state<TierTable[]>([])
+  let tierRequest = 0
+  const tierKey = $derived.by(() => {
+    const base = item?.baseType ?? ''
+    const category = filters[stateKey('type_filters', 'category')]?.option ?? ''
+    const itemClass = (category && classForCategory(category)) || item?.class || ''
+    return base || itemClass ? JSON.stringify([base, itemClass]) : ''
+  })
+  $effect(() => {
+    const key = tierKey
+    const request = ++tierRequest
+    if (!key) { tierTables = []; return }
+    const [base, itemClass] = JSON.parse(key) as [string, string]
+    AppService.StatTiers(base, itemClass)
+      .then((tables) => { if (request === tierRequest) tierTables = tables ?? [] })
+      .catch(() => { if (request === tierRequest) tierTables = [] })
+  })
+
+  // Only the rolled modifiers have tiers: not implicits, runes or pseudo sums.
+  const tieredTypes = new Set(['explicit', 'fractured', 'desecrated', 'sanctum'])
+  function statNumber(id: string) { return id.slice(id.indexOf('.') + 1) }
+
+  // A unique rolls its own modifiers, not its base's: no tiers, no marking.
+  const uniqueSearch = $derived(item?.rarity === 'unique' || filters[stateKey('type_filters', 'rarity')]?.option === 'unique')
+  const rollable = $derived(uniqueSearch ? new Set<string>() : new Set(tierTables.map((table) => statNumber(table.stat))))
+
+  // 1: the base rolls this modifier; 0: not a rolled modifier (implicit,
+  // pseudo, rune…) or nothing known; -1: a modifier the base does not roll.
+  function rollRank(id: string, alt: string[] = []): number {
+    if (!rollable.size || !id || !tieredTypes.has(id.slice(0, id.indexOf('.')))) return 0
+    return [id, ...alt].some((x) => rollable.has(statNumber(x))) ? 1 : -1
+  }
+
+  // Only stats added by hand are flagged: the copied item's own lines rolled
+  // on it, whatever the data says.
+  function cannotRoll(choice: ModChoice) {
+    return !choice.mod.key.startsWith('mod-') && rollRank(choice.mod.statId, choice.mod.altStatIds ?? []) < 0
+  }
+
+  function tablesFor(choice: ModChoice): TierTable[] {
+    const id = choice.mod.statId
+    if (!id || uniqueSearch || !tieredTypes.has(id.slice(0, id.indexOf('.')))) return []
+    const ids = new Set([id, ...(choice.mod.altStatIds ?? [])].map(statNumber))
+    // Plain families first; a hybrid's tiers are smaller and listed apart.
+    return tierTables.filter((table) => ids.has(statNumber(table.stat)) && table.tiers?.length)
+      .sort((a, b) => Number(a.hybrid) - Number(b.hybrid) || a.affix.localeCompare(b.affix))
+  }
+
+  function tierId(table: TierTable, tier: Tier) { return `${table.stat}|${table.with ?? ''}|${tier.tier}` }
+
+  // The tier the current min falls in: the one picked if min is still inside
+  // it, else the first plain table's. '' when min is empty or fits no tier.
+  function tierPick(choice: ModChoice, tables: TierTable[]): string {
+    const min = choice.min
+    if (min === undefined || min === null || !Number.isFinite(min)) return ''
+    let first = ''
+    for (const [ti, table] of tables.entries()) {
+      for (const tier of table.tiers ?? []) {
+        if (min < tier.min || min > tier.max) continue
+        const value = `${ti}:${tier.tier}`
+        if (choice.tier === tierId(table, tier)) return value
+        if (!first) first = value
+      }
+    }
+    return first
+  }
+
+  function tierLabel(tables: TierTable[], pick: string) {
+    const [ti, tier] = pick.split(':').map(Number)
+    return tables[ti]?.hybrid ? `T${tier}*` : `T${tier}`
+  }
+
+  function chooseTier(choice: ModChoice, tables: TierTable[], value: string) {
+    if (!value) {
+      choice.tier = undefined
+      choice.min = undefined
+    } else {
+      const [ti, n] = value.split(':').map(Number)
+      const table = tables[ti]
+      const tier = table?.tiers?.find((row) => row.tier === n)
+      if (!table || !tier) return
+      choice.tier = tierId(table, tier)
+      choice.min = tier.min
+    }
+    markDirty()
+  }
+
+  function tierGroupLabel(table: TierTable) {
+    const affix = table.affix === 'prefix' ? 'Prefix' : 'Suffix'
+    return table.hybrid ? `${affix} · ${t('mk.tierHybrid', table.with ?? '')}` : affix
+  }
+
+  function formatTierValue(v: number) { return Number.isInteger(v) ? String(v) : v.toFixed(1).replace(/\.0$/, '') }
+
+  // The item's own affix is marked (●) when it came from the game.
+  function tierOption(choice: ModChoice, tier: Tier) {
+    const own = !!choice.mod.name && choice.mod.name === tier.name ? '● ' : ''
+    return `${own}T${tier.tier}   ${formatTierValue(tier.min)}–${formatTierValue(tier.max)}   ilvl ${tier.level}`
+  }
 
   // Rarity alone does not narrow a search; anything else the user filled does.
   const canSearch = $derived.by(() => {
@@ -530,6 +641,7 @@
   }
 
   function loadSaved(saved: SavedSearch) {
+    mode = 'search'
     openInTab('saved:' + saved.id, () => fillSaved(saved))
   }
 
@@ -597,7 +709,7 @@
     <button title={t('mk.toggleFilters')} onclick={() => (showAdvanced = !showAdvanced)}>⌁</button>
     <button title={t('window.close')} onclick={() => AppService.HideMarket()}>×</button>
   </header>
-  <div class="workspace" class:no-advanced={!showAdvanced} class:saved-collapsed={savedCollapsed}>
+  <div class="workspace" class:no-advanced={!showAdvanced || mode === 'live'} class:saved-collapsed={savedCollapsed}>
     <aside class="saved-pane" class:collapsed={savedCollapsed}>
       <button class="saved-toggle" title={savedCollapsed ? t('mk.openSaved') : t('mk.closeSaved')} onclick={() => (savedCollapsed = !savedCollapsed)}>{savedCollapsed ? '›' : '‹'}</button>
       {#if !savedCollapsed}
@@ -651,8 +763,17 @@
         </div>
       {/if}
     </aside>
+    {#snippet modeTabs()}
+      <div class="tabs"><button class:on={mode === 'search'} onclick={() => (mode = 'search')}>{t('mk.tab.search')}</button><button disabled>{t('mk.tab.exchange')}</button><button class:on={mode === 'live'} onclick={() => (mode = 'live')}>{t('mk.tab.live')}</button></div>
+    {/snippet}
+    {#if mode === 'live'}
+      <section class="live-pane">
+        {@render modeTabs()}
+        <LiveSearch {library} />
+      </section>
+    {:else}
     <section class="search-pane">
-      <div class="tabs"><button class="on">{t('mk.tab.search')}</button><button disabled>{t('mk.tab.exchange')}</button><button disabled>{t('mk.tab.live')}</button></div>
+      {@render modeTabs()}
       <div class="search-tabs">
         {#each tabs as tab (tab.id)}
           <div class="search-tab" class:on={tab.id === activeTab} class:busy={searchingTab === tab.id}>
@@ -695,11 +816,31 @@
                 {#each statGroup.choiceKeys as choiceKey (choiceKey)}
                   {@const choice = choiceForKey(choiceKey)}
                   {#if choice}
-                    <div class="stat-choice" class:off={!choice.selected}>
+                    <div class="stat-choice" class:off={!choice.selected} class:cannot={cannotRoll(choice)}>
                       <label><input type="checkbox" bind:checked={choice.selected} onchange={markDirty} /><i></i><span>{choice.mod.text}</span></label>
                       {#if statGroup.type === 'weight' || statGroup.type === 'weight2'}
+                        <span></span>
                         <span class="weight"><input type="number" value={statGroup.weights[choiceKey] ?? 1} oninput={(event) => setWeight(statGroup.key, choiceKey, event.currentTarget.value)} placeholder="weight" /></span>
                       {:else}
+                        {@const tables = tablesFor(choice)}
+                        {#if tables.length}
+                          {@const pick = tierPick(choice, tables)}
+                          <span class="tier-pick" class:set={!!pick} title={t('mk.tierTitle')}>
+                            <b>{pick ? tierLabel(tables, pick) : t('mk.tier')}</b><i>▾</i>
+                            <select value={pick} onchange={(event) => chooseTier(choice, tables, event.currentTarget.value)}>
+                              <option value="">{t('mk.tierNone')}</option>
+                              {#each tables as table, ti}
+                                <optgroup label={tierGroupLabel(table)}>
+                                  {#each table.tiers ?? [] as tier}<option value={`${ti}:${tier.tier}`}>{tierOption(choice, tier)}</option>{/each}
+                                </optgroup>
+                              {/each}
+                            </select>
+                          </span>
+                        {:else if cannotRoll(choice)}
+                          <span class="tier-miss" title={t('mk.notOnBase')}>⚠</span>
+                        {:else}
+                          <span></span>
+                        {/if}
                         <span class="minmax"><input type="number" bind:value={choice.min} oninput={markDirty} placeholder="min" /><input type="number" bind:value={choice.max} oninput={markDirty} placeholder="max" /></span>
                       {/if}
                       <button class="stat-sort" class:on={sort.key === statSortKey(choice.mod.statId)} disabled={!choice.selected || !choice.mod.statId || !!searchingTab} title={t('mk.sortByStat')} onclick={() => setSort(statSortKey(choice.mod.statId))}>{sort.key === statSortKey(choice.mod.statId) ? (sort.dir === 'asc' ? '▲' : '▼') : '⇅'}</button>
@@ -713,7 +854,7 @@
               <input bind:value={statQuery} onfocus={() => (showStatSuggestions = true)} oninput={() => (showStatSuggestions = true)} placeholder={t('mk.addStat')} spellcheck="false" />
               {#if showStatSuggestions && statSuggestions.length}
                 <div class="stat-suggestions">
-                  {#each statSuggestions as stat}<button onclick={() => addStat(stat)}><small>{stat.type}</small><span>{stat.text}</span></button>{/each}
+                  {#each statSuggestions as stat}<button class:unlikely={rollRank(stat.id) < 0} title={rollRank(stat.id) < 0 ? t('mk.notOnBaseHint') : undefined} onclick={() => addStat(stat)}><small>{stat.type}</small><span>{stat.text}</span></button>{/each}
                 </div>
               {/if}
             </div>
@@ -753,6 +894,7 @@
         </div>
       </aside>
     {/if}
+    {/if}
   </div>
 </main>
 
@@ -763,8 +905,14 @@
   .saved-pane{position:relative;min-width:0;overflow:hidden;border-right:1px solid #3a392f;background:#11130f}.saved-pane.collapsed{background:#20221d}.saved-toggle{position:absolute;z-index:3;top:7px;right:4px;width:19px;height:22px;border:1px solid #45443a;background:#24261f;color:#b8ae91}.saved-title{height:36px;display:flex;align-items:center;padding:0 26px 0 8px;border-bottom:1px solid #38382f;color:#d6ccb0;font-family:var(--serif);font-size:10px}.save-box{display:grid;gap:5px;padding:7px}.save-box input{min-width:0;width:100%;padding:6px;border:1px solid #414139;background:#171916;color:#ccc6b2;font-size:9px}.save-box button{padding:6px;border:1px solid #665b40;background:#20221d;color:var(--gold-bright);font-size:9px}.save-box button:disabled{opacity:.4}.save-error{margin:0 7px 7px;color:#df8179;font-size:8px}.saved-list{height:calc(100% - 98px);overflow:auto;padding:3px 5px 8px}.saved-row{position:relative;display:grid;grid-template-columns:1fr 17px;width:100%;margin-bottom:4px;border:1px solid #30322b;background:#191b17}.saved-row:hover{border-color:#756847;background:#23251e}.saved-load{min-width:0;display:grid;grid-template-columns:12px 1fr;gap:2px 3px;padding:6px 3px 6px 5px;border:0;background:none;text-align:left}.saved-load>span{grid-row:1/3;color:#9f9067}.saved-load b{overflow:hidden;text-overflow:ellipsis;color:#d2c8aa;font-size:8px;white-space:nowrap}.saved-load i{overflow:hidden;text-overflow:ellipsis;color:#737a78;font-size:7px;font-style:normal;white-space:nowrap}.saved-delete{padding:0;border:0;border-left:1px solid #2f302a;background:none;color:#817a69;font-size:13px}.saved-delete:hover{color:#df8179}
   .search-pane{position:relative;min-width:0;padding:8px;overflow:auto;border-right:1px solid #37372f}.tabs{display:grid;grid-template-columns:repeat(3,1fr);margin:-8px -8px 8px}.tabs button{padding:8px 3px;border:0;border-bottom:1px solid #34362f;background:#171917;color:#898d85;font-size:9px}.tabs button.on{color:var(--gold-bright);border-bottom:2px solid var(--gold);background:#20221e}.item-search{position:relative;display:grid;grid-template-columns:1fr 34px;gap:5px;margin-bottom:7px}.item-search>input{min-width:0;padding:7px;border:1px solid #46463d;background:#111311;font-size:10px}.item-search>button{border:1px solid #5b543f;background:#20221e;color:var(--gold-bright);font-size:17px}.suggestions,.stat-suggestions{position:absolute;z-index:20;top:100%;left:0;right:39px;max-height:260px;overflow:auto;border:1px solid #555042;background:#111310;box-shadow:0 10px 30px #000}.suggestions button,.stat-suggestions button{display:flex;width:100%;justify-content:space-between;gap:8px;padding:7px;border:0;border-bottom:1px solid #282a25;background:transparent;text-align:left;font-size:9px}.suggestions button:hover,.stat-suggestions button:hover{background:#25271f}.suggestions span{color:var(--muted)}.search-button{position:sticky;bottom:0;width:100%;margin-top:7px;padding:8px;border:1px solid #8c7b50;background:#171917;color:var(--gold-bright);font-family:var(--serif);font-size:10px;font-weight:bold}.search-button:hover{background:#25261f}.search-button:disabled{opacity:.5}
   .advanced{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#171914}.advanced-title{display:flex;flex:0 0 auto;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #48483c;background:#2b2d27;color:#d8cfb1;font-family:var(--serif);font-size:10px}.advanced-title button{border:0;background:none;color:#999}.advanced-scroll{min-height:0;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:7px}.filter-group{border:1px solid #33352f;margin-bottom:7px;background:#11130f}.filter-group h2{margin:0 0 6px;padding:7px 8px;background:#30322c;color:#ddd4b5;font-family:var(--serif);font-size:10px}.filter-row,.status-line{display:grid;grid-template-columns:minmax(90px,.85fr) minmax(112px,1.15fr);align-items:center;gap:6px;padding:4px 8px;color:#d0c7a9}.filter-row>span:first-child{font-size:9px}.filter-row input,.filter-row select,.status-line select,.stat-add input{min-width:0;width:100%;padding:6px;border:1px solid #414139;border-radius:2px;background:#20221d;color:#ccc6b2;font-size:9px}.minmax{display:grid;grid-template-columns:1fr 1fr;gap:5px}.stat-add{position:relative;margin:7px 8px 9px}.stat-suggestions{right:0;max-height:320px}.stat-suggestions button{justify-content:flex-start}.stat-suggestions small{flex:0 0 52px;color:#77a070;text-transform:uppercase}.stat-suggestions span{color:#c3bda8}
-  .stat-group{margin:7px 8px;border:1px solid #34362f;background:#0d0f0d}.stat-group-head{display:grid;grid-template-columns:minmax(72px,105px) minmax(90px,120px) 1fr 22px;gap:5px;align-items:center;padding:5px;border-bottom:1px solid #303229}.stat-group-head select,.stat-group-head input{min-width:0;width:100%;padding:5px;border:1px solid #504b3c;background:#20221d;color:#d7cfb5;font-size:9px}.stat-group-head>span{color:#6f9c6c;font-size:8px;font-weight:bold}.stat-group-head button,.stat-choice>button{border:0;background:none;color:#9b9380;font-size:14px}.stat-group-head button:disabled{opacity:.25}.stat-choice{display:grid;grid-template-columns:minmax(0,1fr) 94px 18px 20px;gap:5px;align-items:center;padding:5px;border-top:1px solid #23251f}.stat-choice.off{opacity:.5}.stat-choice>button.stat-sort{padding:0;font-size:11px;color:#6f6a5a}.stat-choice>button.stat-sort:hover:not(:disabled){color:var(--gold-bright)}.stat-choice>button.stat-sort.on{color:var(--gold-bright)}.stat-choice>button.stat-sort:disabled{opacity:.3}.stat-choice>label{display:flex;gap:6px;align-items:flex-start;min-width:0;color:#aeb9d5;font-size:9px}.stat-choice>label input{position:absolute;opacity:0}.stat-choice>label i{flex:0 0 10px;width:10px;height:10px;margin-top:2px;transform:rotate(45deg);border:1px solid var(--gold-dim)}.stat-choice>label input:checked+i{background:var(--gold);box-shadow:inset 0 0 0 3px #17191b}.stat-choice>label span{overflow-wrap:anywhere}.stat-choice .minmax input,.stat-choice .weight input{min-width:0;width:100%;padding:4px;border:1px solid #3d3a31;background:#111313;color:var(--gold-bright)}.add-group{display:block;margin:0 8px 8px auto;padding:6px 8px;border:1px solid #716342;background:#191b17;color:var(--gold-bright);font-family:var(--serif);font-size:9px}
+  .stat-group{margin:7px 8px;border:1px solid #34362f;background:#0d0f0d}.stat-group-head{display:grid;grid-template-columns:minmax(72px,105px) minmax(90px,120px) 1fr 22px;gap:5px;align-items:center;padding:5px;border-bottom:1px solid #303229}.stat-group-head select,.stat-group-head input{min-width:0;width:100%;padding:5px;border:1px solid #504b3c;background:#20221d;color:#d7cfb5;font-size:9px}.stat-group-head>span{color:#6f9c6c;font-size:8px;font-weight:bold}.stat-group-head button,.stat-choice>button{border:0;background:none;color:#9b9380;font-size:14px}.stat-group-head button:disabled{opacity:.25}.stat-choice{display:grid;grid-template-columns:minmax(0,1fr) 42px 94px 18px 20px;gap:5px;align-items:center;padding:5px;border-top:1px solid #23251f}.stat-choice.off{opacity:.5}.stat-choice>button.stat-sort{padding:0;font-size:11px;color:#6f6a5a}.stat-choice>button.stat-sort:hover:not(:disabled){color:var(--gold-bright)}.stat-choice>button.stat-sort.on{color:var(--gold-bright)}.stat-choice>button.stat-sort:disabled{opacity:.3}.stat-choice>label{display:flex;gap:6px;align-items:flex-start;min-width:0;color:#aeb9d5;font-size:9px}.stat-choice>label input{position:absolute;opacity:0}.stat-choice>label i{flex:0 0 10px;width:10px;height:10px;margin-top:2px;transform:rotate(45deg);border:1px solid var(--gold-dim)}.stat-choice>label input:checked+i{background:var(--gold);box-shadow:inset 0 0 0 3px #17191b}.stat-choice>label span{overflow-wrap:anywhere}.stat-choice .minmax input,.stat-choice .weight input{min-width:0;width:100%;padding:4px;border:1px solid #3d3a31;background:#111313;color:var(--gold-bright)}.add-group{display:block;margin:0 8px 8px auto;padding:6px 8px;border:1px solid #716342;background:#191b17;color:var(--gold-bright);font-family:var(--serif);font-size:9px}
+  /* Tier list: a native select laid invisibly over a short label, so the row
+     shows "T2" while the open list shows every tier with its range. */
+  .tier-pick{position:relative;display:flex;align-items:center;justify-content:space-between;height:100%;min-height:22px;padding:0 4px;border:1px solid #3d3a31;background:#111313;color:#6f6a5a;font-size:9px}.tier-pick.set{border-color:#6d5f3e;color:var(--gold-bright)}.tier-pick b{font-weight:bold}.tier-pick i{font-style:normal;font-size:8px;opacity:.7}.tier-pick:hover{border-color:var(--gold-dim)}.tier-pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+  .tier-miss{display:flex;align-items:center;justify-content:center;color:#d9924a;font-size:12px;cursor:help}.stat-choice.cannot>label span{color:#c9a27a}
+  .stat-suggestions button.unlikely{opacity:.45}.stat-suggestions button.unlikely:hover{opacity:.8}
   .group-range{display:grid;grid-template-columns:1fr 1fr;gap:3px}.filter-controls{display:grid;gap:4px}
+  .live-pane{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}.live-pane>.tabs{margin:0}
   .new-search{display:block;width:100%;margin-bottom:7px;padding:6px;border:1px solid #5b543f;background:#191b17;color:var(--gold-bright);font-family:var(--serif);font-size:9px}.new-search:hover{background:#25261f}
   /* Saved searches with folders; the pane is wide enough to read the names. */
   .saved-load b{font-size:10px}.saved-load i{font-size:9px}.loose p,.folder-body p{padding:4px 3px;margin:0;color:#6f746f;font-size:9px}.loose p.hint{margin-top:6px;font-size:8.5px;line-height:1.35}

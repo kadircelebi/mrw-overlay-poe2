@@ -79,6 +79,12 @@ type AppService struct {
 	overlaySettings     overlay.Settings
 	overlaySettingsPath string
 	overlayCatalog      *overlay.CatalogStore
+	overlayTiers        *overlay.TierStore
+	live                *trade.LiveManager
+	liveAlert           liveAlerts
+	// notify shows a Windows notification (set by main); a later one with
+	// the same id replaces it.
+	notify func(id, title, body string)
 	overlaySearches     *overlay.SearchStore
 	overlayClient       *trade.Client
 	overlayEvalMu       sync.Mutex
@@ -118,6 +124,8 @@ func newAppService(meta Meta) *AppService {
 	// Only the overlay's user-started searches go out signed in; the
 	// background exceptional scanner stays anonymous.
 	svc.overlayClient.SetSession(sessions.Load())
+	svc.overlayTiers = overlay.NewTierStore(meta.DataDir, svc.overlayCatalog.Load)
+	svc.live = newLiveManager(svc)
 	return svc
 }
 
@@ -136,7 +144,16 @@ func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOp
 		s.eng.Start()
 		s.applyOverlayScale()
 		go s.pump()
-		go func() { _, _ = s.overlayCatalog.Load(ctx) }()
+		go func() {
+			_, _ = s.overlayCatalog.Load(ctx)
+			// Modifier tiers are only for the market; build them ahead of it.
+			s.overlayMu.RLock()
+			enabled := s.overlaySettings.Enabled
+			s.overlayMu.RUnlock()
+			if enabled {
+				_, _ = s.overlayTiers.Load(ctx)
+			}
+		}()
 		go s.refreshBrowserExtension()
 		if s.updater != nil {
 			var updateCtx context.Context
@@ -160,6 +177,7 @@ func (s *AppService) ServiceShutdown() error {
 	if s.updateCancel != nil {
 		s.updateCancel()
 	}
+	s.live.StopAll()
 	s.eng.Stop()
 	return nil
 }

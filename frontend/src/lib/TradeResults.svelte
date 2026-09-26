@@ -155,10 +155,12 @@
 </script>
 
 {#snippet itemPreview(row: EvaluatedListing)}
+  {@const rarity = (row.item.rarity ?? '').toLowerCase()}
   <div class="preview" class:full={expanded}>
-    <div class="preview-title">
+    <div class="preview-title rarity-{rarity}">
       {#if row.item.icon}<img src={row.item.icon} alt="" />{/if}
-      <div><strong>{row.item.name || row.item.baseType}</strong>{#if row.item.name}<span>{row.item.baseType}</span>{/if}</div>
+      <!-- A magic item has one title line, its full name, as in the game. -->
+      <div><strong>{row.item.name || row.item.baseType}</strong>{#if row.item.name && rarity !== 'magic'}<span>{row.item.baseType}</span>{/if}</div>
     </div>
     <div class="item-meta">
       {#if row.item.rarity}<span>Rarity <b>{row.item.rarity}</b></span>{/if}
@@ -184,16 +186,21 @@
     <div class="preview-mods">
       {#each affixGroups(row.item.mods ?? []) as group (group.key)}
         <div class="affix" class:type-implicit={group.type === 'implicit'} class:type-fractured={group.type === 'fractured'} class:type-crafted={group.type === 'crafted'} class:type-desecrated={group.type === 'desecrated'} class:type-rune={group.type === 'rune'}>
-          {#if group.tier || group.name}<small>{group.tier} {group.name}</small>{/if}
-          {#each group.lines as line}
+          {#each group.lines as line, i}
             {@const key = onsort && line.mod.statId ? statSortKey(line.mod.statId) : ''}
-            <p class:searched={!!line.mod.statId && searchedSet.has(line.mod.statId)} title={line.mod.parts?.length ? t('ov.summedAffix', line.mod.description) : undefined}>
-              {#if key}
-                <button type="button" class="mod-sort" class:on={sort?.key === key} title={t('ov.sortByAffix')} onclick={() => onsort?.(key, line.mod.description)}>{line.text} <i>{arrow(key) || '⇅'}</i></button>
-              {:else}
-                {line.text}
-              {/if}
-            </p>
+            <!-- Only the tier sits at the line's left edge (P1/S1, like the trade
+                 site); the affix name moved to its tooltip to save a row. -->
+            <div class="affix-line">
+              <small class="tier" class:prefix={group.tier.startsWith('P')} class:suffix={group.tier.startsWith('S')} title={group.name || undefined}>{i === 0 ? group.tier || (group.name ? '•' : '') : ''}</small>
+              <p class:searched={!!line.mod.statId && searchedSet.has(line.mod.statId)} title={line.mod.parts?.length ? t('ov.summedAffix', line.mod.description) : undefined}>
+                {#if key}
+                  <button type="button" class="mod-sort" class:on={sort?.key === key} title={t('ov.sortByAffix')} onclick={() => onsort?.(key, line.mod.description)}>{line.text} <i>{arrow(key) || '⇅'}</i></button>
+                {:else}
+                  {line.text}
+                {/if}
+              </p>
+              <span></span>
+            </div>
           {/each}
         </div>
       {/each}
@@ -321,15 +328,26 @@
   .preview-title strong,.preview-title span { display:block; }
   .preview.full .preview-title strong { color:#e2bd66; font-size:16px; letter-spacing:.035em; }
   .preview.full .preview-title span { color:#c88a42; }
+  /* Title colours by rarity, after the game's item headers. */
+  .preview .preview-title.rarity-normal strong,.preview .preview-title.rarity-normal span { color:#c8c8c8; }
+  .preview .preview-title.rarity-magic strong,.preview .preview-title.rarity-magic span { color:#8f94ff; }
+  .preview .preview-title.rarity-rare strong,.preview .preview-title.rarity-rare span { color:#ebe27a; }
+  .preview .preview-title.rarity-unique strong,.preview .preview-title.rarity-unique span { color:#d68d45; }
   .item-meta { display:flex; justify-content:center; gap:14px; margin:7px 0 3px; color:var(--muted); font-size:9px; text-transform:uppercase; }
   .item-meta b { color:#d7d2c0; }
   .preview-props { display:flex; flex-direction:column; align-items:center; gap:1px; color:#8493b9; font-size:10px; margin:6px 0; text-align:center; }
   .preview-mods { padding-top:3px; }
   .preview p { margin:4px 0; color:#9aa8d2; font-size:11px; white-space:pre-line; }
   .preview p.searched { background:linear-gradient(90deg,transparent,rgba(122,138,214,.16) 18%,rgba(122,138,214,.16) 82%,transparent); }
-  .preview .affix { margin:4px 0; }
-  .preview .affix p { margin:0; }
-  .preview .affix small { display:block; color:#9d76b6; text-transform:uppercase; font-size:9px; }
+  .preview .affix { margin:2px 0; }
+  .preview .affix p { margin:0; line-height:16px; }
+  /* Tier column left, an equal empty column right so the text stays centred. */
+  /* The tier sits on the first line of its text: a wrapped line's button
+     would otherwise pull a baseline-aligned label down to its last line. */
+  .preview .affix-line { display:grid; grid-template-columns:24px 1fr 24px; align-items:start; gap:4px; }
+  .preview .affix .tier { text-align:left; color:#9d76b6; font-size:9.5px; line-height:16px; font-weight:bold; cursor:default; }
+  .preview .affix .tier.prefix { color:#d0675c; }
+  .preview .affix .tier.suffix { color:#6f9bd6; }
   .preview .type-implicit p { color:#7188c4; }
   .preview .type-fractured p { color:#9ed0d8; }
   .preview .type-crafted p { color:#9d76b6; }

@@ -24,7 +24,7 @@ import (
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
-var version = "2.3.0"
+var version = "2.4.0"
 
 //go:embed all:frontend/dist
 var frontend embed.FS
@@ -92,6 +92,9 @@ func main() {
 		Disabled:       *outPath != "",
 		OnChange:       svc.appUpdateChanged,
 	})
+	svc.notify = func(id, title, body string) {
+		_ = notifier.SendNotification(notifications.NotificationOptions{ID: id, Title: title, Body: body})
+	}
 	svc.notifyAppUpdate = func(version string) {
 		_ = notifier.SendNotification(notifications.NotificationOptions{
 			ID: "application-update", Title: i18n.T("notify.appUpdateTitle"), Body: i18n.T("notify.appUpdateBody", version),

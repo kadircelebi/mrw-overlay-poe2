@@ -203,6 +203,7 @@ func (s *AppService) CancelBrowserConnect() BrowserLinkStatus {
 // DisconnectBrowser forgets the stored session; searches go out anonymous.
 func (s *AppService) DisconnectBrowser() (BrowserLinkStatus, error) {
 	s.overlayClient.SetSession("")
+	s.live.StopAll()
 	err := s.session.Clear()
 	s.link.mu.Lock()
 	s.link.state = LinkIdle

@@ -95,6 +95,17 @@ func (s *AppService) UniqueIcons() map[string]string {
 	return out
 }
 
+// StatTiers returns the modifier tier tables of a base, or of an item class
+// when the search names only a category. An empty list means none are known
+// (the tiers could not be built yet, or the item rolls no tiered stats).
+func (s *AppService) StatTiers(baseType, itemClass string) ([]overlay.TierTable, error) {
+	data, err := s.overlayTiers.Load(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return data.For(baseType, itemClass), nil
+}
+
 func (s *AppService) RefreshTradeCatalog() (overlay.Catalog, error) {
 	return s.overlayCatalog.Refresh(context.Background())
 }
@@ -120,6 +131,7 @@ func (s *AppService) SaveOverlaySearch(name, folder string, query trade.Evaluate
 }
 
 func (s *AppService) DeleteOverlaySearch(id string) (overlay.SearchLibrary, error) {
+	s.live.Forget(id)
 	return s.overlaySearches.Delete(id)
 }
 
