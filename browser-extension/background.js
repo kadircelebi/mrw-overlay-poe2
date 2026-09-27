@@ -1,4 +1,4 @@
-// Hands the pathofexile.com session to the MrW POE2 Filter app, and only
+// Hands the pathofexile.com session to the MrW Overlay app, and only
 // when the app asked for it: the app opens pathofexile.com with a one-time
 // link code, and only a request carrying that code is accepted by the app.
 // The session goes to this computer (127.0.0.1) and nowhere else.

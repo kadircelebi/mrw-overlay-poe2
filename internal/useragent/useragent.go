@@ -10,7 +10,7 @@ const Contact = "https://github.com/kadircelebi/poe2-filtre"
 
 var (
 	mu    sync.RWMutex
-	value = build("MrW-POE2-Filter", "dev")
+	value = build("MrW-Overlay", "dev")
 )
 
 func build(product, version string) string {

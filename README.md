@@ -1,4 +1,6 @@
-# MrW POE2 Filter
+<p align="center"><img src="docs/logo.png" alt="MrW Overlay for POE 2" width="360"></p>
+
+# MrW Overlay for POE 2
 
 Sistem tepsisinde çalışan, NeverSink'in Path of Exile 2 loot filtresini **canlı piyasa fiyatlarıyla** güncelleyen masaüstü uygulaması (Wails v3 + Svelte).
 
@@ -163,7 +165,7 @@ Elle derlemek için:
 wails3 build          # bin/poe2filter.exe
 wails3 dev            # canlı geliştirme
 go test ./internal/...
-go run ./cmd/genicon  # simgeleri yeniden çiz
+python build/art/make_icons.py  # simgeleri logodan yeniden üret (Pillow gerekir)
 ```
 
 ## Parametreler

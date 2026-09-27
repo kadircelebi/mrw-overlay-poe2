@@ -174,6 +174,8 @@ var en = map[string]string{
 	"live.err.quota":                  "Trade search limit reached; retrying shortly",
 	"live.err.query":                  "GGG rejected this search; open it in the Search tab and check its filters",
 	"live.err.network":                "Connection lost (%v); reconnecting",
+	"live.err.busy":                   "GGG is not accepting live searches right now; trying again in %s",
+	"live.err.dropped":                "Connection lost; reconnecting in %s",
 	"live.err.missing":                "This saved search no longer exists",
 	"live.notifyTitle":                "Live search: %s",
 	"live.notifyOne":                  "%s — %s",

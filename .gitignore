@@ -17,3 +17,9 @@ build/android/gen/
 
 # Oturum devri notları (kişisel, yayınlanmaz)
 CLAUDE.md
+
+# store packages built by cmd/packext
+/dist/
+
+# website code: kept out of the public repo
+/site/

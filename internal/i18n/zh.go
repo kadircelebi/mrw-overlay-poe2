@@ -161,6 +161,8 @@ var zh = map[string]string{
 	"live.err.quota":                  "已達交易搜尋上限；稍後將重試",
 	"live.err.query":                  "GGG 拒絕了此搜尋；請在搜尋分頁開啟並檢查篩選條件",
 	"live.err.network":                "連線中斷（%v）；正在重新連線",
+	"live.err.busy":                   "GGG 目前不接受即時搜尋；將於 %s 後重試",
+	"live.err.dropped":                "連線中斷；將於 %s 後重新連線",
 	"live.err.missing":                "此已儲存的搜尋已不存在",
 	"live.notifyTitle":                "即時搜尋：%s",
 	"live.notifyOne":                  "%s — %s",

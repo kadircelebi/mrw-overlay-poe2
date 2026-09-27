@@ -6,9 +6,9 @@ import (
 )
 
 func TestValueNamesVersionAndContact(t *testing.T) {
-	Set("MrW-POE2-Filter", "2.6.0")
+	Set("MrW-Overlay", "2.6.0")
 	got := Value()
-	if !strings.HasPrefix(got, "MrW-POE2-Filter/2.6.0 ") || !strings.Contains(got, "contact: "+Contact) {
+	if !strings.HasPrefix(got, "MrW-Overlay/2.6.0 ") || !strings.Contains(got, "contact: "+Contact) {
 		t.Fatalf("User-Agent %q", got)
 	}
 }

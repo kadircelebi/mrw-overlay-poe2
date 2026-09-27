@@ -256,7 +256,7 @@
 
 <main class="overlay-shell">
   <header>
-    <span class="mark">⚖</span>
+    <img class="mark" src="/emblem.png" alt="" />
     <strong>MrW Overlay</strong>
     {#if item}<span class="league">{t('ov.priceCheck', item.rarity)}</span>{/if}
     <QuotaBadge />
@@ -352,7 +352,7 @@
 <style>
   .overlay-shell { height:100%; display:flex; flex-direction:column; border:1px solid var(--line-strong); background:linear-gradient(180deg,rgba(255,255,255,.025),transparent 180px),var(--grain),rgba(12,14,16,.97); }
   header { height:37px; flex:0 0 37px; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid #47483e; background:#151817; --wails-draggable:drag; }
-  header .mark { color:var(--gold); font-size:16px; }
+  header .mark { width:20px; height:20px; }
   header strong { color:var(--gold-bright); font-family:var(--serif); font-size:12px; text-transform:uppercase; }
   header .league { color:var(--muted); flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
   header button { --wails-draggable:no-drag; width:26px; height:25px; border:0; background:transparent; color:#a6a89e; font-size:18px; }

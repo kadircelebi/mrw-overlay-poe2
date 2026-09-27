@@ -207,7 +207,7 @@ func (s *AppService) pump() {
 		st := s.eng.State()
 		s.app.Event.Emit("state", st)
 
-		tip := "MrW POE2 Filter"
+		tip := "MrW Overlay for POE 2"
 		switch {
 		case st.Running:
 			tip += i18n.T("tray.updating")
