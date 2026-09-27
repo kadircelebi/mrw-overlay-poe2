@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -356,8 +357,16 @@ func (s *AppService) handleLink(rw http.ResponseWriter, req *http.Request) {
 // what proves the request belongs to this connection). Web pages cannot send
 // these origins.
 func extensionOrigin(origin string) bool {
-	return origin == "chrome-extension://"+chromiumExtensionID || strings.HasPrefix(origin, "moz-extension://")
+	if id, ok := strings.CutPrefix(origin, "chrome-extension://"); ok {
+		return slices.Contains(chromiumStoreIDs, id) || id == chromiumExtensionID
+	}
+	return strings.HasPrefix(origin, "moz-extension://")
 }
+
+// chromiumStoreIDs are the IDs the Chrome Web Store and Edge Add-ons give the
+// published extension (the store packages carry no "key", so each store
+// assigns its own). Add each one here once the store shows it.
+var chromiumStoreIDs = []string{}
 
 func newLinkCode() (string, error) {
 	b := make([]byte, 24)
