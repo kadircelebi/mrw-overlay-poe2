@@ -43,6 +43,9 @@ type Item struct {
 	Quality       int    `json:"quality"`
 	// RuneSockets counts the "S" entries of the Sockets line.
 	RuneSockets int `json:"runeSockets"`
+	// A gem's level and support sockets ("Sockets: G G"); zero on other items.
+	GemLevel   int `json:"gemLevel"`
+	GemSockets int `json:"gemSockets"`
 	// Exceptional is set when the game prefixed the name with "Exceptional":
 	// extra sockets or quality are then what the item is priced by.
 	Exceptional bool `json:"exceptional"`
@@ -91,7 +94,14 @@ func ParseItem(raw string, catalog Catalog) (Item, error) {
 	for i, source := range lines {
 		line := strings.TrimSpace(source)
 		plainLine := strings.TrimSpace(strings.TrimLeft(line, "# "))
+		// A gem prints its skills' numbers (crit, damage, cost) where an
+		// item prints its properties; only level, quality and sockets price it.
+		gem := item.Rarity == "gem"
 		switch {
+		case gem && strings.HasPrefix(plainLine, "Level:"):
+			item.GemLevel = firstInt(line)
+		case gem && strings.HasPrefix(plainLine, "Sockets:"):
+			item.GemSockets = len(strings.Fields(strings.TrimPrefix(plainLine, "Sockets:")))
 		case strings.HasPrefix(line, "Item Class:"):
 			item.Class = strings.TrimSpace(strings.TrimPrefix(line, "Item Class:"))
 		case strings.HasPrefix(line, "Rarity:"):
@@ -121,6 +131,8 @@ func ParseItem(raw string, catalog Catalog) (Item, error) {
 			item.Sanctified = true
 		case strings.EqualFold(plainLine, "Mirrored"):
 			item.Mirrored = true
+		case gem:
+			// Nothing else of a gem's text is a searchable property.
 		case weaponDamageKind(line) != "":
 			avg := averageDamage(line)
 			switch weaponDamageKind(line) {

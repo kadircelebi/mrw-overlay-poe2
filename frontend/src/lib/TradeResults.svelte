@@ -29,6 +29,8 @@
   const hasMore = $derived(cursor < ids.length)
   // Weapons get a DPS column, as on the trade site.
   const hasDps = $derived(rows.some((row) => row.item.dps > 0))
+  // Gems have no item level; their level, quality and sockets take its place.
+  const gemList = $derived(rows.length > 0 && rows.every((row) => row.item.gemLevel > 0))
   // Chips for the properties the listings actually have, so a ring search
   // does not offer DPS and a weapon search does not offer Energy Shield.
   // Everything is sorted by clicking it on a listing (price, item level,
@@ -46,6 +48,7 @@
     { key: 'ar', label: 'Armour' }, { key: 'ev', label: 'Evasion' }, { key: 'es', label: 'ES' },
     { key: 'spirit', label: 'Spirit' }, { key: 'block', label: 'Block' }, { key: 'ward', label: 'Runic Ward' },
     { key: 'quality', label: 'Quality' },
+    { key: 'gem_level', label: 'Gem Level' }, { key: 'gem_sockets', label: 'Gem Sockets' },
     { key: 'map_iir', label: 'Item Rarity' }, { key: 'map_packsize', label: 'Pack Size' },
     { key: 'map_rare_monsters', label: 'Monster Rarity' }, { key: 'map_magic_monsters', label: 'Monster Effectiveness' },
     { key: 'map_bonus', label: 'Drop Chance' }, { key: 'map_revives', label: 'Revives' },
@@ -163,7 +166,7 @@
       <div><strong>{row.item.name || row.item.baseType}</strong>{#if row.item.name && rarity !== 'magic'}<span>{row.item.baseType}</span>{/if}</div>
     </div>
     <div class="item-meta">
-      {#if row.item.rarity}<span>Rarity <b>{row.item.rarity}</b></span>{/if}
+      {#if row.item.rarity && rarity !== 'gem'}<span>Rarity <b>{row.item.rarity}</b></span>{/if}
       {#if row.item.itemLevel}
         {#if onsort}
           <button type="button" class="prop-sort" class:on={sort?.key === 'ilvl'} title={t('ov.sortByIlvl')} onclick={() => onsort?.('ilvl')}>Item Level <b>{row.item.itemLevel}</b> <i>{arrow('ilvl') || '⇅'}</i></button>
@@ -171,6 +174,7 @@
           <span>Item Level <b>{row.item.itemLevel}</b></span>
         {/if}
       {/if}
+      {#if row.item.gemSockets}<span class="sockets gem" title={`${row.item.gemSockets} Gem Sockets`}>{#each Array(row.item.gemSockets) as _}<i></i>{/each}</span>{/if}
       {#if row.item.sockets}<span class="sockets" title={`${row.item.sockets} Augmentable Sockets`}>{#each Array(row.item.sockets) as _}<i></i>{/each}</span>{/if}
     </div>
     <div class="preview-props">
@@ -232,8 +236,9 @@
 {#if error}<p class="result-error">{error}</p>{/if}
 {#if loading}<div class="loading"><i></i><span></span><i></i></div>{/if}
 {#if !loading && rows.length}
-  <div class="result-table" class:expanded class:dps={hasDps}>
-    {#if !expanded}<div class="table-head"><span></span><span>{t('ov.sortPrice')}</span><span>iLvl</span>{#if hasDps}<span>DPS</span>{/if}<span>{t('ov.col.account')}</span><span>{t('ov.col.listed')}</span></div>{/if}
+  <div class="result-table" class:expanded class:dps={hasDps && !gemList} class:gem={gemList}>
+    {#if !expanded && gemList}<div class="table-head"><span></span><span>{t('ov.sortPrice')}</span><span>Lvl</span><span>Q%</span><span>S</span><span>{t('ov.col.account')}</span><span>{t('ov.col.listed')}</span></div>
+    {:else if !expanded}<div class="table-head"><span></span><span>{t('ov.sortPrice')}</span><span>iLvl</span>{#if hasDps}<span>DPS</span>{/if}<span>{t('ov.col.account')}</span><span>{t('ov.col.listed')}</span></div>{/if}
     {#each rows as row (row.id)}
       {@const coin = currencyInfo(row.currency)}
       <article class="listing-card" class:full={expanded}>
@@ -242,12 +247,22 @@
           <button type="button" class="eye" title={expanded ? t('ov.listing') : t('ov.showItem')} onclick={(event) => { event.stopPropagation(); if (!expanded) toggle(row) }}>{expanded ? '●' : '◉'}</button>
           {#if onsort}
             <button type="button" class="price sortable" class:on={sort?.key === 'price'} title={t('ov.sortByPrice', `${row.amount} × ${coin?.text || currencyLabel(row.currency)}`)} onclick={() => onsort?.('price')}>{row.amount}{#if coin?.image}<i>×</i><img src={coin.image} alt={coin.text} />{:else} <small>{currencyLabel(row.currency)}</small>{/if}<em>{arrow('price') || '⇅'}</em></button>
-            <button type="button" class="sortable" class:on={sort?.key === 'ilvl'} title={t('ov.sortByIlvl')} onclick={() => onsort?.('ilvl')}>{row.item.itemLevel}<em>{arrow('ilvl')}</em></button>
+            {#if gemList}
+              <button type="button" class="sortable" class:on={sort?.key === 'gem_level'} title="Gem Level" onclick={() => onsort?.('gem_level')}>{row.item.gemLevel}<em>{arrow('gem_level')}</em></button>
+              <button type="button" class="sortable" class:on={sort?.key === 'quality'} title="Quality" onclick={() => onsort?.('quality')}>{row.item.quality ? `${row.item.quality}%` : ''}<em>{arrow('quality')}</em></button>
+              <button type="button" class="sortable" class:on={sort?.key === 'gem_sockets'} title="Gem Sockets" onclick={() => onsort?.('gem_sockets')}>{row.item.gemSockets || ''}<em>{arrow('gem_sockets')}</em></button>
+            {:else}
+              <button type="button" class="sortable" class:on={sort?.key === 'ilvl'} title={t('ov.sortByIlvl')} onclick={() => onsort?.('ilvl')}>{row.item.itemLevel}<em>{arrow('ilvl')}</em></button>
+            {/if}
           {:else}
             <strong class="price" title={`${row.amount} × ${coin?.text || currencyLabel(row.currency)}`}>{row.amount}{#if coin?.image}<i>×</i><img src={coin.image} alt={coin.text} />{:else} <small>{currencyLabel(row.currency)}</small>{/if}</strong>
-            <span>{row.item.itemLevel}</span>
+            {#if gemList}
+              <span>{row.item.gemLevel}</span><span>{row.item.quality ? `${row.item.quality}%` : ''}</span><span>{row.item.gemSockets || ''}</span>
+            {:else}
+              <span>{row.item.itemLevel}</span>
+            {/if}
           {/if}
-          {#if hasDps}<span class="dps" title={row.item.dps ? `pDPS ${row.item.physicalDps} · eDPS ${row.item.elementalDps}` : ''}>{row.item.dps ? Math.round(row.item.dps) : ''}</span>{/if}
+          {#if hasDps && !gemList}<span class="dps" title={row.item.dps ? `pDPS ${row.item.physicalDps} · eDPS ${row.item.elementalDps}` : ''}>{row.item.dps ? Math.round(row.item.dps) : ''}</span>{/if}
           <span class="account">{row.account}</span>
           <span>{listedAgo(row.listed)}</span>
           <button type="button" class="hideout" class:sent={travel[row.id] === 'ok'} class:failed={travel[row.id]?.startsWith('!')} disabled={!row.hideoutToken || !result?.signedIn || travel[row.id] === 'busy'} title={hideoutTitle(row)} onclick={() => goToHideout(row)}>{travel[row.id] === 'busy' ? '…' : travel[row.id] === 'ok' ? '✓' : '↪'}</button>
@@ -300,6 +315,9 @@
   .dps .table-head { grid-template-columns:27px 1.1fr 42px 42px 1fr 48px; }
   .dps .listing { grid-template-columns:23px minmax(68px,1.1fr) 30px 36px minmax(46px,1fr) 38px 25px; }
   .listing .dps { color:#e0c98f; }
+  .gem .table-head { grid-template-columns:27px 1.1fr 30px 34px 22px 1fr 48px; }
+  .gem .listing { grid-template-columns:23px minmax(68px,1.1fr) 26px 32px 20px minmax(46px,1fr) 38px 25px; }
+  .sockets.gem i { border-color:#1ba29b; box-shadow:0 0 4px rgba(27,162,155,.4); }
   .table-head { padding:7px 6px; color:#aeb8c2; background:#252824; font-size:11px; }
   .listing { border:0; border-top:1px solid #20221f; padding:6px 5px; text-align:left; color:#aeb4b9; background:#0d0f10; font-size:9px; }
   .listing:hover,.listing.on { background:#171a19; }
@@ -332,6 +350,7 @@
   .preview .preview-title.rarity-normal strong,.preview .preview-title.rarity-normal span { color:#c8c8c8; }
   .preview .preview-title.rarity-magic strong,.preview .preview-title.rarity-magic span { color:#8f94ff; }
   .preview .preview-title.rarity-rare strong,.preview .preview-title.rarity-rare span { color:#ebe27a; }
+  .preview .preview-title.rarity-gem strong,.preview .preview-title.rarity-gem span { color:#1ba29b; }
   .preview .preview-title.rarity-unique strong,.preview .preview-title.rarity-unique span { color:#d68d45; }
   .item-meta { display:flex; justify-content:center; gap:14px; margin:7px 0 3px; color:var(--muted); font-size:9px; text-transform:uppercase; }
   .item-meta b { color:#d7d2c0; }

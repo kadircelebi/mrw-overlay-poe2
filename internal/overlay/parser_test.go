@@ -120,6 +120,48 @@ Fractured Item`
 	}
 }
 
+// A gem is priced by its level, quality and sockets; the numbers of its
+// skills (crit chance, damage, cost) are not item properties.
+func TestParseGem(t *testing.T) {
+	raw := `Item Class: Skill Gems
+Rarity: Gem
+Repulsion
+--------
+Spell, Attack, AoE, Trigger, Physical, Duration, Curse, Repeatable
+Level: 20 (Max)
+Cost: 116 Ward
+Cast Time: 0.50s
+--------
+Requires: Level 90
+--------
+Sockets: G G
+--------
+Quality: +20% (augmented)
+--------
+Repulsion Wave
+--------
+Cost: 0 Ward
+Cooldown Time: 0.50s (5 uses)
+Critical Hit Chance: 6.00%
+Attack Damage: 204%
+--------
+128 to 192 base Physical Damage
+--------
+Corrupted`
+	item, err := ParseItem(raw, testCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if item.BaseType != "Repulsion" || item.GemLevel != 20 || item.GemSockets != 2 || item.RuneSockets != 0 || item.Quality != 20 || !item.Corrupted {
+		t.Fatalf("gem parsed wrong: %+v", item)
+	}
+	for _, p := range item.Properties {
+		if p.Name != "Quality" {
+			t.Fatalf("gem got a skill number as a property: %+v", p)
+		}
+	}
+}
+
 func TestParseFracturedAffix(t *testing.T) {
 	raw := `Item Class: Amulets
 Rarity: Rare

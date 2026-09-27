@@ -96,6 +96,37 @@ func TestFetchListingCarriesTravelAndItemState(t *testing.T) {
 	}
 }
 
+// Gem listings come with "extended": [] (an empty array, not an object); that
+// used to fail the whole fetch.
+func TestFetchListingAcceptsArrayExtended(t *testing.T) {
+	raw := []byte(`{"result":[
+		{"id":"gem","listing":{"price":{"amount":1,"currency":"exalted"}},"item":{"typeLine":"Repulsion","frameType":4,"extended":[],
+			"sockets":[{"group":0,"type":"gem"},{"group":1,"type":"gem"}],
+			"properties":[{"name":"Level","values":[["20",1]]},{"name":"","values":[["19 Levels from Gem",0]]},{"name":"[Quality]","values":[["+20%",1]]}]}},
+		{"id":"ring","listing":{"price":{"amount":1,"currency":"exalted"}},"item":{"typeLine":"Ruby Ring","extended":{"hashes":{"explicit":[["explicit.stat_3372524247",[0]]]}}}}]}`)
+	var response evaluatedFetchResponse
+	if err := json.Unmarshal(raw, &response); err != nil {
+		t.Fatal(err)
+	}
+	listings := evaluatedListings(response)
+	if len(listings) != 2 {
+		t.Fatalf("got %d listings, want 2", len(listings))
+	}
+	if len(listings[0].Item.StatHashes) != 0 {
+		t.Fatalf("gem hashes = %v, want none", listings[0].Item.StatHashes)
+	}
+	gem := listings[0].Item
+	if gem.Rarity != "Gem" || gem.GemLevel != 20 || gem.GemSockets != 2 || gem.Sockets != 0 || gem.Quality != 20 {
+		t.Fatalf("gem listing read wrong: %+v", gem)
+	}
+	if note := gem.Properties[1]; note.Name != "19 Levels from Gem" || note.Value != "" {
+		t.Fatalf("nameless gem note = %+v", note)
+	}
+	if got := listings[1].Item.StatHashes; len(got) != 1 || got[0] != "stat_3372524247" {
+		t.Fatalf("ring hashes = %v", got)
+	}
+}
+
 func TestFormatTradeProperty(t *testing.T) {
 	cases := []struct {
 		name      string
