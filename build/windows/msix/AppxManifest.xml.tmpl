@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Microsoft Store package manifest. Rendered by cmd/storepack from
+     build/windows/msix/identity.json and the app version; do not edit the
+     generated copy. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
+  IgnorableNamespaces="uap rescap desktop6">
+
+  <Identity
+    Name="{{.IdentityName}}"
+    Publisher="{{.Publisher}}"
+    Version="{{.Version}}"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>{{.DisplayName}}</DisplayName>
+    <PublisherDisplayName>{{.PublisherDisplayName}}</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <!-- The app keeps its settings in %APPDATA%\PoE2Filtre and writes the loot
+         filter to Documents\My Games\Path of Exile 2, shared with the GitHub
+         build of the same app. Without these, Windows would redirect the
+         writes into the package's private folder and a player moving from
+         the GitHub build would lose all settings. -->
+    <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
+    <desktop6:RegistryWriteVirtualization>disabled</desktop6:RegistryWriteVirtualization>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="poe2filter.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="{{.DisplayName}}"
+        Description="{{.Description}}"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" ShortName="MrW Overlay" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#101215" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" />
+  </Capabilities>
+</Package>

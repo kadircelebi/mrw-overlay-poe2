@@ -25,7 +25,7 @@ import (
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
-var version = "2.7.0"
+var version = "2.7.1"
 
 //go:embed all:frontend/dist
 var frontend embed.FS
@@ -94,11 +94,18 @@ func main() {
 	svc.updater = appupdate.New(appupdate.Options{
 		CurrentVersion: version,
 		DataDir:        *dataDir,
-		Disabled:       *outPath != "",
+		Disabled:       *outPath != "" || storeBuild,
 		OnChange:       svc.appUpdateChanged,
 	})
+	aumid := packageAUMID()
 	toasts := newToastQueue(func(opt notifications.NotificationOptions) {
-		if err := notifier.SendNotification(opt); err != nil {
+		var err error
+		if aumid != "" {
+			err = pushPackagedToast(aumid, opt.Title, opt.Body)
+		} else {
+			err = notifier.SendNotification(opt)
+		}
+		if err != nil {
 			log.Printf("toast %s: %v", opt.ID, err)
 		}
 	})
@@ -173,7 +180,7 @@ func main() {
 		Hidden:           true,
 		DisableResize:    true,
 		HideOnEscape:     true,
-		HideOnFocusLost:  true,
+		HideOnFocusLost:  !*show, // -show (testing) keeps it up for screenshots
 		BackgroundColour: application.NewRGB(15, 13, 17),
 		Windows:          application.WindowsWindow{HiddenOnTaskbar: true},
 		URL:              "/?view=overlay",
@@ -228,10 +235,12 @@ func main() {
 		m.Add(i18n.T("tray.open")).OnClick(func(*application.Context) { tray.ShowWindow() })
 		m.Add(i18n.T("tray.settings")).OnClick(func(*application.Context) { svc.ShowSettings("") })
 		m.Add(i18n.T("tray.update")).OnClick(func(*application.Context) { _ = svc.UpdateNow() })
-		m.Add(i18n.T("tray.appUpdate")).OnClick(func(*application.Context) {
-			tray.ShowWindow()
-			go func() { _, _ = svc.CheckForAppUpdate() }()
-		})
+		if !storeBuild {
+			m.Add(i18n.T("tray.appUpdate")).OnClick(func(*application.Context) {
+				tray.ShowWindow()
+				go func() { _, _ = svc.CheckForAppUpdate() }()
+			})
+		}
 		m.AddSeparator()
 		m.Add(i18n.T("tray.openFolder")).OnClick(func(*application.Context) { _ = svc.OpenGameFolder() })
 		m.AddSeparator()
