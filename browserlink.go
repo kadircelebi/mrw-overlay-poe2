@@ -368,6 +368,7 @@ func extensionOrigin(origin string) bool {
 // assigns its own). Add each one here once the store shows it.
 var chromiumStoreIDs = []string{
 	"djfodaadmhknalfdphcadiojbfabedlc", // Edge Add-ons
+	"ibjjhhjnfdokcbfckecbpkpibpdclpmn", // Chrome Web Store
 }
 
 func newLinkCode() (string, error) {
