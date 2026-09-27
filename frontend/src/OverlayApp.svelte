@@ -10,7 +10,7 @@
   import TradeResults from './lib/TradeResults.svelte'
   import { t } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
-  import { searchedStats, allOn, buildRequest, categoryFor, choicesFor, propertyFiltersFor, resetChoiceRanges, resetPropertyRanges, type ItemToggles, type ModChoice, type PropertyFilter } from './lib/overlayQuery'
+  import { searchedStats, allOn, buildRequest, categoryFor, choicesFor, isGem, propertyFiltersFor, resetChoiceRanges, resetPropertyRanges, type ItemToggles, type ModChoice, type PropertyFilter } from './lib/overlayQuery'
 
   let item = $state<Item | null>(null)
   // Set for stackable items the price list knows: they get a worth card
@@ -100,7 +100,8 @@
     useQuality = snap.item.quality > 0
     qualityMin = snap.item.quality || undefined
     qualityMax = undefined
-    useRequiredLevel = snap.item.requiredLevel > 0
+    // A gem's requirement follows its level, which is searched instead.
+    useRequiredLevel = snap.item.requiredLevel > 0 && !isGem(snap.item)
     requiredLevelMin = undefined
     requiredLevelMax = snap.item.requiredLevel || undefined
     if (!needsUniqueSelection(snap.item)) queueEvaluate(40)

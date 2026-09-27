@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Item, ItemMod } from '../../bindings/poe2filter/internal/overlay/models'
-  import { rarityOptions, type ItemToggles, type ModChoice, type PropertyFilter } from './overlayQuery'
+  import { isGem, rarityOptions, type ItemToggles, type ModChoice, type PropertyFilter } from './overlayQuery'
   import { t } from './i18n.svelte'
 
   type MetaFilter = { enabled: boolean; min?: number; max?: number }
@@ -38,6 +38,8 @@
     onpropertychange?: (index: number, field: 'enabled' | 'min' | 'max', value: boolean | number | undefined) => void
   } = $props()
 
+  // Gems have no rarity or item level; their level and sockets are filters.
+  const gem = $derived(isGem(item))
   const qualityProperty = $derived(item.properties?.find((property) => property.name.startsWith('Quality')))
   const otherProperties = $derived(item.properties?.filter((property) => !property.name.startsWith('Quality') && !propertyFilters?.some((filter) => filter.name === property.name)) ?? [])
 
@@ -65,8 +67,8 @@
   }
 </script>
 
-<article class="item-card" class:compact>
-  <div class="item-title" class:unique={item.rarity === 'unique'} class:rare={item.rarity === 'rare'} class:magic={item.rarity === 'magic'} class:normal={item.rarity === 'normal'}>
+<article class="item-card" class:compact class:gem>
+  <div class="item-title" class:unique={item.rarity === 'unique'} class:rare={item.rarity === 'rare'} class:magic={item.rarity === 'magic'} class:normal={item.rarity === 'normal'} class:gem>
     {#if toggles}
       {#if item.name && item.rarity === 'unique'}
         <button type="button" class="title-toggle" class:off={!toggles.name} title={t('ov.includeToggle')} onclick={() => ontoggle('name')}><strong>{item.name}</strong></button>
@@ -79,17 +81,17 @@
   </div>
   <div class="item-meta">
     <span class="item-class">{item.class}</span>
-    {#if toggles}
+    {#if toggles && !gem}
       <label class="rarity-select" class:off={(toggles.rarity ?? item.rarity) === ''}>
         <span>Rarity</span>
         <select value={toggles.rarity ?? item.rarity} onchange={(event) => onrarity(event.currentTarget.value)}>
           {#each rarityOptions as option (option.id)}<option value={option.id}>{option.text}</option>{/each}
         </select>
       </label>
-    {:else if item.rarity}
+    {:else if item.rarity && !gem}
       <span>{item.rarity}</span>
     {/if}
-    {#if metaFilters}
+    {#if metaFilters && !gem}
       <div class="meta-filter" class:off={!metaFilters.itemLevel.enabled}>
         <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.itemLevel.enabled} onchange={(event) => onmetachange('itemLevel', 'enabled', event.currentTarget.checked)} /><i></i><span>Item Level</span></label>
         <span class="meta-range"><input type="number" value={metaFilters.itemLevel.min ?? ''} oninput={(event) => onmetachange('itemLevel', 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={metaFilters.itemLevel.max ?? ''} oninput={(event) => onmetachange('itemLevel', 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
@@ -98,7 +100,7 @@
         <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.requiredLevel.enabled} onchange={(event) => onmetachange('requiredLevel', 'enabled', event.currentTarget.checked)} /><i></i><span>Requires</span></label>
         <span class="meta-range"><input type="number" value={metaFilters.requiredLevel.min ?? ''} oninput={(event) => onmetachange('requiredLevel', 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={metaFilters.requiredLevel.max ?? ''} oninput={(event) => onmetachange('requiredLevel', 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
       </div>
-    {:else}
+    {:else if !gem}
       {#if item.itemLevel}<span>Item Level <b>{item.itemLevel}</b></span>{/if}
       {#if item.requiredLevel}<span>Requires <b>{item.requiredLevel}</b></span>{/if}
     {/if}
@@ -194,6 +196,8 @@
   .item-title.rare { color:#ebe27a; }
   .item-title.magic { color:#8f94ff; border-color:#3b3f78; }
   .item-title.normal { color:#c8c8c8; }
+  .item-card.gem { border-color:#1d5a56; }
+  .item-title.gem { color:#1ba29b; border-color:#1d5a56; background:linear-gradient(90deg, transparent, rgba(27,162,155,.12), transparent); }
   .item-meta { display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 10px 5px; color:var(--muted); font-size:11px; text-transform:uppercase; }
   .item-meta b { color:var(--text); }
   .item-class{padding:0 3px}.properties { display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; padding:3px 10px 8px; color:#8192b4; font-size:11px; border-bottom:1px solid #29251e; }

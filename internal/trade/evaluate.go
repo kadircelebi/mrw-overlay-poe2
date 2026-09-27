@@ -94,6 +94,10 @@ type EvaluatedItem struct {
 	Sanctified bool `json:"sanctified"`
 	// Sockets counts the augmentable (rune) sockets, filled or empty.
 	Sockets int `json:"sockets"`
+	// Gem listings: the gem's level, its support sockets and its quality.
+	GemLevel   int `json:"gemLevel"`
+	GemSockets int `json:"gemSockets"`
+	Quality    int `json:"quality"`
 	// DPS figures are computed from the listing's weapon properties, the same
 	// way the trade site shows them; zero for non-weapons.
 	DPS          float64             `json:"dps"`
@@ -184,7 +188,10 @@ type evaluatedFetchResponse struct {
 			DoubleCorrupted bool              `json:"doubleCorrupted"`
 			Duplicated      bool              `json:"duplicated"`
 			Sanctified      bool              `json:"sanctified"`
-			Sockets         []json.RawMessage `json:"sockets"`
+			FrameType       int               `json:"frameType"`
+			Sockets         []struct {
+				Type string `json:"type"`
+			} `json:"sockets"`
 			Properties      []struct {
 				Name   string          `json:"name"`
 				Values [][]interface{} `json:"values"`
@@ -196,11 +203,26 @@ type evaluatedFetchResponse struct {
 			FracturedMods  []evaluatedModLine `json:"fracturedMods"`
 			RuneMods       []evaluatedModLine `json:"runeMods"`
 			EnchantMods    []evaluatedModLine `json:"enchantMods"`
-			Extended       struct {
-				Hashes map[string][][]json.RawMessage `json:"hashes"`
-			} `json:"extended"`
+			Extended       listingExtended   `json:"extended"`
 		} `json:"item"`
 	} `json:"result"`
+}
+
+// listingExtended is the fetch reply's "extended" block. GGG sends an empty
+// array ("extended": []) instead of an object for some items (gems), so
+// anything that is not an object is read as empty.
+type listingExtended struct {
+	Hashes map[string][][]json.RawMessage
+}
+
+func (e *listingExtended) UnmarshalJSON(data []byte) error {
+	var obj struct {
+		Hashes map[string][][]json.RawMessage `json:"hashes"`
+	}
+	if json.Unmarshal(data, &obj) == nil {
+		e.Hashes = obj.Hashes
+	}
+	return nil
 }
 
 type evaluatedModLine struct {
@@ -346,10 +368,21 @@ func evaluatedListings(fetched evaluatedFetchResponse) []EvaluatedListing {
 		entry := EvaluatedListing{
 			ID: row.ID, Amount: row.Listing.Price.Amount, Currency: row.Listing.Price.Currency,
 			Account: account, HideoutToken: row.Listing.HideoutToken, Listed: row.Listing.Indexed,
-			Item: EvaluatedItem{Name: row.Item.Name, BaseType: row.Item.BaseType, Rarity: row.Item.Rarity, ItemLevel: row.Item.Ilvl, Icon: row.Item.Icon, Unidentified: !row.Item.Identified, Fractured: row.Item.Fractured, Corrupted: row.Item.Corrupted, TwiceCorrupted: row.Item.DoubleCorrupted, Mirrored: row.Item.Duplicated, Sanctified: row.Item.Sanctified, Sockets: len(row.Item.Sockets), Properties: []EvaluatedProperty{}, Mods: []EvaluatedMod{}},
+			Item: EvaluatedItem{Name: row.Item.Name, BaseType: row.Item.BaseType, Rarity: row.Item.Rarity, ItemLevel: row.Item.Ilvl, Icon: row.Item.Icon, Unidentified: !row.Item.Identified, Fractured: row.Item.Fractured, Corrupted: row.Item.Corrupted, TwiceCorrupted: row.Item.DoubleCorrupted, Mirrored: row.Item.Duplicated, Sanctified: row.Item.Sanctified, Properties: []EvaluatedProperty{}, Mods: []EvaluatedMod{}},
 		}
 		if entry.Item.BaseType == "" {
 			entry.Item.BaseType = row.Item.TypeLine
+		}
+		// Gems carry no rarity; their frame type says what they are.
+		if entry.Item.Rarity == "" && row.Item.FrameType == gemFrameType {
+			entry.Item.Rarity = "Gem"
+		}
+		for _, socket := range row.Item.Sockets {
+			if socket.Type == "gem" {
+				entry.Item.GemSockets++
+			} else {
+				entry.Item.Sockets++
+			}
 		}
 		// A magic item's name is its whole type line ("Athlete's Sirenscale
 		// Gloves of Archaeology"), as the game shows it.
@@ -358,6 +391,18 @@ func evaluatedListings(fetched evaluatedFetchResponse) []EvaluatedListing {
 		}
 		for _, p := range row.Item.Properties {
 			name, value := formatTradeProperty(p.Name, p.Values)
+			if name == "" {
+				// A gem's notes ("19 Levels from Gem") come as values without a name.
+				name, value = value, ""
+			}
+			switch name {
+			case "Level":
+				if entry.Item.Rarity == "Gem" {
+					entry.Item.GemLevel = firstNumber(value)
+				}
+			case "Quality":
+				entry.Item.Quality = firstNumber(value)
+			}
 			entry.Item.Properties = append(entry.Item.Properties, EvaluatedProperty{Name: name, Value: value})
 		}
 		addWeaponDPS(&entry.Item)
@@ -471,6 +516,20 @@ func addWeaponDPS(item *EvaluatedItem) {
 // formatTradeProperty turns an API property into readable text. Some names
 // are templates ("Recovers {0} Life over {1} Seconds") whose placeholders take
 // the values in order; the rest are "Name: value[, value…]".
+// gemFrameType is the trade API's frame type of skill and support gems.
+const gemFrameType = 4
+
+// firstNumber reads the leading whole number of a property value ("+20%").
+func firstNumber(value string) int {
+	digits := strings.TrimLeft(value, "+")
+	end := 0
+	for end < len(digits) && digits[end] >= '0' && digits[end] <= '9' {
+		end++
+	}
+	n, _ := strconv.Atoi(digits[:end])
+	return n
+}
+
 func formatTradeProperty(name string, values [][]interface{}) (string, string) {
 	name = cleanTradeDescription(name)
 	texts := make([]string, 0, len(values))

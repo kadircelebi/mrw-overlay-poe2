@@ -46,6 +46,13 @@ export interface EvaluatedItem {
     "sockets": number;
 
     /**
+     * Gem listings: the gem's level, its support sockets and its quality.
+     */
+    "gemLevel": number;
+    "gemSockets": number;
+    "quality": number;
+
+    /**
      * DPS figures are computed from the listing's weapon properties, the same
      * way the trade site shows them; zero for non-weapons.
      */

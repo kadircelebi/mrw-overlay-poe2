@@ -9,7 +9,7 @@
   import QuotaBadge from './lib/QuotaBadge.svelte'
   import { t } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
-  import { allOn, buildRequest, categoryFor, choicesFor, classForCategory, nextSort, searchLabel, searchedStats, statSortKey, type ModChoice, type SortOption, type SortState } from './lib/overlayQuery'
+  import { allOn, buildRequest, categoryFor, choicesFor, classForCategory, isGem, nextSort, searchLabel, searchedStats, statSortKey, type ModChoice, type SortOption, type SortState } from './lib/overlayQuery'
 
   type FilterState = { min?: number; max?: number; option?: string; input?: string }
   type StatGroupState = { key: number; type: string; min?: number; max?: number; choiceKeys: string[]; weights: Record<string, number | undefined> }
@@ -19,7 +19,7 @@
   function blankItem(): Item {
     return {
       raw: '', class: '', rarity: '', name: '', baseType: '',
-      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, exceptional: false, stackSize: 0, unidentified: false, fractured: false, corrupted: false, twiceCorrupted: false, mirrored: false, sanctified: false, properties: [], mods: [],
+      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, gemLevel: 0, gemSockets: 0, exceptional: false, stackSize: 0, unidentified: false, fractured: false, corrupted: false, twiceCorrupted: false, mirrored: false, sanctified: false, properties: [], mods: [],
     }
   }
 
@@ -348,6 +348,12 @@
     if (selectedItem.exceptional && selectedItem.runeSockets > 0) {
       filters = { ...filters, [stateKey('equipment_filters', 'rune_sockets')]: { min: selectedItem.runeSockets } }
     }
+    // A gem is priced by its level, quality and sockets.
+    if (isGem(selectedItem)) {
+      if (selectedItem.gemLevel > 0) filters[stateKey('misc_filters', 'gem_level')] = { min: selectedItem.gemLevel }
+      if (selectedItem.gemSockets > 0) filters[stateKey('misc_filters', 'gem_sockets')] = { min: selectedItem.gemSockets }
+      if (selectedItem.quality > 0) filters[stateKey('type_filters', 'quality')] = { min: selectedItem.quality }
+    }
     result = null
     error = ''
     if (draft?.baseType === snap.item.baseType) {
@@ -385,7 +391,9 @@
   // category comes from the item class the game printed.
   function seedTypeFilters(rarity: string, itemClass: string) {
     const rarityKey = stateKey('type_filters', 'rarity')
-    if (!filters[rarityKey]?.option) filters[rarityKey] = { ...filters[rarityKey], option: rarity || undefined }
+    // "Gem" is not a trade rarity; gems are found by name.
+    const tradeRarity = isGem({ rarity }) ? '' : rarity
+    if (!filters[rarityKey]?.option) filters[rarityKey] = { ...filters[rarityKey], option: tradeRarity || undefined }
     const category = categoryFor(itemClass)
     const categoryKey = stateKey('type_filters', 'category')
     if (category && !filters[categoryKey]?.option) filters[categoryKey] = { ...filters[categoryKey], option: category }
@@ -676,7 +684,7 @@
     const selected = (query.groups?.length ? query.groups.flatMap((group) => group.stats ?? []) : query.stats ?? [])
     item = {
       raw: '', class: '', rarity: query.rarity, name: query.name, baseType: query.baseType,
-      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, exceptional: false, stackSize: 0,
+      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, gemLevel: 0, gemSockets: 0, exceptional: false, stackSize: 0,
       unidentified: query.filters?.some((filter) => filter.group === 'misc_filters' && filter.id === 'identified' && filter.option === 'false') ?? false,
       fractured: query.filters?.some((filter) => filter.group === 'misc_filters' && filter.id === 'fractured_item' && filter.option === 'true') ?? false,
       corrupted: query.filters?.some((filter) => filter.group === 'misc_filters' && filter.id === 'corrupted' && filter.option === 'true') ?? false,

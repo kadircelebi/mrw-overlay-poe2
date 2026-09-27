@@ -54,6 +54,12 @@ export function propertyFiltersFor(item: Item): PropertyFilter[] {
     const base = Number.isFinite(value) ? value : undefined
     out.push({ ...filter, name: prop.name, value: prop.value, enabled: enabledByDefault.has(filter.id), base, min: base })
   }
+  if (isGem(item)) {
+    // A gem is priced by its level and support sockets. Both are counts, not
+    // rolls, so Broad leaves them alone (no base).
+    if (item.gemLevel > 0) out.push({ group: 'misc_filters', id: 'gem_level', name: 'Gem Level', value: String(item.gemLevel), enabled: true, min: item.gemLevel })
+    if (item.gemSockets > 0) out.push({ group: 'misc_filters', id: 'gem_sockets', name: 'Gem Sockets', value: String(item.gemSockets), enabled: true, min: item.gemSockets })
+  }
   if (item.runeSockets > 0) {
     // An exceptional item is priced by its extra sockets, so they are searched.
     out.push({ group: 'equipment_filters', id: 'rune_sockets', name: 'Rune Sockets', value: String(item.runeSockets), enabled: item.exceptional, min: item.runeSockets })
@@ -61,6 +67,11 @@ export function propertyFiltersFor(item: Item): PropertyFilter[] {
   // DPS first: it is what the eye looks for on a weapon.
   const order = ['dps', 'pdps', 'edps']
   return out.sort((a, b) => (order.indexOf(a.id) + 1 || 99) - (order.indexOf(b.id) + 1 || 99))
+}
+
+// Skill and support gems copy as "Rarity: Gem": no item level, no rarity.
+export function isGem(item: { rarity: string }): boolean {
+  return item.rarity?.toLowerCase() === 'gem'
 }
 
 // Trade categories by the item class the game prints in "Item Class:".
@@ -227,6 +238,7 @@ const propertySortKeys: Record<string, string> = {
   'Energy Shield': 'es',
   'Spirit': 'spirit',
   'Quality': 'quality',
+  'Level': 'gem_level',
   'Block chance': 'block',
   'Runic Ward': 'ward',
   'Item Rarity': 'map_iir',

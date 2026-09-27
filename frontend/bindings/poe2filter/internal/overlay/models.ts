@@ -69,6 +69,12 @@ export interface Item {
     "runeSockets": number;
 
     /**
+     * A gem's level and support sockets ("Sockets: G G"); zero on other items.
+     */
+    "gemLevel": number;
+    "gemSockets": number;
+
+    /**
      * Exceptional is set when the game prefixed the name with "Exceptional":
      * extra sockets or quality are then what the item is priced by.
      */
