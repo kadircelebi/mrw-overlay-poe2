@@ -1,12 +1,12 @@
 {
   "fixed": {
-    "file_version": "2.6.0.0",
-    "product_version": "2.6.0.0"
+    "file_version": "2.7.0.0",
+    "product_version": "2.7.0.0"
   },
   "info": {
     "0409": {
       "ProductName": "MrW Overlay for POE 2",
-      "ProductVersion": "2.6.0",
+      "ProductVersion": "2.7.0",
       "CompanyName": "kadir",
       "FileDescription": "MrW Overlay for POE 2",
       "LegalCopyright": "(c) 2026",
