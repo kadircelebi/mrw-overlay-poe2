@@ -24,14 +24,20 @@ type Rule struct {
 // user's own trade-site usage, which is visible to us only through the
 // X-Rate-Limit-Ip-State counters the server returns.
 type Limiter struct {
-	mu           sync.Mutex
-	budget       float64
-	paceEvenly   bool
-	rules        []Rule
-	history      []time.Time // our own request times
-	serverState  []int       // current hits per rule as reported by the server
-	stateAt      time.Time
-	blockedUntil time.Time
+	mu          sync.Mutex
+	budget      float64
+	paceEvenly  bool
+	rules       []Rule
+	history     []time.Time // our own request times
+	serverState []int       // current hits per rule as reported by the server
+	stateAt     time.Time
+	// accountRules/accountState are X-Rate-Limit-Account(-State): once a
+	// request is signed in, GGG also counts it against the account, a quota
+	// shared with the trade site and every other tool on that account.
+	accountRules   []Rule
+	accountState   []int
+	accountStateAt time.Time
+	blockedUntil   time.Time
 	// blockedBy is the window whose penalty caused blockedUntil (0 when the
 	// server did not say, e.g. a bare 429 with only Retry-After).
 	blockedBy time.Duration
@@ -100,7 +106,14 @@ func (l *Limiter) nextSlotWhy(now time.Time) (time.Time, waitCause) {
 		next = l.blockedUntil
 		why = waitCause{WaitPenalty, l.blockedBy}
 	}
-	for i, r := range l.rules {
+	next, why = l.checkRules(now, next, why, l.rules, l.serverState, l.stateAt)
+	next, why = l.checkRules(now, next, why, l.accountRules, l.accountState, l.accountStateAt)
+	return next, why
+}
+
+// checkRules applies one rule set (IP or account) and its server counters.
+func (l *Limiter) checkRules(now, next time.Time, why waitCause, rules []Rule, state []int, stateAt time.Time) (time.Time, waitCause) {
+	for i, r := range rules {
 		allowed := l.allowed(r)
 
 		// Spread requests evenly instead of bursting to the limit.
@@ -128,8 +141,8 @@ func (l *Limiter) nextSlotWhy(now time.Time) (time.Time, waitCause) {
 
 		// Server-reported usage (includes the user's own searches). Be
 		// conservative: assume those hits stay until their window passes.
-		if i < len(l.serverState) && now.Sub(l.stateAt) < r.Period && l.serverState[i] >= allowed {
-			if t := l.stateAt.Add(r.Period); t.After(next) {
+		if i < len(state) && now.Sub(stateAt) < r.Period && state[i] >= allowed {
+			if t := stateAt.Add(r.Period); t.After(next) {
 				next, why = t, waitCause{WaitShared, r.Period}
 			}
 		}
@@ -181,7 +194,7 @@ func (l *Limiter) NextIn() time.Duration {
 
 func (l *Limiter) trimHistory(now time.Time) {
 	var longest time.Duration
-	for _, r := range l.rules {
+	for _, r := range append(l.rules[:len(l.rules):len(l.rules)], l.accountRules...) {
 		longest = max(longest, r.Period)
 	}
 	keep := l.history[:0]
@@ -205,8 +218,13 @@ func (l *Limiter) Observe(resp *http.Response) {
 	if policy := resp.Header.Get("X-Rate-Limit-Rules"); policy != "" {
 		l.policyRules = policy
 	}
+	if rules := parseRules(resp.Header.Get("X-Rate-Limit-Account")); len(rules) > 0 {
+		l.accountRules = rules
+	}
 	namedBy := false
-	if state := resp.Header.Get("X-Rate-Limit-Ip-State"); state != "" {
+	// readState parses a "hits:period:restricted" list; a non-zero third
+	// field means GGG is restricting us right now.
+	readState := func(state string) []int {
 		var hits []int
 		for _, part := range strings.Split(state, ",") {
 			f := strings.Split(strings.TrimSpace(part), ":")
@@ -215,7 +233,6 @@ func (l *Limiter) Observe(resp *http.Response) {
 			}
 			n, _ := strconv.Atoi(f[0])
 			hits = append(hits, n)
-			// A non-zero third field means we are currently restricted.
 			if secs, _ := strconv.Atoi(f[2]); secs > 0 {
 				if t := now.Add(time.Duration(secs) * time.Second); t.After(l.blockedUntil) {
 					l.blockedUntil = t
@@ -225,8 +242,15 @@ func (l *Limiter) Observe(resp *http.Response) {
 				}
 			}
 		}
-		l.serverState = hits
+		return hits
+	}
+	if state := resp.Header.Get("X-Rate-Limit-Ip-State"); state != "" {
+		l.serverState = readState(state)
 		l.stateAt = now
+	}
+	if state := resp.Header.Get("X-Rate-Limit-Account-State"); state != "" {
+		l.accountState = readState(state)
+		l.accountStateAt = now
 	}
 	if resp.StatusCode == http.StatusTooManyRequests {
 		wait := 60 * time.Second

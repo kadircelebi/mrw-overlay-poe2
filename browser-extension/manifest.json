@@ -1,8 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "MrW POE2 Filter - pathofexile.com bridge",
+  "name": "MrW Overlay for POE 2 - pathofexile.com bridge",
   "version": "1.0.1",
-  "description": "Hands your pathofexile.com session to the MrW POE2 Filter app on this computer, only when the app asks for it.",
+  "description": "Hands your pathofexile.com session to the MrW Overlay app on this computer, only when the app asks for it.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    "default_title": "MrW Overlay"
+  },
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmPGXhjakfJ868h7mxQ/ujbbQbWX2yJpQP1PO1F/XuxIAOOcBMOE1SYxNKyWO1dq1GIyNevW7gdaq+2GVoNR+Un0XhLFQVypKv+g7rvpdgUkrNP1AMMvqZZGmW/6daEeXcV7vO4HQMnjFVhZMuOObr9ivoHsaH+uoMeic9neq7T5bgSuucQoooIomQZRJQ738FTmFShbjOO9yGBQ2Qw+U6Db8AOS6Hta3qjCJl9ZrY0chPWcs1fiIpY+zRibGQ2pu7RwlezFbP7SHfCFLfqCApUa+PaCmjhxoAIIo9w2sOSfJgd6arE8yNU5w7Ihn+rWHlezQ1P8Wr+Y3uReHy/tPIQIDAQAB",
   "permissions": [
     "cookies",

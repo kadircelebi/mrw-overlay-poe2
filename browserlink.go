@@ -78,11 +78,11 @@ type browserLink struct {
 	// seenVersion is the extension version that last answered.
 	seenVersion string
 	state       string
-	code     string
-	err      string
-	server   *http.Server
-	deadline time.Time
-	cancel   context.CancelFunc
+	code        string
+	err         string
+	server      *http.Server
+	deadline    time.Time
+	cancel      context.CancelFunc
 	// waitGen tells the latest extension-wait timer from older ones.
 	waitGen int
 }
@@ -226,8 +226,23 @@ func (s *AppService) PrepareBrowserExtension() (string, error) {
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(filepath.Join(dir, filepath.Base(path)), data, 0o644)
+		// Keep sub-folders (icons/): the manifest names files by their path.
+		rel, err := filepath.Rel("browser-extension", filepath.FromSlash(path))
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, 0o644)
 	})
+	if err == nil {
+		// Earlier versions flattened icons/ into the folder; tidy them up.
+		for _, n := range []string{"icon-16.png", "icon-32.png", "icon-48.png", "icon-128.png"} {
+			os.Remove(filepath.Join(dir, n))
+		}
+	}
 	return dir, err
 }
 

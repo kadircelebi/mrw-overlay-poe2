@@ -158,6 +158,8 @@ var tr = map[string]string{
 	"live.err.quota":                  "Trade arama sınırına gelindi; birazdan yeniden denenecek",
 	"live.err.query":                  "GGG bu aramayı reddetti; Arama sekmesinde açıp filtrelerine bak",
 	"live.err.network":                "Bağlantı koptu (%v); yeniden bağlanılıyor",
+	"live.err.busy":                   "GGG şu an canlı aramayı kabul etmiyor; %s sonra yeniden denenecek",
+	"live.err.dropped":                "Bağlantı koptu; %s sonra yeniden bağlanılacak",
 	"live.err.missing":                "Bu kayıtlı arama artık yok",
 	"live.notifyTitle":                "Canlı arama: %s",
 	"live.notifyOne":                  "%s — %s",

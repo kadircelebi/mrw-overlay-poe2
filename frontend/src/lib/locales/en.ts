@@ -1,6 +1,6 @@
 export const en: Record<string, string> = {
   // Header
-  'app.title': 'MrW POE2 Filter',
+  'app.title': 'MrW Overlay',
   'header.settings': 'Settings',
   'header.back': 'Back',
   'header.hide': 'Hide panel',

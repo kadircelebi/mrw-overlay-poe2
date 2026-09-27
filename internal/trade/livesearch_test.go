@@ -11,6 +11,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/coder/websocket"
 )
 
 // liveAPI answers the trade API calls a live search makes.
@@ -263,5 +265,61 @@ func TestLiveSearchFetchesResultTokens(t *testing.T) {
 	// The trade site fetches a token by itself, without the search id.
 	if path := h.api.lastPath.Load().(string); path != "/api/trade2/fetch/eyJhbGciOi.J9-x_y" {
 		t.Fatalf("fetch path = %s", path)
+	}
+}
+
+// busySocket is GGG saying "try again later": it closes as soon as it opens.
+type busySocket struct{}
+
+func (busySocket) Read(context.Context) ([]byte, error) {
+	return nil, websocket.CloseError{Code: websocket.StatusTryAgainLater}
+}
+func (busySocket) Close() error { return nil }
+
+// 2026-09-27: GGG answered every reconnect with "try again later" and the
+// app came back every 6 seconds for minutes. The waits must grow instead.
+func TestLiveSearchBacksOffWhenGGGSaysTryAgainLater(t *testing.T) {
+	saved := liveBusyBackoff
+	liveBusyBackoff = []time.Duration{40 * time.Millisecond, 120 * time.Millisecond, 300 * time.Millisecond}
+	t.Cleanup(func() { liveBusyBackoff = saved })
+
+	var mu sync.Mutex
+	var dials []time.Time
+	var lastErr error
+	client := NewInteractiveClient("Forbidden Rites", 1)
+	client.http.Transport = &liveAPI{}
+	client.SetSession("sess")
+	m := NewLiveManager(LiveOptions{
+		Client:  client,
+		Base:    "wss://live.test/",
+		Backoff: []time.Duration{time.Millisecond},
+		Describe: func(err error) string {
+			mu.Lock()
+			lastErr = err
+			mu.Unlock()
+			return err.Error()
+		},
+		Dial: func(context.Context, string, http.Header) (LiveSocket, error) {
+			mu.Lock()
+			dials = append(dials, time.Now())
+			mu.Unlock()
+			return busySocket{}, nil
+		},
+	})
+	t.Cleanup(m.StopAll)
+	if err := m.Start("s1", "Tablet", EvaluateRequest{BaseType: "Irradiated Tablet"}); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "four dials", func() bool { mu.Lock(); defer mu.Unlock(); return len(dials) >= 4 })
+	mu.Lock()
+	defer mu.Unlock()
+	for i, want := range liveBusyBackoff {
+		if gap := dials[i+1].Sub(dials[i]); gap < want {
+			t.Errorf("gap %d = %s, want at least %s", i, gap, want)
+		}
+	}
+	var retry *LiveRetry
+	if !errors.As(lastErr, &retry) || !retry.Busy || retry.Wait <= 0 {
+		t.Errorf("shown error = %#v, want a busy LiveRetry with a wait", lastErr)
 	}
 }

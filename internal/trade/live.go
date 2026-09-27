@@ -296,6 +296,7 @@ func (m *LiveManager) wait(ctx context.Context, failures int) bool {
 func (m *LiveManager) loop(ctx context.Context, run *liveRun, in EvaluateRequest) {
 	var searchID, league string
 	failures := 0
+	closes := 0 // sockets in a row that closed soon after opening
 	for ctx.Err() == nil {
 		if searchID == "" {
 			searchCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
@@ -360,6 +361,7 @@ func (m *LiveManager) loop(ctx context.Context, run *liveRun, in EvaluateRequest
 
 		// The socket is open; the search is live once GGG accepts the session.
 		m.update(ctx, run, func(s *LiveState) { s.Error = "" })
+		opened := time.Now()
 		err = m.read(ctx, run, sock, searchID)
 		sock.Close()
 		if ctx.Err() != nil {
@@ -369,14 +371,48 @@ func (m *LiveManager) loop(ctx context.Context, run *liveRun, in EvaluateRequest
 			m.fail(ctx, run, err)
 			return
 		}
-		m.log("live %s: closed: %v", run.state.ID, err)
 		failures = 1
-		m.update(ctx, run, func(s *LiveState) { s.Status, s.Error = LiveReconnecting, m.opts.Describe(err) })
-		if !m.wait(ctx, 0) {
+		// A socket that stayed up a while was fine; one that closes again
+		// right away, or that GGG closes with "try again later", means GGG
+		// wants us gone for now. Coming straight back every few seconds (as
+		// 2026-09-27 did, dozens of times) only digs the hole deeper.
+		if time.Since(opened) >= liveStableAfter {
+			closes = 0
+		}
+		busy := websocket.CloseStatus(err) == websocket.StatusTryAgainLater
+		pause := m.opts.Backoff[0]
+		if busy || closes > 0 {
+			pause = liveBusyBackoff[min(closes, len(liveBusyBackoff)-1)]
+		}
+		closes++
+		m.log("live %s: closed: %v (retry in %s)", run.state.ID, err, pause)
+		retry := &LiveRetry{Err: err, Wait: pause, Busy: busy}
+		m.update(ctx, run, func(s *LiveState) { s.Status, s.Error = LiveReconnecting, m.opts.Describe(retry) })
+		select {
+		case <-ctx.Done():
 			return
+		case <-time.After(pause):
 		}
 	}
 }
+
+// liveStableAfter is how long a socket must stay open before its closing
+// counts as an ordinary drop rather than GGG pushing us away.
+const liveStableAfter = 2 * time.Minute
+
+// liveBusyBackoff is the wait after a "try again later" close or a socket
+// that closed soon after opening, growing with each one in a row.
+var liveBusyBackoff = []time.Duration{30 * time.Second, time.Minute, 2 * time.Minute, 5 * time.Minute, 10 * time.Minute}
+
+// LiveRetry is the error shown while a live search waits to reconnect.
+type LiveRetry struct {
+	Err  error
+	Wait time.Duration
+	Busy bool // GGG closed the socket with "try again later"
+}
+
+func (e *LiveRetry) Error() string { return fmt.Sprintf("%v (retry in %s)", e.Err, e.Wait) }
+func (e *LiveRetry) Unwrap() error { return e.Err }
 
 // liveMessage is a frame of the live socket: {"auth": true} once GGG has
 // checked the session, then {"result": "<token>", "count": N} for each batch

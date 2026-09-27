@@ -66,6 +66,9 @@ func main() {
 			go appupdate.CleanupAfterStart(*cleanupUpdate, exe)
 		}
 	}
+	if !*headless {
+		keepCrashLog(*dataDir)
+	}
 
 	// The interface language must be known before any text is built: the tray
 	// menu and the window title are created once, at start.
@@ -80,7 +83,7 @@ func main() {
 		return
 	}
 
-	useragent.Set("MrW-POE2-Filter", version)
+	useragent.Set("MrW-Overlay", version)
 	svc := newAppService(Meta{
 		Version:  version,
 		DataDir:  *dataDir,
@@ -94,11 +97,16 @@ func main() {
 		Disabled:       *outPath != "",
 		OnChange:       svc.appUpdateChanged,
 	})
+	toasts := newToastQueue(func(opt notifications.NotificationOptions) {
+		if err := notifier.SendNotification(opt); err != nil {
+			log.Printf("toast %s: %v", opt.ID, err)
+		}
+	})
 	svc.notify = func(id, title, body string) {
-		_ = notifier.SendNotification(notifications.NotificationOptions{ID: id, Title: title, Body: body})
+		toasts.Push(notifications.NotificationOptions{ID: id, Title: title, Body: body})
 	}
 	svc.notifyAppUpdate = func(version string) {
-		_ = notifier.SendNotification(notifications.NotificationOptions{
+		toasts.Push(notifications.NotificationOptions{
 			ID: "application-update", Title: i18n.T("notify.appUpdateTitle"), Body: i18n.T("notify.appUpdateBody", version),
 		})
 	}
@@ -110,9 +118,15 @@ func main() {
 
 	var tray *application.SystemTray
 	app := application.New(application.Options{
-		Windows:     application.WindowsOptions{AdditionalBrowserArgs: browserArgs},
-		Name:        "MrW POE2 Filter",
-		Description: i18n.T("app.description"),
+		Windows: application.WindowsOptions{
+			AdditionalBrowserArgs: browserArgs,
+			WndProcInterceptor:    logQuitMessages,
+		},
+		Name:         "MrW Overlay for POE 2",
+		Description:  i18n.T("app.description"),
+		ErrorHandler: logAppError,
+		ShouldQuit:   logQuitRequest,
+		OnShutdown:   func() { log.Printf("shutdown: services stopping") },
 		Services: []application.Service{
 			application.NewService(svc),
 			application.NewService(notifier),
@@ -130,7 +144,7 @@ func main() {
 
 	panel := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "panel",
-		Title:            "MrW POE2 Filter",
+		Title:            "MrW Overlay",
 		Width:            380,
 		Height:           640,
 		Frameless:        true,
@@ -151,7 +165,7 @@ func main() {
 
 	overlayWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "overlay",
-		Title:            "MrW POE2 Overlay",
+		Title:            "MrW Overlay",
 		Width:            520,
 		Height:           760,
 		Frameless:        true,
@@ -171,7 +185,7 @@ func main() {
 
 	marketWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "market",
-		Title:            "MrW POE2 Market",
+		Title:            "MrW Overlay · Market",
 		Width:            680,
 		Height:           840,
 		MinWidth:         560,
@@ -194,7 +208,7 @@ func main() {
 	// without the panel vanishing on every click in between.
 	settingsWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "settings",
-		Title:            "MrW POE2 Filter",
+		Title:            "MrW Overlay",
 		Width:            980,
 		Height:           700,
 		MinWidth:         760,
@@ -227,7 +241,7 @@ func main() {
 
 	tray = app.SystemTray.New()
 	tray.SetIcon(assets.Tray)
-	tray.SetTooltip("MrW POE2 Filter")
+	tray.SetTooltip("MrW Overlay for POE 2")
 	tray.SetMenu(trayMenu())
 	svc.relabel = func() { tray.SetMenu(trayMenu()) }
 	tray.AttachWindow(panel).WindowOffset(8)
@@ -292,13 +306,15 @@ func main() {
 		OutPath:  *outPath,
 		OnChange: svc.changed,
 		Notify: func(title, body string) {
-			_ = notifier.SendNotification(notifications.NotificationOptions{
+			toasts.Push(notifications.NotificationOptions{
 				ID: "filter-updated", Title: title, Body: body,
 			})
 		},
 	})
 
-	if err := app.Run(); err != nil {
+	err := app.Run()
+	log.Printf("app.Run returned: %v", err)
+	if err != nil {
 		log.Fatal(err)
 	}
 }

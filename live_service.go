@@ -62,7 +62,12 @@ func (s *AppService) liveLog(msg string) {
 
 func describeLiveError(err error) string {
 	var apiErr *trade.APIError
+	var retry *trade.LiveRetry
 	switch {
+	case errors.As(err, &retry) && retry.Busy:
+		return i18n.T("live.err.busy", shortDuration(retry.Wait))
+	case errors.As(err, &retry):
+		return i18n.T("live.err.dropped", shortDuration(retry.Wait))
 	case errors.Is(err, trade.ErrNotSignedIn):
 		return i18n.T("live.err.login")
 	case errors.Is(err, trade.ErrLiveLimit):
@@ -77,6 +82,15 @@ func describeLiveError(err error) string {
 		return i18n.T("live.err.query")
 	}
 	return i18n.T("live.err.network", err)
+}
+
+// shortDuration writes a wait compactly: "30s", "2m", "1m30s".
+func shortDuration(d time.Duration) string {
+	d = d.Round(time.Second)
+	if d >= time.Minute && d%time.Minute == 0 {
+		return fmt.Sprintf("%dm", int(d/time.Minute))
+	}
+	return d.String()
 }
 
 func (s *AppService) liveChanged() {

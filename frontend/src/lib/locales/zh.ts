@@ -1,5 +1,5 @@
 export const zh: Record<string, string> = {
-  'app.title': 'MrW POE2 Filter',
+  'app.title': 'MrW Overlay',
   'header.settings': '設定',
   'header.back': '返回',
   'header.hide': '隱藏面板',
