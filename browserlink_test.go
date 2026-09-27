@@ -87,3 +87,21 @@ func TestLinkSteps(t *testing.T) {
 		t.Fatalf("disconnect: %+v %v", st, err)
 	}
 }
+
+func TestExtensionOriginAcceptsOnlyOurExtensions(t *testing.T) {
+	saved := chromiumStoreIDs
+	chromiumStoreIDs = []string{"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+	t.Cleanup(func() { chromiumStoreIDs = saved })
+	for origin, want := range map[string]bool{
+		"chrome-extension://" + chromiumExtensionID:            true, // unpacked, fixed key
+		"chrome-extension://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb":  true, // a store build
+		"chrome-extension://cccccccccccccccccccccccccccccccc":  false,
+		"moz-extension://6f1c2d7e-0000-4000-8000-000000000000": true,
+		"https://www.pathofexile.com":                          false,
+		"":                                                     false,
+	} {
+		if got := extensionOrigin(origin); got != want {
+			t.Errorf("extensionOrigin(%q) = %v, want %v", origin, got, want)
+		}
+	}
+}
