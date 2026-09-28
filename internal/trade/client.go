@@ -175,6 +175,18 @@ type APIError struct {
 
 func (e *APIError) Error() string { return fmt.Sprintf("trade API HTTP %d: %s", e.Status, e.Body) }
 
+// Blocked reports a web page instead of an API answer: an HTML body on a
+// refusal, as pathofexile.com sends while down for maintenance or when its
+// Cloudflare front turns requests away. Both pass by themselves; the raw
+// page means nothing to a player.
+func (e *APIError) Blocked() bool {
+	switch e.Status {
+	case 403, 405, 503:
+		return strings.Contains(strings.ToLower(e.Body), "<html")
+	}
+	return false
+}
+
 func (c *Client) do(ctx context.Context, lim *Limiter, req *http.Request, out any) error {
 	if err := lim.Wait(ctx); err != nil {
 		return err

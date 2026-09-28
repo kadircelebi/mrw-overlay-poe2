@@ -27,9 +27,26 @@ type ItemMod struct {
 	// Tiers lists each affix's tier when several affixes of the same stat
 	// were merged into this line ("P1+P1"); empty for a single affix.
 	Tiers []int `json:"tiers,omitempty"`
+	// Affixes lists each merged affix's side ("prefix", "suffix") in the
+	// order of Tiers, so the panel can write "P1+S1".
+	Affixes []string `json:"affixes,omitempty"`
 	// AltStatIDs are catalog stats with the same wording as StatID (a local
 	// or global twin); searches accept any of them through a count group.
 	AltStatIDs []string `json:"altStatIds,omitempty"`
+	// WeightStats makes the line a sum the trade site adds up itself: it is
+	// searched as a Weighted Sum v2 group of these stats, weight 1 each, with
+	// the line's value as the group's minimum. StatID is then only a key.
+	WeightStats []string `json:"weightStats,omitempty"`
+	// Hidden lines start unselected under a closed "hidden lines" section:
+	// the ones a total stands in for, and totals another one makes redundant.
+	Hidden bool `json:"hidden,omitempty"`
+}
+
+// ParseOptions tune what a parsed item offers for the search.
+type ParseOptions struct {
+	// SignedIn: GGG refuses Weighted Sum groups without a pathofexile.com
+	// session, so sums start selected only with one.
+	SignedIn bool
 }
 
 type Item struct {
@@ -46,6 +63,8 @@ type Item struct {
 	// A gem's level and support sockets ("Sockets: G G"); zero on other items.
 	GemLevel   int `json:"gemLevel"`
 	GemSockets int `json:"gemSockets"`
+	// GemCorruption is the part of GemLevel a corruption added ("+1").
+	GemCorruption int `json:"gemCorruption"`
 	// Exceptional is set when the game prefixed the name with "Exceptional":
 	// extra sockets or quality are then what the item is priced by.
 	Exceptional bool `json:"exceptional"`
@@ -76,12 +95,19 @@ var (
 	numberRE = regexp.MustCompile(`[+-]?\d+(?:\.\d+)?`)
 	spaceRE  = regexp.MustCompile(`\s+`)
 	signedRE = regexp.MustCompile(`[+-]#`)
+	// A gem with level bonuses breaks its level down under the Level line.
+	gemFromGemRE        = regexp.MustCompile(`^\d+ Levels? from Gem\b`)
+	gemFromCorruptionRE = regexp.MustCompile(`^[+-]?\d+ Levels? from Corruption\b`)
 	// "an additional" in the catalog, with the plural endings after it.
 	anAdditionalRE = regexp.MustCompile(`\ban? additional\b`)
 	pluralRE       = regexp.MustCompile(`\b(\w+?)s\b`)
 )
 
 func ParseItem(raw string, catalog Catalog) (Item, error) {
+	return ParseItemWith(raw, catalog, ParseOptions{})
+}
+
+func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error) {
 	raw = strings.ReplaceAll(raw, "\r\n", "\n")
 	lines := strings.Split(raw, "\n")
 	item := Item{Raw: raw, Properties: []ItemProperty{}, Mods: []ItemMod{}}
@@ -91,6 +117,7 @@ func ParseItem(raw string, catalog Catalog) (Item, error) {
 	// Weapon damage lines already include quality and local modifiers, so DPS
 	// is the average hit times attacks per second (as the trade site computes).
 	var physical, elemental, chaos, aps float64
+	var gemOwnLevel, gemCorruptLevels int
 	for i, source := range lines {
 		line := strings.TrimSpace(source)
 		plainLine := strings.TrimSpace(strings.TrimLeft(line, "# "))
@@ -99,7 +126,20 @@ func ParseItem(raw string, catalog Catalog) (Item, error) {
 		gem := item.Rarity == "gem"
 		switch {
 		case gem && strings.HasPrefix(plainLine, "Level:"):
-			item.GemLevel = firstInt(line)
+			// With level bonuses the line is the level in use, gear included
+			// ("Level: 38"); the lines below split it and win when present.
+			if gemOwnLevel == 0 {
+				item.GemLevel = firstInt(line)
+			}
+		case gem && gemFromGemRE.MatchString(plainLine):
+			// The gem's own level plus its corruption is what the trade site
+			// lists; levels from the character's gear stay with the character.
+			gemOwnLevel = firstInt(line)
+			item.GemLevel = gemOwnLevel + gemCorruptLevels
+		case gem && gemFromCorruptionRE.MatchString(plainLine):
+			gemCorruptLevels = firstInt(line)
+			item.GemLevel = gemOwnLevel + gemCorruptLevels
+			item.GemCorruption = gemCorruptLevels
 		case gem && strings.HasPrefix(plainLine, "Sockets:"):
 			item.GemSockets = len(strings.Fields(strings.TrimPrefix(plainLine, "Sockets:")))
 		case strings.HasPrefix(line, "Item Class:"):
@@ -313,8 +353,17 @@ func ParseItem(raw string, catalog Catalog) (Item, error) {
 	}
 	commit()
 	item.Mods = mergeSameStats(item.Mods)
+	if !item.Unidentified {
+		addPseudoTotals(&item, opts)
+	}
 	if sawHeader && !item.Unidentified {
 		addEmptyAffixes(&item, prefixes, suffixes)
+	}
+	// Merging same-stat lines leaves gaps in the keys, and lines added after it
+	// could take a key still in use; the panel lists mods by key, and a repeated
+	// key stops it from drawing the new item at all.
+	for i := range item.Mods {
+		item.Mods[i].Key = "mod-" + strconv.Itoa(i+1)
 	}
 	return item, nil
 }
@@ -684,8 +733,10 @@ func mergeSameStats(mods []ItemMod) []ItemMod {
 		merged := &out[i]
 		if len(merged.Tiers) == 0 {
 			merged.Tiers = []int{merged.Tier}
+			merged.Affixes = []string{merged.Affix}
 		}
 		merged.Tiers = append(merged.Tiers, mod.Tier)
+		merged.Affixes = append(merged.Affixes, mod.Affix)
 		for vi := range merged.Values {
 			merged.Values[vi] = math.Round((merged.Values[vi]+mod.Values[vi])*100) / 100
 		}

@@ -162,6 +162,42 @@ Corrupted`
 	}
 }
 
+// With gear bonuses the Level line counts the character's levels too; the
+// trade site lists a gem at its own level plus corruption (20 +1 = 21).
+func TestParseGemLevelLeavesOutGearBonuses(t *testing.T) {
+	raw := `Item Class: Skill Gems
+Rarity: Gem
+Spark
+--------
+Spell, Projectile, Lightning, Duration, Repeatable
+Level: 38 (augmented)
+20 Levels from Gem (Max)
++1 Level from Corruption (augmented)
++17 Levels from Global Modifiers (augmented)
+Quality: +20% (augmented)
+Cost: 288 Mana
+Cast Time: 0.70s
+Critical Hit Chance: 9.00%
+--------
+Requires: Level 90, 157 Int, Level 65 (gem)
+--------
+Sockets: G G G G G
+--------
+Corrupted`
+	item, err := ParseItem(raw, testCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if item.GemLevel != 21 || item.GemCorruption != 1 || item.GemSockets != 5 || item.Quality != 20 {
+		t.Fatalf("gem level %d sockets %d quality %d, want 21 5 20", item.GemLevel, item.GemSockets, item.Quality)
+	}
+	// Without corruption only the gem's own level counts.
+	plain := strings.Replace(raw, "+1 Level from Corruption (augmented)\n", "", 1)
+	if item, _ := ParseItem(plain, testCatalog()); item.GemLevel != 20 {
+		t.Fatalf("uncorrupted gem level %d, want 20", item.GemLevel)
+	}
+}
+
 func TestParseFracturedAffix(t *testing.T) {
 	raw := `Item Class: Amulets
 Rarity: Rare

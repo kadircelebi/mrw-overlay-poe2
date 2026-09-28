@@ -213,3 +213,15 @@ func TestQuotaStatusCountsOwnRequestsSinceLastResponse(t *testing.T) {
 		t.Errorf("status: %+v", st)
 	}
 }
+
+// Cloudflare answers with an HTML page instead of JSON; that is a block, a
+// JSON refusal with the same status is not.
+func TestAPIErrorRecognisesBotProtectionPage(t *testing.T) {
+	page := &APIError{Status: 405, Body: `<html> <head><title>405 Not Allowed</title></head> <body> <center>openresty</center> <script>window.__CF$cv$params={}</script>`}
+	if !page.Blocked() {
+		t.Error("Cloudflare page not seen as a block")
+	}
+	if (&APIError{Status: 400, Body: `<html>bad request</html>`}).Blocked() || (&APIError{Status: 403, Body: `{"error":{"code":6,"message":"Forbidden"}}`}).Blocked() {
+		t.Error("a plain refusal was taken for a block")
+	}
+}

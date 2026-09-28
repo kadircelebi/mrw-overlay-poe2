@@ -19,7 +19,7 @@
   function blankItem(): Item {
     return {
       raw: '', class: '', rarity: '', name: '', baseType: '',
-      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, gemLevel: 0, gemSockets: 0, exceptional: false, stackSize: 0, unidentified: false, fractured: false, corrupted: false, twiceCorrupted: false, mirrored: false, sanctified: false, properties: [], mods: [],
+      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, gemLevel: 0, gemSockets: 0, gemCorruption: 0, exceptional: false, stackSize: 0, unidentified: false, fractured: false, corrupted: false, twiceCorrupted: false, mirrored: false, sanctified: false, properties: [], mods: [],
     }
   }
 
@@ -340,7 +340,9 @@
     item = selectedItem
     sort = { ...defaultSort }
     pickedStat = null
-    choices = choicesFor(selectedItem, false)
+    // A sum line is no trade stat: the market edits it as the Weighted Sum
+    // group the overlay sends, with a row per stat.
+    choices = choicesFor(selectedItem, false).filter((choice) => !choice.mod.weightStats?.length)
     statGroups = [{ key: nextGroupKey++, type: 'and', choiceKeys: choices.filter((choice) => choice.mod.statId).map((choice) => choice.mod.key), weights: {} }]
     itemQuery = searchLabel(selectedItem)
     seedTypeFilters(selectedItem.rarity, selectedItem.class)
@@ -684,7 +686,7 @@
     const selected = (query.groups?.length ? query.groups.flatMap((group) => group.stats ?? []) : query.stats ?? [])
     item = {
       raw: '', class: '', rarity: query.rarity, name: query.name, baseType: query.baseType,
-      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, gemLevel: 0, gemSockets: 0, exceptional: false, stackSize: 0,
+      itemLevel: 0, requiredLevel: 0, quality: 0, runeSockets: 0, gemLevel: 0, gemSockets: 0, gemCorruption: 0, exceptional: false, stackSize: 0,
       unidentified: query.filters?.some((filter) => filter.group === 'misc_filters' && filter.id === 'identified' && filter.option === 'false') ?? false,
       fractured: query.filters?.some((filter) => filter.group === 'misc_filters' && filter.id === 'fractured_item' && filter.option === 'true') ?? false,
       corrupted: query.filters?.some((filter) => filter.group === 'misc_filters' && filter.id === 'corrupted' && filter.option === 'true') ?? false,

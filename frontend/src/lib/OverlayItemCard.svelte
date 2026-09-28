@@ -51,12 +51,42 @@
 
   function label(choice: ModChoice): string {
     const mod = choice.mod
+    if (mod.weightStats?.length) return 'Weighted Sum'
     if (mod.type === 'pseudo') return 'Pseudo'
     const affix = mod.affix ? mod.affix[0].toUpperCase() + mod.affix.slice(1) : mod.type
     const special = ['fractured', 'crafted', 'desecrated'].includes(mod.type)
       ? `${mod.type[0].toUpperCase()}${mod.type.slice(1)} `
       : ''
     return `${special}${affix}${tiers(mod)}`
+  }
+
+  // badge is the short tag at the left of a row, as the trade site's tier
+  // column: P1 / S2 for affixes, P1+S1 for a merged line, I implicit, R rune,
+  // E enchant, Σ for totals. The full label is the badge's tooltip.
+  function badge(mod: ItemMod): string {
+    if (mod.type === 'pseudo') return 'Σ'
+    const side = (affix?: string) => affix === 'prefix' ? 'P' : affix === 'suffix' ? 'S' : ''
+    if (mod.tiers?.length) return mod.tiers.map((tier, i) => `${side(mod.affixes?.[i] ?? mod.affix)}${tier || ''}`).join('+')
+    if (mod.affix) return `${side(mod.affix)}${mod.tier || ''}`
+    return ({ implicit: 'I', rune: 'R', enchant: 'E', skill: 'G' } as Record<string, string>)[mod.type] ?? ''
+  }
+
+  // Hidden lines (the ones a total stands in for, repeated totals) fold away
+  // under one row, as in POE2 Overlay. A hidden line the user selected stays
+  // in view when the section closes. Every new item starts folded.
+  let showHidden = $state(false)
+  let foldedFor = ''
+  $effect.pre(() => {
+    if (item.raw !== foldedFor) {
+      foldedFor = item.raw
+      showHidden = false
+    }
+  })
+  const folded = $derived((choices ?? []).filter((choice) => choice.mod.hidden && !choice.selected).length)
+
+  function badgeTitle(choice: ModChoice): string {
+    const mod = choice.mod
+    return [label(choice), mod.name, mod.statId].filter(Boolean).join(' · ')
   }
 
   // Affixes of the same stat are summed into one line; its label lists every
@@ -117,7 +147,7 @@
       {/if}
       {#each propertyFilters ?? [] as prop, index (prop.id)}
         <div class="meta-filter prop-filter" class:off={!prop.enabled}>
-          <label title={t('ov.include')}><input type="checkbox" checked={prop.enabled} onchange={(event) => onpropertychange(index, 'enabled', event.currentTarget.checked)} /><i></i><span>{prop.name}</span></label>
+          <label title={t('ov.include')}><input type="checkbox" checked={prop.enabled} onchange={(event) => onpropertychange(index, 'enabled', event.currentTarget.checked)} /><i></i><span>{prop.name}</span>{#if prop.note}<b class="prop-note" title={prop.bonus ? 'Corruption' : undefined}>{prop.note}{#if prop.bonus} <em>{prop.bonus}</em>{/if}</b>{/if}</label>
           <span class="meta-range"><input type="number" value={prop.min ?? ''} oninput={(event) => onpropertychange(index, 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={prop.max ?? ''} oninput={(event) => onpropertychange(index, 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
         </div>
       {/each}
@@ -129,14 +159,14 @@
   <div class="mods">
     {#if choices}
       {#each choices as choice (choice.mod.key)}
-        <div class="mod-row" class:off={choice.mod.statId && !choice.selected} class:unmatched={!choice.mod.statId} class:fractured={choice.mod.type === 'fractured'} class:crafted={choice.mod.type === 'crafted'} class:desecrated={choice.mod.type === 'desecrated'}>
-          <label class="mod-check" title={choice.mod.statId ? choice.mod.statId : 'GGG stat eşleşmesi bulunamadı'}>
+        {@const tag = badge(choice.mod)}
+        {#if !choice.mod.hidden || choice.selected || showHidden}
+        <div class="mod-row" class:off={choice.mod.statId && !choice.selected} class:unmatched={!choice.mod.statId} class:fractured={choice.mod.type === 'fractured'} class:crafted={choice.mod.type === 'crafted'} class:desecrated={choice.mod.type === 'desecrated'} class:pseudo={choice.mod.type === 'pseudo'}>
+          <label class="mod-check" title={choice.mod.statId ? badgeTitle(choice) : `${badgeTitle(choice)} · GGG stat eşleşmesi bulunamadı`}>
             <input type="checkbox" bind:checked={choice.selected} disabled={!choice.mod.statId} onchange={onchange} />
             <i></i>
-            <span class="mod-copy">
-              <small>{label(choice)}{choice.mod.name ? ` · ${choice.mod.name}` : ''}</small>
-              <em>{choice.mod.text}</em>
-            </span>
+            <b class="tag" class:prefix={tag.startsWith('P')} class:suffix={tag.startsWith('S')}>{tag}</b>
+            <em class="mod-copy">{choice.mod.text}</em>
           </label>
           {#if choice.mod.statId}
             <div class="range">
@@ -145,7 +175,13 @@
             </div>
           {/if}
         </div>
+        {/if}
       {/each}
+      {#if folded || showHidden}
+        <button type="button" class="fold" title={t('ov.hiddenHint')} onclick={() => (showHidden = !showHidden)}>
+          {showHidden ? `▴ ${t('ov.hideLines')}` : `▾ ${t('ov.hiddenLines', folded)}`}
+        </button>
+      {/if}
     {:else}
       {#each item.mods ?? [] as mod}
         <div class="plain-mod" class:implicit={mod.type === 'implicit'} class:fractured={mod.type === 'fractured'} class:crafted={mod.type === 'crafted'} class:desecrated={mod.type === 'desecrated'}>
@@ -190,6 +226,7 @@
   .rarity-select.off span { opacity:.45; }
   .rarity-select select { padding:3px 16px 3px 5px; border:1px solid #4b473b; border-radius:2px; background:#191b18; color:var(--gold-bright); font-family:var(--sans); font-size:10px; text-transform:none; }
   .prop-filter>label{color:#8192b4;text-transform:uppercase}
+  .prop-note{color:var(--text);font-weight:normal}.prop-note em{font-style:normal;color:#d54a45}
   .mod-row.off .mod-copy { opacity:.5; }
   .item-title strong { font-size: 17px; }
   .item-title.unique { color:#d68d45; border-color:#7a4d22; }
@@ -203,20 +240,30 @@
   .item-class{padding:0 3px}.properties { display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; padding:3px 10px 8px; color:#8192b4; font-size:11px; border-bottom:1px solid #29251e; }
   .meta-filter{display:flex;align-items:center;gap:5px;color:#c8c1aa}.meta-filter.off{opacity:.45}.meta-filter>label{display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}.meta-filter>label input{position:absolute;opacity:0}.meta-filter>label i{flex:0 0 9px;width:9px;height:9px;transform:rotate(45deg);border:1px solid #766b4f;background:#090a0b}.meta-filter>label input:checked+i{background:var(--gold);box-shadow:inset 0 0 0 2px #151615}.meta-range{display:grid;grid-template-columns:44px 44px;gap:3px}.meta-range input{box-sizing:border-box;min-width:0;width:100%;padding:4px 3px;border:1px solid #3d3a31;border-radius:2px;background:#111313;color:var(--gold-bright);font-size:10px}.quality-filter>label{color:#8192b4;text-transform:uppercase}
   .mods { padding:7px 8px 9px; }
-  .mod-row { display:grid; grid-template-columns:minmax(0,1fr) 112px; gap:7px; align-items:center; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.035); }
+  .mod-row { display:grid; grid-template-columns:minmax(0,1fr) 104px; gap:6px; align-items:center; padding:2px 0; border-bottom:1px solid rgba(255,255,255,.035); }
   .mod-row:last-child { border-bottom:0; }
-  .mod-check { display:flex; gap:7px; align-items:flex-start; min-width:0; cursor:pointer; }
+  .mod-check { display:grid; grid-template-columns:13px 38px minmax(0,1fr); gap:6px; align-items:center; min-width:0; cursor:pointer; }
   .mod-check input { position:absolute; opacity:0; pointer-events:none; }
-  .mod-check i { flex:0 0 13px; width:13px; height:13px; margin-top:9px; transform:rotate(45deg); border:1px solid var(--gold-dim); background:#090a0b; }
-  .mod-check input:checked + i { background:var(--gold); box-shadow:inset 0 0 0 3px #17191b; }
+  .mod-check i { width:9px; height:9px; margin-left:2px; transform:rotate(45deg); border:1px solid var(--gold-dim); background:#090a0b; }
+  .mod-check input:checked + i { background:var(--gold); box-shadow:inset 0 0 0 2px #17191b; }
+  .mod-row.off .tag { opacity:.5; }
+  .fold { display:block; width:100%; margin-top:4px; padding:4px; border:0; background:none; color:#8a8474; font-size:10px; text-align:center; cursor:pointer; }
+  .fold:hover { color:var(--gold-bright); }
   .mod-copy { min-width:0; }
-  .mod-copy small,.plain-mod small { display:block; color:#9f77b7; font-size:10px; text-transform:uppercase; }
-  .mod-row.fractured .mod-copy small,.plain-mod.fractured small { color:#9ed0d8; }
-  .mod-row.crafted .mod-copy small,.plain-mod.crafted small { color:#b892c8; }
-  .mod-row.desecrated .mod-copy small,.plain-mod.desecrated small { color:#d68869; }
-  .mod-copy em { display:block; color:#9aa8d2; font-style:normal; white-space:pre-line; line-height:1.25; }
+  .plain-mod small { display:block; color:#9f77b7; font-size:10px; text-transform:uppercase; }
+  .plain-mod.fractured small { color:#9ed0d8; }
+  .plain-mod.crafted small { color:#b892c8; }
+  .plain-mod.desecrated small { color:#d68869; }
+  .mod-copy { display:block; color:#9aa8d2; font-style:normal; white-space:pre-line; line-height:1.25; }
+  .tag { color:#9f77b7; font-size:10px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tag.prefix { color:#d0675c; }.tag.suffix { color:#6f9bd6; }
+  .mod-row.pseudo .tag { color:#c2ae7e; }
+  .mod-row.pseudo .mod-copy { color:#b9b3a0; }
+  .mod-row.fractured .mod-copy { color:#9ed0d8; }
+  .mod-row.crafted .mod-copy { color:#b892c8; }
+  .mod-row.desecrated .mod-copy { color:#d68869; }
   .range { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
-  .range input { min-width:0; width:100%; padding:5px 4px; background:#111313; border:1px solid #3d3a31; color:var(--gold-bright); border-radius:2px; }
+  .range input { min-width:0; width:100%; padding:3px 4px; background:#111313; border:1px solid #3d3a31; color:var(--gold-bright); border-radius:2px; }
   .unmatched { opacity:.48; }
   .plain-mod { padding:4px 5px; text-align:center; color:#9aa8d2; white-space:pre-line; }
   .plain-mod.implicit { color:#7388c2; }

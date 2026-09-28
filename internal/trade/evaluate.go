@@ -176,23 +176,23 @@ type evaluatedFetchResponse struct {
 			} `json:"price"`
 		} `json:"listing"`
 		Item struct {
-			Name            string            `json:"name"`
-			TypeLine        string            `json:"typeLine"`
-			BaseType        string            `json:"baseType"`
-			Rarity          string            `json:"rarity"`
-			Ilvl            int               `json:"ilvl"`
-			Icon            string            `json:"icon"`
-			Identified      bool              `json:"identified"`
-			Fractured       bool              `json:"fractured"`
-			Corrupted       bool              `json:"corrupted"`
-			DoubleCorrupted bool              `json:"doubleCorrupted"`
-			Duplicated      bool              `json:"duplicated"`
-			Sanctified      bool              `json:"sanctified"`
-			FrameType       int               `json:"frameType"`
+			Name            string `json:"name"`
+			TypeLine        string `json:"typeLine"`
+			BaseType        string `json:"baseType"`
+			Rarity          string `json:"rarity"`
+			Ilvl            int    `json:"ilvl"`
+			Icon            string `json:"icon"`
+			Identified      bool   `json:"identified"`
+			Fractured       bool   `json:"fractured"`
+			Corrupted       bool   `json:"corrupted"`
+			DoubleCorrupted bool   `json:"doubleCorrupted"`
+			Duplicated      bool   `json:"duplicated"`
+			Sanctified      bool   `json:"sanctified"`
+			FrameType       int    `json:"frameType"`
 			Sockets         []struct {
 				Type string `json:"type"`
 			} `json:"sockets"`
-			Properties      []struct {
+			Properties []struct {
 				Name   string          `json:"name"`
 				Values [][]interface{} `json:"values"`
 			} `json:"properties"`
@@ -203,7 +203,7 @@ type evaluatedFetchResponse struct {
 			FracturedMods  []evaluatedModLine `json:"fracturedMods"`
 			RuneMods       []evaluatedModLine `json:"runeMods"`
 			EnchantMods    []evaluatedModLine `json:"enchantMods"`
-			Extended       listingExtended   `json:"extended"`
+			Extended       listingExtended    `json:"extended"`
 		} `json:"item"`
 	} `json:"result"`
 }
