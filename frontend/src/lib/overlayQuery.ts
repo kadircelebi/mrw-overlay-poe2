@@ -26,7 +26,9 @@ export const rarityOptions = [
 
 // PropertyFilter is a clickable item property (defences, spirit, sockets).
 // base is the item's own value; Broad mode lowers min from it like affixes.
-export type PropertyFilter = { group: string; id: string; name: string; value: string; enabled: boolean; base?: number; min?: number; max?: number }
+// note and bonus are shown beside the name: a gem's own level and the
+// levels its corruption added ("20 +1"), as the game prints them.
+export type PropertyFilter = { group: string; id: string; name: string; value: string; enabled: boolean; base?: number; min?: number; max?: number; note?: string; bonus?: string }
 
 // Trade filters for the properties the game prints above the modifiers.
 const propertyFilterIDs: Record<string, { group: string; id: string }> = {
@@ -57,7 +59,13 @@ export function propertyFiltersFor(item: Item): PropertyFilter[] {
   if (isGem(item)) {
     // A gem is priced by its level and support sockets. Both are counts, not
     // rolls, so Broad leaves them alone (no base).
-    if (item.gemLevel > 0) out.push({ group: 'misc_filters', id: 'gem_level', name: 'Gem Level', value: String(item.gemLevel), enabled: true, min: item.gemLevel })
+    if (item.gemLevel > 0) {
+      const corruption = item.gemCorruption > 0 ? item.gemCorruption : 0
+      out.push({
+        group: 'misc_filters', id: 'gem_level', name: 'Gem Level', value: String(item.gemLevel), enabled: true, min: item.gemLevel,
+        note: corruption ? String(item.gemLevel - corruption) : undefined, bonus: corruption ? `+${corruption}` : undefined,
+      })
+    }
     if (item.gemSockets > 0) out.push({ group: 'misc_filters', id: 'gem_sockets', name: 'Gem Sockets', value: String(item.gemSockets), enabled: true, min: item.gemSockets })
   }
   if (item.runeSockets > 0) {
@@ -114,8 +122,9 @@ export function choicesFor(item: Item, broad = true): ModChoice[] {
   return (item.mods ?? []).map((mod) => {
     const current = modValue(mod)
     let min = current
-    // An empty slot count is a count, not a roll: Broad does not lower it.
-    if (broad && current !== undefined && mod.type !== 'pseudo') min = round(current >= 0 ? current * 0.9 : current * 1.1)
+    // A count (empty slots) is not a roll: Broad does not lower it. Pseudo
+    // totals (total Life, total Resistance) are rolls and are lowered.
+    if (broad && current !== undefined && !isCountStat(mod)) min = round(current >= 0 ? current * 0.9 : current * 1.1)
     return { mod, selected: mod.selected && !!mod.statId, min }
   })
 }
@@ -128,8 +137,9 @@ export function buildRequest(
   groups: SelectedStatGroup[] = [],
   toggles: ItemToggles = allOn,
 ): EvaluateRequest {
+  // A sum line (weightStats) is not a trade stat; it goes as its own group.
   const stats: SelectedStat[] = choices
-    .filter((choice) => choice.selected && choice.mod.statId)
+    .filter((choice) => choice.selected && choice.mod.statId && !choice.mod.weightStats?.length)
     .map((choice) => ({ id: choice.mod.statId, min: finite(choice.min), max: finite(choice.max) }))
   const category = toggles.base ? '' : categoryFor(item.class)
   if (category && !filters.some((filter) => filter.group === 'type_filters' && filter.id === 'category')) {
@@ -151,15 +161,21 @@ export function buildRequest(
 // twinGroups puts a line whose wording matches several trade stats (a local
 // and a global "increased Armour", two "# to maximum Runic Ward") in a count
 // group of all of them with at least one required, as POE2 Overlay does, so
-// the search holds whichever the item really has. Without such lines it
-// returns no groups and the plain stat list is searched.
+// the search holds whichever the item really has. A sum line (Adds # to #
+// Elemental Damage to Attacks) becomes a Weighted Sum v2 group of its stats,
+// weight 1 each, the line's value as the group's minimum. Without such lines
+// it returns no groups and the plain stat list is searched.
 export function twinGroups(choices: ModChoice[]): SelectedStatGroup[] {
   const selected = choices.filter((choice) => choice.selected && choice.mod.statId)
-  if (!selected.some((choice) => choice.mod.altStatIds?.length)) return []
+  if (!selected.some((choice) => choice.mod.altStatIds?.length || choice.mod.weightStats?.length)) return []
   const plain: SelectedStat[] = []
   const counts: SelectedStatGroup[] = []
   for (const choice of selected) {
     const min = finite(choice.min), max = finite(choice.max)
+    if (choice.mod.weightStats?.length) {
+      counts.push({ type: 'weight2', min, max, stats: choice.mod.weightStats.map((id) => ({ id, weight: 1 })) })
+      continue
+    }
     if (!choice.mod.altStatIds?.length) {
       plain.push({ id: choice.mod.statId, min, max })
       continue
@@ -187,10 +203,16 @@ export function resetPropertyRanges(filters: PropertyFilter[], broad: boolean) {
   }
 }
 
+// Counting stats ("# Empty Prefix Modifiers") are not lowered in Broad mode.
+function isCountStat(mod: ItemMod): boolean {
+  return mod.statId?.includes('pseudo_number_of_') ?? false
+}
+
 export function resetChoiceRanges(choices: ModChoice[], broad: boolean) {
   for (const choice of choices) {
     const current = modValue(choice.mod)
-    choice.min = current === undefined ? undefined : round(broad ? (current >= 0 ? current * 0.9 : current * 1.1) : current)
+    const loosen = broad && !isCountStat(choice.mod)
+    choice.min = current === undefined ? undefined : round(loosen ? (current >= 0 ? current * 0.9 : current * 1.1) : current)
     choice.max = undefined
   }
 }

@@ -161,7 +161,7 @@ func (s *AppService) ParseOverlayText(raw string) (overlay.Snapshot, error) {
 	if err != nil {
 		return overlay.Snapshot{}, err
 	}
-	item, err := overlay.ParseItem(raw, catalog)
+	item, err := overlay.ParseItemWith(raw, catalog, overlay.ParseOptions{SignedIn: s.overlayClient.SignedIn()})
 	if err != nil {
 		return overlay.Snapshot{}, err
 	}
@@ -233,6 +233,8 @@ func (s *AppService) evaluateOverlayFresh(in trade.EvaluateRequest) (trade.Evalu
 	switch {
 	case errors.As(err, &apiErr) && apiErr.Status == 429:
 		return trade.Evaluation{}, errors.New(quotaPenaltyMessage(s.overlayClient.Search.Status()))
+	case errors.As(err, &apiErr) && apiErr.Blocked():
+		return trade.Evaluation{}, errors.New(i18n.T("overlay.err.blocked"))
 	case strings.Contains(strings.ToLower(err.Error()), "content exceeded"):
 		return trade.Evaluation{}, errors.New(i18n.T("overlay.err.tooBroad"))
 	case strings.Contains(strings.ToLower(err.Error()), "query is too complex"):
@@ -269,6 +271,8 @@ func (s *AppService) FetchOverlayListings(searchID string, ids []string) ([]trad
 		return listings, nil
 	case errors.As(err, &apiErr) && apiErr.Status == 429:
 		return nil, errors.New(i18n.T("overlay.err.fetchLimit"))
+	case errors.As(err, &apiErr) && apiErr.Blocked():
+		return nil, errors.New(i18n.T("overlay.err.blocked"))
 	case errors.Is(err, context.DeadlineExceeded):
 		return nil, errors.New(i18n.T("overlay.err.fetchTimeout"))
 	default:
@@ -475,7 +479,7 @@ func (s *AppService) captureOverlay() {
 		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.catalogFailed", err)})
 		return
 	}
-	item, err := overlay.ParseItem(raw, catalog)
+	item, err := overlay.ParseItemWith(raw, catalog, overlay.ParseOptions{SignedIn: s.overlayClient.SignedIn()})
 	if err != nil {
 		// Whatever the parser tripped on, the copy was not a game item.
 		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.notAnItem")})

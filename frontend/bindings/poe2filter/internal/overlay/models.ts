@@ -75,6 +75,11 @@ export interface Item {
     "gemSockets": number;
 
     /**
+     * GemCorruption is the part of GemLevel a corruption added ("+1").
+     */
+    "gemCorruption": number;
+
+    /**
      * Exceptional is set when the game prefixed the name with "Exceptional":
      * extra sockets or quality are then what the item is priced by.
      */
@@ -129,10 +134,29 @@ export interface ItemMod {
     "tiers"?: number[] | null;
 
     /**
+     * Affixes lists each merged affix's side ("prefix", "suffix") in the
+     * order of Tiers, so the panel can write "P1+S1".
+     */
+    "affixes"?: string[] | null;
+
+    /**
      * AltStatIDs are catalog stats with the same wording as StatID (a local
      * or global twin); searches accept any of them through a count group.
      */
     "altStatIds"?: string[] | null;
+
+    /**
+     * WeightStats makes the line a sum the trade site adds up itself: it is
+     * searched as a Weighted Sum v2 group of these stats, weight 1 each, with
+     * the line's value as the group's minimum. StatID is then only a key.
+     */
+    "weightStats"?: string[] | null;
+
+    /**
+     * Hidden lines start unselected under a closed "hidden lines" section:
+     * the ones a total stands in for, and totals another one makes redundant.
+     */
+    "hidden"?: boolean;
 }
 
 export interface ItemProperty {

@@ -152,6 +152,7 @@ var zh = map[string]string{
 	"overlay.err.tooComplex":          "搜尋對 GGG 來說太複雜；請移除幾個屬性篩選",
 	"overlay.err.tooComplexSignedOut": "搜尋超出 GGG 未登入時的複雜度上限；請移除幾個屬性篩選，或在「設定 → 帳號」連結 pathofexile.com 帳號",
 	"overlay.err.searchTimeout":       "GGG 搜尋逾時；請稍後再試",
+	"overlay.err.blocked":             "pathofexile.com 回傳了網頁而非搜尋結果：網站可能正在維護，或暫時拒絕請求。請稍後再試。",
 	"overlay.err.fetchLimit":          "已達 GGG 的刊登載入上限；請幾秒後再捲動",
 	"overlay.err.fetchTimeout":        "載入刊登逾時；請稍後再試",
 	"overlay.err.hideoutNeedsLogin":   "要前往藏身處，請在「設定 → 帳號」連結瀏覽器",
