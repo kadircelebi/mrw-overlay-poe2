@@ -58,13 +58,23 @@ Tepsi simgesine tıklayınca küçük panel açılır: durum, **Şimdi güncelle
 | **Trade taraması** | Exceptional taban taramasını aç/kapat ve trade kotasının ne kadarını kullanacağını seç (%10–80, varsayılan %40). |
 | **Profiller** | Farklı farm türleri için ayrı ayar setleri. Tek tıkla geçilir, yeniden adlandırılabilir, filtre hemen yeniden yazılır ve dosya olarak paylaşılabilir. |
 | **Overlay** | İsteğe bağlı fiyat sorgulayıcı, **varsayılan olarak kapalı**. Açınca oyunda bir eşyanın üzerine gelip kısayola (varsayılan Alt+E) basarsın: küçük pencere eşyayı okur, affix, DPS, nadirlik ve özellikleri tıklanarak aramaya eklenip çıkarılabilir ve resmi trade sitesinde arar. ▣ düğmesi gelişmiş filtreli geniş pazarı açar (Alt+M ile de açılır). Pazarda her arama kendi sekmesinde durur, sekmeler uygulama kapanana kadar kalır; kayıtlı aramalar klasörlere ayrılabilir (sürükle-bırak). Düğmeler uygulamanın dilinde, stat ve filtre adları trade sitesindeki gibi İngilizce. Pencereler oyun penceresinin içinde kalır ve başka uygulamaya geçince gizlenir. |
-| **Hesap** | İsteğe bağlı. pathofexile.com oturumunu küçük bir tarayıcı eklentisiyle (Chromium tabanlı tarayıcılar, depoda `browser-extension/`) uygulamaya taşır. Overlay aramaları girişli yapılır (Weighted Sum gibi daha karmaşık sorgular çalışır) ve ilandaki düğmeyle satıcının hideout'una gidebilirsin. Oturum bu bilgisayarda şifreli saklanır, yalnızca senin başlattığın trade aramalarında kullanılır. |
+| **Hesap** | İsteğe bağlı. pathofexile.com oturumunu küçük bir tarayıcı eklentisiyle (Chrome, Edge, Firefox; bkz. [Tarayıcı eklentisi](#tarayıcı-eklentisi)) uygulamaya taşır. Overlay aramaları girişli yapılır (Weighted Sum gibi daha karmaşık sorgular çalışır) ve ilandaki düğmeyle satıcının hideout'una gidebilirsin. Oturum bu bilgisayarda şifreli saklanır, yalnızca senin başlattığın trade aramalarında kullanılır. |
 | **Genel** | Dil, lig, oyundaki filtre adı, filtre dosyasını dışa aktarma, filtre ve veri klasörleri. |
 
 Ayarı değiştirdiğinde hem panel hem ayar penceresi "Ayarlar değişti, filtreye yansıması için güncelle" der: önce **Güncelle**, sonra oyunda **Reload**.
 
 <p align="center"><img src="docs/groups.png" alt="Kendi eşya grupların" width="700" /></p>
 <p align="center"><img src="docs/appearance.png" alt="Görünüm ve sesler" width="700" /></p>
+
+## Tarayıcı eklentisi
+
+Canlı arama, hideout'a gitme ve büyük sorgular için pathofexile.com oturumunu uygulamaya taşıyan küçük eklenti (isteğe bağlı). Kaynak kodu bu depoda: [`browser-extension/`](browser-extension/).
+
+Eklentimiz tarayıcı mağazalarında yayında:
+
+- **Chrome:** [Chrome Web Mağazası'nda MrW Overlay for POE 2 Bridge](https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn)
+- **Firefox:** [Firefox Eklentileri'nde MrW Overlay for POE 2 Bridge](https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/)
+- **Edge:** Edge Eklentileri başvurusu incelemede. O zamana kadar Edge, Chrome Web Mağazası sürümünü kurabilir.
 
 ## Sık karşılaşılanlar
 
