@@ -5,9 +5,10 @@
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
-  IgnorableNamespaces="uap rescap desktop6">
+  xmlns:virtualization="http://schemas.microsoft.com/appx/manifest/virtualization/windows10"
+  IgnorableNamespaces="uap uap5 rescap virtualization">
 
   <Identity
     Name="{{.IdentityName}}"
@@ -19,13 +20,18 @@
     <DisplayName>{{.DisplayName}}</DisplayName>
     <PublisherDisplayName>{{.PublisherDisplayName}}</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
-    <!-- The app keeps its settings in %APPDATA%\PoE2Filtre and writes the loot
-         filter to Documents\My Games\Path of Exile 2, shared with the GitHub
-         build of the same app. Without these, Windows would redirect the
-         writes into the package's private folder and a player moving from
-         the GitHub build would lose all settings. -->
-    <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
-    <desktop6:RegistryWriteVirtualization>disabled</desktop6:RegistryWriteVirtualization>
+    <!-- Only the app's own folder %APPDATA%\PoE2Filtre is left unvirtualized
+         (Windows 11 flexible virtualization; the Store refused the global
+         desktop6 switch). The browser loads the unpacked extension from
+         there, and the GitHub build shares the same settings. Everything
+         else in AppData stays virtualized. The app never writes to the
+         registry, so no registry exclusion. The loot filter goes to
+         Documents\My Games\Path of Exile 2, which is not virtualized. -->
+    <virtualization:FileSystemWriteVirtualization>
+      <virtualization:ExcludedDirectories>
+        <virtualization:ExcludedDirectory>$(KnownFolder:RoamingAppData)\PoE2Filtre</virtualization:ExcludedDirectory>
+      </virtualization:ExcludedDirectories>
+    </virtualization:FileSystemWriteVirtualization>
   </Properties>
 
   <Dependencies>
@@ -47,6 +53,11 @@
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" ShortName="MrW Overlay" />
         <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#101215" />
       </uap:VisualElements>
+      <Extensions>
+        <uap5:Extension Category="windows.startupTask" Executable="poe2filter.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap5:StartupTask TaskId="MrWOverlayStartup" Enabled="false" DisplayName="{{.DisplayName}}" />
+        </uap5:Extension>
+      </Extensions>
     </Application>
   </Applications>
 

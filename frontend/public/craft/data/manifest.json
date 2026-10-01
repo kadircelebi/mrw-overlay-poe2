@@ -1,0 +1,68 @@
+{
+  "fetched_at_utc": "2026-10-01T05:05:07.888635+00:00",
+  "scope": [
+    "Gloves_str",
+    "Gloves_dex",
+    "Gloves_int",
+    "Gloves_str_dex",
+    "Gloves_str_int",
+    "Gloves_dex_int"
+  ],
+  "sources": [
+    {
+      "url": "https://poe2db.tw/us/Gloves_str",
+      "status": 200,
+      "sha256": "04bc420fe5e23e032afe2345f12e479de743d4f473ee7911bcf6b08487c344f8",
+      "bytes": 588670,
+      "last_modified": null
+    },
+    {
+      "url": "https://cdn.poe2db.tw/js/ModsView.f39fca410dd746d3.js",
+      "status": 200,
+      "sha256": "967efb19b218b4d92a7129fb60ee694ea3fee3a3015dd75cf7dd64d6cbb0a2a5",
+      "bytes": 52343,
+      "last_modified": "Tue, 29 Sep 2026 10:02:12 GMT"
+    },
+    {
+      "url": "https://poe2db.tw/us/Gloves_dex",
+      "status": 200,
+      "sha256": "ee62f7a86aad5acf418dff6322fda39c31af76d5ac8db60f75f7fd428719e5df",
+      "bytes": 583550,
+      "last_modified": null
+    },
+    {
+      "url": "https://poe2db.tw/us/Gloves_int",
+      "status": 200,
+      "sha256": "7521b9eb84401c130550e7f0d199ba66f67758b6c76c9ee33fefe24518675bdd",
+      "bytes": 592143,
+      "last_modified": null
+    },
+    {
+      "url": "https://poe2db.tw/us/Gloves_str_dex",
+      "status": 200,
+      "sha256": "d2f3eef7cd66efdfc5d2f1bb1ff41a6a9fd653262d25e027e84c7aaa14c03b08",
+      "bytes": 602265,
+      "last_modified": null
+    },
+    {
+      "url": "https://poe2db.tw/us/Gloves_str_int",
+      "status": 200,
+      "sha256": "893f649173531d808f7bd550222e7a0a44e50146633fd14451d6a3f01dfa3165",
+      "bytes": 607090,
+      "last_modified": null
+    },
+    {
+      "url": "https://poe2db.tw/us/Gloves_dex_int",
+      "status": 200,
+      "sha256": "3ecb39e3d21594593d2b819035f429cca3995a62a204cba84d20959f2f38590a",
+      "bytes": 600158,
+      "last_modified": null
+    }
+  ],
+  "warnings": [
+    "Source data is not proof that every craft rule is complete or correct.",
+    "Shared source config can contain PoE1-only headings; empty pools must not be treated as supported.",
+    "Weights are community-derived, not authoritative game-file weights.",
+    "Game patch version has not been independently identified."
+  ]
+}

@@ -1,0 +1,691 @@
+{
+  "source": "https://poe2db.tw/us/Essence",
+  "bone_source": "https://poe2db.tw/us/Rise_of_the_Abyssal_items",
+  "generated_at": "2026-10-01T05:52:32.608206+00:00",
+  "rules": {
+    "gnawed-collarbone": {
+      "name": "Gnawed Collarbone",
+      "code": "Metadata/Items/Currency/AbyssalBenchTicketJewelleryLow",
+      "icon": "Art/2DItems/Currency/Abyss/GnawedClavicle.webp",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "beforePools": [
+        "normal",
+        "desecrated"
+      ],
+      "beforeClassIds": [
+        "Amulet",
+        "Ring",
+        "Belt"
+      ],
+      "afterTrigger": "add",
+      "afterQuantity": 1,
+      "type": "Currency",
+      "operation": "desecrate",
+      "maxItemLevel": 64
+    },
+    "preserved-collarbone": {
+      "name": "Preserved Collarbone",
+      "code": "Metadata/Items/Currency/AbyssalBenchTicketJewellery",
+      "icon": "Art/2DItems/Currency/Abyss/PreservedCalvicle.webp",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "beforePools": [
+        "normal",
+        "desecrated"
+      ],
+      "beforeClassIds": [
+        "Amulet",
+        "Ring",
+        "Belt"
+      ],
+      "afterTrigger": "add",
+      "afterQuantity": 1,
+      "type": "Currency",
+      "operation": "desecrate"
+    },
+    "ancient-collarbone": {
+      "name": "Ancient Collarbone",
+      "code": "Metadata/Items/Currency/AbyssalBenchTicketJewelleryHigh",
+      "icon": "Art/2DItems/Currency/Abyss/AncientClavicle.webp",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "beforePools": [
+        "normal",
+        "desecrated"
+      ],
+      "beforeClassIds": [
+        "Amulet",
+        "Ring",
+        "Belt"
+      ],
+      "afterTrigger": "add",
+      "afterQuantity": 1,
+      "type": "Currency",
+      "operation": "desecrate",
+      "minimum": 40
+    },
+    "gnawed-jawbone": {
+      "name": "Gnawed Jawbone",
+      "code": "Metadata/Items/Currency/AbyssalBenchTicketWeaponLow",
+      "icon": "Art/2DItems/Currency/Abyss/GnawedJawbone.webp",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "beforePools": [
+        "normal",
+        "desecrated"
+      ],
+      "beforeClassIds": [
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "One Hand Axe",
+        "One Hand Mace",
+        "Spear",
+        "Flail",
+        "Warstaff",
+        "Two Hand Sword",
+        "Two Hand Axe",
+        "Two Hand Mace",
+        "Bow",
+        "Crossbow",
+        "Talisman",
+        "Wand",
+        "Sceptre",
+        "Quiver"
+      ],
+      "afterTrigger": "add",
+      "afterQuantity": 1,
+      "type": "Currency",
+      "operation": "desecrate",
+      "maxItemLevel": 64
+    },
+    "preserved-jawbone": {
+      "name": "Preserved Jawbone",
+      "code": "Metadata/Items/Currency/AbyssalBenchTicketWeapon",
+      "icon": "Art/2DItems/Currency/Abyss/PreservedJawbone.webp",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "beforePools": [
+        "normal",
+        "desecrated"
+      ],
+      "beforeClassIds": [
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "One Hand Axe",
+        "One Hand Mace",
+        "Spear",
+        "Flail",
+        "Warstaff",
+        "Two Hand Sword",
+        "Two Hand Axe",
+        "Two Hand Mace",
+        "Bow",
+        "Crossbow",
+        "Talisman",
+        "Wand",
+        "Sceptre",
+        "Quiver"
+      ],
+      "afterTrigger": "add",
+      "afterQuantity": 1,
+      "type": "Currency",
+      "operation": "desecrate"
+    },
+    "ancient-jawbone": {
+      "name": "Ancient Jawbone",
+      "code": "Metadata/Items/Currency/AbyssalBenchTicketWeaponHigh",
+      "icon": "Art/2DItems/Currency/Abyss/AncientJawbone.webp",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "beforePools": [
+        "normal",
+        "desecrated"
+      ],
+      "beforeClassIds": [
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "One Hand Axe",
+        "One Hand Mace",
+        "Spear",
+        "Flail",
+        "Warstaff",
+        "Two Hand Sword",
+        "Two Hand Axe",
+        "Two Hand Mace",
+        "Bow",
+        "Crossbow",
+        "Talisman",
+        "Wand",
+        "Sceptre",
+        "Quiver"
+      ],
+      "afterTrigger": "add",
+      "afterQuantity": 1,
+      "type": "Currency",
+      "operation": "desecrate",
+      "minimum": 40
+    },
+    "gnawed-rib": {
+      "name": "Gnawed Rib",
+      "code": "Metadata/Items/Currency/AbyssalBenchTicketArmourLow",
+      "icon": "Art/2DItems/Currency/Abyss/GnawedRibs.webp",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "beforePools": [
+        "normal",
+        "desecrated"
+      ],
+      "beforeClassIds": [
+        "Gloves",
+        "Boots",
+        "Body Armour",
+        "Helmet",
+        "Shield",
+        "Buckler",
+        "Focus"
+      ],
+      "afterTrigger": "add",
+      "afterQuantity": 1,
+      "type": "Currency",
+      "operation": "desecrate",
+      "maxItemLevel": 64
+    },
+    "ancient-rib": {
+      "name": "Ancient Rib",
+      "code": "Metadata/Items/Currency/AbyssalBenchTicketArmour",
+      "icon": "Art/2DItems/Currency/Abyss/AncientRibs.webp",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "beforePools": [
+        "normal",
+        "desecrated"
+      ],
+      "beforeClassIds": [
+        "Gloves",
+        "Boots",
+        "Body Armour",
+        "Helmet",
+        "Shield",
+        "Buckler",
+        "Focus"
+      ],
+      "afterTrigger": "add",
+      "afterQuantity": 1,
+      "type": "Currency",
+      "operation": "desecrate",
+      "minimum": 40
+    },
+    "preserved-rib": {
+      "name": "Preserved Rib",
+      "code": "Metadata/Items/Currency/AbyssalBenchTicketArmourHigh",
+      "icon": "Art/2DItems/Currency/Abyss/PreservedRibs.webp",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "beforePools": [
+        "normal",
+        "desecrated"
+      ],
+      "beforeClassIds": [
+        "Gloves",
+        "Boots",
+        "Body Armour",
+        "Helmet",
+        "Shield",
+        "Buckler",
+        "Focus"
+      ],
+      "afterTrigger": "add",
+      "afterQuantity": 1,
+      "type": "Currency",
+      "operation": "desecrate"
+    },
+    "preserved-cranium": {
+      "name": "Preserved Cranium",
+      "code": "Metadata/Items/Currency/AbyssalBenchTicketJewel",
+      "icon": "Art/2DItems/Currency/Abyss/PreservedCranium.webp",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "beforePools": [
+        "normal",
+        "desecrated"
+      ],
+      "beforeClassIds": [
+        "Jewel"
+      ],
+      "afterTrigger": "add",
+      "afterQuantity": 1,
+      "type": "Currency",
+      "operation": "desecrate"
+    },
+    "lesser-essence-of-the-body": {
+      "name": "Lesser Essence of the Body",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/LifeEssenceLesser.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "lesser-essence-of-the-mind": {
+      "name": "Lesser Essence of the Mind",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/ManaEssenceLesser.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "lesser-essence-of-enhancement": {
+      "name": "Lesser Essence of Enhancement",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/DefencesEssenceLesser.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "lesser-essence-of-ruin": {
+      "name": "Lesser Essence of Ruin",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/ChaosEssenceLesser.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "lesser-essence-of-the-infinite": {
+      "name": "Lesser Essence of the Infinite",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/AttributeEssenceLesser.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-the-body": {
+      "name": "Essence of the Body",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/LifeEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-the-mind": {
+      "name": "Essence of the Mind",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/ManaEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-enhancement": {
+      "name": "Essence of Enhancement",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/DefencesEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-ruin": {
+      "name": "Essence of Ruin",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/ChaosEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-the-infinite": {
+      "name": "Essence of the Infinite",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/AttributeEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "greater-essence-of-the-body": {
+      "name": "Greater Essence of the Body",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/GreaterLifeEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "greater-essence-of-the-mind": {
+      "name": "Greater Essence of the Mind",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/GreaterManaEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "greater-essence-of-enhancement": {
+      "name": "Greater Essence of Enhancement",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/GreaterDefencesEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "greater-essence-of-ruin": {
+      "name": "Greater Essence of Ruin",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/GreaterChaosEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "greater-essence-of-battle": {
+      "name": "Greater Essence of Battle",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/GreaterAttackEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "greater-essence-of-the-infinite": {
+      "name": "Greater Essence of the Infinite",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/GreaterAttributeEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "lesser-essence-of-insulation": {
+      "name": "Lesser Essence of Insulation",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/FireResistanceEssenceLesser.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-insulation": {
+      "name": "Essence of Insulation",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/FireResistanceEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "greater-essence-of-insulation": {
+      "name": "Greater Essence of Insulation",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/GreaterFireResistanceEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "lesser-essence-of-thawing": {
+      "name": "Lesser Essence of Thawing",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/ColdResistanceEssenceLesser.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-thawing": {
+      "name": "Essence of Thawing",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/ColdResistanceEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "greater-essence-of-thawing": {
+      "name": "Greater Essence of Thawing",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/GreaterColdResistanceEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "lesser-essence-of-grounding": {
+      "name": "Lesser Essence of Grounding",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/LightningResistanceEssenceLesser.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-grounding": {
+      "name": "Essence of Grounding",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/LightningResistanceEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "greater-essence-of-grounding": {
+      "name": "Greater Essence of Grounding",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/GreaterLightningResistanceEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "lesser-essence-of-opulence": {
+      "name": "Lesser Essence of Opulence",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/RarityResistanceEssenceLesser.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-opulence": {
+      "name": "Essence of Opulence",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/RarityResistanceEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "greater-essence-of-opulence": {
+      "name": "Greater Essence of Opulence",
+      "operation": "essence",
+      "beforeRarity": [
+        "Magic"
+      ],
+      "removes": false,
+      "pool": "essence",
+      "icon": "Art/2DItems/Currency/Essence/GreaterRarityResistanceEssence.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-hysteria": {
+      "name": "Essence of Hysteria",
+      "operation": "essence",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "removes": true,
+      "pool": "perfect_essence",
+      "icon": "Art/2DItems/Currency/Essence/CorruptedEssenceHysteria.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "essence-of-horror": {
+      "name": "Essence of Horror",
+      "operation": "essence",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "removes": true,
+      "pool": "perfect_essence",
+      "icon": "Art/2DItems/Currency/Essence/CorruptedEssenceHorror.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "perfect-essence-of-grounding": {
+      "name": "Perfect Essence of Grounding",
+      "operation": "essence",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "removes": true,
+      "pool": "perfect_essence",
+      "icon": "Art/2DItems/Currency/Essence/LightningResistanceEssencePerfect.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    },
+    "perfect-essence-of-opulence": {
+      "name": "Perfect Essence of Opulence",
+      "operation": "essence",
+      "beforeRarity": [
+        "Rare"
+      ],
+      "removes": true,
+      "pool": "perfect_essence",
+      "icon": "Art/2DItems/Currency/Essence/RarityResistanceEssencePerfect.webp",
+      "beforeClassIds": [
+        "Gloves"
+      ]
+    }
+  }
+}

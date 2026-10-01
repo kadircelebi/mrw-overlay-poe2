@@ -5,11 +5,13 @@ import './app.css'
 import App from './App.svelte'
 import OverlayApp from './OverlayApp.svelte'
 import MarketApp from './MarketApp.svelte'
+import CraftApp from './CraftApp.svelte'
 import { installWheelNumbers } from './lib/wheelNumbers'
 
 const view = new URLSearchParams(location.search).get('view')
 const target = document.getElementById('app')!
 if (view === 'overlay') mount(OverlayApp, { target })
+else if (view === 'craft') mount(CraftApp, { target })
 else if (view === 'market') mount(MarketApp, { target })
 else mount(App, { target, props: { win: view === 'settings' ? 'settings' : 'panel' } })
 installWheelNumbers()

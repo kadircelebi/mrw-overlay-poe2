@@ -5,6 +5,7 @@
   import type { Config } from '../bindings/poe2filter/internal/filter/models'
   import type { State } from '../bindings/poe2filter/internal/engine/models'
   import Toggle from './lib/Toggle.svelte'
+  import HotkeyInput from './lib/HotkeyInput.svelte'
   import AccountLink from './lib/AccountLink.svelte'
   import Segmented from './lib/Segmented.svelte'
   import ListEditor from './lib/ListEditor.svelte'
@@ -111,6 +112,18 @@
   let overlaySettings = $state<OverlaySettings | null>(null)
   let overlaySaveState = $state<'idle' | 'saving' | 'saved' | 'error'>('idle')
   let overlayError = $state('')
+  let startup = $state<{enabled: boolean; canChange: boolean; state: string} | null>(null)
+  let startupBusy = $state(false)
+  let startupError = $state('')
+  async function refreshStartup() {
+    try { startup = await AppService.GetStartupStatus(); startupError = '' } catch (e) { startupError = String(e) }
+  }
+  async function changeStartup(enabled: boolean) {
+    startupBusy = true
+    startupError = ''
+    try { startup = await AppService.SetStartupEnabled(enabled) } catch (e) { startupError = String(e); try { startup = await AppService.GetStartupStatus() } catch {} }
+    finally { startupBusy = false }
+  }
   let catalogStats = $state(0)
   let catalogItems = $state(0)
   let catalogUpdatedAt = $state(0)
@@ -136,6 +149,7 @@
   }
 
   async function refresh() {
+    if (win === 'settings') void refreshStartup()
     st = await AppService.GetState()
     leagues = (await AppService.Leagues()) ?? leagues
     profiles = (await AppService.Profiles()) ?? profiles
@@ -862,7 +876,7 @@
 {/snippet}
 
 {#if win === 'panel'}
-  <main>
+  <main class="panel-win">
     <header>
       <img src="/emblem.png" alt="" class="emblem" />
       <div class="brand">
@@ -878,7 +892,8 @@
     </header>
 
     {#if cfg}
-      <div class="scroll">
+      <div class="scroll panel-content">
+        <div class="panel-column">
         <!-- Status -->
         <section class="card status {status.tone}">
           {@render statusHead()}
@@ -916,6 +931,8 @@
 
         {@render thresholdCard(cfg)}
         {@render baseCard(cfg)}
+        </div>
+        <div class="panel-column">
 
         <!-- Exceptional prices: shared by the scan servers, else scanned here -->
         <section class="card">
@@ -982,10 +999,12 @@
 
         <section class="actions">
           <button onclick={() => AppService.ShowSettings('')}>{t('header.settings')}</button>
+          <button title={overlaySettings?.craft_hotkey || 'Alt+F'} onclick={() => AppService.ShowCraft()}>{t('craft.open')}</button>
           {#if overlaySettings?.enabled}
             <button onclick={() => AppService.ShowMarket()}>{t('panel.market')} · {overlaySettings.market_hotkey}</button>
           {/if}
         </section>
+      </div>
       </div>
     {/if}
   </main>
@@ -1379,14 +1398,16 @@
                         <Toggle bind:checked={overlaySettings.enabled} label={t('overlay.enable')} hint={t('overlay.enableHint')} onchange={queueOverlaySave} />
                         <label class="field stack">
                           <span>{t('overlay.hotkey')}</span>
-                          <input bind:value={overlaySettings.hotkey} onchange={queueOverlaySave} spellcheck="false" placeholder="Alt+E" />
+                          <HotkeyInput label={t('overlay.hotkey')} bind:value={overlaySettings.hotkey} onchange={queueOverlaySave} />
                         </label>
                         <p class="desc hint">{t('overlay.hotkeyHint')}</p>
                         <label class="field stack">
                           <span>{t('overlay.marketHotkey')}</span>
-                          <input bind:value={overlaySettings.market_hotkey} onchange={queueOverlaySave} spellcheck="false" placeholder="Alt+M" />
+                          <HotkeyInput label={t('overlay.marketHotkey')} bind:value={overlaySettings.market_hotkey} onchange={queueOverlaySave} />
                         </label>
                         <p class="desc hint">{t('overlay.marketHotkeyHint')}</p>
+                        <label class="field stack"><span>{t('craft.hotkey')}</span><HotkeyInput label={t('craft.hotkey')} bind:value={overlaySettings.craft_hotkey} onchange={queueOverlaySave} /></label>
+                        <p class="desc hint">{t('craft.hotkeyHint')}</p>
                       </section>
                     </div>
                     <div class="col">
@@ -1551,6 +1572,10 @@
                 <div class="narrow">
                   <section class="card">
                     <h2>{t('general.title')}</h2>
+                    <Toggle checked={startup?.enabled ?? false} disabled={startupBusy || !startup?.canChange} label={t('startup.label')} hint={t('startup.hint')} onchange={changeStartup} />
+                    {#if startup && !startup.canChange}<p class="notice">{t('startup.' + startup.state)}</p>{/if}
+                    <button class="ghost" onclick={() => AppService.OpenStartupSettings()}>{t('startup.settings')}</button>
+                    {#if startupError}<p class="error">{startupError}</p>{/if}
                     <label class="field">
                       <span>{t('general.language')}</span>
                       <select bind:value={cfg.language} onchange={() => queueSave(false)}>
@@ -1709,6 +1734,27 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+  }
+
+  .panel-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    min-height: 0;
+  }
+  .panel-column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .panel-column .stats-caption {
+    margin: 0;
+  }
+  @media (max-width: 620px) {
+    .panel-content {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   /* A titled group, like the game's "Advanced Settings" block: a framed recess
@@ -2218,7 +2264,7 @@
   }
 
   /* Tray panel footer */
-  .scroll > .actions {
+  .panel-column > .actions {
     margin-top: 2px;
   }
 

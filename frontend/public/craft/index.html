@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MrW · Teorik Craft</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="title"><span class="diamond" aria-hidden="true">◇</span><div><h1>Teorik Craft</h1><p>MrW · Eldiven craftı</p></div></div>
+    <div class="header-actions"><button id="undo" disabled>Geri al</button><button id="download" disabled>Kaydet</button></div>
+  </header>
+  <main class="workbench" id="workbench" aria-busy="true">
+    <aside class="item-column">
+      <section class="setup"><h2>Eşya</h2>
+        <label for="base">Taban türü</label><select id="base" disabled>
+          <option value="Gloves_str">Zırh eldivenleri · STR</option>
+          <option value="Gloves_dex">Evasion eldivenleri · DEX</option>
+          <option value="Gloves_int">Energy Shield eldivenleri · INT</option>
+          <option value="Gloves_str_dex">Zırh / Evasion · STR + DEX</option>
+          <option value="Gloves_str_int">Zırh / Energy Shield · STR + INT</option>
+          <option value="Gloves_dex_int">Evasion / Energy Shield · DEX + INT</option>
+        </select>
+        <div class="item-settings"><div><label for="ilvl">Item Level</label><input id="ilvl" type="number" min="1" max="100" value="81" disabled></div>
+          <div><label for="rarity">Rarity</label><select id="rarity" disabled><option>Normal</option><option>Magic</option><option>Rare</option></select></div></div>
+      </section>
+      <article id="item-card" class="item-card Normal" aria-label="Craft edilen eşya">
+        <div class="item-heading"><span id="rarity-label">Normal</span><h2 id="item-name">Zırh Eldivenleri</h2><p>Item Level <b id="item-level">81</b></p></div>
+        <div class="slot-summary"><span>Prefix <b id="prefix-count">0 / 0</b></span><span>Suffix <b id="suffix-count">0 / 0</b></span></div>
+        <div id="item-mods"><p class="empty-item">Mod verileri yükleniyor…</p></div>
+        <div class="item-tools"><button id="clear" disabled>Affix’leri temizle</button><button id="reset" disabled>Sıfırdan başla</button></div>
+      </article>
+      <p class="hint">Rarity’yi kendin seçebilirsin. Affix silmek rarity’yi düşürmez.</p>
+      <section class="history"><h2>Craft maliyeti</h2><p id="cost-total">0 Exalted</p><p id="price-info" class="hint"></p><ul id="cost-breakdown"></ul><p class="hint">Elle tasarım ücretsizdir. Affix silmek harcanan currency’yi geri vermez. Geri al, sanal işlemi ve maliyetini geri alır.</p></section>
+      <section class="history"><h2>İşlem geçmişi</h2><ol id="history"><li>Henüz işlem yok.</li></ol></section>
+    </aside>
+    <div class="craft-column">
+      <section class="currency-section"><div class="section-head"><h2>Currency ile dene</h2><span>Uygun malzemeyi seç, sonra uygula.</span></div>
+        <div class="currency-tabs" role="group" aria-label="Currency seviyesi"><button data-tier="" aria-pressed="true">Standart</button><button data-tier="II" aria-pressed="false">Greater · II</button><button data-tier="III" aria-pressed="false">Perfect · III</button></div>
+        <div id="currencies" class="currency-list"></div>
+        <div id="basic-controls">
+        <div id="orb-omens" class="omen-options"></div>
+        <div class="apply-row"><div><strong id="selected-name">Orb of Transmutation</strong><p id="selected-detail">Veriler yükleniyor…</p></div><button id="apply" class="primary" disabled>Uygula</button></div>
+        </div>
+        <div id="special-controls" hidden>
+        <div class="filters"><div><label for="special">Malzeme</label><select id="special" disabled></select></div><div><label for="special-price">Birim fiyat · Exalted</label><input id="special-price" type="number" min="0" step="any" disabled></div></div>
+        <div id="special-omens" class="omen-options"></div>
+        <div class="apply-row"><div class="special-selection"><img id="special-icon" width="40" height="40" alt=""><div><strong id="special-name"></strong><p id="special-detail"></p></div></div><button id="special-apply" class="primary" disabled>Malzemeyi uygula</button></div>
+        <p id="desecrate-note" class="pool-note">Desecrate açılımında Base ve Desecrated havuzlarının birleşik kaynak ağırlıkları kullanılıyor. Havuzlar arası gerçek seçim olasılığı henüz doğrulanmadı; bu açılım deneysel.</p>
+        </div>
+        <div id="reveal-choices" class="reveal-choices"></div>
+        <div id="status" role="status" aria-live="polite">Mod verileri yükleniyor…</div>
+      </section>
+      <section class="mod-section"><div class="section-head"><h2>Affix seçerek tasarla</h2><span>Bir mod ailesini açıp tier ekle.</span></div>
+        <div class="filters"><div class="search-field"><label for="search">Mod ara</label><input id="search" type="search" placeholder="Life, resistance, attack…" disabled></div><div><label for="pool">Mod kaynağı</label><select id="pool" disabled><option value="normal">Base</option><option value="marksman">Kolr’s Hunt · Marksman</option><option value="decay">Katla’s Gloom · Decay</option><option value="desecrated">Desecrated</option><option value="essence">Essence</option><option value="perfect_essence">Perfect Essence</option></select></div></div>
+        <p class="pool-note">Elle seçim eşya tasarlamak içindir ve currency harcamaz. Yüzdeler ilgili prefix/suffix havuzundaki payı gösterir.</p>
+        <div class="affix-columns"><section><div class="affix-head"><h3>Prefix</h3><span id="prefix-total"></span></div><div id="prefix-list"></div></section><section><div class="affix-head"><h3>Suffix</h3><span id="suffix-total"></span></div><div id="suffix-list"></div></section></div>
+      </section>
+      <section class="next-step"><div><strong>Eşyanın satış fiyatı</strong><p>Seçili affix ve roll değerleriyle eldiven pazarında ara.</p></div><button id="price-check" disabled>Fiyatını sorgula</button></section>
+    </div>
+  </main>
+  <footer><span id="source-info">Kaynak: PoE2DB · yerel veri paketi</span><a href="https://poe2db.tw/us/Gloves_str#ModifiersCalc" target="_blank" rel="noreferrer">Kaynağı aç ↗</a></footer>
+  <script type="module" src="app.mjs"></script>
+</body>
+</html>

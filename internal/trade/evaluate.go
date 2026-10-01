@@ -427,13 +427,14 @@ func evaluatedListings(fetched evaluatedFetchResponse) []EvaluatedListing {
 				entry.Item.Mods = append(entry.Item.Mods, mod)
 			}
 		}
+		// Enchants (anoints, corruption enchants) come first, as in the game.
+		appendMods("enchant", row.Item.EnchantMods)
 		appendMods("implicit", row.Item.ImplicitMods)
 		appendMods("explicit", row.Item.ExplicitMods)
 		appendMods("fractured", row.Item.FracturedMods)
 		appendMods("desecrated", row.Item.DesecratedMods)
 		appendMods("crafted", row.Item.CraftedMods)
 		appendMods("rune", row.Item.RuneMods)
-		appendMods("enchant", row.Item.EnchantMods)
 		listings = append(listings, entry)
 	}
 	return listings

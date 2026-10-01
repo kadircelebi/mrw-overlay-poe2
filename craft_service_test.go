@@ -1,0 +1,61 @@
+package main
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"poe2filter/internal/overlay"
+	"poe2filter/internal/trade"
+)
+
+func TestCraftMarketDoesNotReplaceCapturedItem(t *testing.T) {
+	dir := t.TempDir()
+	data := filepath.Join(dir, "data")
+	if err := os.MkdirAll(data, 0755); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{
+		"trade_stats.json":   `{"result":[{"id":"explicit","entries":[{"id":"explicit.mana","text":"# to maximum Mana","type":"explicit"}]}]}`,
+		"trade_items.json":   `{"result":[]}`,
+		"trade_filters.json": `{"result":[]}`,
+		"trade_static.json":  `{"result":[]}`,
+	}
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(data, name), []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s := newAppService(Meta{DataDir: dir})
+	captured := &overlay.Item{Raw: "captured item", Class: "Rings", BaseType: "Gold Ring"}
+	s.overlaySnapshot = overlay.Snapshot{Item: captured}
+	raw := "Item Class: Gloves\nRarity: Rare\nTheoretical Craft\nGloves\n--------\nItem Level: 81\n--------\n{ Prefix Modifier (Tier: 3) }\n+85 to maximum Mana"
+	snap, err := s.ParseCraftText(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snap.Item.BaseType != "" || snap.Item.Rarity != "rare" || len(snap.Item.Mods) == 0 || snap.Item.Mods[0].StatID != "explicit.mana" {
+		t.Fatalf("unexpected craft: %+v", snap.Item)
+	}
+	q := trade.EvaluateRequest{Rarity: "rare", Stats: []trade.SelectedStat{{ID: "explicit.mana", Min: float64Pointer(85)}}}
+	if err := s.ShowCraftMarketWithQuery(raw, q); err != nil {
+		t.Fatal(err)
+	}
+	if s.GetOverlaySnapshot().Item != captured {
+		t.Fatal("craft replaced captured item")
+	}
+	if s.GetMarketSnapshot().Item.Raw != raw || s.GetOverlayDraft().Stats[0].ID != "explicit.mana" {
+		t.Fatal("market lost craft or query")
+	}
+	s.ShowMarketWithQuery(trade.EvaluateRequest{BaseType: "Gold Ring"})
+	if s.GetMarketSnapshot().Item != captured {
+		t.Fatal("overlay market did not restore captured item")
+	}
+}
+
+func TestCraftPricesWithoutSnapshotAreUnknown(t *testing.T) {
+	got := (&AppService{}).GetCraftPrices()
+	if got.Currency == nil || len(got.Currency) != 0 || got.GeneratedAt != "" {
+		t.Fatalf("unexpected fallback: %+v", got)
+	}
+}

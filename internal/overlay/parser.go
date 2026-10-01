@@ -722,6 +722,13 @@ func mergeSameStats(mods []ItemMod) []ItemMod {
 	out := make([]ItemMod, 0, len(mods))
 	at := map[string]int{}
 	for _, mod := range mods {
+		// An option stat without numbers (Mageblood's "Legacy of Granite" =
+		// explicit.stat_264262054|6) is searched by how often the item has it:
+		// GGG reads min 2 as "at least two Granites". Two separate lines would
+		// each be met by a single one, so repeats fold into one counted line.
+		if strings.Contains(mod.StatID, "|") && len(mod.Values) == 0 && mod.Type != "rune" {
+			mod.Values = []float64{1}
+		}
 		i, seen := at[mod.StatID]
 		if mod.StatID == "" || mod.Type == "rune" || !seen || len(out[i].Values) != len(mod.Values) || len(mod.Values) == 0 {
 			if mod.StatID != "" && !seen {

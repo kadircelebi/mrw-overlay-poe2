@@ -4,6 +4,7 @@
   import type { Evaluation, EvaluatedListing, EvaluatedMod } from '../../bindings/poe2filter/internal/trade/models'
   import { currencyInfo } from './currencies.svelte'
   import { currentLang, t } from './i18n.svelte'
+  import { uniqueListings } from './listingDedup'
   import { currencyLabel, listedAgo, PAGE_SIZE, propertySortKey, statSortKey, type SortOption, type SortState } from './overlayQuery'
 
   let { result = null, loading = false, error = '', expanded = false, sort = null, sortOptions = [], onsort, searched = [] }: {
@@ -24,7 +25,9 @@
   let moreError = $state('')
   let sentinel = $state<HTMLElement | null>(null)
   let observer: IntersectionObserver | null = null
-  const rows = $derived([...(result?.listings ?? []), ...extra])
+  const loadedRows = $derived([...(result?.listings ?? []), ...extra])
+  const rows = $derived(uniqueListings(loadedRows))
+  const hiddenDuplicates = $derived(loadedRows.length - rows.length)
   const ids = $derived(result?.resultIds ?? [])
   const hasMore = $derived(cursor < ids.length)
   // Weapons get a DPS column, as on the trade site.
@@ -128,6 +131,25 @@
     return groups
   }
 
+  // Option stats ("explicit.stat_264262054|6" = Legacy of Granite) share one
+  // stat and differ by option. Mageblood rolls several of them and a repeat
+  // matters, so each line is marked (× count when repeated) and the family
+  // gets a "Sum" of its lines, like the trade site's companion tools.
+  function optionStats(mods: EvaluatedMod[]) {
+    const counts = new Map<string, number>()
+    const families = new Map<string, number>()
+    for (const mod of mods) {
+      const id = mod.statId ?? ''
+      const bar = id.indexOf('|')
+      if (bar < 0) continue
+      counts.set(id, (counts.get(id) ?? 0) + 1)
+      families.set(id.slice(0, bar), (families.get(id.slice(0, bar)) ?? 0) + 1)
+    }
+    // A lone option stat (Legacy of Jade on its own) needs no marks.
+    const kept = new Map([...counts].filter(([id]) => (families.get(id.slice(0, id.indexOf('|'))) ?? 0) > 1))
+    return { counts: kept, sums: [...families.values()].filter((n) => n > 1) }
+  }
+
   // Hideout travel per listing: 'busy', 'ok', or '!' + the error.
   let travel = $state<Record<string, string>>({})
 
@@ -159,6 +181,7 @@
 
 {#snippet itemPreview(row: EvaluatedListing)}
   {@const rarity = (row.item.rarity ?? '').toLowerCase()}
+  {@const options = optionStats(row.item.mods ?? [])}
   <div class="preview" class:full={expanded}>
     <div class="preview-title rarity-{rarity}">
       {#if row.item.icon}<img src={row.item.icon} alt="" />{/if}
@@ -194,8 +217,13 @@
             {@const key = onsort && line.mod.statId ? statSortKey(line.mod.statId) : ''}
             <!-- Only the tier sits at the line's left edge (P1/S1, like the trade
                  site); the affix name moved to its tooltip to save a row. -->
+            {@const repeat = options.counts.get(line.mod.statId ?? '') ?? 0}
             <div class="affix-line">
-              <small class="tier" class:prefix={group.tier.startsWith('P')} class:suffix={group.tier.startsWith('S')} title={group.name || undefined}>{i === 0 ? group.tier || (group.name ? '•' : '') : ''}</small>
+              {#if repeat}
+                <small class="tier option" class:repeat={repeat > 1}>{repeat > 1 ? `×${repeat}` : '+'}</small>
+              {:else}
+                <small class="tier" class:prefix={group.tier.startsWith('P')} class:suffix={group.tier.startsWith('S')} title={group.name || undefined}>{i === 0 ? group.tier || (group.name ? '•' : '') : ''}</small>
+              {/if}
               <p class:searched={!!line.mod.statId && searchedSet.has(line.mod.statId)} title={line.mod.parts?.length ? t('ov.summedAffix', line.mod.description) : undefined}>
                 {#if key}
                   <button type="button" class="mod-sort" class:on={sort?.key === key} title={t('ov.sortByAffix')} onclick={() => onsort?.(key, line.mod.description)}>{line.text} <i>{arrow(key) || '⇅'}</i></button>
@@ -208,6 +236,7 @@
           {/each}
         </div>
       {/each}
+      {#each options.sums as total}<p class="option-sum">Sum: {total}</p>{/each}
     </div>
     {#if row.item.unidentified || row.item.fractured || row.item.corrupted || row.item.mirrored || row.item.sanctified}
       <div class="item-states">
@@ -222,7 +251,7 @@
 {/snippet}
 
 <div class="results-head">
-  <span>{loading ? t('ov.searching') : t('ov.results', result?.total ?? 0)}{#if !loading && rows.length && ids.length}<small>&nbsp;· {t('ov.shown', rows.length)}</small>{/if}</span>
+  <span>{loading ? t('ov.searching') : t('ov.results', result?.total ?? 0)}{#if !loading && rows.length && ids.length}<small>&nbsp;· {t('ov.shown', rows.length)}</small>{/if}{#if !loading && hiddenDuplicates}<small>&nbsp;· {t('ov.duplicatesHidden', hiddenDuplicates)}</small>{/if}</span>
   {#if result?.tradeUrl}<button type="button" onclick={() => window.dispatchEvent(new CustomEvent('open-trade', { detail: result!.tradeUrl }))}>pathofexile.com/trade ↗</button>{/if}
 </div>
 {#if chips.length}
@@ -367,6 +396,9 @@
   .preview .affix .tier { text-align:left; color:#9d76b6; font-size:9.5px; line-height:16px; font-weight:bold; cursor:default; }
   .preview .affix .tier.prefix { color:#d0675c; }
   .preview .affix .tier.suffix { color:#6f9bd6; }
+  .preview .affix .tier.option { color:#7e899d; }
+  .preview .affix .tier.option.repeat { color:#d6b36a; }
+  .preview p.option-sum { margin:3px 0 0; color:#8a8f99; text-align:center; }
   .preview .type-implicit p { color:#7188c4; }
   .preview .type-fractured p { color:#9ed0d8; }
   .preview .type-crafted p { color:#9d76b6; }

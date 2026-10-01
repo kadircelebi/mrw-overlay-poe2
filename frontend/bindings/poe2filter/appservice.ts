@@ -175,6 +175,14 @@ export function GetConfig(): $CancellablePromise<filter$0.Config> {
     return $Call.ByID(3902498144);
 }
 
+export function GetCraftPrices(): $CancellablePromise<$models.CraftPrices> {
+    return $Call.ByID(3361132946);
+}
+
+export function GetMarketSnapshot(): $CancellablePromise<overlay$0.Snapshot> {
+    return $Call.ByID(1863633658);
+}
+
 /**
  * GetMeta returns static app information.
  */
@@ -198,6 +206,10 @@ export function GetSavedOverlaySearches(): $CancellablePromise<overlay$0.SearchL
     return $Call.ByID(2510875851);
 }
 
+export function GetStartupStatus(): $CancellablePromise<$models.StartupStatus> {
+    return $Call.ByID(2287574509);
+}
+
 /**
  * GetState returns the current engine state.
  */
@@ -207,6 +219,10 @@ export function GetState(): $CancellablePromise<engine$0.State> {
 
 export function GetTradeCatalog(): $CancellablePromise<overlay$0.Catalog> {
     return $Call.ByID(1579748955);
+}
+
+export function HideCraft(): $CancellablePromise<void> {
+    return $Call.ByID(614296468);
 }
 
 export function HideMarket(): $CancellablePromise<void> {
@@ -347,6 +363,10 @@ export function OpenLinkIn(id: string): $CancellablePromise<void> {
     return $Call.ByID(2250876661, id);
 }
 
+export function OpenStartupSettings(): $CancellablePromise<void> {
+    return $Call.ByID(1719466394);
+}
+
 export function OpenTradePage(rawURL: string): $CancellablePromise<void> {
     return $Call.ByID(1604400219, rawURL);
 }
@@ -357,6 +377,13 @@ export function OpenTradePage(rawURL: string): $CancellablePromise<void> {
  */
 export function OverlayQuota(): $CancellablePromise<trade$0.QuotaStatus> {
     return $Call.ByID(4137594098);
+}
+
+/**
+ * ParseCraftText parses a synthetic item without replacing the captured item.
+ */
+export function ParseCraftText(raw: string): $CancellablePromise<overlay$0.Snapshot> {
+    return $Call.ByID(3427205482, raw);
 }
 
 /**
@@ -465,11 +492,31 @@ export function SearchItems(query: string): $CancellablePromise<insights$0.Searc
 }
 
 /**
+ * Recording temporarily releases our registrations so Windows delivers even
+ * the existing combination to the focused input. Blur restores them.
+ */
+export function SetHotkeyCapture(active: boolean): $CancellablePromise<void> {
+    return $Call.ByID(2716145414, active);
+}
+
+/**
  * SetLiveAlerts changes how a live search announces a find, without touching
  * the overlay's shortcuts.
  */
 export function SetLiveAlerts(sound: string, notify: boolean): $CancellablePromise<overlay$0.Settings> {
     return $Call.ByID(43895751, sound, notify);
+}
+
+export function SetStartupEnabled(enabled: boolean): $CancellablePromise<$models.StartupStatus> {
+    return $Call.ByID(971358356, enabled);
+}
+
+export function ShowCraft(): $CancellablePromise<void> {
+    return $Call.ByID(1624466923);
+}
+
+export function ShowCraftMarketWithQuery(raw: string, $in: trade$0.EvaluateRequest): $CancellablePromise<void> {
+    return $Call.ByID(3259584797, raw, $in);
 }
 
 export function ShowMarket(): $CancellablePromise<void> {
