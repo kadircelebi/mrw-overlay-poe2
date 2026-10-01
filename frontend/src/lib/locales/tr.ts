@@ -1,5 +1,6 @@
 export const tr: Record<string, string> = {
   'ov.duplicatesHidden': '{0} tekrar gizlendi',
+  'ov.modifiableHint': 'Yalnız corrupted, mirrored ya da sanctified olmayan ilanlar. Onları da görmek için tıkla.',
   'startup.label': 'Windows başlangıcında çalıştır',
   'startup.hint': 'Sistem tepsisinde açılır. Varsayılan kapalıdır.',
   'startup.settings': 'Windows başlangıç ayarları',

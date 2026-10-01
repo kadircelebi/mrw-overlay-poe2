@@ -13,11 +13,6 @@ internal/gamesounds/files/*.mp3
     play: the generated filter contains PlayAlertSound, and in game the game
     plays its own audio.
 
-frontend/public/craft/assets/currency/*.webp
-    Currency, essence, omen and bone icons of Path of Exile 2, shown on the
-    buttons of the theoretical craft window. They are the game's own artwork
-    and belong to Grinding Gear Games.
-
 frontend/public/craft/data/*.mods.json
     Modifier pools, weights and tiers for the supported item bases, taken
     from poe2db.tw (see frontend/public/craft/data/manifest.json for the

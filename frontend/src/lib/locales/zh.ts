@@ -1,5 +1,6 @@
 export const zh: Record<string, string> = {
   'ov.duplicatesHidden': '已隱藏 {0} 個重複項目',
+  'ov.modifiableHint': '僅顯示未汙染、未鏡像且未聖化的刊登。點擊以包含它們。',
   'startup.label': 'Windows 啟動時執行',
   'startup.hint': '在系統匣啟動。預設關閉。',
   'startup.settings': 'Windows 啟動設定',

@@ -281,14 +281,14 @@
               <button type="button" class="sortable" class:on={sort?.key === 'quality'} title="Quality" onclick={() => onsort?.('quality')}>{row.item.quality ? `${row.item.quality}%` : ''}<em>{arrow('quality')}</em></button>
               <button type="button" class="sortable" class:on={sort?.key === 'gem_sockets'} title="Gem Sockets" onclick={() => onsort?.('gem_sockets')}>{row.item.gemSockets || ''}<em>{arrow('gem_sockets')}</em></button>
             {:else}
-              <button type="button" class="sortable" class:on={sort?.key === 'ilvl'} title={t('ov.sortByIlvl')} onclick={() => onsort?.('ilvl')}>{row.item.itemLevel}<em>{arrow('ilvl')}</em></button>
+              <button type="button" class="sortable" class:on={sort?.key === 'ilvl'} title={t('ov.sortByIlvl')} onclick={() => onsort?.('ilvl')}>{row.item.itemLevel}{#if row.item.corrupted || row.item.twiceCorrupted}<b class="corr" title={row.item.twiceCorrupted ? 'Twice Corrupted' : 'Corrupted'}>C</b>{/if}<em>{arrow('ilvl')}</em></button>
             {/if}
           {:else}
             <strong class="price" title={`${row.amount} × ${coin?.text || currencyLabel(row.currency)}`}>{row.amount}{#if coin?.image}<i>×</i><img src={coin.image} alt={coin.text} />{:else} <small>{currencyLabel(row.currency)}</small>{/if}</strong>
             {#if gemList}
               <span>{row.item.gemLevel}</span><span>{row.item.quality ? `${row.item.quality}%` : ''}</span><span>{row.item.gemSockets || ''}</span>
             {:else}
-              <span>{row.item.itemLevel}</span>
+              <span>{row.item.itemLevel}{#if row.item.corrupted || row.item.twiceCorrupted}<b class="corr" title={row.item.twiceCorrupted ? 'Twice Corrupted' : 'Corrupted'}>C</b>{/if}</span>
             {/if}
           {/if}
           {#if hasDps && !gemList}<span class="dps" title={row.item.dps ? `pDPS ${row.item.physicalDps} · eDPS ${row.item.elementalDps}` : ''}>{row.item.dps ? Math.round(row.item.dps) : ''}</span>{/if}
@@ -404,6 +404,7 @@
   .preview .type-crafted p { color:#9d76b6; }
   .preview .type-desecrated p { color:#d68869; }
   .preview .type-rune p { color:#7e899d; }
+  .listing-card b.corr { margin-left:3px; color:#d54a45; font-size:9px; font-weight:700; }
   /* Item states as small badges, in the colours the game uses for them. */
   .item-states { display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-top:8px; }
   .item-states span { padding:1px 6px;border:1px solid currentColor;border-radius:2px;font-size:8.5px;line-height:14px;text-transform:uppercase;letter-spacing:.06em;background:rgba(0,0,0,.35); }
