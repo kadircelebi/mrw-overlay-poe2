@@ -29,7 +29,7 @@
   // event keeps them in step.
   let { win = 'panel' }: { win?: 'panel' | 'settings' } = $props()
 
-  type Section = 'rules' | 'lists' | 'groups' | 'look' | 'priceCheck' | 'account' | 'profiles' | 'updates' | 'trade' | 'general'
+  type Section = 'rules' | 'lists' | 'groups' | 'look' | 'priceCheck' | 'account' | 'profiles' | 'updates' | 'trade' | 'commands' | 'general'
   const sections: { head: string; items: { id: Section; label: string }[] }[] = $derived([
     {
       head: t('nav.filter'),
@@ -53,6 +53,7 @@
         { id: 'profiles', label: t('profile.title') },
         { id: 'updates', label: t('nav.updates') },
         { id: 'trade', label: t('trade.title') },
+        { id: 'commands', label: t('chat.title') },
         { id: 'general', label: t('general.title') },
       ],
     },
@@ -67,6 +68,7 @@
     profiles: 'page.profiles',
     updates: 'page.updates',
     trade: 'page.trade',
+    commands: 'page.commands',
     general: 'page.general',
   }
   let section = $state<Section>('rules')
@@ -79,7 +81,10 @@
   let st = $state<State | null>(null)
   let now = $state(Date.now())
   // Settings changed since the filter was last written.
+  // dirty covers an edit still on its way to Go; after that the engine's
+  // configPending says whether the written filter is out of date.
   let dirty = $state(false)
+  const pending = $derived((dirty || Boolean(st?.configPending)) && !st?.running)
   let saveState = $state<'idle' | 'saving' | 'saved' | 'error'>('idle')
   let saveTimer: ReturnType<typeof setTimeout> | undefined
   let saveSeq = 0
@@ -156,27 +161,13 @@
     overlaySettings = (await AppService.GetOverlaySettings()) ?? overlaySettings
   }
 
-  // Settings that only steer the app, not what the filter says; changing them
-  // elsewhere does not call for a rewrite.
-  const appOnlyKeys = new Set([
-    'language',
-    'auto_update_enabled',
-    'auto_update_hours',
-    'notify_enabled',
-    'scan_budget_pct',
-    'price_source_url',
-    'exceptional_scan',
-  ])
-
   // Settings saved by the other window (or by this one, echoed back). While
   // this window still has an edit on its way, its own reply wins.
   async function adoptConfig(next: Config) {
     if (!cfg || saveState === 'saving') return
-    const differs = (Object.keys(next) as (keyof Config)[]).some(
-      (k) => !appOnlyKeys.has(k) && JSON.stringify(next[k]) !== JSON.stringify(cfg![k]),
-    )
+    // Whether the filter needs rewriting comes from the engine's state
+    // (configPending), which both windows receive.
     const langChanged = languageOf(next.language) !== languageOf(shownLang)
-    if (differs) dirty = true
     cfg = next
     if (langChanged) {
       applyLanguage(next.language)
@@ -210,7 +201,6 @@
       const prevRunning = st?.running
       st = ev.data
       if (prevRunning && !st.running && !st.lastError) {
-        dirty = false
         AppService.NeverSinkThemes().then((t) => (nsThemes = t ?? []))
       }
     })
@@ -235,6 +225,15 @@
     catalogStats = (catalog.stats ?? []).reduce((sum, group) => sum + (group.entries?.length ?? 0), 0)
     catalogItems = (catalog.items ?? []).reduce((sum, group) => sum + (group.entries?.length ?? 0), 0)
     catalogUpdatedAt = catalog.updatedAtMs
+  }
+
+  // The defaults live in Go (overlay.DefaultChatCommands); an empty list
+  // there means "the player removed them all", so ask Go for them.
+  async function resetChatCommands() {
+    if (!overlaySettings) return
+    const defaults = await AppService.DefaultChatCommands()
+    overlaySettings.chat_commands = defaults ?? []
+    queueOverlaySave()
   }
 
   function queueOverlaySave() {
@@ -275,6 +274,10 @@
         const saved = await AppService.SaveConfig($state.snapshot(cfg) as Config)
         // Ignore stale replies: the user may have kept editing meanwhile.
         if (seq !== saveSeq) return
+        // Saved: from here the engine says whether the filter is out of date,
+        // so undoing a change also clears the notice.
+        dirty = false
+        st = await AppService.GetState()
         const langChanged = languageOf(saved.language) !== languageOf(shownLang)
         cfg = saved
         if (langChanged) {
@@ -692,6 +695,27 @@
     return g.allowDefault ? v !== 'default' : v !== g.default.id
   }
 
+  // Label sizes the game accepts (filter.MinFontSize..MaxFontSize); Go clamps
+  // too, so a typed value can never break the filter.
+  const FONT_MIN = 18
+  const FONT_MAX = 45
+  function fontSizeOf(g: StyleGroup): number {
+    return cfg?.font_sizes?.[g.id] || g.fontSize
+  }
+  // Returns the size now in effect. Empty or the group's own size means
+  // "built-in", so the setting disappears instead of pinning today's value.
+  function setFontSize(group: string, raw: string): number {
+    const g = allGroups.find((x) => x.id === group)
+    if (!cfg || !g) return 0
+    const next = { ...(cfg.font_sizes ?? {}) }
+    const n = Math.round(Number(raw))
+    if (raw === '' || !Number.isFinite(n) || n === g.fontSize) delete next[group]
+    else next[group] = Math.min(FONT_MAX, Math.max(FONT_MIN, n))
+    cfg.font_sizes = next
+    queueSave()
+    return next[group] ?? g.fontSize
+  }
+
   function setSound(group: string, v: string) {
     if (!cfg) return
     const next = { ...(cfg.sounds ?? {}) }
@@ -900,7 +924,7 @@
           {#if st?.running}
             <div class="bar"><span style="width: {Math.round((st.progress || 0.05) * 100)}%"></span></div>
           {/if}
-          {#if dirty && !st?.running}
+          {#if pending}
             <p class="notice">{t('status.dirty')}</p>
           {/if}
           {#if st?.lastError && !st.running}
@@ -911,7 +935,7 @@
               )}
             </p>
           {/if}
-          <button class="primary" class:pulse={dirty} disabled={st?.running} onclick={updateNow}>
+          <button class="primary" class:pulse={pending} disabled={st?.running} onclick={updateNow}>
             {st?.running ? t('button.updating') : st?.lastError ? t('button.retry') : t('button.updateNow')}
           </button>
           <div class="meta-row">
@@ -1044,8 +1068,8 @@
           </nav>
           <div class="side-status status {status.tone}">
             {@render statusHead()}
-            {#if dirty && !st?.running}<p class="notice">{t('status.dirty')}</p>{/if}
-            <button class="primary" class:pulse={dirty} disabled={st?.running} onclick={updateNow}>
+            {#if pending}<p class="notice">{t('status.dirty')}</p>{/if}
+            <button class="primary" class:pulse={pending} disabled={st?.running} onclick={updateNow}>
               {st?.running ? t('button.updating') : st?.lastError ? t('button.retry') : t('button.updateNow')}
             </button>
             {#if actionError}<p class="error">{actionError}</p>{/if}
@@ -1240,7 +1264,7 @@
               </div>
               <div class="ld-detail page">
                 {#if selGroup}
-                  <StylePreview group={selGroup} look={lookOf(selGroup, paletteOf(selGroup))} sound={soundLabel(selGroup)} />
+                  <StylePreview group={{ ...selGroup, fontSize: fontSizeOf(selGroup) }} look={lookOf(selGroup, paletteOf(selGroup))} sound={soundLabel(selGroup)} />
                   <section class="card">
                     <div class="picker">
                       <ThemePicker
@@ -1295,6 +1319,21 @@
                     <button type="button" class="ghost" onclick={addSound}>{t('look.addSound')}</button>
                     {#if soundError}<p class="error">{soundError}</p>{/if}
                     <p class="desc hint">{t('look.soundHint')}</p>
+                  </section>
+                  <section class="card">
+                    <label class="field">
+                      <span>{t('look.fontSize')}</span>
+                      <span class="font-row">
+                        <input type="range" min={FONT_MIN} max={FONT_MAX} step="1" value={fontSizeOf(selGroup)}
+                          oninput={(e) => setFontSize(selGroup.id, e.currentTarget.value)} aria-label={t('look.fontSize')} />
+                        <input type="number" min={FONT_MIN} max={FONT_MAX} step="1" value={fontSizeOf(selGroup)}
+                          onchange={(e) => { e.currentTarget.value = String(setFontSize(selGroup.id, e.currentTarget.value)) }}
+                          aria-label={t('look.fontSize')} />
+                        <button type="button" class="ghost" disabled={!cfg.font_sizes?.[selGroup.id]}
+                          onclick={() => setFontSize(selGroup.id, '')}>{t('look.fontDefault', selGroup.fontSize)}</button>
+                      </span>
+                    </label>
+                    <p class="desc hint">{t('look.fontHint', FONT_MIN, FONT_MAX)}</p>
                   </section>
                 {/if}
               </div>
@@ -1568,6 +1607,46 @@
                     {#if shareErr}<p class="error">{shareErr}</p>{/if}
                   </section>
                 </div>
+              {:else if section === 'commands'}
+                {#if overlaySettings}
+                  <div class="narrow">
+                    <section class="card">
+                      <div class="card-title">
+                        <h2>{t('chat.title')}</h2>
+                        <span class="aside save {overlaySaveState}">
+                          {overlaySaveState === 'saving' ? t('save.saving') : overlaySaveState === 'saved' ? t('save.saved') : ''}
+                        </span>
+                      </div>
+                      <p class="desc">{t('chat.desc')}</p>
+                      <Toggle bind:checked={overlaySettings.chat_enabled} label={t('chat.enable')} hint={t('chat.enableHint')} onchange={queueOverlaySave} />
+                      <p class="desc hint">{t('chat.hint')}</p>
+                      <label class="field stack"><span>{t('chat.panel')}</span><HotkeyInput label={t('chat.panel')} bind:value={overlaySettings.panel_hotkey} onchange={queueOverlaySave} /></label>
+                      <p class="desc hint">{t('chat.panelHint')}</p>
+                      {#if overlayError}<p class="error">{overlayError}</p>{/if}
+                    </section>
+                    <section class="card">
+                      <h2>{t('chat.list')}</h2>
+                      <p class="desc">{t('chat.listDesc')}</p>
+                      <div class="chat-list">
+                        {#each overlaySettings.chat_commands ?? [] as command, i (i)}
+                          <div class="chat-row">
+                            <div class="chat-key"><HotkeyInput compact label={t('chat.key', i + 1)} bind:value={command.hotkey} onchange={queueOverlaySave} /></div>
+                            <input type="text" maxlength="200" placeholder={t('chat.textPlaceholder')} aria-label={t('chat.text', i + 1)}
+                              bind:value={command.text} onchange={queueOverlaySave} />
+                            <button type="button" class="icon" title={t('chat.remove')} aria-label={t('chat.remove')}
+                              onclick={() => { overlaySettings!.chat_commands = overlaySettings!.chat_commands!.filter((_, j) => j !== i); queueOverlaySave() }}>×</button>
+                          </div>
+                        {/each}
+                      </div>
+                      <div class="presets">
+                        <button type="button" disabled={(overlaySettings.chat_commands?.length ?? 0) >= 10}
+                          onclick={() => { overlaySettings!.chat_commands = [...(overlaySettings!.chat_commands ?? []), { hotkey: '', text: '' }] }}>{t('chat.add')}</button>
+                        <button type="button" onclick={resetChatCommands}>{t('chat.reset')}</button>
+                      </div>
+                      <p class="desc hint">{t('chat.lastHint')}</p>
+                    </section>
+                  </div>
+                {/if}
               {:else if section === 'general'}
                 <div class="narrow">
                   <section class="card">
@@ -2590,4 +2669,11 @@
       border-color: var(--gold-bright);
     }
   }
+  .chat-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+  .chat-row { display: grid; grid-template-columns: 8rem 1fr auto; gap: 8px; align-items: start; }
+  .chat-key { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .chat-key :global(input), .chat-row input[type='text'] { width: 100%; box-sizing: border-box; }
+  .font-row { display: flex; align-items: center; gap: 8px; }
+  .font-row input[type='range'] { flex: 1; accent-color: var(--gold-bright); }
+  .font-row input[type='number'] { width: 4.5rem; }
 </style>

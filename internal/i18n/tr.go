@@ -28,6 +28,7 @@ var tr = map[string]string{
 	"log.sharedFailed":      "Paylaşılan exceptional fiyatları alınamadı (%v); eldeki veriyle devam ediliyor.",
 	"log.customBaseMissing": "[Uyarı] Özel temel filtre bulunamadı, NeverSink kullanılıyor.",
 	"log.basesFailed":       "[Uyarı] Exceptional taban listesi alınamadı: %v",
+	"log.soundMissing":      "[Uyarı] Ses dosyası filtre klasöründe yok, yerine varsayılan ses kullanılıyor: %s",
 	"log.written":           "Filtre yazıldı: %d değerli currency, %d unique taban, %d exceptional",
 
 	"notify.title":          "Filtre güncellendi",

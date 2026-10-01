@@ -22,6 +22,15 @@ export interface Catalog {
     "updatedAtMs": number;
 }
 
+/**
+ * ChatCommand is a shortcut and the chat line it sends. In Text, {last}
+ * stands for the player who whispered last.
+ */
+export interface ChatCommand {
+    "hotkey": string;
+    "text": string;
+}
+
 export interface CurrencyEntry {
     "id": string;
     "text": string;
@@ -207,6 +216,28 @@ export interface Settings {
      */
     "market_hotkey": string;
     "craft_hotkey": string;
+
+    /**
+     * ChatEnabled turns on Commands: shortcuts that type a line into the
+     * game's chat. Like the overlay it sends keys to the game, so it starts
+     * off. The keys are taken only while the game is the active window, so
+     * they keep working everywhere else (F5 still reloads a browser page).
+     */
+    "chat_enabled": boolean;
+    "chat_commands": ChatCommand[] | null;
+
+    /**
+     * PanelHotkey opens the main panel, as a click on the tray icon does.
+     * Like the commands it is taken only while the game is the active window.
+     */
+    "panel_hotkey": string;
+
+    /**
+     * HideoutHotkey and DndHotkey were the first two fixed commands; an
+     * overlay.json that has them gets them as its first two Commands.
+     */
+    "hideout_hotkey"?: string;
+    "dnd_hotkey"?: string;
     "auto_scale": boolean;
     "ui_scale": number;
 

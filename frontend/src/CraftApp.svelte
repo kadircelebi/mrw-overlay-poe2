@@ -3,13 +3,24 @@
   import { Events } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter'
   import { allOn, buildRequest, choicesFor, modifiableFilters } from './lib/overlayQuery'
-  import { t } from './lib/i18n.svelte'
+  import { t, currentLang } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
 
   let frame: HTMLIFrameElement
   let error = $state('')
   let searching = false
   let iconsSent = false
+  // The craft page has its own texts; it opens in the app's language and
+  // follows later changes.
+  const frameSrc = `/craft/index.html?lang=${encodeURIComponent(currentLang())}`
+  const sendLang = () => send({ type: 'craft-lang', lang: currentLang() })
+  // An item sent from the price check waits until the page has loaded.
+  let frameReady = false
+  let pendingImport: unknown = null
+  function sendImport() {
+    if (frameReady && pendingImport) { send({ type: 'craft-import', item: pendingImport }); pendingImport = null }
+  }
+  $effect(sendLang)
 
   function send(data: unknown) { frame?.contentWindow?.postMessage(data, location.origin) }
   async function refreshPrices() {
@@ -25,9 +36,10 @@
   onMount(() => {
     const offLang = followAppLanguage()
     const offPrices = Events.On('state', () => void refreshPrices())
+    const offImport = Events.On('craft-import', (ev) => { pendingImport = ev.data; sendImport() })
     const receive = async (event: MessageEvent) => {
       if (event.source !== frame?.contentWindow || event.origin !== location.origin) return
-      if (event.data?.type === 'craft-ready') { void sendIcons(); await refreshPrices(); return }
+      if (event.data?.type === 'craft-ready') { frameReady = true; sendLang(); sendImport(); void sendIcons(); await refreshPrices(); return }
       if (event.data?.type !== 'craft-price' || typeof event.data.raw !== 'string' || searching) return
       searching = true; error = ''
       try {
@@ -48,7 +60,7 @@
     const onFocus = () => { void refreshPrices(); if (!iconsSent) void sendIcons() }
     window.addEventListener('focus', onFocus)
     return () => {
-      offLang(); offPrices()
+      offLang(); offPrices(); offImport()
       window.removeEventListener('message', receive)
       window.removeEventListener('focus', onFocus)
     }
@@ -61,7 +73,7 @@
     <button title={t('window.close')} aria-label={t('window.close')} onclick={() => AppService.HideCraft()}>×</button>
   </header>
   {#if error}<p class="error" role="alert">{error}</p>{/if}
-  <iframe bind:this={frame} src="/craft/index.html" title={t('craft.open')}></iframe>
+  <iframe bind:this={frame} src={frameSrc} title={t('craft.open')}></iframe>
 </main>
 
 <style>

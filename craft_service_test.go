@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -57,5 +58,65 @@ func TestCraftPricesWithoutSnapshotAreUnknown(t *testing.T) {
 	got := (&AppService{}).GetCraftPrices()
 	if got.Currency == nil || len(got.Currency) != 0 || got.GeneratedAt != "" {
 		t.Fatalf("unexpected fallback: %+v", got)
+	}
+}
+
+func TestCraftClassesMatchTheCraftData(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("frontend", "public", "craft", "data", "classes.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var data struct {
+		Classes []struct {
+			ItemClass string `json:"itemClass"`
+		} `json:"classes"`
+	}
+	if err := json.Unmarshal(raw, &data); err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]bool{}
+	for _, c := range data.Classes {
+		seen[c.ItemClass] = true
+		if !craftClasses[c.ItemClass] {
+			t.Errorf("craft data offers %q but ParseCraftText rejects it", c.ItemClass)
+		}
+	}
+	for c := range craftClasses {
+		if !seen[c] {
+			t.Errorf("ParseCraftText accepts %q, which the craft data does not offer", c)
+		}
+	}
+}
+
+func TestCraftTextAcceptsCraftClassesOnly(t *testing.T) {
+	dir := t.TempDir()
+	data := filepath.Join(dir, "data")
+	if err := os.MkdirAll(data, 0755); err != nil {
+		t.Fatal(err)
+	}
+	for name, content := range map[string]string{
+		"trade_stats.json":   `{"result":[{"id":"explicit","entries":[{"id":"explicit.mana","text":"# to maximum Mana","type":"explicit"}]}]}`,
+		"trade_items.json":   `{"result":[]}`,
+		"trade_filters.json": `{"result":[]}`,
+		"trade_static.json":  `{"result":[]}`,
+	} {
+		if err := os.WriteFile(filepath.Join(data, name), []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s := newAppService(Meta{DataDir: dir})
+	text := func(class string) string {
+		return "Item Class: " + class + "\nRarity: Rare\nTheoretical Craft\n" + class +
+			"\n--------\nItem Level: 81\n--------\n{ Prefix Modifier (Tier: 3) }\n+85 to maximum Mana"
+	}
+	snap, err := s.ParseCraftText(text("Rings"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snap.Item.Class != "Rings" || snap.Item.BaseType != "" {
+		t.Fatalf("ring craft: %+v", snap.Item)
+	}
+	if _, err := s.ParseCraftText(text("Jewels")); err == nil {
+		t.Fatal("a jewel craft was accepted")
 	}
 }

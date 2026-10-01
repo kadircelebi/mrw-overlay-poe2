@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
@@ -35,6 +34,7 @@ func init() {
 	application.RegisterEvent[appupdate.State]("app-update")
 	application.RegisterEvent[overlay.Snapshot]("overlay-item")
 	application.RegisterEvent[trade.EvaluateRequest]("overlay-query")
+	application.RegisterEvent[CraftImport]("craft-import")
 }
 
 func defaultDataDir() string {
@@ -295,8 +295,8 @@ func main() {
 		return nil
 	}
 	svc.rebindOverlay = func(old, next overlay.Settings) error {
-		if next.Enabled && (strings.EqualFold(next.Hotkey, next.MarketHotkey) || strings.EqualFold(next.Hotkey, next.CraftHotkey) || strings.EqualFold(next.MarketHotkey, next.CraftHotkey)) {
-			return fmt.Errorf("the price check, market and craft shortcuts must differ")
+		if err := next.DistinctHotkeys(); next.Enabled && err != nil {
+			return err
 		}
 		for _, sc := range shortcuts(old) {
 			if key := sc[0].(string); app.GlobalShortcut.IsRegistered(key) {

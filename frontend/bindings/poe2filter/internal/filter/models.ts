@@ -57,6 +57,12 @@ export interface Config {
      * Sounds maps a style group id to a sound choice (see validSound).
      */
     "sounds": { [_ in string]?: string } | null;
+
+    /**
+     * FontSizes maps a style group id to the label size its rules write
+     * (MinFontSize..MaxFontSize); a missing group keeps its built-in size.
+     */
+    "font_sizes": { [_ in string]?: number } | null;
     "custom_sound_path": string;
     "hide_exalt": boolean;
     "hide_gold": boolean;

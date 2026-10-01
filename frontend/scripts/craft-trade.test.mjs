@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { craftText } from '../public/craft/trade.mjs';
+import { setLang } from '../public/craft/i18n.mjs';
+// The assertions below match the Turkish messages.
+setLang('tr');
 
 test('market text uses roll values, prefixes first, and a separate desecrated header', () => {
   const text = craftText({rarity:'Rare',ilvl:81,mods:[

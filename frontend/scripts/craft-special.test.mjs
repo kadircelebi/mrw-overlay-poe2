@@ -4,6 +4,9 @@ import { readFile } from 'node:fs/promises';
 import { createItem,setRarity,manualAdd,applyCurrency,currencyReason,clearMods,overlaps } from '../public/craft/engine.mjs';
 import { applicable,essenceRows,specialReason,applySpecial,revealChoice } from '../public/craft/special.mjs';
 import { usageEntry,summarize } from '../public/craft/ledger.mjs';
+import { setLang } from '../public/craft/i18n.mjs';
+// The assertions below match the Turkish messages.
+setLang('tr');
 const json = async name => JSON.parse(await readFile(new URL('../public/craft/data/'+name,import.meta.url)));
 const data = await json('Gloves_str.mods.json');
 const special = (await json('special-currencies.json')).rules;

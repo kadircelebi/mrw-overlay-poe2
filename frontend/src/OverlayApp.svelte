@@ -271,7 +271,7 @@
     <strong>MrW Overlay</strong>
     {#if item}<span class="league">{t('ov.priceCheck', item.rarity)}</span>{/if}
     <QuotaBadge />
-    <button title={t('craft.open')} aria-label={t('craft.open')} onclick={() => AppService.ShowCraft()}>⚒</button>
+    <button title={t('craft.open')} aria-label={t('craft.open')} onclick={() => AppService.ShowCraftFromOverlay()}>⚒</button>
     <button title={t('ov.openMarket')} onclick={openMarket}>▣</button>
     <button title={t('window.close')} onclick={() => AppService.HideOverlay()}>×</button>
   </header>

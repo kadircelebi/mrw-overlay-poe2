@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -935,5 +936,81 @@ func TestExceptionalPricesPerItemLevelRange(t *testing.T) {
 	}
 	if blockContaining(t, out, "Show", "Sockets >= 2", "ItemLevel >= 79", `Class ==`) < 0 {
 		t.Fatalf("unpriced exceptional rules must start at the lowest priced item level:\n%s", out)
+	}
+}
+
+func TestMissingSoundFileFallsBackToTheGroupDefault(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "mine.mp3"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := DefaultConfig()
+	cfg.Sounds = map[string]string{
+		GroupDivine: SoundFilePrefix + "nebu.mp3",
+		GroupUnique: SoundFilePrefix + "mine.mp3",
+		GroupChance: "5",
+		GroupT5Rare: SoundNone,
+	}
+	got, missing := cfg.WithoutMissingSoundFiles(dir)
+	if len(missing) != 1 || missing[0] != "nebu.mp3" {
+		t.Fatalf("missing = %v, want [nebu.mp3]", missing)
+	}
+	if _, ok := got.Sounds[GroupDivine]; ok {
+		t.Error("the missing file is still chosen for Divine")
+	}
+	if got.Sounds[GroupUnique] != SoundFilePrefix+"mine.mp3" || got.Sounds[GroupChance] != "5" || got.Sounds[GroupT5Rare] != SoundNone {
+		t.Errorf("other choices changed: %v", got.Sounds)
+	}
+	if cfg.Sounds[GroupDivine] != SoundFilePrefix+"nebu.mp3" {
+		t.Error("the saved settings were changed; only the written filter should fall back")
+	}
+}
+
+// A group's label size can be chosen; a size typed outside what the game
+// accepts is brought back in, so it cannot break the filter.
+func TestGroupFontSizeIsChosenAndClamped(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.WaystoneTier = 15
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	if blockContaining(t, out, `Class == "Waystones"`, "SetFontSize 42") < 0 {
+		t.Fatal("the built-in waystone size changed")
+	}
+
+	cfg.FontSizes = map[string]int{GroupWaystone: 30}
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	if blockContaining(t, out, `Class == "Waystones"`, "SetFontSize 30") < 0 {
+		t.Error("the chosen size was not written")
+	}
+
+	cfg.FontSizes = map[string]int{GroupWaystone: 7, GroupDivine: 99, "no-such-group": 30, GroupT5Rare: -4}
+	cfg.Normalize()
+	if cfg.FontSizes[GroupWaystone] != MinFontSize || cfg.FontSizes[GroupDivine] != MaxFontSize {
+		t.Errorf("sizes were not clamped: %v", cfg.FontSizes)
+	}
+	if _, ok := cfg.FontSizes["no-such-group"]; ok {
+		t.Error("an unknown group kept a size")
+	}
+	if _, ok := cfg.FontSizes[GroupT5Rare]; ok {
+		t.Error("a negative size was kept instead of the built-in one")
+	}
+
+	// Even a size that skipped Normalize never leaves the range.
+	cfg.FontSizes = map[string]int{GroupWaystone: 300}
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	for _, line := range strings.Split(out, "\n") {
+		if v, ok := strings.CutPrefix(strings.TrimSpace(line), "SetFontSize "); ok {
+			n, _ := strconv.Atoi(v)
+			if n < MinFontSize || n > MaxFontSize {
+				t.Fatalf("SetFontSize %d is outside %d..%d", n, MinFontSize, MaxFontSize)
+			}
+		}
+	}
+
+	// Currency's top tier (here Mirror of Kalandra) takes the chosen size;
+	// the tier below keeps its step of 3 under it.
+	cfg.FontSizes = map[string]int{GroupCurrency: 40}
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	if blockContaining(t, out, `"Mirror of Kalandra"`, "SetFontSize 40") < 0 {
+		t.Error("currency did not follow the chosen size")
 	}
 }

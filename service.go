@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -102,6 +103,11 @@ type AppService struct {
 	confineOnce        sync.Once
 	rebindOverlay      func(old, next overlay.Settings) error
 	hotkeyCapture      bool
+	// Chat command shortcuts held while the game is the active window.
+	chatMu     sync.Mutex
+	chatKeys   []string
+	gameActive atomic.Bool
+	whispers   overlay.Whispers
 
 	// The pathofexile.com session from the browser extension (encrypted on
 	// disk) and the state of an ongoing "connect browser" request.

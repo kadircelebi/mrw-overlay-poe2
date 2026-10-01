@@ -6,6 +6,7 @@ package overlay
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"strings"
 
@@ -19,8 +20,21 @@ type Settings struct {
 	// MarketHotkey opens the full market window with a fresh search.
 	MarketHotkey string `json:"market_hotkey"`
 	CraftHotkey  string `json:"craft_hotkey"`
-	AutoScale    bool   `json:"auto_scale"`
-	UIScale      int    `json:"ui_scale"`
+	// ChatEnabled turns on Commands: shortcuts that type a line into the
+	// game's chat. Like the overlay it sends keys to the game, so it starts
+	// off. The keys are taken only while the game is the active window, so
+	// they keep working everywhere else (F5 still reloads a browser page).
+	ChatEnabled bool          `json:"chat_enabled"`
+	Commands    []ChatCommand `json:"chat_commands"`
+	// PanelHotkey opens the main panel, as a click on the tray icon does.
+	// Like the commands it is taken only while the game is the active window.
+	PanelHotkey string `json:"panel_hotkey"`
+	// HideoutHotkey and DndHotkey were the first two fixed commands; an
+	// overlay.json that has them gets them as its first two Commands.
+	HideoutHotkey string `json:"hideout_hotkey,omitempty"`
+	DndHotkey     string `json:"dnd_hotkey,omitempty"`
+	AutoScale     bool   `json:"auto_scale"`
+	UIScale       int    `json:"ui_scale"`
 	// LiveSound is the game alert sound played when a live search finds a
 	// listing ("none" = silent); LiveNotify shows a Windows notification.
 	LiveSound  string `json:"live_sound"`
@@ -30,11 +44,70 @@ type Settings struct {
 // DefaultSettings leaves the overlay off: it registers a global shortcut and
 // sends keys to the game, so players opt in from Settings.
 func DefaultSettings() Settings {
-	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true}
+	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", Commands: DefaultChatCommands(), PanelHotkey: "F9", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true}
 }
 
 // DefaultLiveSound is a short chime distinct from the loot filter's drops.
 const DefaultLiveSound = "ShExalted"
+
+// ErrSameHotkey is returned when two of the overlay's shortcuts are the same.
+var ErrSameHotkey = errors.New("each overlay shortcut must be different")
+
+// DistinctHotkeys reports whether every shortcut differs from the others.
+func (s Settings) DistinctHotkeys() error {
+	seen := map[string]bool{}
+	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.PanelHotkey}
+	for _, c := range s.Commands {
+		keys = append(keys, c.Hotkey)
+	}
+	for _, k := range keys {
+		k = strings.ToLower(strings.TrimSpace(k))
+		if k == "" {
+			continue
+		}
+		if seen[k] {
+			return ErrSameHotkey
+		}
+		seen[k] = true
+	}
+	return nil
+}
+
+// ChatCommand is a shortcut and the chat line it sends. In Text, {last}
+// stands for the player who whispered last.
+type ChatCommand struct {
+	Hotkey string `json:"hotkey"`
+	Text   string `json:"text"`
+}
+
+// MaxChatCommands caps the list; chat lines are short (MaxChatText).
+const (
+	MaxChatCommands = 10
+	MaxChatText     = 200
+	LastWhisperer   = "{last}"
+)
+
+// DefaultChatCommands: hideout, do not disturb, invite and a ready reply to
+// whoever whispered last.
+func DefaultChatCommands() []ChatCommand {
+	return []ChatCommand{
+		{Hotkey: "F5", Text: "/hideout"},
+		{Hotkey: "F6", Text: "/dnd"},
+		{Hotkey: "F7", Text: "/invite " + LastWhisperer},
+		{Hotkey: "F8", Text: "@" + LastWhisperer + " Sold, sorry."},
+	}
+}
+
+// ChatCommands are the commands ready to bind: a shortcut and a line each.
+func (s Settings) ChatCommands() []ChatCommand {
+	var out []ChatCommand
+	for _, c := range s.Commands {
+		if c.Hotkey != "" && c.Text != "" {
+			out = append(out, c)
+		}
+	}
+	return out
+}
 
 func (s *Settings) Normalize() {
 	s.Hotkey = strings.TrimSpace(s.Hotkey)
@@ -49,6 +122,33 @@ func (s *Settings) Normalize() {
 	s.CraftHotkey = strings.TrimSpace(s.CraftHotkey)
 	if s.CraftHotkey == "" {
 		s.CraftHotkey = "Alt+F"
+	}
+	if s.Commands == nil {
+		s.Commands = DefaultChatCommands()
+		if k := strings.TrimSpace(s.HideoutHotkey); k != "" {
+			s.Commands[0].Hotkey = k
+		}
+		if k := strings.TrimSpace(s.DndHotkey); k != "" {
+			s.Commands[1].Hotkey = k
+		}
+	}
+	s.HideoutHotkey, s.DndHotkey = "", ""
+	s.PanelHotkey = strings.TrimSpace(s.PanelHotkey)
+	if s.PanelHotkey == "" {
+		s.PanelHotkey = "F9"
+	}
+	if len(s.Commands) > MaxChatCommands {
+		s.Commands = s.Commands[:MaxChatCommands]
+	}
+	for i := range s.Commands {
+		s.Commands[i].Hotkey = strings.TrimSpace(s.Commands[i].Hotkey)
+		// One line: a newline in the text would send the rest as a second
+		// message.
+		text := strings.Join(strings.Fields(s.Commands[i].Text), " ")
+		if r := []rune(text); len(r) > MaxChatText {
+			text = string(r[:MaxChatText])
+		}
+		s.Commands[i].Text = text
 	}
 	if s.LiveSound == "" {
 		s.LiveSound = DefaultLiveSound

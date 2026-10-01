@@ -1,6 +1,8 @@
 package filter
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"strconv"
@@ -101,12 +103,15 @@ type Config struct {
 	CustomStyles map[string]CustomStyle `json:"custom_styles"`
 	DivineSound  string                 `json:"divine_sound,omitempty"` // legacy, migrated into sounds
 	// Sounds maps a style group id to a sound choice (see validSound).
-	Sounds          map[string]string `json:"sounds"`
-	CustomSoundPath string            `json:"custom_sound_path"`
-	HideExalt       bool              `json:"hide_exalt"`
-	HideGold        bool              `json:"hide_gold"`
-	FilterName      string            `json:"filter_name"`
-	Whitelist       []string          `json:"whitelist"`
+	Sounds map[string]string `json:"sounds"`
+	// FontSizes maps a style group id to the label size its rules write
+	// (MinFontSize..MaxFontSize); a missing group keeps its built-in size.
+	FontSizes       map[string]int `json:"font_sizes"`
+	CustomSoundPath string         `json:"custom_sound_path"`
+	HideExalt       bool           `json:"hide_exalt"`
+	HideGold        bool           `json:"hide_gold"`
+	FilterName      string         `json:"filter_name"`
+	Whitelist       []string       `json:"whitelist"`
 	// ItemGroups are the user's own lists. Each one shows or hides its items
 	// and carries its own colours and sound, keyed by ItemGroup.StyleKey().
 	ItemGroups  []ItemGroup `json:"item_groups"`
@@ -295,6 +300,41 @@ func (c Config) Save(path string) error {
 		return err
 	}
 	return prices.WriteFileAtomic(path, data)
+}
+
+// FilterKey identifies the settings the written filter depends on. Two
+// configs with the same key write the same rules; the app-only settings
+// (language, schedule, notifications, scan budget and source) are left out,
+// matching what the panel treats as not needing a rewrite.
+func (c Config) FilterKey() string {
+	c.Language, c.AutoUpdateEnabled, c.AutoUpdateHours, c.NotifyEnabled = "", false, 0, false
+	c.ScanBudgetPct, c.PriceSourceURL, c.ExceptionalScan = 0, "", false
+	raw, err := json.Marshal(c)
+	if err != nil {
+		return ""
+	}
+	// An empty list or map and a missing one write the same filter.
+	var fields map[string]any
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return ""
+	}
+	for k, v := range fields {
+		switch v := v.(type) {
+		case nil:
+			delete(fields, k)
+		case map[string]any:
+			if len(v) == 0 {
+				delete(fields, k)
+			}
+		case []any:
+			if len(v) == 0 {
+				delete(fields, k)
+			}
+		}
+	}
+	b, _ := json.Marshal(fields) // map keys come out sorted
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
 }
 
 // ThresholdEx converts the configured threshold into Exalted Orbs.

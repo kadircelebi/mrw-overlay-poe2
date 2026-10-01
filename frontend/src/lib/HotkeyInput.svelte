@@ -3,7 +3,8 @@
   import { setHotkeyCapture } from './hotkeyCapture'
   import { t } from './i18n.svelte'
   import { recordedHotkey } from './hotkey'
-  let { value = $bindable(''), label, onchange }: { value: string; label: string; onchange: () => void } = $props()
+  // compact (for lists) shows the hint only while a key is awaited.
+  let { value = $bindable(''), label, onchange, compact = false }: { value: string; label: string; onchange: () => void; compact?: boolean } = $props()
   let ready = $state(false)
   let error = $state('')
   let recording = false
@@ -35,7 +36,7 @@
 <svelte:window onblur={() => { if (recording) { input.blur(); end() } }} />
 
 <input bind:this={input} readonly {value} onfocus={begin} onblur={end} onkeydown={capture} aria-label={label} title={t('hotkey.record')} />
-<span class="hint">{ready ? t('hotkey.listening') : t('hotkey.record')}</span>
+{#if !compact || ready}<span class="hint">{ready ? t('hotkey.listening') : t('hotkey.record')}</span>{/if}
 {#if error}<span class="error">{error}</span>{/if}
 
 <style>

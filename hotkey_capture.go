@@ -20,5 +20,6 @@ func (s *AppService) SetHotkeyCapture(active bool) error {
 	if err == nil {
 		s.hotkeyCapture = active
 	}
+	go s.syncChatShortcuts() // takes overlayMu itself
 	return err
 }

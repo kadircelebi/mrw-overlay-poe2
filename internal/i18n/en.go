@@ -36,6 +36,7 @@ var en = map[string]string{
 	"log.sharedFailed":      "Could not get the shared exceptional prices (%v); carrying on with what is here.",
 	"log.customBaseMissing": "[Warning] Custom base filter not found, using NeverSink.",
 	"log.basesFailed":       "[Warning] Could not fetch the exceptional base list: %v",
+	"log.soundMissing":      "[Warning] Sound file not found in the filter folder, using the default sound instead: %s",
 	"log.written":           "Filter written: %d valuable currency, %d unique bases, %d exceptional",
 
 	// Notification

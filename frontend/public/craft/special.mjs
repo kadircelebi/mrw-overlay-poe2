@@ -1,3 +1,4 @@
+import { t } from './i18n.mjs';
 import { candidates, chooseWeighted, roll, overlaps, limits, count, removeMod } from './engine.mjs';
 import { filterOmenRows } from './omens.mjs';
 const noOmens = {side:null,tags:[],quantity:1};
@@ -6,8 +7,10 @@ export function applicable(rule, data) {
   return !rule.beforeClassIds || rule.beforeClassIds.includes(data.options.ItemClassesCode);
 }
 
+// data.tags are the tags every base of the class carries (from the data
+// build), so an essence row fits jewellery and weapons as well as armour.
 export function essenceRows(data, rule) {
-  const tags = new Set([data.options.ItemClassesCode.toLowerCase(), 'armour', data.options.tags]);
+  const tags = new Set(data.tags || [data.options.ItemClassesCode.toLowerCase(), 'armour', data.options.tags]);
   return data.mods.filter(m => m.pool === rule.pool && m.name === rule.name &&
     (!m.spawn_tags.some(t => t !== 'default') || m.spawn_tags.some(t => tags.has(t))));
 }
@@ -18,22 +21,22 @@ function availableEssences(item, data, rule) {
 }
 
 export function specialReason(item, data, rule, effects=noOmens) {
-  if (item.reveal) return 'Önce bekleyen Desecrate seçimini tamamla veya geri al.';
-  if (!applicable(rule, data)) return 'Bu currency eşya türüne uygun değil.';
-  if (!rule.beforeRarity.includes(item.rarity)) return `${rule.beforeRarity.join(' / ')} eşya gerekiyor.`;
+  if (item.reveal) return t('err.pendingReveal');
+  if (!applicable(rule, data)) return t('err.notForClass');
+  if (!rule.beforeRarity.includes(item.rarity)) return t('err.needRarity', rule.beforeRarity.join(' / '));
   if (rule.operation === 'desecrate') {
-    if (item.mods.some(m => m.desecrated || m.pool === 'desecrated')) return 'Eşyada zaten Desecrated affix var.';
-    if (rule.maxItemLevel && item.ilvl > rule.maxItemLevel) return `En fazla Item Level ${rule.maxItemLevel} gerekiyor.`;
+    if (item.mods.some(m => m.desecrated || m.pool === 'desecrated')) return t('err.hasDesecrated');
+    if (rule.maxItemLevel && item.ilvl > rule.maxItemLevel) return t('err.maxIlvl', rule.maxItemLevel);
     const possible = item.mods.length === 6 ? item.mods.some((m,i) => (!effects.side || m.affix === effects.side) && boneRows(removeMod(item,i),data,rule,effects).length) : boneRows(item,data,rule,effects).length;
-    return possible ? '' : 'Uygun Desecrate mod havuzu yok.';
+    return possible ? '' : t('err.noDesecratePool');
   }
   if (rule.removes) {
-    if (!item.mods.length) return 'Çıkarılacak affix yok.';
+    if (!item.mods.length) return t('err.nothingToRemove');
     // Do not preselect a favourable removal: all random removals must be valid.
     return item.mods.every((_,i) => availableEssences(removeMod(item,i),data,rule).length) ? '' :
-      'Rastgele çıkarma sonrası garantili mod için yer veya aile uygun olmayabilir; önce çakışan affix’i kaldır.';
+      t('err.essenceRemoveRisk');
   }
-  return availableEssences(item,data,rule).length ? '' : 'Garantili mod için uygun seviye, mod ailesi veya boş yer yok.';
+  return availableEssences(item,data,rule).length ? '' : t('err.essenceNoRoom');
 }
 
 function boneRows(item,data,rule,effects=noOmens) {
@@ -69,7 +72,7 @@ export function applySpecial(item, data, rule, random = Math.random, effects=noO
 }
 
 export function revealChoice(item,index) {
-  if (!item.reveal || !item.reveal.choices[index]) throw new Error('Geçersiz Desecrate seçimi.');
+  if (!item.reveal || !item.reveal.choices[index]) throw new Error(t('err.badReveal'));
   const next = structuredClone(item);
   next.mods[next.reveal.index] = {...next.reveal.choices[index],desecrated:true};
   delete next.reveal; return next;

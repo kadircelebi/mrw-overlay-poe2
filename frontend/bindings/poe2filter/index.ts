@@ -9,6 +9,7 @@ export {
 export type {
     BrowserLinkStatus,
     ChromiumBrowser,
+    CraftImport,
     CraftPrices,
     LanguageOption,
     Meta,

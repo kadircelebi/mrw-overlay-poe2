@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -48,5 +49,53 @@ func TestLeaguesNeverTouchTheChoice(t *testing.T) {
 	got[0] = "değiştirildi"
 	if e.Leagues()[0] != "Rise of the Abyssal" {
 		t.Fatal("Leagues() iç listeyi paylaşıyor")
+	}
+}
+
+// The panel's "settings changed, update" notice comes from ConfigPending: it
+// must clear once the filter matches the settings again, whether by writing
+// the filter or by undoing the change, and must not fire for app-only settings.
+func TestConfigPendingFollowsTheWrittenFilter(t *testing.T) {
+	dir := t.TempDir()
+	e := New(Options{Dir: dir})
+	if e.State().ConfigPending {
+		t.Fatal("pending before any filter was written")
+	}
+	written := e.Config()
+	// What a successful run records.
+	if err := os.MkdirAll(e.dataDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(e.filterKeyPath(), []byte(written.FilterKey()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	e = New(Options{Dir: dir}) // the key survives a restart
+	if e.State().ConfigPending {
+		t.Fatal("pending right after the filter was written")
+	}
+
+	changed := written
+	changed.MinValue = written.MinValue + 10
+	if _, err := e.SetConfig(changed); err != nil {
+		t.Fatal(err)
+	}
+	if !e.State().ConfigPending {
+		t.Fatal("a threshold change is not pending")
+	}
+	if _, err := e.SetConfig(written); err != nil {
+		t.Fatal(err)
+	}
+	if e.State().ConfigPending {
+		t.Fatal("still pending after the change was undone")
+	}
+
+	appOnly := written
+	appOnly.Language = "tr"
+	appOnly.AutoUpdateHours = written.AutoUpdateHours + 2
+	if _, err := e.SetConfig(appOnly); err != nil {
+		t.Fatal(err)
+	}
+	if e.State().ConfigPending {
+		t.Fatal("an app-only setting asks for a filter update")
 	}
 }
