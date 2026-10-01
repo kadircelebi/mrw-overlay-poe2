@@ -3,8 +3,9 @@
     checked = $bindable(false),
     label,
     hint = '',
+    disabled = false,
     onchange,
-  }: { checked: boolean; label: string; hint?: string; onchange?: (v: boolean) => void } = $props()
+  }: { checked: boolean; label: string; hint?: string; disabled?: boolean; onchange?: (v: boolean) => void } = $props()
 
   function flip() {
     checked = !checked
@@ -12,7 +13,7 @@
   }
 </script>
 
-<button type="button" class="row" role="switch" aria-checked={checked} onclick={flip}>
+<button type="button" class="row" role="switch" aria-checked={checked} {disabled} onclick={flip}>
   <span class="text">
     <span class="label">{label}</span>
     {#if hint}<span class="hint">{hint}</span>{/if}

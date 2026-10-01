@@ -16,3 +16,5 @@
 # the files as changed.
 frontend/bindings/** text eol=lf
 *.go text eol=lf
+*.webp binary
+*.jpg binary

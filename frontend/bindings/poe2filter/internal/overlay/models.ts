@@ -206,6 +206,7 @@ export interface Settings {
      * MarketHotkey opens the full market window with a fresh search.
      */
     "market_hotkey": string;
+    "craft_hotkey": string;
     "auto_scale": boolean;
     "ui_scale": number;
 

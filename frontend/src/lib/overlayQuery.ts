@@ -203,9 +203,11 @@ export function resetPropertyRanges(filters: PropertyFilter[], broad: boolean) {
   }
 }
 
-// Counting stats ("# Empty Prefix Modifiers") are not lowered in Broad mode.
+// Counting stats ("# Empty Prefix Modifiers", how many "Legacy of Granite" a
+// Mageblood has) are not lowered in Broad mode.
 function isCountStat(mod: ItemMod): boolean {
-  return mod.statId?.includes('pseudo_number_of_') ?? false
+  const id = mod.statId ?? ''
+  return id.includes('pseudo_number_of_') || (id.includes('|') && !/\d/.test(mod.text))
 }
 
 export function resetChoiceRanges(choices: ModChoice[], broad: boolean) {

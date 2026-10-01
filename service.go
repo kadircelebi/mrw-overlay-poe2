@@ -95,10 +95,13 @@ type AppService struct {
 	overlayDraft       trade.EvaluateRequest
 	overlayWindow      application.Window
 	marketWindow       application.Window
+	craftWindow        application.Window
+	marketSnapshot     *overlay.Snapshot
 	settingsWindow     application.Window
 	overlayHotkey      string
 	confineOnce        sync.Once
 	rebindOverlay      func(old, next overlay.Settings) error
+	hotkeyCapture      bool
 
 	// The pathofexile.com session from the browser extension (encrypted on
 	// disk) and the state of an ongoing "connect browser" request.

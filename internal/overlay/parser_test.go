@@ -59,6 +59,44 @@ All Mage's Legacies have 28(25-50)% increased effect per duplicate Mage's Legacy
 	}
 }
 
+// GGG counts an option stat: "Legacy of Quicksilver" min 2 finds belts with
+// two of them, while two separate lines are each met by one.
+func TestRepeatedLegacyIsSearchedAsACount(t *testing.T) {
+	raw := `Item Class: Belts
+Rarity: Unique
+Mageblood
+Utility Belt
+--------
+{ Unique Modifier }
+Legacy of Gold(Amethyst-Topaz) — Unscalable Value
+{ Unique Modifier }
+Legacy of Quicksilver(Amethyst-Topaz) — Unscalable Value
+{ Unique Modifier }
+Legacy of Quicksilver(Amethyst-Topaz) — Unscalable Value
+{ Unique Modifier }
+All Mage's Legacies have 50(25-50)% increased effect per duplicate Mage's Legacy you have`
+	cat := testCatalog()
+	cat.Stats[0].Entries = append(cat.Stats[0].Entries, StatEntry{ID: "explicit.stat_264262054|8", Text: "Legacy of Quicksilver", Type: "explicit"})
+	item, err := ParseItem(raw, cat)
+	if err != nil {
+		t.Fatal(err)
+	}
+	counts := map[string]float64{}
+	for _, mod := range ownMods(item.Mods) {
+		if strings.Contains(mod.StatID, "|") {
+			if len(mod.Values) != 1 {
+				t.Fatalf("%s values=%v", mod.Text, mod.Values)
+			}
+			counts[mod.StatID] += mod.Values[0]
+			counts[mod.StatID+" lines"]++
+		}
+	}
+	gold, quicksilver := "explicit.stat_264262054|5", "explicit.stat_264262054|8"
+	if counts[gold] != 1 || counts[quicksilver] != 2 || counts[quicksilver+" lines"] != 1 {
+		t.Fatalf("counts=%v", counts)
+	}
+}
+
 func TestParseRareAffixes(t *testing.T) {
 	raw := `Item Class: Helmets
 Rarity: Rare

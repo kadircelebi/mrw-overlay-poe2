@@ -49,6 +49,7 @@ func main() {
 	outPath := flag.String("out", "", "write the filter here instead of the game folder (testing)")
 	headless := flag.Bool("headless", false, "update once without a window and exit")
 	show := flag.Bool("show", false, "show the panel on start")
+	showCraft := flag.Bool("craft", false, "show theoretical craft on start")
 	debugPort := flag.Int("debug-port", 0, "WebView2 remote debugging port (development)")
 	applyUpdate := flag.String("apply-update", "", "replace this executable after it exits (internal)")
 	waitPID := flag.Int("wait-pid", 0, "wait for this process before applying an update (internal)")
@@ -152,7 +153,7 @@ func main() {
 	panel := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "panel",
 		Title:            "MrW Overlay",
-		Width:            380,
+		Width:            800,
 		Height:           640,
 		Frameless:        true,
 		AlwaysOnTop:      true,
@@ -210,6 +211,18 @@ func main() {
 		e.Cancel()
 	})
 
+	craftWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name: "craft", Title: "MrW Overlay · Craft", Width: 1120, Height: 820,
+		MinWidth: 760, MinHeight: 560, Frameless: true, AlwaysOnTop: true,
+		Hidden: !*showCraft, HideOnEscape: true,
+		BackgroundColour: application.NewRGB(15, 13, 17),
+		Windows:          application.WindowsWindow{HiddenOnTaskbar: true}, URL: "/?view=craft",
+	})
+	craftWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		craftWindow.Hide()
+		e.Cancel()
+	})
+
 	// Settings live in a window of their own: an ordinary one that stays open
 	// beside the game, so a colour can be changed and tried with Reload
 	// without the panel vanishing on every click in between.
@@ -226,6 +239,7 @@ func main() {
 		URL:              "/?view=settings",
 	})
 	settingsWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		_ = svc.SetHotkeyCapture(false)
 		settingsWindow.Hide()
 		e.Cancel()
 	})
@@ -257,13 +271,14 @@ func main() {
 
 	svc.app, svc.tray, svc.panel = app, tray, panel
 	svc.overlayWindow, svc.marketWindow, svc.settingsWindow = overlayWindow, marketWindow, settingsWindow
-	// The overlay's global shortcuts: price check (Alt+E) and the full market
-	// window (Alt+M). Both exist only while the overlay is switched on.
+	svc.craftWindow = craftWindow
+	// Price check (Alt+E), market (Alt+M) and craft (Alt+F) shortcuts
+	// exist only while the overlay is switched on.
 	shortcuts := func(s overlay.Settings) [][2]any {
 		if !s.Enabled {
 			return nil
 		}
-		return [][2]any{{s.Hotkey, svc.captureOverlay}, {s.MarketHotkey, svc.toggleMarketFromHotkey}}
+		return [][2]any{{s.Hotkey, svc.captureOverlay}, {s.MarketHotkey, svc.toggleMarketFromHotkey}, {s.CraftHotkey, svc.toggleCraftFromHotkey}}
 	}
 	register := func(list [][2]any) error {
 		var done []string
@@ -280,8 +295,8 @@ func main() {
 		return nil
 	}
 	svc.rebindOverlay = func(old, next overlay.Settings) error {
-		if next.Enabled && strings.EqualFold(next.Hotkey, next.MarketHotkey) {
-			return fmt.Errorf("the price check and market shortcuts must differ (%s)", next.Hotkey)
+		if next.Enabled && (strings.EqualFold(next.Hotkey, next.MarketHotkey) || strings.EqualFold(next.Hotkey, next.CraftHotkey) || strings.EqualFold(next.MarketHotkey, next.CraftHotkey)) {
+			return fmt.Errorf("the price check, market and craft shortcuts must differ")
 		}
 		for _, sc := range shortcuts(old) {
 			if key := sc[0].(string); app.GlobalShortcut.IsRegistered(key) {

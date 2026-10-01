@@ -23,3 +23,6 @@ CLAUDE.md
 
 # website code: kept out of the public repo
 /site/
+
+# kişisel notlar, site doğrulama dosyaları vb. (yayınlanmaz)
+/do_not_share/

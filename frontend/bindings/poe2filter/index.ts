@@ -9,7 +9,9 @@ export {
 export type {
     BrowserLinkStatus,
     ChromiumBrowser,
+    CraftPrices,
     LanguageOption,
     Meta,
+    StartupStatus,
     StyleOptions
 } from "./models.js";

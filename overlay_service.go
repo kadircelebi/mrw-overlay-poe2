@@ -36,21 +36,25 @@ func (s *AppService) GetOverlaySettings() overlay.Settings {
 
 func (s *AppService) SaveOverlaySettings(next overlay.Settings) (overlay.Settings, error) {
 	next.Normalize()
-	s.overlayMu.RLock()
+	s.overlayMu.Lock()
 	old := s.overlaySettings
-	s.overlayMu.RUnlock()
-	if s.rebindOverlay != nil {
+	if next.Enabled && (strings.EqualFold(next.Hotkey, next.MarketHotkey) || strings.EqualFold(next.Hotkey, next.CraftHotkey) || strings.EqualFold(next.MarketHotkey, next.CraftHotkey)) {
+		s.overlayMu.Unlock()
+		return old, errors.New("the price check, market and craft shortcuts must differ")
+	}
+	if s.rebindOverlay != nil && !s.hotkeyCapture {
 		if err := s.rebindOverlay(old, next); err != nil {
+			s.overlayMu.Unlock()
 			return old, err
 		}
 	}
 	if err := overlay.SaveSettings(s.overlaySettingsPath, next); err != nil {
-		if s.rebindOverlay != nil {
+		if s.rebindOverlay != nil && !s.hotkeyCapture {
 			_ = s.rebindOverlay(next, old)
 		}
+		s.overlayMu.Unlock()
 		return old, err
 	}
-	s.overlayMu.Lock()
 	s.overlaySettings = next
 	s.overlayMu.Unlock()
 	s.applyOverlayScale()
@@ -417,6 +421,7 @@ func (s *AppService) ShowMarket() {
 func (s *AppService) ShowMarketWithQuery(in trade.EvaluateRequest) {
 	s.overlayMu.Lock()
 	s.overlayDraft = in
+	s.marketSnapshot = nil
 	s.overlayMu.Unlock()
 	if s.marketWindow == nil {
 		return
@@ -536,7 +541,7 @@ func (s *AppService) positionOverlayWindow(window application.Window) {
 func (s *AppService) confineWindows() {
 	s.confineOnce.Do(func() {
 		application.InvokeSync(func() {
-			for _, w := range []application.Window{s.overlayWindow, s.marketWindow} {
+			for _, w := range []application.Window{s.overlayWindow, s.marketWindow, s.craftWindow} {
 				if w != nil {
 					overlay.Confine(uintptr(w.NativeWindow()))
 				}
@@ -560,7 +565,7 @@ func (s *AppService) watchGameFocus() {
 		if overlay.WindowPID(fg) == own || overlay.IsGameWindow(fg) {
 			continue
 		}
-		for _, w := range []application.Window{s.overlayWindow, s.marketWindow} {
+		for _, w := range []application.Window{s.overlayWindow, s.marketWindow, s.craftWindow} {
 			if w != nil && w.IsVisible() {
 				w.Hide()
 			}

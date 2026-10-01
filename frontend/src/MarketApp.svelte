@@ -26,12 +26,13 @@
   let catalog = $state<Catalog | null>(null)
   let item = $state<Item | null>(blankItem())
   let choices = $state<ModChoice[]>([])
-  let statGroups = $state<StatGroupState[]>([])
+  let statGroups = $state<StatGroupState[]>([{ key: 0, type: 'and', choiceKeys: [], weights: {} }])
   let result = $state<Evaluation | null>(null)
   let searched = $state<string[]>([])
   let error = $state('')
   let itemQuery = $state('')
   let statQuery = $state('')
+  let statTargetGroup = $state<number | null>(null)
   let showItemSuggestions = $state(false)
   let showStatSuggestions = $state(false)
   let filters = $state<Record<string, FilterState>>({})
@@ -365,7 +366,7 @@
   }
 
   onMount(() => {
-    Promise.all([AppService.GetTradeCatalog(), AppService.GetOverlaySnapshot(), AppService.GetOverlayDraft(), AppService.GetSavedOverlaySearches()]).then(([c, snap, draft, saved]) => {
+    Promise.all([AppService.GetTradeCatalog(), AppService.GetMarketSnapshot(), AppService.GetOverlayDraft(), AppService.GetSavedOverlaySearches()]).then(([c, snap, draft, saved]) => {
       catalog = c
       if (saved) library = saved
       openFromOverlay(snap, draft)
@@ -373,7 +374,7 @@
     // The market follows the price check only when it is sent here (▣), not
     // on every Alt+E: each item sent over opens a tab of its own.
     const offQuery = Events.On('overlay-query', async (event) => {
-      const snap = await AppService.GetOverlaySnapshot()
+      const snap = await AppService.GetMarketSnapshot()
       openFromOverlay(snap, event.data as EvaluateRequest)
     })
     const offLang = followAppLanguage()
@@ -465,19 +466,23 @@
   // The same stat may be added again: once in an And group and once in a
   // Weighted Sum or Count group, or twice in one group for an item that rolls
   // it twice (Mageblood's "Legacy of Silver"). Each addition is its own row.
-  function addStat(stat: StatEntry) {
-    if (!item) return
+  function addStat(stat: StatEntry, groupKey: number) {
+    if (!item || !statGroups.some((group) => group.key === groupKey)) return
     const choice: ModChoice = { selected: true, mod: { key: `manual-${stat.id}-${choices.length}`, statId: stat.id, text: stat.text, type: stat.type, affix: '', name: '', tier: 0, values: [], selected: true } }
     choices = [...choices, choice]
-    if (!statGroups.length) statGroups = [{ key: nextGroupKey++, type: 'and', choiceKeys: [], weights: {} }]
-    const target = statGroups.at(-1)!
-    statGroups = statGroups.map((group) => group.key === target.key ? { ...group, choiceKeys: [...group.choiceKeys, choice.mod.key] } : group)
+    statGroups = statGroups.map((group) => group.key === groupKey ? { ...group, choiceKeys: [...group.choiceKeys, choice.mod.key] } : group)
     statQuery = ''
     showStatSuggestions = false
     markDirty()
   }
 
   function choiceForKey(key: string) { return choices.find((choice) => choice.mod.key === key) }
+
+  function focusStatGroup(groupKey: number) {
+    if (statTargetGroup !== groupKey) statQuery = ''
+    statTargetGroup = groupKey
+    showStatSuggestions = true
+  }
 
   function setWeight(groupKey: number, choiceKey: string, raw: string) {
     const value = raw === '' ? undefined : Number(raw)
@@ -494,6 +499,7 @@
 
   function removeStatGroup(key: number) {
     if (statGroups.length === 1) return
+    if (statTargetGroup === key) { statTargetGroup = null; statQuery = ''; showStatSuggestions = false }
     statGroups = statGroups.filter((group) => group.key !== key)
     markDirty()
   }
@@ -889,16 +895,16 @@
                     </div>
                   {/if}
                 {/each}
+                <div class="stat-add">
+                  <input value={statTargetGroup === statGroup.key ? statQuery : ''} onfocus={() => focusStatGroup(statGroup.key)} oninput={(event) => { focusStatGroup(statGroup.key); statQuery = event.currentTarget.value }} placeholder={t('mk.addStat')} aria-label={`${t('mk.filterN', statGroups.indexOf(statGroup) + 1)}: ${t('mk.addStat')}`} spellcheck="false" />
+                  {#if statTargetGroup === statGroup.key && showStatSuggestions && statSuggestions.length}
+                    <div class="stat-suggestions">
+                      {#each statSuggestions as stat}<button class:unlikely={rollRank(stat.id) < 0} title={rollRank(stat.id) < 0 ? t('mk.notOnBaseHint') : undefined} onclick={() => addStat(stat, statGroup.key)}><small>{stat.type}</small><span>{stat.text}</span></button>{/each}
+                    </div>
+                  {/if}
+                </div>
               </div>
             {/each}
-            <div class="stat-add">
-              <input bind:value={statQuery} onfocus={() => (showStatSuggestions = true)} oninput={() => (showStatSuggestions = true)} placeholder={t('mk.addStat')} spellcheck="false" />
-              {#if showStatSuggestions && statSuggestions.length}
-                <div class="stat-suggestions">
-                  {#each statSuggestions as stat}<button class:unlikely={rollRank(stat.id) < 0} title={rollRank(stat.id) < 0 ? t('mk.notOnBaseHint') : undefined} onclick={() => addStat(stat)}><small>{stat.type}</small><span>{stat.text}</span></button>{/each}
-                </div>
-              {/if}
-            </div>
             <button class="add-group" onclick={addStatGroup}>{t('mk.addGroup')}</button>
             {/if}
           </section>

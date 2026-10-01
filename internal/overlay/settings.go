@@ -18,6 +18,7 @@ type Settings struct {
 	Hotkey  string `json:"hotkey"`
 	// MarketHotkey opens the full market window with a fresh search.
 	MarketHotkey string `json:"market_hotkey"`
+	CraftHotkey  string `json:"craft_hotkey"`
 	AutoScale    bool   `json:"auto_scale"`
 	UIScale      int    `json:"ui_scale"`
 	// LiveSound is the game alert sound played when a live search finds a
@@ -29,7 +30,7 @@ type Settings struct {
 // DefaultSettings leaves the overlay off: it registers a global shortcut and
 // sends keys to the game, so players opt in from Settings.
 func DefaultSettings() Settings {
-	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true}
+	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true}
 }
 
 // DefaultLiveSound is a short chime distinct from the loot filter's drops.
@@ -45,6 +46,10 @@ func (s *Settings) Normalize() {
 		s.MarketHotkey = "Alt+M"
 	}
 	s.LiveSound = strings.TrimSpace(s.LiveSound)
+	s.CraftHotkey = strings.TrimSpace(s.CraftHotkey)
+	if s.CraftHotkey == "" {
+		s.CraftHotkey = "Alt+F"
+	}
 	if s.LiveSound == "" {
 		s.LiveSound = DefaultLiveSound
 	}
