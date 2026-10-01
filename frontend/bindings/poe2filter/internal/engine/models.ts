@@ -103,4 +103,11 @@ export interface State {
     "sharedUsed": boolean;
     "warnings": string[] | null;
     "log": string[] | null;
+
+    /**
+     * ConfigPending means the settings differ from those the filter in the
+     * game folder was last written with: an update is needed to apply them.
+     * Reverting a change clears it, as does writing the filter.
+     */
+    "configPending": boolean;
 }

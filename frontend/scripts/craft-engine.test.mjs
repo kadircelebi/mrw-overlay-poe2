@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createItem, setRarity, manualAdd, removeMod, clearMods, candidates, applyCurrency, currencyReason, chooseWeighted, count, rolledText, replaceTier, sortedMods } from '../public/craft/engine.mjs';
+import { setLang } from '../public/craft/i18n.mjs';
+// The assertions below match the Turkish messages.
+setLang('tr');
 const data = JSON.parse(await readFile(new URL('../public/craft/data/Gloves_str.mods.json', import.meta.url)));
 const rules = JSON.parse(await readFile(new URL('../public/craft/data/currency-rules.source.json', import.meta.url)));
 const zero = () => 0;

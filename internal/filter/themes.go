@@ -2,7 +2,10 @@ package filter
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"poe2filter/internal/i18n"
@@ -288,6 +291,38 @@ var GameSounds = []string{
 	"ShRegal", "ShVaal", "ShDivine", "ShExalted", "ShMirror",
 }
 
+// WithoutMissingSoundFiles returns a copy of c in which every "file:" sound
+// that is not in dir (the folder the filter is written to, where the game
+// looks for it) falls back to the group's default sound, and the names of the
+// missing files. A profile shared from another computer may name a sound the
+// player does not have; the game would then play nothing.
+func (c Config) WithoutMissingSoundFiles(dir string) (Config, []string) {
+	var missing []string
+	var sounds map[string]string
+	for group, v := range c.Sounds {
+		name, ok := strings.CutPrefix(v, SoundFilePrefix)
+		if !ok {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(dir, name)); err == nil {
+			continue
+		}
+		if sounds == nil {
+			sounds = make(map[string]string, len(c.Sounds))
+			for k, v := range c.Sounds {
+				sounds[k] = v
+			}
+		}
+		delete(sounds, group)
+		missing = append(missing, name)
+	}
+	if sounds != nil {
+		c.Sounds = sounds
+		sort.Strings(missing)
+	}
+	return c, missing
+}
+
 // validSound reports whether v is an acceptable sound choice.
 func validSound(v string) bool {
 	if v == SoundDefault || v == SoundNone {
@@ -365,10 +400,46 @@ func (c *Config) normalizeStyles() {
 		}
 	}
 	c.DivineSound = ""
+
+	for group, v := range c.FontSizes {
+		if _, ok := known(group); !ok || v <= 0 {
+			delete(c.FontSizes, group)
+			continue
+		}
+		c.FontSizes[group] = ClampFontSize(v)
+	}
 }
 
 // Sound returns the effective sound choice for a group.
 func (c Config) Sound(group string) string { return c.Sounds[group] }
+
+// The label sizes SetFontSize accepts; the game draws anything outside at
+// the nearest end, and a typed value must not break the filter.
+const (
+	MinFontSize = 18
+	MaxFontSize = 45
+)
+
+// ClampFontSize brings a size into MinFontSize..MaxFontSize.
+func ClampFontSize(v int) int { return min(MaxFontSize, max(MinFontSize, v)) }
+
+// FontSize returns the chosen label size of a group, 0 for its built-in one.
+func (c Config) FontSize(group string) int {
+	if v := c.FontSizes[group]; v > 0 {
+		return ClampFontSize(v)
+	}
+	return 0
+}
+
+// withFont applies a chosen label size to a copy of st (unchanged for 0).
+func (st *style) withFont(v int) *style {
+	if v <= 0 {
+		return st
+	}
+	s := *st
+	s.font = ClampFontSize(v)
+	return &s
+}
 
 // withSound applies a sound choice to a copy of st (the group default when v
 // is empty).

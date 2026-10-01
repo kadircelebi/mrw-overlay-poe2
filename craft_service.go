@@ -39,6 +39,17 @@ func (s *AppService) GetCraftPrices() CraftPrices {
 	return out
 }
 
+// craftClasses are the item classes the craft page offers (its
+// data/classes.json); PoE2DB has real modifier weights for these.
+var craftClasses = map[string]bool{
+	"Gloves": true, "Boots": true, "Helmets": true, "Body Armours": true,
+	"Shields": true, "Bucklers": true, "Foci": true, "Quivers": true,
+	"Amulets": true, "Rings": true, "Belts": true,
+	"Bows": true, "Crossbows": true, "One Hand Maces": true, "Two Hand Maces": true,
+	"Quarterstaves": true, "Spears": true, "Talismans": true, "Sceptres": true,
+	"Staves": true, "Wands": true,
+}
+
 // ParseCraftText parses a synthetic item without replacing the captured item.
 func (s *AppService) ParseCraftText(raw string) (overlay.Snapshot, error) {
 	if len(raw) > 16000 {
@@ -52,11 +63,12 @@ func (s *AppService) ParseCraftText(raw string) (overlay.Snapshot, error) {
 	if err != nil {
 		return overlay.Snapshot{}, err
 	}
-	if item.Class != "Gloves" {
-		return overlay.Snapshot{}, errors.New("only glove crafting is supported")
+	if !craftClasses[item.Class] {
+		return overlay.Snapshot{}, errors.New("this item class cannot be crafted here")
 	}
-	// The lab selects an attribute category, not an actual game base. Leaving
-	// BaseType empty makes the market search Gloves rather than invent a base.
+	// The craft picks an item class and defence type, not an actual game
+	// base. Leaving BaseType empty makes the market search the class rather
+	// than invent a base.
 	item.BaseType = ""
 	return overlay.Snapshot{Item: &item}, nil
 }
@@ -99,6 +111,28 @@ func (s *AppService) ShowCraft() {
 	}
 	s.craftWindow.Show()
 	s.craftWindow.Focus()
+}
+
+// CraftImport is the copied item the craft page turns into a draft.
+type CraftImport struct {
+	Raw       string `json:"raw"`
+	Class     string `json:"class"`
+	Rarity    string `json:"rarity"`
+	BaseType  string `json:"baseType"`
+	ItemLevel int    `json:"itemLevel"`
+}
+
+// ShowCraftFromOverlay opens the craft window with the item last copied for
+// the price check, so its affixes can be tried further.
+func (s *AppService) ShowCraftFromOverlay() {
+	s.overlayMu.RLock()
+	item := s.overlaySnapshot.Item
+	s.overlayMu.RUnlock()
+	if item != nil && s.craftWindow != nil {
+		s.craftWindow.EmitEvent("craft-import", CraftImport{Raw: item.Raw, Class: item.Class,
+			Rarity: item.Rarity, BaseType: item.BaseType, ItemLevel: item.ItemLevel})
+	}
+	s.ShowCraft()
 }
 
 func (s *AppService) HideCraft() {

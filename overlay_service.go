@@ -28,6 +28,12 @@ type overlayEvaluationFlight struct {
 	err    error
 }
 
+// DefaultChatCommands are the game command shortcuts a new install starts
+// with, for the settings page's "restore defaults".
+func (s *AppService) DefaultChatCommands() []overlay.ChatCommand {
+	return overlay.DefaultChatCommands()
+}
+
 func (s *AppService) GetOverlaySettings() overlay.Settings {
 	s.overlayMu.RLock()
 	defer s.overlayMu.RUnlock()
@@ -38,9 +44,9 @@ func (s *AppService) SaveOverlaySettings(next overlay.Settings) (overlay.Setting
 	next.Normalize()
 	s.overlayMu.Lock()
 	old := s.overlaySettings
-	if next.Enabled && (strings.EqualFold(next.Hotkey, next.MarketHotkey) || strings.EqualFold(next.Hotkey, next.CraftHotkey) || strings.EqualFold(next.MarketHotkey, next.CraftHotkey)) {
+	if err := next.DistinctHotkeys(); (next.Enabled || next.ChatEnabled) && err != nil {
 		s.overlayMu.Unlock()
-		return old, errors.New("the price check, market and craft shortcuts must differ")
+		return old, err
 	}
 	if s.rebindOverlay != nil && !s.hotkeyCapture {
 		if err := s.rebindOverlay(old, next); err != nil {
@@ -58,6 +64,7 @@ func (s *AppService) SaveOverlaySettings(next overlay.Settings) (overlay.Setting
 	s.overlaySettings = next
 	s.overlayMu.Unlock()
 	s.applyOverlayScale()
+	s.syncChatShortcuts()
 	return next, nil
 }
 
@@ -562,7 +569,9 @@ func (s *AppService) watchGameFocus() {
 			continue
 		}
 		last = fg
-		if overlay.WindowPID(fg) == own || overlay.IsGameWindow(fg) {
+		game := overlay.IsGameWindow(fg)
+		s.setGameActive(game, fg)
+		if game || overlay.WindowPID(fg) == own {
 			continue
 		}
 		for _, w := range []application.Window{s.overlayWindow, s.marketWindow, s.craftWindow} {

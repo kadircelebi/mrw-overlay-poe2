@@ -1,3 +1,4 @@
+import { t } from './i18n.mjs';
 // The craft state is independent of the UI. Rarity is never inferred on removal.
 export const limits = { Normal: 0, Magic: 1, Rare: 3 };
 export const supported = id => /^(transmute|aug|regal|exalted|chaos|annu|divine|(?:greater|perfect)-(?:orb-of-transmutation|orb-of-augmentation|regal-orb|exalted-orb|chaos-orb))$/.test(id);
@@ -6,9 +7,9 @@ export const count = (item, side) => item.mods.filter(m => m.affix === side).len
 export const overlaps = (a, b) => a.affix === b.affix && a.families.some(f => b.families.includes(f));
 
 export function rarityReason(item, rarity) {
-  if (!(rarity in limits)) return 'Geçersiz rarity.';
+  if (!(rarity in limits)) return t('err.badRarity');
   if (['Prefix', 'Suffix'].some(side => count(item, side) > limits[rarity])) {
-    return rarity === 'Normal' ? 'Normal seçmek için önce affix’leri kaldır.' : 'Magic için en fazla 1 prefix ve 1 suffix bırak.';
+    return rarity === 'Normal' ? t('err.normalNeedsEmpty') : t('err.magicLimit');
   }
   return '';
 }
@@ -33,7 +34,7 @@ export function candidates(item, data, { pool = 'normal', minimum = 1, rarity = 
 
 export function chooseWeighted(rows, random = Math.random) {
   const total = rows.reduce((sum, row) => sum + row.weight, 0);
-  if (!total) throw new Error('Bu işlem için uygun affix yok.');
+  if (!total) throw new Error(t('err.noAffix'));
   let needle = random() * total;
   for (const row of rows) { needle -= row.weight; if (needle < 0) return row; }
   return rows.at(-1);
@@ -53,10 +54,10 @@ export function rolledText(mod) {
 }
 
 export function manualReason(item, row) {
-  if (item.reveal) return 'Önce bekleyen Desecrate seçimini tamamla veya geri al.';
-  if (row.required_ilvl > item.ilvl) return `Item Level ${row.required_ilvl} gerekiyor.`;
-  if (item.mods.some(m => overlaps(m, row))) return 'Bu mod ailesi eşyada zaten var.';
-  if (count(item, row.affix) >= 3) return `Boş ${row.affix.toLowerCase()} yok.`;
+  if (item.reveal) return t('err.pendingReveal');
+  if (row.required_ilvl > item.ilvl) return t('err.needIlvl', row.required_ilvl);
+  if (item.mods.some(m => overlaps(m, row))) return t('err.familyExists');
+  if (count(item, row.affix) >= 3) return t('err.noFreeSlot', row.affix.toLowerCase());
   return '';
 }
 
@@ -79,7 +80,7 @@ export const sortedMods = item => item.mods.map((mod, index) => ({ mod, index })
 export function replaceTier(item, index, row, random = Math.random) {
   const previous = item.mods[index];
   if (!previous || previous.affix !== row.affix ||
-      previous.families[0] !== row.families[0]) throw new Error('Aynı mod ailesinden bir tier seç.');
+      previous.families[0] !== row.families[0]) throw new Error(t('err.sameFamily'));
   const reason = manualReason(removeMod(item, index), row);
   if (reason) throw new Error(reason);
   return { ...item, mods: item.mods.map((mod, i) => i === index ?
@@ -87,18 +88,18 @@ export function replaceTier(item, index, row, random = Math.random) {
 }
 
 export function currencyReason(item, data, id, rule) {
-  if (item.reveal) return 'Önce bekleyen Desecrate seçimini tamamla veya geri al.';
-  if (!supported(id)) return 'Bu malzemenin kuralları ilk denemeye henüz eklenmedi.';
-  if (!rule.beforeRarity.includes(item.rarity)) return `${rule.beforeRarity.join(' / ')} eşya gerekiyor.`;
-  if (['del', 'del_add', 'divine'].includes(rule.afterTrigger) && !item.mods.length) return 'Eşyada affix yok.';
+  if (item.reveal) return t('err.pendingReveal');
+  if (!supported(id)) return t('err.unsupported');
+  if (!rule.beforeRarity.includes(item.rarity)) return t('err.needRarity', rule.beforeRarity.join(' / '));
+  if (['del', 'del_add', 'divine'].includes(rule.afterTrigger) && !item.mods.length) return t('err.noMods');
   if (rule.afterTrigger === 'add' && !candidates(item, data, {
     minimum: rule.beforeMin_mod_lv || 1, rarity: rule.afterRarity || item.rarity,
-  }).length) return 'Uygun mod havuzu veya boş affix yeri yok.';
+  }).length) return t('err.noPool');
   if (rule.afterTrigger === 'del_add') {
     const viable = item.mods.some((_, index) => candidates(removeMod(item, index), data, {
       minimum: rule.beforeMin_mod_lv || 1,
     }).length);
-    if (!viable) return 'Çıkarma sonrası eklenebilecek uygun affix yok.';
+    if (!viable) return t('err.noPoolAfterRemove');
   }
   return '';
 }

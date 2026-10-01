@@ -13,6 +13,7 @@ var (
 	procKeybdEvent   = user32.NewProc("keybd_event")
 	procAsyncKey     = user32.NewProc("GetAsyncKeyState")
 	procGetCursorPos = user32.NewProc("GetCursorPos")
+	procSendInput    = user32.NewProc("SendInput")
 )
 
 const (
@@ -20,6 +21,10 @@ const (
 	vkControl    = 0x11
 	vkC          = 0x43
 	vkE          = 0x45
+	vkShift      = 0x10
+	vkReturn     = 0x0D
+	vkA          = 0x41
+	vkV          = 0x56
 	keyeventfUp  = 0x0002
 	keyStateDown = 0x8000
 )
@@ -61,6 +66,49 @@ func CopyAdvancedItem(refocused bool) error {
 		keyEvent(vkMenu, true)
 	}
 	return nil
+}
+
+// keyInput is a Windows INPUT record holding a KEYBDINPUT (40 bytes on
+// 64-bit Windows: the type, then the union sized by MOUSEINPUT).
+type keyInput struct {
+	typ   uint32
+	_     uint32
+	vk    uint16
+	scan  uint16
+	flags uint32
+	time  uint32
+	_     uint32
+	extra uintptr
+	_     [8]byte
+}
+
+const inputKeyboard = 1
+
+// sendKeys hands Windows the whole sequence in one SendInput call, so no
+// other input lands in between and the game takes it within one frame.
+func sendKeys(steps ...keyInput) bool {
+	n, _, _ := procSendInput.Call(uintptr(len(steps)), uintptr(unsafe.Pointer(&steps[0])), unsafe.Sizeof(steps[0]))
+	return int(n) == len(steps)
+}
+
+func down(vk uintptr) keyInput { return keyInput{typ: inputKeyboard, vk: uint16(vk)} }
+func up(vk uintptr) keyInput   { return keyInput{typ: inputKeyboard, vk: uint16(vk), flags: keyeventfUp} }
+
+// PasteChatLine sends the clipboard as one chat line, the way trade tools do:
+// Enter opens the chat, Ctrl+A and Ctrl+V replace whatever was typed there,
+// Enter sends it. It all goes in one batch, so the chat box is gone before
+// the game draws it. The player's own modifiers are let go first, or Enter
+// would arrive as Ctrl+Enter.
+func PasteChatLine() {
+	deadline := time.Now().Add(300 * time.Millisecond)
+	for (keyDown(vkMenu) || keyDown(vkControl) || keyDown(vkShift)) && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	sendKeys(
+		down(vkReturn), up(vkReturn),
+		down(vkControl), down(vkA), up(vkA), down(vkV), up(vkV), up(vkControl),
+		down(vkReturn), up(vkReturn),
+	)
 }
 
 type point struct{ X, Y int32 }

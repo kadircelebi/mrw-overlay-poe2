@@ -1,0 +1,13 @@
+The files in this folder are modifier, essence and currency data taken from
+PoE2DB (https://poe2db.tw), reduced to the fields the craft calculator uses
+and reformatted. PoE2DB publishes this data under the Creative Commons
+Attribution-NonCommercial-ShareAlike 3.0 licence
+(https://creativecommons.org/licenses/by-nc-sa/3.0/), and these files are
+shared under the same licence.
+
+The game data itself originates from Path of Exile 2 by Grinding Gear Games.
+This project is not affiliated with or endorsed by Grinding Gear Games or
+PoE2DB.
+
+The application's source code is licensed separately under the MIT licence
+(see LICENSE in the repository root); that licence does not cover this folder.

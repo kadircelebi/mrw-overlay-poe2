@@ -31,6 +31,7 @@ var zh = map[string]string{
 	"log.sharedFailed":      "無法取得共享的 exceptional 價格（%v）；將沿用現有資料。",
 	"log.customBaseMissing": "[警告] 找不到自訂基礎過濾器，改用 NeverSink。",
 	"log.basesFailed":       "[警告] 無法取得 exceptional 基底列表：%v",
+	"log.soundMissing":      "[警告] 篩選器資料夾中找不到音效檔，改用預設音效：%s",
 	"log.written":           "已寫入過濾器：%d 項高價 currency、%d 個 unique 基底、%d 項 exceptional",
 
 	"notify.title":          "過濾器已更新",

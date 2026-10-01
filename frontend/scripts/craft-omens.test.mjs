@@ -5,6 +5,9 @@ import { createItem,setRarity,manualAdd,count } from '../public/craft/engine.mjs
 import { omenDefinitions,relevantOmens,omenEffects,orbOmenReason,applyOrbOmens } from '../public/craft/omens.mjs';
 import { applySpecial } from '../public/craft/special.mjs';
 import { summarize } from '../public/craft/ledger.mjs';
+import { setLang } from '../public/craft/i18n.mjs';
+// The assertions below match the Turkish messages.
+setLang('tr');
 const json = async name => JSON.parse(await readFile(new URL('../public/craft/data/'+name,import.meta.url)));
 const data = await json('Gloves_str.mods.json'), rules = await json('currency-rules.source.json');
 const special = (await json('special-currencies.json')).rules, omens = omenDefinitions(rules);

@@ -51,6 +51,17 @@ export interface ChromiumBrowser {
 }
 
 /**
+ * CraftImport is the copied item the craft page turns into a draft.
+ */
+export interface CraftImport {
+    "raw": string;
+    "class": string;
+    "rarity": string;
+    "baseType": string;
+    "itemLevel": number;
+}
+
+/**
  * CraftPrices exposes only public currency quotes. Past operations keep their
  * own price snapshot in the craft ledger when this list is refreshed.
  */

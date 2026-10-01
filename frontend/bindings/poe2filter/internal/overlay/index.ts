@@ -3,6 +3,7 @@
 
 export type {
     Catalog,
+    ChatCommand,
     CurrencyEntry,
     CurrencyQuote,
     FilterGroup,

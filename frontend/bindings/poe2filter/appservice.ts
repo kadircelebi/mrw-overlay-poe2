@@ -88,6 +88,14 @@ export function CreateSearchFolder(name: string): $CancellablePromise<overlay$0.
     return $Call.ByID(2940423614, name);
 }
 
+/**
+ * DefaultChatCommands are the game command shortcuts a new install starts
+ * with, for the settings page's "restore defaults".
+ */
+export function DefaultChatCommands(): $CancellablePromise<overlay$0.ChatCommand[] | null> {
+    return $Call.ByID(4001699215);
+}
+
 export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.SearchLibrary> {
     return $Call.ByID(3425941931, id);
 }
@@ -513,6 +521,14 @@ export function SetStartupEnabled(enabled: boolean): $CancellablePromise<$models
 
 export function ShowCraft(): $CancellablePromise<void> {
     return $Call.ByID(1624466923);
+}
+
+/**
+ * ShowCraftFromOverlay opens the craft window with the item last copied for
+ * the price check, so its affixes can be tried further.
+ */
+export function ShowCraftFromOverlay(): $CancellablePromise<void> {
+    return $Call.ByID(835163661);
 }
 
 export function ShowCraftMarketWithQuery(raw: string, $in: trade$0.EvaluateRequest): $CancellablePromise<void> {

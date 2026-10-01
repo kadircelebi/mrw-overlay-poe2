@@ -86,6 +86,10 @@ type State struct {
 	SharedUsed bool          `json:"sharedUsed"`
 	Warnings   []string      `json:"warnings"`
 	Log        []string      `json:"log"`
+	// ConfigPending means the settings differ from those the filter in the
+	// game folder was last written with: an update is needed to apply them.
+	// Reverting a change clears it, as does writing the filter.
+	ConfigPending bool `json:"configPending"`
 }
 
 // Engine owns the pipeline, scanner and schedule.
@@ -95,6 +99,9 @@ type Engine struct {
 
 	cfgMu sync.Mutex
 	cfg   filter.Config
+	// writtenKey is the FilterKey of the settings the filter was last
+	// written with (kept in datailter_key so it survives a restart).
+	writtenKey string
 
 	runMu sync.Mutex // held for the duration of a run
 
@@ -132,15 +139,22 @@ func New(opt Options) *Engine {
 	e := &Engine{opt: opt, dataDir: filepath.Join(opt.Dir, "data"), stop: make(chan struct{})}
 	e.shared = shared.New(filepath.Join(e.dataDir, "shared"))
 	e.cfg = filter.LoadConfig(e.configPath())
+	// Defaults and a loaded file must look alike, or the filter key of the
+	// same settings would differ between the first start and the next.
+	e.cfg.Normalize()
 	e.shared.LoadCached(e.cfg.LeagueName)
 	_ = e.cfg.Save(e.configPath()) // persist migrated format
 	e.loadLeagues()
+	if b, err := os.ReadFile(e.filterKeyPath()); err == nil {
+		e.writtenKey = strings.TrimSpace(string(b))
+	}
 	e.st.Step = i18n.T("step.ready")
 	return e
 }
 
-func (e *Engine) configPath() string   { return filepath.Join(e.opt.Dir, "config.json") }
-func (e *Engine) snapshotPath() string { return filepath.Join(e.dataDir, "prices.json") }
+func (e *Engine) configPath() string    { return filepath.Join(e.opt.Dir, "config.json") }
+func (e *Engine) snapshotPath() string  { return filepath.Join(e.dataDir, "prices.json") }
+func (e *Engine) filterKeyPath() string { return filepath.Join(e.dataDir, "filter_key") }
 
 func (e *Engine) changed() {
 	if e.opt.OnChange != nil {
@@ -514,17 +528,22 @@ func (e *Engine) run(ctx context.Context) (err error) {
 		}
 	}
 
-	e.setStep(0.7, i18n.T("step.rules"))
-	ns := e.ns.set(basePath, string(baseContent))
-	block, st := filter.GenerateDynamicFilterBlock(cfg, snap, validBases, ns)
-
-	e.setStep(0.85, i18n.T("step.writing"))
 	dest := e.opt.OutPath
 	if dest == "" {
 		if dest, err = filter.FilterPath(cfg.FilterName); err != nil {
 			return err
 		}
 	}
+	cfg, missingSounds := cfg.WithoutMissingSoundFiles(filepath.Dir(dest))
+	if len(missingSounds) > 0 {
+		e.logf("%s", i18n.T("log.soundMissing", strings.Join(missingSounds, ", ")))
+	}
+
+	e.setStep(0.7, i18n.T("step.rules"))
+	ns := e.ns.set(basePath, string(baseContent))
+	block, st := filter.GenerateDynamicFilterBlock(cfg, snap, validBases, ns)
+
+	e.setStep(0.85, i18n.T("step.writing"))
 	if err := filter.WriteFilter(basePath, block, dest); err != nil {
 		return err
 	}
@@ -536,6 +555,11 @@ func (e *Engine) run(ctx context.Context) (err error) {
 		ValuableUniques: st.ValuableUniques, CheapUniques: st.CheapUniques,
 		ValuableExcept: st.ValuableExcept, CheapExcept: st.CheapExcept,
 	}
+	key := cfg.FilterKey()
+	e.cfgMu.Lock()
+	e.writtenKey = key
+	e.cfgMu.Unlock()
+	_ = prices.WriteFileAtomic(e.filterKeyPath(), []byte(key))
 	e.stMu.Lock()
 	e.st.Last, e.st.Warnings = res, st.Warnings
 	e.st.Step, e.st.Progress = i18n.T("step.done"), 1
@@ -564,6 +588,9 @@ func (e *Engine) State() State {
 	}
 	e.stMu.Unlock()
 
+	e.cfgMu.Lock()
+	s.ConfigPending = e.writtenKey != "" && e.writtenKey != cfg.FilterKey()
+	e.cfgMu.Unlock()
 	s.Shared = e.shared.Status()
 	s.SharedUsed = cfg.SharedScan && cfg.PriceSourceURL == "" && e.shared.Covers(cfg.LeagueName)
 	if scanner != nil {

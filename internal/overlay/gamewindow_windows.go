@@ -103,6 +103,16 @@ func IsGameWindow(hwnd uintptr) bool {
 	return v
 }
 
+// GameLogPath is the game's Client.txt for the game window hwnd: the client
+// writes it in a logs folder beside its executable, wherever it is installed.
+func GameLogPath(hwnd uintptr) string {
+	exe := processImage(WindowPID(hwnd))
+	if exe == "" {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(exe), "logs", "Client.txt")
+}
+
 func processImage(pid uint32) string {
 	h, err := syscall.OpenProcess(processQueryLimitedInfo, false, pid)
 	if err != nil {
