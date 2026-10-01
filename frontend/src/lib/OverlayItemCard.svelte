@@ -17,6 +17,8 @@
     onmetachange = () => {},
     stateFilters = undefined,
     onstatechange = () => {},
+    modifiable = undefined,
+    onmodifiable = () => {},
     toggles = undefined,
     ontoggle = () => {},
     onrarity = () => {},
@@ -31,6 +33,9 @@
     onmetachange?: (id: MetaFilterID, field: MetaFilterField, value: boolean | number | undefined) => void
     stateFilters?: Record<StateFilterID, string>
     onstatechange?: (id: StateFilterID, value: string) => void
+    // Shown only for an item that is not corrupted, mirrored or sanctified.
+    modifiable?: boolean
+    onmodifiable?: () => void
     toggles?: ItemToggles
     ontoggle?: (part: 'name' | 'base') => void
     onrarity?: (value: string) => void
@@ -191,8 +196,11 @@
       {/each}
     {/if}
   </div>
-  {#if item.unidentified || item.fractured || item.corrupted || item.twiceCorrupted || item.mirrored || item.sanctified}
+  {#if item.unidentified || item.fractured || item.corrupted || item.twiceCorrupted || item.mirrored || item.sanctified || modifiable !== undefined}
     <div class="item-states">
+      {#if modifiable !== undefined}
+        <button type="button" class="state-control modifiable" class:off={!modifiable} aria-pressed={modifiable} title={t('ov.modifiableHint')} onclick={onmodifiable}><i></i><strong>Modifiable</strong></button>
+      {/if}
       {#if item.unidentified}
         <label class="state-control unidentified"><strong>Unidentified</strong>{#if stateFilters}<select value={stateFilters.unidentified} onchange={(event) => onstatechange('unidentified', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
@@ -276,4 +284,8 @@
   .item-states .fractured { color:#9ed0d8; }
   .item-states .sanctified { color:#d7bd74; }
   .item-states .mirrored { color:#a9b8e8; }
+  .item-states .modifiable { display:inline-flex; align-items:center; gap:6px; padding:0; border:0; background:none; color:#b48cff; font:inherit; letter-spacing:inherit; text-transform:inherit; cursor:pointer; }
+  .item-states .modifiable i { width:8px; height:8px; border:1px solid currentColor; transform:rotate(45deg); }
+  .item-states .modifiable:not(.off) i { background:currentColor; }
+  .item-states .modifiable.off { color:#6f6a78; }
 </style>

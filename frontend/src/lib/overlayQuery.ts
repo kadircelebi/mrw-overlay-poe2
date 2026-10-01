@@ -19,6 +19,11 @@ export type ItemToggles = { name: boolean; base: boolean; rarity?: string }
 
 export const allOn: ItemToggles = { name: true, base: true }
 
+// modifiableFilters keep an item that can still be crafted on (POE2 Overlay's
+// "Modifiable") from being priced against corrupted, mirrored or sanctified
+// copies, which sell for a fraction and would top the list.
+export const modifiableFilters: SelectedFilter[] = ['corrupted', 'mirrored', 'sanctified'].map((id) => ({ group: 'misc_filters', id, option: 'false' }))
+
 export const rarityOptions = [
   { id: '', text: 'Any' }, { id: 'normal', text: 'Normal' }, { id: 'magic', text: 'Magic' }, { id: 'rare', text: 'Rare' },
   { id: 'unique', text: 'Unique' }, { id: 'uniquefoil', text: 'Unique (Foil)' }, { id: 'nonunique', text: 'Any Non-Unique' },

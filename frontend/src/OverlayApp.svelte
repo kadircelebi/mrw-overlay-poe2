@@ -10,7 +10,7 @@
   import TradeResults from './lib/TradeResults.svelte'
   import { t } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
-  import { searchedStats, allOn, buildRequest, categoryFor, choicesFor, isGem, propertyFiltersFor, resetChoiceRanges, resetPropertyRanges, type ItemToggles, type ModChoice, type PropertyFilter } from './lib/overlayQuery'
+  import { searchedStats, allOn, modifiableFilters, buildRequest, categoryFor, choicesFor, isGem, propertyFiltersFor, resetChoiceRanges, resetPropertyRanges, type ItemToggles, type ModChoice, type PropertyFilter } from './lib/overlayQuery'
 
   let item = $state<Item | null>(null)
   // Set for stackable items the price list knows: they get a worth card
@@ -34,6 +34,12 @@
   let twiceCorrupted = $state('')
   let mirrored = $state('')
   let sanctified = $state('')
+  // Modifiable (as POE2 Overlay calls it): an item that is not corrupted,
+  // mirrored or sanctified is priced against items that are not either.
+  // Corrupted copies of a crafting base sell for a fraction and would
+  // otherwise top the list.
+  let modifiable = $state(true)
+  const canModify = $derived(!!item && !item.stackSize && !item.corrupted && !item.twiceCorrupted && !item.mirrored && !item.sanctified)
   let useItemLevel = $state(false)
   let itemLevelMin = $state<number | undefined>(undefined)
   let itemLevelMax = $state<number | undefined>(undefined)
@@ -93,6 +99,7 @@
     twiceCorrupted = snap.item.twiceCorrupted ? 'true' : ''
     mirrored = snap.item.mirrored ? 'true' : ''
     sanctified = snap.item.sanctified ? 'true' : ''
+    modifiable = true
     // A waystone's tier (its base) sets what drops; its item level does not.
     useItemLevel = snap.item.itemLevel > 0 && snap.item.class !== 'Waystones'
     itemLevelMin = snap.item.itemLevel || undefined
@@ -141,6 +148,9 @@
     if (twiceCorrupted) out.push({ group: 'misc_filters', id: 'twice_corrupted', option: twiceCorrupted })
     if (mirrored) out.push({ group: 'misc_filters', id: 'mirrored', option: mirrored })
     if (sanctified) out.push({ group: 'misc_filters', id: 'sanctified', option: sanctified })
+    if (canModify && modifiable) {
+      out.push(...modifiableFilters)
+    }
     for (const prop of propertyFilters) {
       if (prop.enabled) out.push({ group: prop.group, id: prop.id, min: prop.min, max: prop.max })
     }
@@ -301,6 +311,8 @@
           }}
           onmetachange={updateMetaFilter}
           stateFilters={{ unidentified, fractured, corrupted, twiceCorrupted, mirrored, sanctified }}
+          modifiable={canModify ? modifiable : undefined}
+          onmodifiable={() => { modifiable = !modifiable; markDirty() }}
           onstatechange={updateStateFilter}
           {toggles}
           ontoggle={toggleItemPart}

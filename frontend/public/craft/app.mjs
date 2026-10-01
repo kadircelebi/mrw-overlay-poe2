@@ -3,6 +3,7 @@ import { createItem, count, limits, manualAdd, manualReason, removeMod, clearMod
 import { applicable, essenceRows, specialReason, applySpecial, revealChoice } from './special.mjs';
 import { usageEntry, summarize } from './ledger.mjs';
 import { craftText } from './trade.mjs';
+import { iconIndex, iconFor } from './icons.mjs';
 import { omenDefinitions, relevantOmens, omenEffects, filterOmenRows, orbOmenReason, applyOrbOmens } from './omens.mjs';
 
 const $ = id => document.getElementById(id);
@@ -129,6 +130,24 @@ function payment(id,rule) {
   if (Object.hasOwn(priceOverrides,id)) { usage.unit_ex = priceOverrides[id]; usage.source = 'Kullanıcının birim fiyatı'; }
   return usage;
 }
+let icons = null;
+// Icons load from the trade site (see icons.mjs); until they arrive, or with
+// no connection, a currency button shows ◇ and other places no picture.
+function setIcon(img, icon) {
+  const src = iconFor(icons, icon);
+  img.onerror = () => { img.hidden = true; };
+  img.hidden = !src;
+  if (src) img.src = src; else img.removeAttribute('src');
+}
+function iconElement(icon, orb = false) {
+  const fallback = () => element('span', '◇', 'orb-fallback');
+  const src = iconFor(icons, icon);
+  if (!src && orb) return fallback();
+  const img = element('img'); img.alt = '';
+  setIcon(img, icon);
+  if (orb) img.onerror = () => img.replaceWith(fallback());
+  return img;
+}
 function renderOmens(context,id,rule) {
   const list = $(context === 'basic' ? 'orb-omens' : 'special-omens'); list.replaceChildren();
   const options = relevantOmens(omens,id,rule,data());
@@ -139,8 +158,7 @@ function renderOmens(context,id,rule) {
     const label = element('label'); const input = element('input'); input.type = 'checkbox';
     input.checked = activeOmens[context].includes(key); input.disabled = Boolean(item.reveal);
     input.setAttribute('aria-label',omen.name);
-    const img = element('img'); img.alt = ''; img.src = `assets/currency/${omen.icon.split('/').at(-1)}`;
-    img.onerror = () => { img.hidden = true; };
+    const img = iconElement(omen.icon);
     const usage = payment(key,omen);
     label.append(input,img,element('span',omen.name),element('small',usage.unit_ex === null ? 'Fiyat yok' : `${usage.unit_ex.toLocaleString('tr-TR',{maximumFractionDigits:4})} Ex`));
     input.onchange = () => {
@@ -173,9 +191,7 @@ function renderSpecials() {
   $('special-price').value = usage.unit_ex ?? '';
   $('special-price').placeholder = 'Fiyat bilinmiyor';
   $('special-name').textContent = rule.name;
-  $('special-icon').src = `assets/currency/${rule.icon.split('/').at(-1)}`;
-  $('special-icon').hidden = !rule.icon;
-  $('special-icon').onerror = () => { $('special-icon').hidden = true; };
+  setIcon($('special-icon'), rule.icon);
   const effects = effectsFor(context,specialSelected,rule);
   const reason = specialReason(item,data(),rule,effects);
   $('special-detail').textContent = reason || (rule.operation === 'desecrate'
@@ -203,8 +219,7 @@ function renderCurrencies() {
     button.dataset.currency = id; button.setAttribute('aria-pressed', String(mode === 'basic' && selected === id));
     button.setAttribute('aria-label', rule.name + (rule.tier ? ` ${rule.tier}` : ''));
     button.title = reason ? `${rule.name}: ${reason}` : rule.name;
-    const img = element('img'); img.alt = ''; img.src = `assets/currency/${rule.icon.split('/').at(-1)}`;
-    img.onerror = () => img.replaceWith(element('span', '◇', 'orb-fallback'));
+    const img = iconElement(rule.icon, true);
     button.append(img, element('span', shortNames[kind(id)] || rule.name));
     button.onclick = () => { selected = id; selectMode('basic'); status(reason || 'Uygula ile bir sanal craft adımı yap.'); };
     $('currencies').append(button);
@@ -217,7 +232,7 @@ function renderCurrencies() {
     button.setAttribute('aria-label',rule.name);
     button.setAttribute('aria-pressed',String(mode === 'desecrate' && specialSelected === id));
     button.title = reason ? `${rule.name}: ${reason}` : rule.name;
-    const img = element('img'); img.alt = ''; img.src = `assets/currency/${rule.icon.split('/').at(-1)}`;
+    const img = iconElement(rule.icon, true);
     button.append(img,element('span',rule.name));
     button.onclick = () => selectMode('desecrate',id);
     $('currencies').append(button);
@@ -227,8 +242,7 @@ function renderCurrencies() {
   essenceButton.setAttribute('aria-label','Essence');
   essenceButton.setAttribute('aria-pressed',String(mode === 'essence'));
   essenceButton.title = 'Essence seç';
-  const essenceImg = element('img'); essenceImg.alt = '';
-  essenceImg.src = `assets/currency/${essenceRule.icon.split('/').at(-1)}`;
+  const essenceImg = iconElement(essenceRule.icon, true);
   essenceButton.append(essenceImg,element('span','Essence'));
   essenceButton.onclick = () => selectMode('essence');
   $('currencies').append(essenceButton);
@@ -416,6 +430,9 @@ window.addEventListener('message',event => {
   if (event.data?.type === 'craft-prices' && Array.isArray(event.data.prices?.currency)) {
     prices = {...event.data.prices,origin:'Uygulama fiyat listesi'};
     render();
+  } else if (event.data?.type === 'craft-icons' && Array.isArray(event.data.currencies)) {
+    icons = iconIndex(event.data.currencies);
+    if (ready) render();
   } else if (event.data?.type === 'craft-result') {
     status(event.data.error || 'Craft pazar penceresine gönderildi.',event.data.error ? 'error' : 'success');
     renderItem();

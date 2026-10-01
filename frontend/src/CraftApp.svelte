@@ -2,25 +2,32 @@
   import { onMount } from 'svelte'
   import { Events } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter'
-  import { allOn, buildRequest, choicesFor } from './lib/overlayQuery'
+  import { allOn, buildRequest, choicesFor, modifiableFilters } from './lib/overlayQuery'
   import { t } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
 
   let frame: HTMLIFrameElement
   let error = $state('')
   let searching = false
+  let iconsSent = false
 
   function send(data: unknown) { frame?.contentWindow?.postMessage(data, location.origin) }
   async function refreshPrices() {
     try { send({ type: 'craft-prices', prices: await AppService.GetCraftPrices() }) }
     catch (e) { error = String(e) }
   }
+  // The craft page draws currency icons from the trade site's list (the art
+  // is not shipped in the package). Without it the buttons show a fallback.
+  async function sendIcons() {
+    try { send({ type: 'craft-icons', currencies: (await AppService.TradeCurrencies()) ?? [] }); iconsSent = true }
+    catch { /* offline: fallbacks stay */ }
+  }
   onMount(() => {
     const offLang = followAppLanguage()
     const offPrices = Events.On('state', () => void refreshPrices())
     const receive = async (event: MessageEvent) => {
       if (event.source !== frame?.contentWindow || event.origin !== location.origin) return
-      if (event.data?.type === 'craft-ready') { await refreshPrices(); return }
+      if (event.data?.type === 'craft-ready') { void sendIcons(); await refreshPrices(); return }
       if (event.data?.type !== 'craft-price' || typeof event.data.raw !== 'string' || searching) return
       searching = true; error = ''
       try {
@@ -30,7 +37,7 @@
         const unmatched = (item.mods ?? []).filter(m => m.type !== 'pseudo' && !m.statId)
         if (unmatched.length) throw new Error(t('craft.unmatched') + unmatched.map(m => m.text).join('; '))
         const choices = choicesFor(item, false)
-        const query = buildRequest(item, choices, 'securable', [], [], { ...allOn, base: false })
+        const query = buildRequest(item, choices, 'securable', [...modifiableFilters], [], { ...allOn, base: false })
         await AppService.ShowCraftMarketWithQuery(event.data.raw, query)
         send({type:'craft-result'})
       } catch (e) {
@@ -38,11 +45,12 @@
       } finally { searching = false }
     }
     window.addEventListener('message', receive)
-    window.addEventListener('focus', refreshPrices)
+    const onFocus = () => { void refreshPrices(); if (!iconsSent) void sendIcons() }
+    window.addEventListener('focus', onFocus)
     return () => {
       offLang(); offPrices()
       window.removeEventListener('message', receive)
-      window.removeEventListener('focus', refreshPrices)
+      window.removeEventListener('focus', onFocus)
     }
   })
 </script>

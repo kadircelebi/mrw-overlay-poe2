@@ -1,5 +1,6 @@
 export const en: Record<string, string> = {
   'ov.duplicatesHidden': '{0} duplicates hidden',
+  'ov.modifiableHint': 'Only listings that are not corrupted, mirrored or sanctified. Click to include them.',
   'startup.label': 'Run at Windows startup',
   'startup.hint': 'Starts in the system tray. Off by default.',
   'startup.settings': 'Windows startup settings',
