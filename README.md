@@ -24,13 +24,17 @@ Uygulama oyun belleğini okumaz, oyuna girdi göndermez; yalnızca herkese açı
 
 ## İndirme ve kurulum
 
-1. [Releases](../../releases/latest) sayfasından `poe2filtre-windows-amd64.exe` dosyasını indir. Kurulum gerekmez, tek dosya.
-2. Çalıştır. Uygulama sistem tepsisine yerleşir; simgeye tıklayınca panel açılır, sağ tıkla menü çıkar.
-3. Oyunda **Options → Item Filter** listesinden **auto_updated**'ı seç.
+İki yol var, ikisi de aynı uygulama:
 
-Exe imzasız olduğu için Windows SmartScreen "Windows bilgisayarınızı korudu" uyarısı gösterebilir: **Ek bilgi → Yine de çalıştır**. İndirdiğin dosyanın SHA-256 özeti release notlarında yazar, istersen karşılaştır.
+- **Microsoft Store:** [MrW Overlay for POE 2](https://apps.microsoft.com/detail/9PM376D3LFBG). Her Store uygulaması gibi kurulur, Store günceller, SmartScreen uyarısı çıkmaz.
+- **GitHub:** [Releases](../../releases/latest) sayfasından `poe2filtre-windows-amd64.exe` dosyasını indir. Kurulum gerekmez, tek dosya. Exe imzasız olduğu için Windows SmartScreen "Windows bilgisayarınızı korudu" uyarısı gösterebilir: **Ek bilgi → Yine de çalıştır**. İndirdiğin dosyanın SHA-256 özeti release notlarında yazar, istersen karşılaştır.
 
-Gereksinim: Windows 10/11 ve WebView2 (Windows 11'de yüklü gelir). Ayarlar ve veriler `%APPDATA%\PoE2Filtre` altında tutulur.
+Sonra:
+
+1. Uygulama sistem tepsisine yerleşir; simgeye tıklayınca panel açılır, sağ tıkla menü çıkar.
+2. Oyunda **Options → Item Filter** listesinden **auto_updated**'ı seç.
+
+Gereksinim: Windows 10/11 ve WebView2 (Windows 11'de yüklü gelir). Ayarlar ve veriler `%APPDATA%\PoE2Filtre` altında tutulur; iki sürüm de bu klasörü kullanır, aralarında geçince ayarlar kaybolmaz. Aynı anda yalnız biri çalışır.
 
 ## İlk çalıştırmada ne olur
 
@@ -74,7 +78,7 @@ Eklentimiz tarayıcı mağazalarında yayında:
 
 - **Chrome:** [Chrome Web Mağazası'nda MrW Overlay for POE 2 Bridge](https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn)
 - **Firefox:** [Firefox Eklentileri'nde MrW Overlay for POE 2 Bridge](https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/)
-- **Edge:** Edge Eklentileri başvurusu incelemede. O zamana kadar Edge, Chrome Web Mağazası sürümünü kurabilir.
+- **Edge:** [Edge Eklentileri'nde MrW Overlay for POE 2 Bridge](https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc)
 
 ## Sık karşılaşılanlar
 
@@ -153,13 +157,15 @@ The price-check overlay is off by default. When the user turns it on and presses
 
 ## Güncelleme ve kaldırma
 
-Uygulama GitHub Releases'i günde bir kez denetler. Yeni sürüm varsa Ayarlar → **Güncellemeler** bölümünden indirip kurabilirsin. Dosya GitHub'ın yayınladığı SHA-256 özetiyle doğrulanır; uygulama kapanır, exe'yi değiştirir ve yeniden açılır. Başlatma başarısız olursa önceki exe geri getirilir. Ayrı bir güncelleme sunucusu veya hesap gerekmez.
+**Store sürümü** Microsoft Store tarafından güncellenir; uygulama içindeki güncelleyici orada kapalıdır. Kaldırmak için Windows Ayarlar → Uygulamalar → Yüklü uygulamalar → MrW Overlay for POE 2 → Kaldır.
+
+**GitHub sürümü** GitHub Releases'i günde bir kez denetler. Yeni sürüm varsa Ayarlar → **Güncellemeler** bölümünden indirip kurabilirsin. Dosya GitHub'ın yayınladığı SHA-256 özetiyle doğrulanır; uygulama kapanır, exe'yi değiştirir ve yeniden açılır. Başlatma başarısız olursa önceki exe geri getirilir. Ayrı bir güncelleme sunucusu veya hesap gerekmez.
 
 Güncelleyici ilk kez v1.8.0 ile geldiği için v1.7.0'dan v1.8.0'a geçiş bir kez elle yapılır; sonraki sürümler uygulama içinden kurulabilir.
 
 Exe'nin bulunduğu klasöre yazma izni yoksa uygulama otomatik kurulum yerine release sayfasını açar; bu durumda yeni exe'yi uygulama kapalıyken elle eskisinin üstüne koy. Her iki yöntemde de ayarların `%APPDATA%\PoE2Filtre` altında durduğu için korunur.
 
-Kaldırmak için: uygulamadan çık, exe'yi sil, `%APPDATA%\PoE2Filtre` klasörünü sil ve oyunda başka bir filtre seç. Yazılmış `auto_updated.filter` dosyası `Belgeler\My Games\Path of Exile 2` altında kalır, onu da silebilirsin.
+GitHub sürümünü kaldırmak için: uygulamadan çık, exe'yi sil, `%APPDATA%\PoE2Filtre` klasörünü sil ve oyunda başka bir filtre seç. Yazılmış `auto_updated.filter` dosyası `Belgeler\My Games\Path of Exile 2` altında kalır, onu da silebilirsin.
 
 ## Derleme
 
