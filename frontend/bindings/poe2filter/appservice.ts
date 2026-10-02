@@ -77,6 +77,13 @@ export function ClearLiveResults(id: string): $CancellablePromise<trade$0.LiveSt
 }
 
 /**
+ * CommunityLinks lists the community buttons that have an address, in order.
+ */
+export function CommunityLinks(): $CancellablePromise<string[] | null> {
+    return $Call.ByID(3594158592);
+}
+
+/**
  * ConnectBrowser starts (or restarts) a connection: a new code, the local
  * listener, and optionally the default browser on pathofexile.com.
  */
@@ -338,6 +345,14 @@ export function OpenAppUpdatePage(): $CancellablePromise<void> {
  */
 export function OpenBrowserExtensionFolder(): $CancellablePromise<string> {
     return $Call.ByID(3006832587);
+}
+
+/**
+ * OpenCommunityLink opens one of the fixed community addresses in the default
+ * browser. The frontend only names the button; it never supplies a URL.
+ */
+export function OpenCommunityLink(kind: string): $CancellablePromise<void> {
+    return $Call.ByID(479704587, kind);
 }
 
 /**

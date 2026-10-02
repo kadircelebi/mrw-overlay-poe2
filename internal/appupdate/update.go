@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	defaultAPIURL    = "https://api.github.com/repos/kadircelebi/poe2-filtre/releases/latest"
+	defaultAPIURL    = "https://api.github.com/repos/kadircelebi/mrw-overlay-poe2/releases/latest"
 	releaseAssetName = "poe2filtre-windows-amd64.exe"
 	maxMetadata      = 1 << 20
 	maxAssetSize     = 200 << 20
