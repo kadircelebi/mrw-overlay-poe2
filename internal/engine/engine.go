@@ -645,7 +645,8 @@ func (e *Engine) SearchItems(query string, limit int) []insights.SearchItem {
 	if len(out) > limit {
 		out = out[:limit]
 	}
-	return out
+	// "Catalyst (all)" and the like come first, on top of the limit.
+	return append(insights.Families(q, valid), out...)
 }
 
 // ExportScan returns the exceptional scan results in shareable form, so a

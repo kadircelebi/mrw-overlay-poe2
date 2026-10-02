@@ -370,6 +370,8 @@ export const tr: Record<string, string> = {
   'footer.testMode': ' · test modu',
 
   'editor.uniqueOnly': 'Sadece Unique',
+  'editor.familyAll': '{0} (Tümü)',
+  'editor.familyCount': '{0} eşyayı ekler',
   'editor.uniqueOnlyTop': 'Sadece Unique · en değerli {0}',
   'editor.allRarities': 'Tüm nadirlikler',
   'editor.remove': '{0} kaldır',

@@ -16,4 +16,10 @@ export interface SearchItem {
     "price_exalt"?: number;
     "base_type"?: string;
     "related_uniques"?: string[] | null;
+
+    /**
+     * Members lists every item of a "family" entry ("Catalyst" → all
+     * catalysts); choosing the entry adds them all.
+     */
+    "members"?: string[] | null;
 }

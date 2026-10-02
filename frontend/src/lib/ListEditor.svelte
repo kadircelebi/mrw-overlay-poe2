@@ -21,7 +21,7 @@
 
   const UNIQUE = '|unique'
   const STACK = /\|x(\d+)$/
-  type Option = { value: string; name: string; note: string; unique: boolean }
+  type Option = { value: string; name: string; note: string; unique: boolean; members?: string[] }
 
   const list = $derived(items ?? [])
 
@@ -38,7 +38,14 @@
     const out: Option[] = []
     for (const r of found) {
       const p = price(r)
-      if (uniqueVariants && r.type === 'base' && r.related_uniques?.length) {
+      if (r.type === 'family') {
+        // Members already in the list (with any stack size) are not added twice.
+        const members = (r.members ?? []).filter((m) => !list.some((i) => label(i).name === m && !label(i).unique))
+        if (members.length) {
+          out.push({ value: 'family:' + r.name, name: t('editor.familyAll', r.name), unique: false,
+            note: t('editor.familyCount', members.length), members })
+        }
+      } else if (uniqueVariants && r.type === 'base' && r.related_uniques?.length) {
         out.push({ value: r.name + UNIQUE, name: r.name, unique: true,
           note: p ? t('editor.uniqueOnlyTop', p) : t('editor.uniqueOnly') })
         out.push({ value: r.name, name: r.name, unique: false, note: t('editor.allRarities') })
@@ -88,9 +95,10 @@
     }, 150)
   }
 
-  function add(name: string) {
-    if (!list.includes(name)) {
-      items = [...list, name]
+  function add(o: Option) {
+    const names = (o.members ?? [o.value]).filter((n) => !list.includes(n))
+    if (names.length) {
+      items = [...list, ...names]
       onchange?.()
     }
     query = ''
@@ -111,7 +119,7 @@
       active = (active - 1 + results.length) % results.length
       e.preventDefault()
     } else if (e.key === 'Enter') {
-      add(results[active].value)
+      add(results[active])
       e.preventDefault()
     }
   }
@@ -147,8 +155,8 @@
       <ul role="listbox">
         {#each results as r, i (r.value)}
           <li role="option" aria-selected={i === active}>
-            <button type="button" class:active={i === active} onmouseenter={() => (active = i)} onclick={() => add(r.value)}>
-              <span class="name" class:unique={r.unique}>{r.name}</span>
+            <button type="button" class:active={i === active} onmouseenter={() => (active = i)} onclick={() => add(r)}>
+              <span class="name" class:unique={r.unique} class:family={!!r.members}>{r.name}</span>
               <span class="cat">{r.note}</span>
             </button>
           </li>
@@ -269,6 +277,10 @@
   }
   .name.unique {
     color: #e6893a;
+  }
+  .name.family {
+    color: var(--gold);
+    font-weight: 600;
   }
   .u {
     margin-left: 5px;

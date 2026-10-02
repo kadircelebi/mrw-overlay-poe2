@@ -384,6 +384,8 @@ export const en: Record<string, string> = {
 
   // List editor
   'editor.uniqueOnly': 'Unique only',
+  'editor.familyAll': '{0} (all)',
+  'editor.familyCount': 'Adds {0} items',
   'editor.uniqueOnlyTop': 'Unique only · best {0}',
   'editor.allRarities': 'All rarities',
   'editor.remove': 'remove {0}',

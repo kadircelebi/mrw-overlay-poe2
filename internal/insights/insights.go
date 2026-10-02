@@ -2,6 +2,7 @@
 package insights
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 
@@ -91,6 +92,47 @@ type SearchItem struct {
 	PriceExalt     float64  `json:"price_exalt,omitempty"`
 	BaseType       string   `json:"base_type,omitempty"`
 	RelatedUniques []string `json:"related_uniques,omitempty"`
+	// Members lists every item of a "family" entry ("Catalyst" → all
+	// catalysts); choosing the entry adds them all.
+	Members []string `json:"members,omitempty"`
+}
+
+// families are item kinds a player adds as a whole. The patterns are tight
+// enough to leave out equipment that shares the word ("Omen Crest Shield").
+var families = []struct {
+	name    string
+	pattern *regexp.Regexp
+}{
+	{"Catalyst", regexp.MustCompile(`\bCatalyst$`)},
+	{"Essence", regexp.MustCompile(`\bEssence of\b`)},
+	{"Omen", regexp.MustCompile(`^Omen of\b`)},
+	{"Rune", regexp.MustCompile(`\bRune\b`)},
+	{"Soul Core", regexp.MustCompile(`\bSoul Core\b`)},
+	{"Idol", regexp.MustCompile(`\bIdol\b`)},
+	{"Liquid", regexp.MustCompile(`\bLiquid\b`)},
+}
+
+// Families returns the family entries whose name contains query (lowercase),
+// with their members taken from validBases so every member is a real item.
+func Families(query string, validBases map[string]string) []SearchItem {
+	var out []SearchItem
+	for _, f := range families {
+		if !strings.Contains(strings.ToLower(f.name), query) {
+			continue
+		}
+		var members []string
+		for _, name := range validBases {
+			if f.pattern.MatchString(name) {
+				members = append(members, name)
+			}
+		}
+		if len(members) < 2 {
+			continue
+		}
+		sort.Strings(members)
+		out = append(out, SearchItem{Name: f.name, Type: "family", Members: members})
+	}
+	return out
 }
 
 // SearchItems lists every unique, bulk item and base the user can put on the
