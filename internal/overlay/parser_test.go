@@ -236,6 +236,37 @@ Corrupted`
 	}
 }
 
+// Some gems copy without an "Item Class:" line and start at "Rarity: Gem".
+func TestParseGemWithoutItemClass(t *testing.T) {
+	raw := `Rarity: Gem
+Cast on Critical
+--------
+Buff, Persistent, Trigger, Meta
+Level: 19
+Reservation: 100 Spirit
+--------
+Requires: Level 84, 147 Int
+--------
+Sockets: G G G G G
+--------
+While active, gains Energy when you Critically Hit enemies and triggers socketed Spells on reaching maximum Energy.
+--------
+Support
+--------
+Socketed Skills deal 20% less Damage`
+	item, err := ParseItem(raw, testCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if item.BaseType != "Cast on Critical" || item.Class != "Skill Gems" || item.GemLevel != 19 || item.GemSockets != 5 {
+		t.Fatalf("gem parsed wrong: %+v", item)
+	}
+	support := strings.Replace(raw, "Buff, Persistent, Trigger, Meta", "Support, Spell", 1)
+	if item, _ := ParseItem(support, testCatalog()); item.Class != "Support Gems" {
+		t.Fatalf("support gem class %q", item.Class)
+	}
+}
+
 func TestParseFracturedAffix(t *testing.T) {
 	raw := `Item Class: Amulets
 Rarity: Rare
@@ -816,6 +847,24 @@ func TestRequiredLevelIgnoresAttributes(t *testing.T) {
 // A tablet's "uses remaining" implicit is a pseudo stat on the trade site,
 // and the rare chest affix is named there in the singular ("an additional
 // Rare Chest") while the game prints the rolled count in the plural.
+// The site lists "Deferring Favours … costs #% increased Tribute" only; the
+// tablet's "29% reduced" is searched as -29 of that stat.
+func TestReducedLineMatchesIncreasedStatNegated(t *testing.T) {
+	raw := "Item Class: Tablet\nRarity: Rare\nCelestial Rite\nRitual Tablet\n--------\nItem Level: 82\n--------\n" +
+		"{ Suffix Modifier \"of the Penitent\" (Tier: 1) }\nDeferring Favours at Ritual Altars in Map costs 29(30-20)% reduced Tribute\n"
+	catalog := Catalog{Stats: []StatGroup{{ID: "explicit", Entries: []StatEntry{
+		{ID: "explicit.stat_1345835998", Text: "Deferring Favours at Ritual Altars in Map costs #% increased Tribute", Type: "explicit"},
+	}}}}
+	item, err := ParseItem(raw, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mod := item.Mods[0]
+	if mod.StatID != "explicit.stat_1345835998" || !mod.Negated || !mod.Selected || len(mod.Values) == 0 || mod.Values[0] != -29 {
+		t.Fatalf("reduced line matched wrong: %+v", mod)
+	}
+}
+
 func TestTabletUsesAndSingularCatalogWording(t *testing.T) {
 	raw := `Item Class: Tablet
 Rarity: Rare

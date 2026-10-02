@@ -1014,3 +1014,67 @@ func TestGroupFontSizeIsChosenAndClamped(t *testing.T) {
 		t.Error("currency did not follow the chosen size")
 	}
 }
+
+// A cheap currency in a big enough stack is worth showing: 20 Simulacrum
+// Splinters at 7.36 ex are 147 ex against a 75 ex threshold. The stack rule
+// comes before the hide of the single splinter, and a larger stack that
+// reaches a value tier takes that tier's look.
+func TestCheapCurrencyStacksAreShownByTheirWorth(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.MinValue, cfg.MinValueUnit, cfg.FilterMode = 75, "exalted", "hide"
+	cfg.ItemGroups = []ItemGroup{{ID: "g1", Name: "Hundred", Mode: ItemGroupModeValue, ThresholdValue: 100, ThresholdUnit: "exalted"}}
+	snap := testSnapshot()
+	snap.Currency = append(snap.Currency,
+		prices.CurrencyPrice{Name: "Simulacrum Splinter", Category: "fragments", ValueEx: 7.36},
+		prices.CurrencyPrice{Name: "Verisium", Category: "currency", ValueEx: 0.03})
+	bases := map[string]string{}
+	for k, v := range testBases {
+		bases[k] = v
+	}
+	bases["simulacrum splinter"], bases["verisium"] = "Simulacrum Splinter", "Verisium"
+	// Only items the base filter ranks by stack size drop in stacks.
+	cfg.Stacked = StackedBases{"Simulacrum Splinter": true, "Verisium": true}
+	out, st := GenerateDynamicFilterBlock(cfg, snap, bases, nil)
+	if blockContaining(t, out, "StackSize", `"Orb of Alchemy"`) >= 0 {
+		t.Fatal("an item that drops one at a time got a stack rule")
+	}
+	tier := blockContaining(t, out, "StackSize >= 14", `"Simulacrum Splinter"`)
+	base := blockContaining(t, out, "StackSize >= 11", `"Simulacrum Splinter"`)
+	hide := blockContaining(t, out, "Hide", `"Simulacrum Splinter"`)
+	if tier < 0 || base < 0 || hide < 0 || !(tier < base && base < hide) {
+		t.Fatalf("stack rules out of order: tier=%d base=%d hide=%d\n%s", tier, base, hide, out)
+	}
+	if st.StackRules == 0 {
+		t.Fatal("stack rules not counted")
+	}
+	// 2,500 Verisium would be needed: such stacks do not drop.
+	if strings.Contains(out, `StackSize >= 2500`) || blockContaining(t, out, "StackSize", `"Verisium"`) >= 0 {
+		t.Fatal("a stack that never drops got a rule")
+	}
+}
+
+// A show group with a stack size beats a hide group of the same item.
+func TestStackGroupBeatsHideGroup(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ItemGroups = []ItemGroup{
+		{ID: "h", Name: "Junk", Mode: ItemGroupModeHide, Items: []string{"Orb of Alchemy"}},
+		{ID: "s", Name: "Big piles", Mode: ItemGroupModeShow, Items: []string{"Orb of Alchemy|x15", "Mirror of Kalandra|x2"}},
+	}
+	cfg.Normalize()
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	stack := blockContaining(t, out, "StackSize >= 15", `"Orb of Alchemy"`)
+	hide := blockContaining(t, out, "Hide", `"Orb of Alchemy"`)
+	if stack < 0 || hide < 0 || stack > hide {
+		t.Fatalf("stack group must come before the hide group: stack=%d hide=%d\n%s", stack, hide, out)
+	}
+	// Larger stacks first; a stack entry is not also an unconditional show.
+	if blockContaining(t, out, "StackSize >= 2", `"Mirror of Kalandra"`) < stack {
+		t.Fatal("the larger stack must come first")
+	}
+	if blockContaining(t, out, "USER GROUP: BIG PILES\n", `"Orb of Alchemy"`) >= 0 {
+		t.Fatal("a stack entry was also written as a plain show rule")
+	}
+	if name, unique, n := ParseListEntry("Verisium|x500"); name != "Verisium" || unique || n != 500 {
+		t.Fatalf("parsed %q %v %d", name, unique, n)
+	}
+}

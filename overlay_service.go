@@ -477,7 +477,8 @@ func (s *AppService) captureOverlay() {
 		time.Sleep(35 * time.Millisecond)
 		if text, ok := s.app.Clipboard.Text(); ok && text != "" && text != sentinel {
 			raw = text
-			if strings.Contains(text, "Item Class:") && strings.Contains(text, "Rarity:") {
+			// Some gems copy without the "Item Class:" line.
+			if strings.Contains(text, "Rarity:") && (strings.Contains(text, "Item Class:") || strings.Contains(text, "Rarity: Gem")) {
 				break
 			}
 		}

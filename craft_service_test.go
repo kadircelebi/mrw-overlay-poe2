@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"poe2filter/internal/overlay"
@@ -37,6 +38,11 @@ func TestCraftMarketDoesNotReplaceCapturedItem(t *testing.T) {
 	}
 	if snap.Item.BaseType != "" || snap.Item.Rarity != "rare" || len(snap.Item.Mods) == 0 || snap.Item.Mods[0].StatID != "explicit.mana" {
 		t.Fatalf("unexpected craft: %+v", snap.Item)
+	}
+	// A craft with a picked base searches that base.
+	withBase, err := s.ParseCraftText(strings.Replace(raw, "Craft\nGloves\n", "Craft\nSirenscale Gloves\n", 1))
+	if err != nil || withBase.Item.BaseType != "Sirenscale Gloves" {
+		t.Fatalf("craft base lost: %+v %v", withBase.Item, err)
 	}
 	q := trade.EvaluateRequest{Rarity: "rare", Stats: []trade.SelectedStat{{ID: "explicit.mana", Min: float64Pointer(85)}}}
 	if err := s.ShowCraftMarketWithQuery(raw, q); err != nil {

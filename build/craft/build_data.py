@@ -54,7 +54,29 @@ CLASSES = [
     ('wand', 'Wands', 'weapon.wand', 'Wand', ('Wands', None)),
 ]
 
-POOLS = {'normal', 'desecrated', 'essence', 'perfect_essence', 'marksman', 'decay'}
+POOLS = {'normal', 'desecrated', 'essence', 'perfect_essence'}
+
+# Runes that open a modifier pool ("Gloves: Can roll Marksman modifiers"). They
+# are socket-bound: once in the item they stay. PoE2DB gives their modifiers
+# weight 1; the real weights come from special-weights.json (see
+# extract_special_weights.py), and a row without one is left out.
+# Ids are the trade site's; art paths are the game's (Expedition2 runes).
+RUNES = [
+    ('kolrs-hunt', "Kolr's Hunt", 'marksman', 'Marksman', 'GameWarpRuneDex'),
+    ('katlas-gloom', "Katla's Gloom", 'decay', 'Decay', 'GameWarpRuneChaos'),
+    ('voranas-carnage', "Vorana's Carnage", 'berserking', 'Berserking', 'GameWarpRunePhysical'),
+    ('uhtreds-sidereus', "Uhtred's Sidereus", 'chronomancy', 'Chronomancy', 'GameWarpRuneTime'),
+    ('medveds-tending', "Medved's Tending", 'soul', 'Soul', 'GameWarpRuneCold'),
+    ('thruds-might', "Thrud's Might", 'destruction', 'Destruction', 'GameWarpRuneFire'),
+]
+RUNE_POOLS = {pool for _, _, pool, _, _ in RUNES}
+# Runes that change an item's affix limits, for all equipment. Astrid's can be
+# replaced by another augment; Serle's is socket-bound like the pool runes.
+LIMIT_RUNES = [
+    ('astrids-creativity', "Astrid's Creativity", 'crafted', 'Can have 1 additional Crafted Modifier', 'GameWarpRune1', False),
+    ('serles-triumph', "Serle's Triumph", 'suffix', '+1 Suffix Modifier allowed', 'GameWarpRune2', True),
+]
+SPECIAL_WEIGHTS = pathlib.Path(__file__).resolve().parent / 'special-weights.json'
 FIELDS = ['source_id', 'pool', 'affix', 'name', 'families', 'tier', 'required_ilvl',
           'weight', 'text', 'ranges', 'tags', 'spawn_tags']
 
@@ -84,6 +106,31 @@ def spawns_on(mod, tags):
     return not spawn or any(t in tags for t in spawn)
 
 
+def base_entry(b):
+    """What the craft card shows of a base: defences, weapon numbers and
+    requirements, with RePoE's units turned into the game's (crit 1000 = 10%,
+    attack time 714 ms = 1.40 per second)."""
+    props = b.get('properties') or {}
+    req = b.get('requirements') or {}
+    out = {'name': b['name'], 'level': b.get('drop_level', 1),
+           'req': {k: req.get(k, 0) for k in ('level', 'strength', 'dexterity', 'intelligence') if req.get(k)}}
+    for key, short in (('armour', 'ar'), ('evasion', 'ev'), ('energy_shield', 'es')):
+        value = props.get(key)
+        if isinstance(value, dict):
+            value = value.get('max')
+        if value:
+            out[short] = value
+    if props.get('block'):
+        out['block'] = props['block']
+    if props.get('physical_damage_max'):
+        out['phys'] = [props['physical_damage_min'], props['physical_damage_max']]
+    if props.get('attack_time'):
+        out['aps'] = round(1000 / props['attack_time'], 2)
+    if props.get('critical_strike_chance'):
+        out['crit'] = props['critical_strike_chance'] / 100
+    return out
+
+
 def placeholder_weights(mods):
     normal = [m for m in mods if m['pool'] == 'normal' and m['affix'] in ('Prefix', 'Suffix')]
     return bool(normal) and all(m['weight'] <= 1 for m in normal)
@@ -101,7 +148,9 @@ def main():
     for old in args.out.glob('*.mods.json'):
         old.unlink()
 
-    classes, pages_used, essences, bases = [], [], {}, {}
+    weights_file = read(SPECIAL_WEIGHTS)
+    special_weights = weights_file['pages']
+    classes, pages_used, essences, bases, page_bases, rune_pages = [], [], {}, {}, {}, {}
     for cid, item_class, category, repoe_class, (stem, attrs) in CLASSES:
         common = class_tags(base_items, repoe_class)
         variants = []
@@ -115,12 +164,20 @@ def main():
             # 'default' is on every row, so as an item tag it would let every
             # essence variant through.
             tags = sorted((common | set(page_tags)) - {'default'})
+            rows = [{k: m[k] for k in FIELDS} for m in mods['mods'] if m['pool'] in POOLS]
+            measured = special_weights.get(page, {})
+            for m in mods['mods']:
+                if m['pool'] in RUNE_POOLS and measured.get(m['source_id']):
+                    rows.append({**{k: m[k] for k in FIELDS}, 'weight': measured[m['source_id']]})
+            for _, _, pool, _, _ in RUNES:
+                if any(r['pool'] == pool for r in rows):
+                    rune_pages.setdefault(pool, []).append(page)
             compact = {
                 'page': page,
                 'base': mods['base'],
                 'options': mods['options'],
                 'tags': tags,
-                'mods': [{k: m[k] for k in FIELDS} for m in mods['mods'] if m['pool'] in POOLS],
+                'mods': rows,
             }
             write(args.out / f'{page}.mods.json', compact)
             variants.append({'page': page, 'attr': attr or ''})
@@ -129,7 +186,13 @@ def main():
             for b in base_items.values():
                 if (b.get('item_class') == repoe_class and b.get('release_state') == 'released'
                         and b.get('domain') == 'item' and set(page_tags) <= set(b['tags'])):
-                    bases.setdefault(b['name'], page)
+                    if bases.setdefault(b['name'], page) != page:
+                        continue
+                    # RePoE has no Runic Ward, the main defence of Runeforged
+                    # and Runemastered bases, so those cannot be shown right.
+                    if 'runeforged' in b['tags'] or b['name'].startswith(('Runeforged ', 'Runemastered ')):
+                        continue
+                    page_bases.setdefault(page, []).append(base_entry(b))
             pages_used.append(page)
             code = mods['options']['ItemClassesCode']
             # An essence belongs to this class only if one of its rows can
@@ -180,10 +243,21 @@ def main():
 
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     write(args.out / 'classes.json', {'generated_at': now, 'classes': classes, 'bases': dict(sorted(bases.items()))})
+    for entries in page_bases.values():
+        entries.sort(key=lambda e: (e['level'], e['name']))
+    write(args.out / 'bases.json', {'source': 'RePoE base_items (https://repoe-fork.github.io/poe2/)',
+                                    'generated_at': now, 'pages': page_bases})
+    runes = {key: {'name': name, 'kind': 'pool', 'pool': pool, 'label': label, 'text': f'Can roll {label} modifiers',
+                   'bound': True, 'icon': f'Art/2DItems/Currency/Expedition2/{art}.webp', 'pages': rune_pages[pool]}
+             for key, name, pool, label, art in RUNES if rune_pages.get(pool)}
+    for key, name, kind, text, art, bound in LIMIT_RUNES:
+        runes[key] = {'name': name, 'kind': kind, 'text': text, 'bound': bound,
+                      'icon': f'Art/2DItems/Currency/Expedition2/{art}.webp', 'pages': pages_used}
     write(args.out / 'special-currencies.json', {
         'source': 'https://poe2db.tw/us/Essence',
         'bone_source': 'https://poe2db.tw/us/Rise_of_the_Abyssal_items',
-        'generated_at': now, 'rules': special})
+        'rune_weight_source': weights_file['source'],
+        'generated_at': now, 'rules': special, 'runes': runes})
     write(args.out / 'currency-rules.source.json', rules)
     wanted = {f'https://poe2db.tw/us/{p}' for p in pages_used}
     write(args.out / 'manifest.json', {
@@ -193,6 +267,7 @@ def main():
         'sources': [s for s in scraped_manifest['sources']
                     if s['url'] in wanted or 'ModsView' in s['url']],
         'license': 'CC BY-NC-SA 3.0, data from https://poe2db.tw (see LICENSE.txt)',
+        'rune_weights': {'source': weights_file['source'], 'data_file': weights_file['data_file']},
     })
     (args.out / 'LICENSE.txt').write_text(LICENSE, encoding='utf-8')
     print(f'{len(classes)} classes, {len(pages_used)} pages, {len(bases)} bases, {len(essences)} essences, '
@@ -205,6 +280,11 @@ and reformatted. PoE2DB publishes this data under the Creative Commons
 Attribution-NonCommercial-ShareAlike 3.0 licence
 (https://creativecommons.org/licenses/by-nc-sa/3.0/), and these files are
 shared under the same licence.
+
+The spawn weights of the rune modifier pools (Marksman, Decay, Berserking,
+Chronomancy, Soul, Destruction) are not in PoE2DB's data. They were measured
+by Krakenbul and the Prohibited Library Discord and taken from Craft of Exile
+(https://www.craftofexile.com); credit for them belongs to those authors.
 
 The game data itself originates from Path of Exile 2 by Grinding Gear Games.
 This project is not affiliated with or endorsed by Grinding Gear Games or

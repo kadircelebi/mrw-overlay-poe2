@@ -83,3 +83,31 @@ Show # $type->ut->rare
 		t.Error("a base outside the exceptional blocks must not be included")
 	}
 }
+
+// Items ranked by stack size are the ones that drop in stacks; a switched-off
+// rule counts too, and a rule without StackSize does not.
+func TestStackedBases(t *testing.T) {
+	content := `Show # $type->currency->splinter $tier->t1
+	StackSize >= 20
+	Class == "Stackable Currency"
+	BaseType == "Breach Splinter" "Simulacrum Splinter"
+	SetFontSize 40
+
+#Show # disabled
+#	StackSize >= 150
+#	BaseType == "Verisium"
+
+Show
+	Class == "Stackable Currency"
+	BaseType == "Exalted Orb"
+`
+	got := StackedBases(content)
+	for _, name := range []string{"Breach Splinter", "Simulacrum Splinter", "Verisium"} {
+		if !got[name] {
+			t.Errorf("%s not read as stacked", name)
+		}
+	}
+	if got["Exalted Orb"] {
+		t.Error("Exalted Orb has no StackSize rule")
+	}
+}

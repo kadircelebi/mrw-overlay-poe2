@@ -2,7 +2,9 @@ package filter
 
 import (
 	"fmt"
+	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +14,10 @@ import (
 )
 
 const defaultChunkSize = 15
+
+// maxAutoStack is the largest stack the automatic stack rules ask for; a
+// currency that needs more to reach the threshold never drops that way.
+const maxAutoStack = 50
 
 // Minimum evidence before we are willing to HIDE something. Showing a junk
 // item costs a glance; hiding a valuable one costs the item.
@@ -31,6 +37,7 @@ type Stats struct {
 	ValuableExcept   int
 	CheapExcept      int
 	UnknownExceptOn  bool
+	StackRules       int
 	Warnings         []string
 }
 
@@ -359,6 +366,9 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		"#==============================================================================",
 		"")
 
+	// ---- 0. user stack groups (more specific than anything below) ---------
+	b.userStackGroups(cfg, ns, canon)
+
 	// ---- 1. user hide groups (first, so they really are unconditional) ----
 	for _, g := range cfg.ItemGroups {
 		if g.GroupMode() != ItemGroupModeHide {
@@ -438,6 +448,103 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 	}
 
+	// currencyStyles is the look of valuable currency of a category: apex for a
+	// divine or more, high above the threshold. A chosen theme, sound or size
+	// for the currency group replaces the per-category defaults.
+	currencyStyles := func(cat string) (*style, *style) {
+		th := categoryTheme(cat)
+		apex := &style{font: 45, text: "255 255 255 255",
+			border: "255 215 0 255", bg: th.BgT1, beam: th.Beam, icon: "0 " + th.IconColor + " Star", sound: "6 300"}
+		high := &style{font: 42, text: th.Text, border: th.Border,
+			bg: th.BgT1, beam: th.Beam, icon: "1 " + th.IconColor + " " + th.IconShape, sound: "1 300"}
+		if curPal, custom := cfg.Palette(GroupCurrency, ns); custom {
+			apex, high = apex.with(curPal), high.with(curPal)
+		}
+		if snd := cfg.Sound(GroupCurrency); snd != SoundDefault {
+			apex, high = apex.withSound(snd), high.withSound(snd)
+		}
+		// A chosen size is the top tier's; the next keeps its step below.
+		if size := cfg.FontSize(GroupCurrency); size > 0 {
+			apex, high = apex.withFont(size), high.withFont(size-3)
+		}
+		return apex, high
+	}
+
+	// ---- 4. stacks worth the threshold -------------------------------------
+	// A currency below the threshold can still drop as a valuable stack: 20
+	// Simulacrum Splinters at 7.4 ex are 147 ex. Only items that drop in
+	// stacks (cfg.Stacked, from the base filter) get these rules; an orb or a
+	// rune drops one at a time. For each stack size where the
+	// stack's worth reaches the threshold, a divine or a value tier, it is shown
+	// with the look a single item of that worth would get; smaller stacks fall
+	// through to the hide below. Stacks above maxAutoStack do not drop, so
+	// such rules are left out.
+	type stackKey struct {
+		n   int
+		key string
+	}
+	stackNames := map[stackKey][]string{}
+	stackStyles := map[string]*style{}
+	lookFor := func(cat string, worth float64) (string, *style) {
+		if tier := tierFor(worth); tier != nil {
+			key := "tier:" + tier.group.ID
+			if stackStyles[key] == nil {
+				pal, _ := cfg.Palette(tier.group.StyleKey(), ns)
+				stackStyles[key] = styleMid.with(pal).withSound(cfg.Sound(tier.group.StyleKey())).withFont(cfg.FontSize(tier.group.StyleKey()))
+			}
+			return key, stackStyles[key]
+		}
+		apex, high := currencyStyles(cat)
+		if divEx > 0 && worth >= divEx {
+			stackStyles["apex:"+cat] = apex
+			return "apex:" + cat, apex
+		}
+		stackStyles["high:"+cat] = high
+		return "high:" + cat, high
+	}
+	breakpoints := []float64{thr}
+	if divEx > thr {
+		breakpoints = append(breakpoints, divEx)
+	}
+	for _, t := range tiers {
+		breakpoints = append(breakpoints, t.thresholdEx)
+	}
+	for _, c := range cheapCur {
+		if c.ex <= 0 || !cfg.Stacked[c.name] {
+			continue
+		}
+		seen := map[int]bool{}
+		for _, level := range breakpoints {
+			n := int(math.Ceil(level/c.ex - 1e-9))
+			if n < 2 || n > maxAutoStack || seen[n] {
+				continue
+			}
+			seen[n] = true
+			key, _ := lookFor(c.cat, float64(n)*c.ex)
+			stackNames[stackKey{n, key}] = append(stackNames[stackKey{n, key}], c.name)
+		}
+	}
+	if len(stackNames) > 0 {
+		keys := make([]stackKey, 0, len(stackNames))
+		for k := range stackNames {
+			keys = append(keys, k)
+		}
+		// Larger stacks first: a stack takes the look of the largest size it
+		// reaches.
+		sort.Slice(keys, func(i, j int) bool {
+			if keys[i].n != keys[j].n {
+				return keys[i].n > keys[j].n
+			}
+			return keys[i].key < keys[j].key
+		})
+		b.section(i18n.T("filter.sec.stacks"))
+		for _, k := range keys {
+			sort.Strings(stackNames[k])
+			b.rule("Show", []string{fmt.Sprintf("StackSize >= %d", k.n)}, "BaseType", stackNames[k], stackStyles[k.key])
+		}
+		st.StackRules = len(keys)
+	}
+
 	// ---- 5. valuable currency and bulk items -------------------------------
 	if len(valuableCur) > 0 {
 		b.section(i18n.T("filter.sec.currency"))
@@ -451,10 +558,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 		sort.Strings(cats)
 		for _, cat := range cats {
-			th, ok := CategoryThemes[cat]
-			if !ok {
-				th = CategoryThemes["currency"]
-			}
+			th := categoryTheme(cat)
 			var apex, high []string
 			for _, c := range byCat[cat] {
 				if c.ex >= divEx {
@@ -465,21 +569,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			}
 			sort.Strings(apex)
 			sort.Strings(high)
-			apexStyle := &style{font: 45, text: "255 255 255 255",
-				border: "255 215 0 255", bg: th.BgT1, beam: th.Beam, icon: "0 " + th.IconColor + " Star", sound: "6 300"}
-			highStyle := &style{font: 42, text: th.Text, border: th.Border,
-				bg: th.BgT1, beam: th.Beam, icon: "1 " + th.IconColor + " " + th.IconShape, sound: "1 300"}
-			// A chosen theme replaces the per-category colours for every category.
-			if curPal, custom := cfg.Palette(GroupCurrency, ns); custom {
-				apexStyle, highStyle = apexStyle.with(curPal), highStyle.with(curPal)
-			}
-			if snd := cfg.Sound(GroupCurrency); snd != SoundDefault {
-				apexStyle, highStyle = apexStyle.withSound(snd), highStyle.withSound(snd)
-			}
-			// A chosen size is the top tier's; the next keeps its step below.
-			if size := cfg.FontSize(GroupCurrency); size > 0 {
-				apexStyle, highStyle = apexStyle.withFont(size), highStyle.withFont(size-3)
-			}
+			apexStyle, highStyle := currencyStyles(cat)
 			b.add("# --- " + th.Name + " ---")
 			b.rule("Show", nil, "BaseType", apex, apexStyle)
 			b.rule("Show", nil, "BaseType", high, highStyle)
@@ -702,6 +792,56 @@ func (b *builder) userShowGroups(cfg Config, ns map[string]Theme, uniqueToBase m
 	}
 }
 
+// userStackGroups writes the show-group entries that ask for a stack size
+// ("Simulacrum Splinter|x15", "Verisium|x500"). They are the most specific
+// rules the user writes, so they come before everything, hide groups
+// included: hiding Simulacrum Splinter while showing stacks of 15 then works.
+// Larger stacks go first, so a stack takes the look of the largest size it
+// reaches.
+func (b *builder) userStackGroups(cfg Config, ns map[string]Theme, canon func(string) (string, bool)) {
+	type entry struct {
+		group ItemGroup
+		n     int
+		bases []string
+	}
+	var entries []entry
+	for _, g := range cfg.ItemGroups {
+		if g.GroupMode() != ItemGroupModeShow {
+			continue
+		}
+		byStack := map[int][]string{}
+		for _, raw := range g.Items {
+			item, _, n := ParseListEntry(raw)
+			if n == 0 {
+				continue
+			}
+			if name, ok := canon(item); ok {
+				byStack[n] = append(byStack[n], name)
+			}
+		}
+		for n, bases := range byStack {
+			entries = append(entries, entry{g, n, bases})
+		}
+	}
+	sort.SliceStable(entries, func(i, j int) bool { return entries[i].n > entries[j].n })
+	for _, e := range entries {
+		pal, _ := cfg.Palette(e.group.StyleKey(), ns)
+		st := styleMid.with(pal).withSound(cfg.Sound(e.group.StyleKey())).withFont(cfg.FontSize(e.group.StyleKey()))
+		sort.Strings(e.bases)
+		b.section(fmt.Sprintf(i18n.T("filter.sec.userStack"), strings.ToUpper(e.group.Name), e.n))
+		b.rule("Show", []string{fmt.Sprintf("StackSize >= %d", e.n)}, "BaseType", e.bases, st)
+	}
+}
+
+// categoryTheme is the look of a price category, the plain currency one for
+// an unknown category.
+func categoryTheme(cat string) CategoryTheme {
+	if th, ok := CategoryThemes[cat]; ok {
+		return th
+	}
+	return CategoryThemes["currency"]
+}
+
 // tierLabel names a slider position for a section heading: the two stops
 // before the numbers read as words, the rest as "3+" or "T14+".
 func tierLabel(v int, prefix string) string {
@@ -721,7 +861,11 @@ func gemLevelLabel(cfg Config) string {
 
 func resolveShowList(list []string, uniqueToBase map[string]string, canon func(string) (string, bool)) (uniqueBases, bases, classes []string) {
 	for _, raw := range list {
-		item, uniqueOnly := ParseListEntry(raw)
+		item, uniqueOnly, stack := ParseListEntry(raw)
+		if stack > 0 {
+			// Written by userStackGroups, before everything else.
+			continue
+		}
 		if base, ok := uniqueToBase[strings.ToLower(item)]; ok {
 			uniqueBases = append(uniqueBases, base)
 		} else if class, ok := itemClass(item); ok {
@@ -741,14 +885,23 @@ func resolveShowList(list []string, uniqueToBase map[string]string, canon func(s
 // base only, e.g. "Sapphire|unique".
 const UniqueOnlySuffix = "|unique"
 
+// StackSuffix marks a show-list entry that matches only stacks of at least
+// that many: "Simulacrum Splinter|x15".
+const StackSuffix = "|x"
+
 // ParseListEntry splits a custom list entry into its item name and whether it
 // is restricted to uniques.
-func ParseListEntry(raw string) (name string, uniqueOnly bool) {
+func ParseListEntry(raw string) (name string, uniqueOnly bool, minStack int) {
 	raw = strings.TrimSpace(raw)
 	if n, ok := strings.CutSuffix(raw, UniqueOnlySuffix); ok {
-		return strings.TrimSpace(n), true
+		return strings.TrimSpace(n), true, 0
 	}
-	return raw, false
+	if i := strings.LastIndex(raw, StackSuffix); i > 0 {
+		if v, err := strconv.Atoi(raw[i+len(StackSuffix):]); err == nil && v > 0 {
+			return strings.TrimSpace(raw[:i]), false, min(v, MaxMinStack)
+		}
+	}
+	return raw, false, 0
 }
 
 func chunkSlice(items []string, size int) [][]string {

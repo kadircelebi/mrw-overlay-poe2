@@ -1215,6 +1215,7 @@
                       <ListEditor
                         bind:items={cfg.item_groups[i].items}
                         uniqueVariants={groupMode(g) === 'show'}
+                        stacks={groupMode(g) === 'show'}
                         placeholder={groupMode(g) === 'hide' ? t('lists.searchHide') : t('lists.searchItem')}
                         onchange={() => queueSave()}
                       />
