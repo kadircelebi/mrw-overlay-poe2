@@ -8,15 +8,19 @@
     placeholder,
     onchange,
     uniqueVariants = false,
+    stacks = false,
   }: {
     items: string[] | null
     placeholder: string
     onchange?: () => void
     /** Offer "unique only" entries for bases that have uniques. */
     uniqueVariants?: boolean
+    /** Let each entry ask for a minimum stack size ("Simulacrum Splinter|x15"). */
+    stacks?: boolean
   } = $props()
 
   const UNIQUE = '|unique'
+  const STACK = /\|x(\d+)$/
   type Option = { value: string; name: string; note: string; unique: boolean }
 
   const list = $derived(items ?? [])
@@ -45,8 +49,25 @@
     return out
   }
 
-  function label(v: string): { name: string; unique: boolean } {
-    return v.endsWith(UNIQUE) ? { name: v.slice(0, -UNIQUE.length), unique: true } : { name: v, unique: false }
+  function label(v: string): { name: string; unique: boolean; stack: number } {
+    if (v.endsWith(UNIQUE)) return { name: v.slice(0, -UNIQUE.length), unique: true, stack: 0 }
+    const m = STACK.exec(v)
+    return m ? { name: v.slice(0, m.index), unique: false, stack: Number(m[1]) } : { name: v, unique: false, stack: 0 }
+  }
+
+  // A stack size is part of the entry: "Verisium|x500". An empty box means
+  // every stack. The same item may stay in the list with another size.
+  function setStack(entry: string, value: string) {
+    const l = label(entry)
+    const n = Math.max(0, Math.min(5000, Math.floor(Number(value) || 0)))
+    const next = n > 0 ? `${l.name}|x${n}` : l.name
+    if (next === entry) return
+    if (list.includes(next)) {
+      items = list.filter((i) => i !== entry)
+    } else {
+      items = list.map((i) => (i === entry ? next : i))
+    }
+    onchange?.()
   }
   let active = $state(0)
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -101,9 +122,24 @@
     <div class="tags">
       {#each list as it (it)}
         {@const l = label(it)}
-        <span class="tag">{l.name}{#if l.unique}<em class="u">Unique</em>{/if}<button type="button" aria-label={t('editor.remove', l.name)} onclick={() => remove(it)}>×</button></span>
+        <span class="tag" class:stacked={l.stack > 0}>{l.name}{#if l.unique}<em class="u">Unique</em>{/if}{#if stacks && !l.unique}<label class="stack" title={t('editor.stackHint')}>×<input
+                type="number"
+                min="0"
+                max="5000"
+                step="1"
+                value={l.stack || ''}
+                placeholder={t('editor.stackAny')}
+                aria-label={t('editor.stackLabel', l.name)}
+                onchange={(e) => setStack(it, e.currentTarget.value)}
+                onkeydown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur()
+                }}
+              /></label>{/if}<button type="button" aria-label={t('editor.remove', l.name)} onclick={() => remove(it)}>×</button></span>
       {/each}
     </div>
+  {/if}
+  {#if stacks && list.length}
+    <p class="stack-hint">{t('editor.stackHint')}</p>
   {/if}
   <div class="search">
     <input bind:value={query} oninput={search} onkeydown={key} {placeholder} spellcheck="false" />
@@ -142,6 +178,33 @@
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-sm);
     font-size: 12px;
+  }
+  .tag.stacked {
+    border-color: var(--gold-dim);
+  }
+  .stack {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    margin-left: 4px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .stack input {
+    width: 46px;
+    padding: 1px 4px;
+    font-size: 11.5px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+  }
+  .stack input::placeholder {
+    color: var(--muted);
+  }
+  .stack-hint {
+    margin: 0;
+    color: var(--muted);
+    font-size: 11.5px;
   }
   .tag button {
     width: 18px;

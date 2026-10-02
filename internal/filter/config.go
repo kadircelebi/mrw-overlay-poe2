@@ -38,6 +38,15 @@ type ItemGroup struct {
 	ThresholdUnit  string  `json:"threshold_unit,omitempty"`
 }
 
+// StackedBases are the items that drop in stacks (from the base filter's
+// StackSize rules). Set for each update, never saved; the automatic stack
+// rules are written only for these.
+type StackedBases map[string]bool
+
+// MaxMinStack bounds a list entry's stack size ("Verisium|x500"); larger
+// stacks do not drop.
+const MaxMinStack = 5000
+
 // StyleKey is where this group's colours and sound live in Styles, CustomStyles
 // and Sounds.
 func (g ItemGroup) StyleKey() string { return UserGroupPrefix + g.ID }
@@ -85,6 +94,9 @@ const MaxItemGroups = 12
 
 // Config contains all filter generation options matching the GUI settings.
 type Config struct {
+	// Stacked is filled by the engine before each update (see StackedBases).
+	Stacked StackedBases `json:"-"`
+
 	// Value threshold: items worth less are hidden (or dimmed).
 	MinValue     float64 `json:"min_value"`
 	MinValueUnit string  `json:"min_value_unit"` // "exalted", "chaos", "divine"

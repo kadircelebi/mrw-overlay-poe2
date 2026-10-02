@@ -121,6 +121,8 @@ var zh = map[string]string{
 	"filter.sec.unpriced":  "10. 尚未定價的 EXCEPTIONAL 基底（掃描完成前顯示）",
 
 	"filter.sec.userShow":    "使用者群組：%s",
+	"filter.sec.userStack":   "使用者群組：%s（%d+ 堆疊）",
+	"filter.sec.stacks":      "有價值堆疊中的便宜通貨",
 	"filter.sec.userHide":    "使用者群組（隱藏）：%s",
 	"filter.sec.valueTier":   "價值群組：%s — %.2f %s（= %.1f Exalted）",
 	"group.migratedMid":      "中等強調",

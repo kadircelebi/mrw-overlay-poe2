@@ -66,10 +66,12 @@ func (s *AppService) ParseCraftText(raw string) (overlay.Snapshot, error) {
 	if !craftClasses[item.Class] {
 		return overlay.Snapshot{}, errors.New("this item class cannot be crafted here")
 	}
-	// The craft picks an item class and defence type, not an actual game
-	// base. Leaving BaseType empty makes the market search the class rather
-	// than invent a base.
-	item.BaseType = ""
+	// Without a picked base the craft names the item class in the base's
+	// place. Leaving BaseType empty then makes the market search the class
+	// rather than invent a base; a real base is searched as itself.
+	if item.BaseType == item.Class {
+		item.BaseType = ""
+	}
 	return overlay.Snapshot{Item: &item}, nil
 }
 

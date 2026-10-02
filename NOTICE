@@ -24,6 +24,14 @@ frontend/public/craft/data/*
     frontend/public/craft/data/LICENSE.txt). The underlying game data belongs
     to Grinding Gear Games; the compilation is poe2db.tw's.
 
+    Two files there come from elsewhere: bases.json (base item defences,
+    weapon numbers and requirements) is built from RePoE's base_items
+    (https://repoe-fork.github.io/poe2/), and the spawn weights of the rune
+    modifier pools (Marksman, Decay, Berserking, Chronomancy, Soul,
+    Destruction; build/craft/special-weights.json) are taken from Craft of
+    Exile (https://www.craftofexile.com). Those weights were measured by
+    Krakenbul and the Prohibited Library Discord; the credit is theirs.
+
 frontend/public/craft/assets/fonts/*
     Cinzel, under the SIL Open Font License; see Cinzel-LICENSE.txt beside
     the font files.

@@ -20,3 +20,11 @@ test('market text uses roll values, prefixes first, and a separate desecrated he
 test('pending reveal cannot be sent to price search', () => {
   assert.throws(() => craftText({rarity:'Rare',ilvl:81,mods:[],reveal:{}}), /Desecrate/);
 });
+test('crafted and fractured affixes carry their header for the trade search', () => {
+  const text = craftText({rarity:'Rare',ilvl:81,mods:[
+    {affix:'Suffix',tier:1,pool:'essence',text:'(9—12)% increased Cast Speed',values:[11]},
+    {affix:'Prefix',tier:1,pool:'normal',text:'(92—100)% increased Energy Shield',values:[99],fractured:true},
+  ]});
+  assert.match(text, /\{ Crafted Suffix Modifier \(Tier: 1\) \}\n11% increased Cast Speed/);
+  assert.match(text, /\{ Fractured Prefix Modifier \(Tier: 1\) \}\n99% increased Energy Shield/);
+});

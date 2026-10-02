@@ -34,6 +34,12 @@ export const en: Record<string, string> = {
   'craft.preparing': 'Preparing price query…',
   'craft.unmatched': 'Some affixes are missing from the trade catalog: ',
   'craft.sent': 'Craft sent to the market window.',
+  'craft.priced': 'Price search done; the listings are on the right.',
+  'craft.priceTitle': 'Market price',
+  'craft.priceMods': '{0} affixes searched',
+  'craft.openMarket': 'Edit in market',
+  'craft.priceNone': 'No listing with these exact rolls. Try Broad, or open the market to drop an affix.',
+  'craft.priceNoneBroad': 'No listing even 10% lower. Open the market and drop the rarest affix.',
   // Header
   'app.title': 'MrW Overlay',
   'header.settings': 'Settings',
@@ -376,6 +382,9 @@ export const en: Record<string, string> = {
   'editor.uniqueOnlyTop': 'Unique only · best {0}',
   'editor.allRarities': 'All rarities',
   'editor.remove': 'remove {0}',
+  'editor.stackHint': '× box: only stacks of at least this many match (e.g. Simulacrum Splinter × 15, Verisium × 500). Such an entry comes before every other rule, a hide group of the same item included. Empty: every stack.',
+  'editor.stackAny': 'all',
+  'editor.stackLabel': '{0}: minimum stack',
 
   // Relative time
   'time.never': 'never',

@@ -134,6 +134,8 @@ var en = map[string]string{
 	"filter.sec.unpriced":  "10. EXCEPTIONAL BASES NOT YET PRICED (shown until scanned)",
 
 	"filter.sec.userShow":    "USER GROUP: %s",
+	"filter.sec.userStack":   "USER GROUP: %s (STACKS OF %d+)",
+	"filter.sec.stacks":      "CHEAP CURRENCY IN VALUABLE STACKS",
 	"filter.sec.userHide":    "USER GROUP (HIDDEN): %s",
 	"filter.sec.valueTier":   "VALUE GROUP: %s — %.2f %s (= %.1f Exalted)",
 	"group.migratedMid":      "Medium highlight",

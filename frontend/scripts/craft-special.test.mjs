@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createItem,setRarity,manualAdd,applyCurrency,currencyReason,clearMods,overlaps } from '../public/craft/engine.mjs';
-import { applicable,essenceRows,specialReason,applySpecial,revealChoice } from '../public/craft/special.mjs';
+import { applicable,essenceRows,specialReason,applySpecial,revealChoice,startReveal } from '../public/craft/special.mjs';
 import { usageEntry,summarize } from '../public/craft/ledger.mjs';
 import { setLang } from '../public/craft/i18n.mjs';
 // The assertions below match the Turkish messages.
@@ -55,7 +55,7 @@ test('Special essence replaces a random mod, retaining rarity and total count',(
 
 test('Desecrate reserves one slot; reveal yields distinct families and charges no extra currency',()=>{
   const item = setRarity(createItem(),'Rare');
-  const next = applySpecial(item,data,special['preserved-rib'],zero);
+  const next = startReveal(applySpecial(item,data,special['preserved-rib'],zero),data,{},zero);
   assert.equal(next.mods.length,1); assert.equal(next.reveal.choices.length,3);
   assert.ok(next.reveal.choices.every(m=>m.affix===next.mods[0].affix));
   for (let i=0;i<3;i++) for(let j=i+1;j<3;j++) assert.equal(overlaps(next.reveal.choices[i],next.reveal.choices[j]),false);
@@ -69,7 +69,7 @@ test('Desecrate reserves one slot; reveal yields distinct families and charges n
 test('Desecrate on full item replaces one mod and preserves 3/3 slots',()=>{
   let item = setRarity(createItem(),'Rare');
   for(let i=0;i<6;i++) item=applyCurrency(item,data,'exalted',rules.exalted,zero);
-  const next = applySpecial(item,data,special['preserved-rib'],zero);
+  const next = startReveal(applySpecial(item,data,special['preserved-rib'],zero),data,{},zero);
   assert.equal(next.mods.length,6);
   assert.equal(next.mods.filter(m=>m.affix==='Prefix').length,3);
   assert.equal(revealChoice(next,0).mods.length,6);

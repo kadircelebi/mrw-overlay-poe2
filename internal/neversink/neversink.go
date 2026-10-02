@@ -113,6 +113,43 @@ func BaseTypes(content string) map[string]string {
 	return out
 }
 
+// StackedBases returns the BaseTypes NeverSink ranks by stack size (rules
+// with a StackSize condition: splinters, Verisium, Gold). These are the items
+// that really drop in stacks; others drop one at a time.
+func StackedBases(content string) map[string]bool {
+	out := map[string]bool{}
+	var block []string
+	flush := func() {
+		stacked := false
+		for _, l := range block {
+			if strings.HasPrefix(l, "StackSize") {
+				stacked = true
+			}
+		}
+		for _, l := range block {
+			if stacked && strings.HasPrefix(l, "BaseType") {
+				for _, m := range quoted.FindAllStringSubmatch(l, -1) {
+					out[m[1]] = true
+				}
+			}
+		}
+		block = block[:0]
+	}
+	sc := bufio.NewScanner(strings.NewReader(content))
+	sc.Buffer(make([]byte, 1<<20), 1<<20)
+	for sc.Scan() {
+		line := uncomment(sc.Text())
+		if strings.HasPrefix(line, "Show") || strings.HasPrefix(line, "Hide") || line == "" {
+			flush()
+		}
+		if line != "" {
+			block = append(block, line)
+		}
+	}
+	flush()
+	return out
+}
+
 // ExceptionalBases returns the bases NeverSink ranks in its exceptional tiers
 // (blocks tagged "$type->exotic->exceptional"). They are scanned first.
 func ExceptionalBases(content string) map[string]bool {

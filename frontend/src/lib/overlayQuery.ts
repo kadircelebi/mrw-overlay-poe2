@@ -129,6 +129,11 @@ export function choicesFor(item: Item, broad = true): ModChoice[] {
     let min = current
     // A count (empty slots) is not a roll: Broad does not lower it. Pseudo
     // totals (total Life, total Resistance) are rolls and are lowered.
+    if (mod.negated && current !== undefined) {
+      // "29% reduced" is searched as "at most -29% increased": the value is
+      // the maximum, and Broad raises it toward zero.
+      return { mod, selected: mod.selected && !!mod.statId, max: broad ? round(current * 0.9) : current }
+    }
     if (broad && current !== undefined && !isCountStat(mod)) min = round(current >= 0 ? current * 0.9 : current * 1.1)
     return { mod, selected: mod.selected && !!mod.statId, min }
   })

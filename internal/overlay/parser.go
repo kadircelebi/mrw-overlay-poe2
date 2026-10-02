@@ -33,6 +33,10 @@ type ItemMod struct {
 	// AltStatIDs are catalog stats with the same wording as StatID (a local
 	// or global twin); searches accept any of them through a count group.
 	AltStatIDs []string `json:"altStatIds,omitempty"`
+	// Negated marks a "reduced" line searched as the site's "increased" stat
+	// (or the other way round): Values are negated, and a search keeps the
+	// value as the maximum ("at most -29% increased" = "at least 29% reduced").
+	Negated bool `json:"negated,omitempty"`
 	// WeightStats makes the line a sum the trade site adds up itself: it is
 	// searched as a Weighted Sum v2 group of these stats, weight 1 each, with
 	// the line's value as the group's minimum. StatID is then only a key.
@@ -102,6 +106,25 @@ var (
 	anAdditionalRE = regexp.MustCompile(`\ban? additional\b`)
 	pluralRE       = regexp.MustCompile(`\b(\w+?)s\b`)
 )
+
+// gemClass names the class of a gem copied without its "Item Class:" line
+// (the game leaves it out for some gems, e.g. from the Skills panel). The
+// tag line under the name tells a support gem from a skill gem.
+func gemClass(rest []string) string {
+	for _, source := range rest {
+		line := strings.TrimSpace(source)
+		if line == "" {
+			continue
+		}
+		for _, tag := range strings.Split(line, ",") {
+			if strings.TrimSpace(tag) == "Support" {
+				return "Support Gems"
+			}
+		}
+		break
+	}
+	return "Skill Gems"
+}
 
 func ParseItem(raw string, catalog Catalog) (Item, error) {
 	return ParseItemWith(raw, catalog, ParseOptions{})
@@ -215,10 +238,13 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 		item.Properties = append(item.Properties, ItemProperty{Name: "DPS", Value: formatDPS((physical + elemental + chaos) * aps)})
 	}
 	if titleStart >= 0 {
-		for _, source := range lines[titleStart:] {
+		for j, source := range lines[titleStart:] {
 			line := strings.TrimSpace(source)
 			if isSeparator(line) {
 				if len(title) > 0 {
+					if item.Class == "" && item.Rarity == "gem" {
+						item.Class = gemClass(lines[titleStart+j+1:])
+					}
 					break
 				}
 				continue
@@ -489,23 +515,21 @@ func magicBase(line string, catalog Catalog) string {
 func matchMod(mod *ItemMod, catalog Catalog, local bool) {
 	want := normalizeStat(mod.Text)
 	wantType := catalogType(mod.Type)
-	var fallback *StatEntry
-	var exact []*StatEntry
-	for gi := range catalog.Stats {
-		for ei := range catalog.Stats[gi].Entries {
-			e := &catalog.Stats[gi].Entries[ei]
-			if wantType != "" && e.Type != wantType {
+	exact, fallback := catalogMatches(want, wantType, catalog)
+	if len(exact) == 0 {
+		// The site lists some stats only one way round: "29% reduced Tribute"
+		// is searched as "-29% increased Tribute".
+		for _, swap := range [][2]string{{"reduced", "increased"}, {"increased", "reduced"}, {"less", "more"}, {"more", "less"}} {
+			if !strings.Contains(want, swap[0]) {
 				continue
 			}
-			got := normalizeStat(e.Text)
-			if got == want {
-				if !slices.ContainsFunc(exact, func(x *StatEntry) bool { return x.ID == e.ID }) {
-					exact = append(exact, e)
+			if swapped, _ := catalogMatches(strings.Replace(want, swap[0], swap[1], 1), wantType, catalog); len(swapped) > 0 {
+				exact = swapped
+				mod.Negated = true
+				for i := range mod.Values {
+					mod.Values[i] = -mod.Values[i]
 				}
-				continue
-			}
-			if fallback == nil && (strings.Contains(want, got) || strings.Contains(got, want)) {
-				fallback = e
+				break
 			}
 		}
 	}
@@ -536,6 +560,32 @@ func matchMod(mod *ItemMod, catalog Catalog, local bool) {
 			mod.AltStatIDs = append(mod.AltStatIDs, e.ID)
 		}
 	}
+}
+
+// catalogMatches returns the stats worded exactly like want, and else the
+// first one whose wording contains it (or is contained in it).
+func catalogMatches(want, wantType string, catalog Catalog) ([]*StatEntry, *StatEntry) {
+	var fallback *StatEntry
+	var exact []*StatEntry
+	for gi := range catalog.Stats {
+		for ei := range catalog.Stats[gi].Entries {
+			e := &catalog.Stats[gi].Entries[ei]
+			if wantType != "" && e.Type != wantType {
+				continue
+			}
+			got := normalizeStat(e.Text)
+			if got == want {
+				if !slices.ContainsFunc(exact, func(x *StatEntry) bool { return x.ID == e.ID }) {
+					exact = append(exact, e)
+				}
+				continue
+			}
+			if fallback == nil && (strings.Contains(want, got) || strings.Contains(got, want)) {
+				fallback = e
+			}
+		}
+	}
+	return exact, fallback
 }
 
 func pseudoFor(want string, catalog Catalog) string {

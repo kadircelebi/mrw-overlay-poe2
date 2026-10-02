@@ -2,13 +2,47 @@
   import { onMount } from 'svelte'
   import { Events } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter'
-  import { allOn, buildRequest, choicesFor, modifiableFilters } from './lib/overlayQuery'
+  import { allOn, buildRequest, choicesFor, modifiableFilters, searchedStats } from './lib/overlayQuery'
   import { t, currentLang } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
+  import TradeResults from './lib/TradeResults.svelte'
+  import type { Item } from '../bindings/poe2filter/internal/overlay/models'
+  import type { EvaluateRequest, Evaluation } from '../bindings/poe2filter/internal/trade/models'
 
   let frame: HTMLIFrameElement
   let error = $state('')
   let searching = false
+  // The price panel: the crafted item searched on the trade site, right
+  // beside the craft. Broad (-10%) is the default; a crafted item with every
+  // roll taken exactly rarely has a listing.
+  let price = $state<{ raw: string; item: Item; broad: boolean; query: EvaluateRequest | null;
+    result: Evaluation | null; loading: boolean; error: string; searched: string[] } | null>(null)
+  const cleanError = (value: unknown) => String(value).replace(/^RuntimeError:\s*/i, '')
+  function priceQuery(item: Item, broad: boolean): EvaluateRequest {
+    return buildRequest(item, choicesFor(item, broad), 'securable', [...modifiableFilters], [], { ...allOn, base: !!item.baseType })
+  }
+  async function runPrice(broad: boolean) {
+    if (!price || price.loading) return
+    price.broad = broad
+    price.loading = true
+    price.error = ''
+    try {
+      const query = priceQuery(price.item, broad)
+      price.query = query
+      price.searched = searchedStats(query)
+      price.result = await AppService.EvaluateOverlay(query, false)
+    } catch (e) {
+      price.error = cleanError(e)
+      price.result = null
+    } finally {
+      price.loading = false
+    }
+  }
+  async function openMarket() {
+    if (!price?.query) return
+    try { await AppService.ShowCraftMarketWithQuery(price.raw, price.query) }
+    catch (e) { price.error = cleanError(e) }
+  }
   let iconsSent = false
   // The craft page has its own texts; it opens in the app's language and
   // follows later changes.
@@ -48,10 +82,9 @@
         const item = snap.item
         const unmatched = (item.mods ?? []).filter(m => m.type !== 'pseudo' && !m.statId)
         if (unmatched.length) throw new Error(t('craft.unmatched') + unmatched.map(m => m.text).join('; '))
-        const choices = choicesFor(item, false)
-        const query = buildRequest(item, choices, 'securable', [...modifiableFilters], [], { ...allOn, base: false })
-        await AppService.ShowCraftMarketWithQuery(event.data.raw, query)
-        send({type:'craft-result'})
+        price = { raw: event.data.raw, item, broad: price?.broad ?? true, query: null, result: null, loading: false, error: '', searched: [] }
+        await runPrice(price.broad)
+        send({ type: 'craft-result', error: price?.error || '', message: t('craft.priced') })
       } catch (e) {
         error = String(e); send({ type:'craft-result', error })
       } finally { searching = false }
@@ -73,7 +106,31 @@
     <button title={t('window.close')} aria-label={t('window.close')} onclick={() => AppService.HideCraft()}>×</button>
   </header>
   {#if error}<p class="error" role="alert">{error}</p>{/if}
-  <iframe bind:this={frame} src={frameSrc} title={t('craft.open')}></iframe>
+  <div class="body">
+    <iframe bind:this={frame} src={frameSrc} title={t('craft.open')}></iframe>
+    {#if price}
+      <aside class="price" aria-label={t('craft.priceTitle')}>
+        <div class="price-head">
+          <strong>{t('craft.priceTitle')}</strong>
+          <button class="close" title={t('window.close')} aria-label={t('window.close')} onclick={() => (price = null)}>×</button>
+        </div>
+        <p class="price-item">{price.item.baseType || price.item.class} · {t('craft.priceMods', price.searched.length)}</p>
+        <div class="price-tools">
+          <div class="mode" role="group">
+            <button class:on={!price.broad} disabled={price.loading} onclick={() => runPrice(false)}>{t('ov.exact')}</button>
+            <button class:on={price.broad} disabled={price.loading} onclick={() => runPrice(true)}>{t('ov.broad')}</button>
+          </div>
+          <button class="market" disabled={!price.query} onclick={openMarket}>{t('craft.openMarket')}</button>
+        </div>
+        {#if price.result && !price.loading && !price.error && (price.result.total ?? 0) === 0}
+          <p class="hint">{price.broad ? t('craft.priceNoneBroad') : t('craft.priceNone')}</p>
+        {/if}
+        <div class="results">
+          <TradeResults result={price.result} loading={price.loading} error={price.error} searched={price.searched} expanded />
+        </div>
+      </aside>
+    {/if}
+  </div>
 </main>
 
 <style>
@@ -82,6 +139,20 @@
   header img { width:24px; height:24px; }
   header strong { color:var(--gold-bright); font:500 14px var(--serif); flex:1; }
   header button { --wails-draggable:no-drag; padding:1px 8px; font-size:22px; }
+  .body { flex:1; min-height:0; display:flex; position:relative; }
   iframe { width:100%; flex:1; min-height:0; border:0; background:var(--bg); }
+  .price { position:absolute; top:0; right:0; bottom:0; width:min(470px, 92%); display:flex; flex-direction:column; gap:8px;
+    padding:10px 12px; background:var(--surface, var(--bg)); border-left:1px solid var(--line-strong); box-shadow:-12px 0 28px rgba(0,0,0,.45); }
+  .price-head { display:flex; align-items:center; gap:8px; }
+  .price-head strong { flex:1; color:var(--gold-bright); font:500 14px var(--serif); }
+  .price-head .close { padding:1px 8px; font-size:20px; }
+  .price-item { margin:0; color:var(--muted); font-size:12px; }
+  .price-tools { display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .mode { display:flex; }
+  .mode button { font-size:12px; padding:4px 10px; }
+  .mode button.on { border-color:var(--gold-dim); color:var(--gold-bright); }
+  .market { font-size:12px; padding:4px 10px; }
+  .hint { margin:0; color:var(--muted); font-size:12px; }
+  .results { flex:1; min-height:0; overflow-y:auto; }
   .error { color:var(--bad); padding:8px; font-size:12px; }
 </style>

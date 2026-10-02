@@ -155,6 +155,13 @@ export interface ItemMod {
     "altStatIds"?: string[] | null;
 
     /**
+     * Negated marks a "reduced" line searched as the site's "increased" stat
+     * (or the other way round): Values are negated, and a search keeps the
+     * value as the maximum ("at most -29% increased" = "at least 29% reduced").
+     */
+    "negated"?: boolean;
+
+    /**
      * WeightStats makes the line a sum the trade site adds up itself: it is
      * searched as a Weighted Sum v2 group of these stats, weight 1 each, with
      * the line's value as the group's minimum. StatID is then only a key.

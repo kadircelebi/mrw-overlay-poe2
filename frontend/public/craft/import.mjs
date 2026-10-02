@@ -8,7 +8,7 @@ const header = /^\{\s*(?:(Desecrated|Crafted|Fractured)\s+)?(Prefix|Suffix|Impli
 const range = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)/g;
 const note = /\s+\((?:fractured|crafted|desecrated|augmented|implicit|rune|enchant)\)$/i;
 const number = /-?\d+(?:\.\d+)?/g;
-const pools = ['normal', 'desecrated', 'essence', 'perfect_essence', 'marksman', 'decay'];
+const pools = ['normal', 'desecrated', 'essence', 'perfect_essence', 'marksman', 'decay', 'berserking', 'chronomancy', 'soul', 'destruction'];
 
 // "41(39-42)% increased Energy Shield" and "(39—42)% increased Energy
 // Shield" both become "#% increased Energy Shield".
@@ -85,8 +85,24 @@ export function importItem(item, page, data) {
     if (!row) { unmatched.push(block.name || block.lines.join(' / ')); continue; }
     const mod = withValues(row, valuesOf(block.lines));
     if (block.kind === 'desecrated') mod.desecrated = true;
+    if (block.kind === 'fractured') mod.fractured = true;
+    // The game marks crafted affixes; some share their wording with the base pool.
+    if (block.kind === 'crafted') mod.crafted = true;
     mods.push(mod);
   }
   const ilvl = Number.isInteger(item.itemLevel) && item.itemLevel >= 1 && item.itemLevel <= 100 ? item.itemLevel : 81;
   return { item: { base: page, rarity, ilvl, mods }, unmatched };
+}
+
+/** What ordinary runes add to a copied item ("20% increased Armour… (rune)"), the craft runes left out. */
+export function runeStatLines(raw, runes) {
+  const craft = new Set(Object.values(runes || {}).map(r => r.text));
+  return String(raw).split(/\r?\n/).map(l => l.trim()).filter(l => /\(rune\)$/i.test(l))
+    .map(l => l.replace(/\s*\(rune\)$/i, '')).filter(l => !craft.has(l));
+}
+
+/** The craft runes in a copied item's sockets, by their line ("Can roll Marksman modifiers (rune)"). */
+export function runesFor(raw, page, runes) {
+  const lines = String(raw).split(/\r?\n/).map(l => l.trim().replace(/\s*\(rune\)$/i, ''));
+  return Object.entries(runes || {}).filter(([, r]) => r.pages.includes(page) && lines.includes(r.text)).map(([id]) => id);
 }

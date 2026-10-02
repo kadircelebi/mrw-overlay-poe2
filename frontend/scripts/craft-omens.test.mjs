@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createItem,setRarity,manualAdd,count } from '../public/craft/engine.mjs';
 import { omenDefinitions,relevantOmens,omenEffects,orbOmenReason,applyOrbOmens } from '../public/craft/omens.mjs';
-import { applySpecial } from '../public/craft/special.mjs';
+import { applySpecial, startReveal } from '../public/craft/special.mjs';
 import { summarize } from '../public/craft/ledger.mjs';
 import { setLang } from '../public/craft/i18n.mjs';
 // The assertions below match the Turkish messages.
@@ -39,7 +39,7 @@ test('Conflicting and unrelated omens are rejected before mutation',()=>{
 });
 test('Necromancy fixes the reserved/revealed side, including a full item',()=>{
   const e=effects(['omen-of-dextral-necromancy'],'preserved-rib',special['preserved-rib']);
-  const next=applySpecial(empty(),data,special['preserved-rib'],zero,e);
+  const next=startReveal(applySpecial(empty(),data,special['preserved-rib'],zero,e),data,{},zero);
   assert.equal(next.mods[0].affix,'Suffix');
   assert.ok(next.reveal.choices.every(m=>m.affix==='Suffix'));
   let full=empty();
@@ -47,7 +47,7 @@ test('Necromancy fixes the reserved/revealed side, including a full item',()=>{
     const row=data.mods.find(m=>m.pool==='normal'&&m.affix===side&&!full.mods.some(x=>x.families[0]===m.families[0]));
     full=manualAdd(full,row,zero);
   }
-  const replaced=applySpecial(full,data,special['preserved-rib'],zero,e);
+  const replaced=startReveal(applySpecial(full,data,special['preserved-rib'],zero,e),data,{},zero);
   assert.equal(count(replaced,'Prefix'),3); assert.equal(count(replaced,'Suffix'),3);
   assert.deepEqual(replaced.mods.filter(m=>m.affix==='Prefix'),full.mods.filter(m=>m.affix==='Prefix'));
 });
@@ -59,7 +59,7 @@ test('Liege is hidden for armour and limits synthetic Jewellery reveal to Amanam
   const fixture={...data,options:{...data.options,ItemClassesCode:'Ring'}};
   const collar=special['preserved-collarbone'];
   const e=effects(['omen-of-the-liege'],'preserved-collarbone',collar,fixture);
-  const next=applySpecial(empty(),fixture,collar,zero,e);
+  const next=startReveal(applySpecial(empty(),fixture,collar,zero,e),fixture,{},zero);
   assert.ok(next.reveal.choices.length>0);
   assert.ok(next.reveal.choices.every(m=>m.pool==='desecrated'&&m.tags.includes('amanamu_mod')));
 });

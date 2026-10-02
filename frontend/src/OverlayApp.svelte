@@ -101,7 +101,9 @@
     sanctified = snap.item.sanctified ? 'true' : ''
     modifiable = true
     // A waystone's tier (its base) sets what drops; its item level does not.
-    useItemLevel = snap.item.itemLevel > 0 && snap.item.class !== 'Waystones'
+    // Tablets and uniques are priced by their modifiers, not by item level.
+    // The filter is still shown, just not ticked.
+    useItemLevel = snap.item.itemLevel > 0 && !['Waystones', 'Tablet', 'Tablets'].includes(snap.item.class) && snap.item.rarity?.toLowerCase() !== 'unique'
     itemLevelMin = snap.item.itemLevel || undefined
     itemLevelMax = undefined
     useQuality = snap.item.quality > 0

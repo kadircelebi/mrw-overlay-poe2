@@ -118,6 +118,8 @@ var tr = map[string]string{
 	"filter.sec.unpriced":  "10. HENÜZ FİYATLANMAMIŞ EXCEPTIONAL TABANLAR (taranana kadar görünür)",
 
 	"filter.sec.userShow":    "KULLANICI GRUBU: %s",
+	"filter.sec.userStack":   "KULLANICI GRUBU: %s (%d+ YIĞIN)",
+	"filter.sec.stacks":      "DEĞERLİ YIĞINDAKİ UCUZ CURRENCY",
 	"filter.sec.userHide":    "KULLANICI GRUBU (GİZLİ): %s",
 	"filter.sec.valueTier":   "DEĞER GRUBU: %s — %.2f %s (= %.1f Exalted)",
 	"group.migratedMid":      "Orta vurgu",
