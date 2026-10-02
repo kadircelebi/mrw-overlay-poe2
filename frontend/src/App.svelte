@@ -115,6 +115,8 @@
   let dragOver = $state<number | null>(null)
   let appUpdate = $state<AppUpdateState | null>(null)
   let overlaySettings = $state<OverlaySettings | null>(null)
+  // Community buttons that have an address (Go owns the URLs).
+  let community = $state<string[]>([])
   let overlaySaveState = $state<'idle' | 'saving' | 'saved' | 'error'>('idle')
   let overlayError = $state('')
   let startup = $state<{enabled: boolean; canChange: boolean; state: string} | null>(null)
@@ -192,6 +194,7 @@
       languages = (await AppService.Languages()) ?? []
       profiles = (await AppService.Profiles()) ?? []
       overlaySettings = await AppService.GetOverlaySettings()
+      community = (await AppService.CommunityLinks()) ?? []
       cfg = await AppService.GetConfig()
       applyLanguage(cfg.language)
       await refresh()
@@ -1028,6 +1031,29 @@
             <button onclick={() => AppService.ShowMarket()}>{t('panel.market')} · {overlaySettings.market_hotkey}</button>
           {/if}
         </section>
+
+        {#if community.length}
+          <section class="card community">
+            <h2>{t('community.title')}</h2>
+            <p class="desc">{t('community.hint')}</p>
+            <div class="community-links">
+              {#each community as kind (kind)}
+                <button class={kind} onclick={() => AppService.OpenCommunityLink(kind)}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    {#if kind === 'discord'}
+                      <path d="M19.3 5.3A17 17 0 0 0 15 4l-.5 1.1a15.7 15.7 0 0 0-5 0L9 4a17 17 0 0 0-4.3 1.3C2 9.4 1.3 13.4 1.6 17.3A17.2 17.2 0 0 0 6.9 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 10.6 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17.1 17.1 0 0 0 5.3-2.7c.4-4.5-.7-8.5-3.1-12ZM8.7 15c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1Zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1Z" />
+                    {:else if kind === 'contact'}
+                      <path d="M3 5h18v14H3V5Zm2 2v.5l7 4.6 7-4.6V7H5Zm14 2.9-7 4.6-7-4.6V17h14V9.9Z" />
+                    {:else}
+                      <path d="M12 20.5 4.2 13A5 5 0 0 1 12 6.6 5 5 0 0 1 19.8 13L12 20.5Z" />
+                    {/if}
+                  </svg>
+                  <span>{t('community.' + kind)}</span>
+                </button>
+              {/each}
+            </div>
+          </section>
+        {/if}
       </div>
       </div>
     {/if}
@@ -2331,6 +2357,44 @@
   .actions button:hover {
     color: var(--text);
     border-color: var(--gold-dim);
+  }
+  .community-links {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .community-links button {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--text-2);
+  }
+  .community-links svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    fill: currentColor;
+  }
+  .community-links button:hover {
+    color: var(--text);
+    border-color: var(--gold-dim);
+  }
+  .community-links .discord:hover svg {
+    color: #8b93f8;
+  }
+  .community-links .support {
+    flex-grow: 1.5;
+  }
+  .community-links .support svg {
+    color: #c86a5a;
   }
   .actions .danger:hover {
     color: var(--bad);

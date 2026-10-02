@@ -178,6 +178,11 @@ export const en: Record<string, string> = {
   'stats.uniqueBases': 'unique bases',
   'stats.exceptional': 'exceptional',
   'stats.caption': 'highlighted above the threshold · 1 div = {0} ex',
+  'community.title': 'Community',
+  'community.hint': 'Questions, ideas or a bug? Reach us here. The app is free and stays free.',
+  'community.discord': 'Discord',
+  'community.contact': 'Contact',
+  'community.support': 'Support the project',
 
   // Gear
   'gear.title': 'Equipment',

@@ -548,7 +548,7 @@ func (s *AppService) OpenAppUpdatePage() error {
 		return errors.New("application updater is not available")
 	}
 	url := s.updater.State().ReleaseURL
-	if !strings.HasPrefix(url, "https://github.com/kadircelebi/poe2-filtre/releases/") {
+	if !strings.HasPrefix(url, "https://github.com/kadircelebi/mrw-overlay-poe2/releases/") {
 		return errors.New("invalid application update page")
 	}
 	return exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", url).Start()

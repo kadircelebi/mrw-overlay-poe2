@@ -171,6 +171,11 @@ export const zh: Record<string, string> = {
   'stats.uniqueBases': 'unique 基底',
   'stats.exceptional': 'exceptional',
   'stats.caption': '高於門檻並強調顯示 · 1 div = {0} ex',
+  'community.title': '社群',
+  'community.hint': '有問題、想法或發現錯誤？請從這裡聯絡我們。本程式免費，並將一直免費。',
+  'community.discord': 'Discord',
+  'community.contact': '聯絡',
+  'community.support': '支持本專案',
 
   'gear.title': '裝備',
   'gear.strict': '嚴格的裝備過濾',

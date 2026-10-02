@@ -24,7 +24,7 @@ builds.
 - **Homepage:** https://poe2.mrwproject.com/extension/
 - **Support:** https://poe2.mrwproject.com/contact/
 - **Privacy policy:** https://poe2.mrwproject.com/privacy/
-- **Source code:** https://github.com/kadircelebi/poe2-filtre (MIT, folder `browser-extension/`)
+- **Source code:** https://github.com/kadircelebi/mrw-overlay-poe2 (MIT, folder `browser-extension/`)
 
 ## Detailed description
 
@@ -102,7 +102,7 @@ The extension works together with a desktop app, so a reviewer cannot see it
 do anything without that app. Suggested text:
 
 > This extension only acts when the MrW Overlay for POE 2 desktop app
-> (https://github.com/kadircelebi/poe2-filtre) starts a connection: the app
+> (https://github.com/kadircelebi/mrw-overlay-poe2) starts a connection: the app
 > opens https://www.pathofexile.com/trade2#mrw-link=<code> and listens on
 > 127.0.0.1:47819. Without the app running, the extension does nothing: the
 > request to 127.0.0.1 fails and no data leaves the browser. The code is

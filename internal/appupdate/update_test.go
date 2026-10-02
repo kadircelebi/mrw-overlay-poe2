@@ -41,7 +41,7 @@ func TestCheckAndVerifiedDownload(t *testing.T) {
 		case "/latest":
 			_ = json.NewEncoder(w).Encode(githubRelease{
 				TagName: "v1.8.0",
-				HTMLURL: "https://github.com/kadircelebi/poe2-filtre/releases/tag/v1.8.0",
+				HTMLURL: "https://github.com/kadircelebi/mrw-overlay-poe2/releases/tag/v1.8.0",
 				Assets: []githubAsset{{
 					Name:               releaseAssetName,
 					Size:               int64(len(payload)),

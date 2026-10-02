@@ -174,6 +174,11 @@ export const tr: Record<string, string> = {
   'stats.uniqueBases': 'unique taban',
   'stats.exceptional': 'exceptional',
   'stats.caption': 'eşiğin üstünde vurgulanan · 1 div = {0} ex',
+  'community.title': 'Topluluk',
+  'community.hint': 'Soru, fikir ya da hata mı? Buradan ulaşın. Uygulama ücretsiz ve öyle kalacak.',
+  'community.discord': 'Discord',
+  'community.contact': 'İletişim',
+  'community.support': 'Projeye destek ol',
 
   'gear.title': 'Ekipman',
   'gear.strict': 'Sıkı ekipman filtresi',

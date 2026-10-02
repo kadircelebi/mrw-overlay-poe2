@@ -6,7 +6,7 @@ package useragent
 import "sync"
 
 // Contact is where GGG (or anyone else) can reach the author.
-const Contact = "https://github.com/kadircelebi/poe2-filtre"
+const Contact = "https://github.com/kadircelebi/mrw-overlay-poe2"
 
 var (
 	mu    sync.RWMutex
