@@ -103,7 +103,10 @@ func BaseTypes(content string) map[string]string {
 		// (128 fewer at Uber Plus Strict), and every unknown base falls through
 		// to the catch-all rules instead of being priced.
 		line := uncomment(sc.Text())
-		if !strings.HasPrefix(line, "BaseType") {
+		// Only exact lists name real items. A loose `BaseType "Catalyst"`
+		// is a substring match; offered as a base and written back with
+		// `==`, it matches no item and the game rejects the whole filter.
+		if !strings.HasPrefix(line, "BaseType ==") {
 			continue
 		}
 		for _, m := range quoted.FindAllStringSubmatch(line, -1) {

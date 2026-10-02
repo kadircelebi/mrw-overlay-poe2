@@ -64,6 +64,26 @@ Show # $type->ut->rare $tier->gear5c !exotics_btier
 	}
 }
 
+// A loose BaseType line is a substring match ("Catalyst" matches every
+// catalyst). It names no item, and `BaseType == "Catalyst"` broke the filter.
+func TestBaseTypesSkipsLooseMatches(t *testing.T) {
+	const content = `
+Show # $type->currency->catalysts $tier->restex
+	Class == "Stackable Currency"
+	BaseType "Catalyst"
+
+Show
+	BaseType == "Flesh Catalyst"
+`
+	bases := BaseTypes(content)
+	if _, ok := bases["catalyst"]; ok {
+		t.Error("loose fragment \"Catalyst\" read as a base")
+	}
+	if _, ok := bases["flesh catalyst"]; !ok {
+		t.Error("exact base \"Flesh Catalyst\" missing")
+	}
+}
+
 func TestExceptionalBasesReadsDisabledRules(t *testing.T) {
 	const content = `
 Show # $type->exotic->exceptional $tier->t1

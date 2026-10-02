@@ -14,15 +14,42 @@ import (
 
 // GetPoE2GameDir detects the Path of Exile 2 loot filter folder on Windows.
 func GetPoE2GameDir() string {
-	userProfile := os.Getenv("USERPROFILE")
-	if userProfile == "" {
-		return ""
-	}
-	poe2Path := filepath.Join(userProfile, "Documents", "My Games", "Path of Exile 2")
-	if info, err := os.Stat(poe2Path); err == nil && info.IsDir() {
-		return poe2Path
+	for _, docs := range documentsDirs() {
+		poe2Path := filepath.Join(docs, "My Games", "Path of Exile 2")
+		if info, err := os.Stat(poe2Path); err == nil && info.IsDir() {
+			return poe2Path
+		}
 	}
 	return ""
+}
+
+// documentsDirs lists where the Documents folder may be, most likely first.
+// OneDrive's folder backup moves Documents to OneDrive\Documents (or a
+// localised name such as OneDrive\Belgeler); the shell's known folder follows
+// the move, %USERPROFILE%\Documents does not.
+func documentsDirs() []string {
+	var out []string
+	add := func(p string) {
+		if p == "" {
+			return
+		}
+		for _, o := range out {
+			if strings.EqualFold(o, p) {
+				return
+			}
+		}
+		out = append(out, p)
+	}
+	add(knownDocumentsDir())
+	for _, env := range []string{"OneDrive", "OneDriveConsumer", "OneDriveCommercial"} {
+		if root := os.Getenv(env); root != "" {
+			add(filepath.Join(root, "Documents"))
+		}
+	}
+	if home := os.Getenv("USERPROFILE"); home != "" {
+		add(filepath.Join(home, "Documents"))
+	}
+	return out
 }
 
 var (

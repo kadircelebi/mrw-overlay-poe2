@@ -359,6 +359,8 @@ export const zh: Record<string, string> = {
   'footer.testMode': ' · 測試模式',
 
   'editor.uniqueOnly': '僅 Unique',
+  'editor.familyAll': '{0}（全部）',
+  'editor.familyCount': '加入 {0} 個物品',
   'editor.uniqueOnlyTop': '僅 Unique · 最高價 {0}',
   'editor.allRarities': '所有稀有度',
   'editor.remove': '移除 {0}',
