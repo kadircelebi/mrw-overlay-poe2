@@ -152,16 +152,6 @@ export function EvaluateOverlay($in: trade$0.EvaluateRequest, refresh: boolean):
 }
 
 /**
- * ExchangeOverlay lists the bulk exchange offers for want (a trade static id).
- * status is the overlay's sale-type choice; "any" asks offline sellers too.
- * Identical requests within two minutes are answered from memory unless
- * refresh is set.
- */
-export function ExchangeOverlay(want: string, status: string, refresh: boolean): $CancellablePromise<trade$0.ExchangeResult> {
-    return $Call.ByID(2873303449, want, status, refresh);
-}
-
-/**
  * ExportFilter saves a copy of the filter that was last written, for sharing or
  * for using it on a machine that does not run this app.
  */

@@ -9,8 +9,6 @@ export type {
     EvaluatedModPart,
     EvaluatedProperty,
     Evaluation,
-    ExchangeOffer,
-    ExchangeResult,
     ImportResult,
     LiveState,
     QuotaStatus,

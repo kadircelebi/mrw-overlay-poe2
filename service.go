@@ -92,8 +92,6 @@ type AppService struct {
 	overlayEvalMu      sync.Mutex
 	overlayEvalCache   map[string]overlayEvaluationCacheEntry
 	overlayEvalFlights map[string]*overlayEvaluationFlight
-	exchangeMu         sync.Mutex
-	exchangeCache      map[string]exchangeCacheEntry
 	overlaySnapshot    overlay.Snapshot
 	overlayDraft       trade.EvaluateRequest
 	overlayWindow      application.Window
