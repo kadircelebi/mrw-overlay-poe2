@@ -53,6 +53,20 @@
         <div id="reveal-choices" class="reveal-choices"></div>
         <div id="status" role="status" aria-live="polite"></div>
       </section>
+      <section class="sim-section" id="sim-section"><div class="section-head"><h2 data-i18n="sim.title"></h2><span data-i18n="sim.lead"></span></div>
+        <div class="sim-body">
+          <div id="sim-target" class="sim-target"></div>
+          <div class="filters sim-controls"><div><label for="sim-orb" data-i18n="sim.orb"></label><select id="sim-orb"></select></div>
+            <div><label for="sim-runs" data-i18n="sim.runs"></label><select id="sim-runs"><option value="1000">1.000</option><option value="10000" selected>10.000</option><option value="100000">100.000</option></select></div>
+            <div><label for="sim-speed" data-i18n="sim.speed"></label><select id="sim-speed"><option value="5" data-i18n="sim.speed.slow"></option><option value="20" data-i18n="sim.speed.normal" selected></option><option value="100" data-i18n="sim.speed.fast"></option><option value="600" data-i18n="sim.speed.max"></option></select></div></div>
+          <div id="sim-omens" class="omen-options"></div>
+          <p id="sim-reason" class="sim-reason"></p>
+          <div class="sim-actions"><button id="sim-run" class="primary" data-i18n="sim.run" disabled></button><button id="sim-watch" data-i18n="sim.watch" disabled></button><button id="sim-stop" data-i18n="sim.stop" hidden></button><span id="sim-progress" class="hint" aria-live="polite"></span></div>
+          <div id="sim-pending" class="sim-pending" hidden><p id="sim-pending-text"></p><div><button id="sim-keep" class="primary" data-i18n="sim.keep"></button><button id="sim-revert" data-i18n="sim.revert"></button></div></div>
+          <div id="sim-result" class="sim-result" hidden></div>
+          <p class="hint" data-i18n="sim.note"></p>
+        </div>
+      </section>
       <section class="mod-section"><div class="section-head"><h2 data-i18n="design.title"></h2><span data-i18n="design.lead"></span></div>
         <div class="filters"><div class="search-field"><label for="search" data-i18n="search"></label><input id="search" type="search" data-i18n-placeholder="search.placeholder" disabled></div><div><label for="pool" data-i18n="pool"></label><select id="pool" disabled><option value="normal" data-i18n="pool.normal"></option><option value="desecrated">Desecrated</option><option value="essence">Essence</option><option value="perfect_essence">Perfect Essence</option></select></div></div>
         <p class="pool-note" data-i18n="design.note"></p>

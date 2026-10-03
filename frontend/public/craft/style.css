@@ -146,7 +146,41 @@ body.holding, body.holding * { cursor: none !important; }
 .omen-options small { color: var(--muted); font-size: .75rem; }
 footer { max-width: 1580px; margin: auto; padding: var(--space-md) var(--space-lg); border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: var(--space-sm); justify-content: space-between; color: var(--muted); font-size: .8rem; }
 a { color: var(--gold); white-space: nowrap; }
-@media(min-width: 640px) { .filters { grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); } }
+@media(min-width: 640px) { .filters { grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); } .filters.sim-controls { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+/* Chaos simulation */
+.sim-section { border: 1px solid var(--steel); background: var(--surface); }
+.sim-body { display: grid; }
+.sim-target { padding: var(--space-md) var(--space-md) 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
+.sim-target .sim-line { color: var(--bright); flex: 1 1 220px; }
+.sim-target select { flex: 1 1 240px; min-width: 0; }
+.sim-target button { min-width: 40px; padding: 0; }
+.sim-controls { padding-bottom: var(--space-sm); }
+.sim-controls label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: .3rem; }
+.sim-controls select { width: 100%; }
+.sim-reason { padding: 0 var(--space-md); color: var(--bad); font-size: .82rem; }
+.sim-reason:empty { display: none; }
+.sim-actions { padding: var(--space-sm) var(--space-md); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); border-top: 1px solid var(--line); }
+.sim-pending { margin: 0 var(--space-md) var(--space-sm); padding: var(--space-sm); border: 1px solid var(--gold-dim); background: var(--raised); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-xs); color: var(--bright); font-size: .88rem; }
+.sim-pending div { display: flex; gap: var(--space-xs); }
+.sim-result { padding: var(--space-sm) var(--space-md); border-top: 1px solid var(--line); display: grid; gap: var(--space-sm); }
+.sim-head { color: var(--secondary); font-size: .85rem; }
+.sim-stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(110px,1fr)); gap: var(--space-xs); }
+.sim-stats div { padding: .55rem .65rem; background: var(--sunk); border: 1px solid var(--line); display: grid; gap: .15rem; }
+.sim-stats small { color: var(--muted); font-size: .74rem; }
+.sim-stats b { color: var(--bright); font-weight: 400; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.sim-money { color: var(--gold); font-size: .74rem; }
+.sim-chances { list-style: none; padding: 0; margin: 0; display: grid; gap: .2rem; color: var(--secondary); font-size: .84rem; font-variant-numeric: tabular-nums; }
+.sim-chart { height: 90px; display: flex; align-items: flex-end; gap: 2px; padding: .4rem; background: var(--sunk); border: 1px solid var(--line); }
+.sim-chart span { flex: 1; background: var(--gold-dim); min-height: 2px; }
+.sim-chart span:hover { background: var(--gold); }
+.sim-warn { color: var(--bad); font-size: .84rem; }
+.sim-body > .hint { padding: 0 var(--space-md) var(--space-sm); }
+.tier-row.with-target { grid-template-columns: 30px minmax(0,1fr) 38px 38px; }
+.tier-row .sim-aim { font-size: 1.05rem; color: var(--muted); }
+.tier-row .sim-aim.active { border-color: var(--gold); color: var(--bright); background: var(--raised); }
+/* While a simulation runs or waits to be kept, nothing else may change the item. */
+.workbench.sim-running .item-settings, .workbench.sim-running .item-tools, .workbench.sim-running .currency-section,
+.workbench.sim-running .mod-section, .workbench.sim-running .next-step, .workbench.sim-running #base { pointer-events: none; opacity: .55; }
 @media(min-width: 960px) { .workbench { grid-template-columns: 330px minmax(0,1fr); } .item-column { position: sticky; top: var(--space-md); } }
 @media(min-width: 1200px) { .affix-columns { grid-template-columns: repeat(2,minmax(0,1fr)); } .affix-columns > section:nth-child(2) { border-left: 1px solid var(--steel); } }
 @media(max-width: 420px) { .masthead, .workbench { padding: var(--space-md); } .apply-row { align-items: start; flex-direction: column; } .section-head { flex-direction: column; } .currency { min-width: 76px; } }
