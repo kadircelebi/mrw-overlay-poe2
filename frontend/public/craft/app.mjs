@@ -1,5 +1,5 @@
 import { createItem, count, sideLimit, isCrafted, isDesecrated, craftedLimit, manualAdd, manualReason, removeMod, clearMods,
-  setRarity, candidates, currencyReason, applyCurrency, supported, rolledText, replaceTier, sortedMods, rollPools, fracturable } from './engine.mjs';
+  setRarity, candidates, currencyReason, applyCurrency, supported, rolledText, replaceTier, sortedMods, rollPools, fracturable, removable } from './engine.mjs';
 import { applicable, essenceRows, essenceTier, specialReason, applySpecial, revealChoice, startReveal, rerollReveal, unrevealedIndex } from './special.mjs';
 import { usageEntry, summarize } from './ledger.mjs';
 import { craftText } from './trade.mjs';
@@ -210,6 +210,7 @@ function renderItem() {
   sortedMods(item).forEach(({ mod, index }) => {
     const kind = mod.unrevealed ? 'unrevealed' : mod.fractured ? 'fractured' : isCrafted(mod) ? 'crafted' : isDesecrated(mod) ? 'desecrated' : 'explicit';
     const row = element('div', undefined, `item-mod ${kind}${isDesecrated(mod) && kind !== 'desecrated' ? ' desecrated-bg' : ''}`);
+    row.dataset.index = String(index);
     const key = `${mod.affix}:${mod.source_id}`;
     row.append(element('span', mod.affix !== lastSide ? mod.affix : '', 'mod-side'));
     lastSide = mod.affix;
@@ -903,7 +904,38 @@ function markTarget() {
   $('item-card').classList.toggle('target-ok', Boolean(action?.ok));
   $('item-card').classList.toggle('target-bad', Boolean(action && !action.ok));
   $('item-card').title = action && !action.ok ? action.reason : '';
+  markRemoval(action);
 }
+// Over the item with an orb that removes (Chaos, Annulment), the affixes it
+// may take are marked with their odds and the others dimmed; the omens count
+// (Whittling: only the lowest modifier level, Erasure: one side, Light:
+// only Desecrated).
+let overCard = false;
+function markRemoval(action) {
+  const rows = [...$('item-mods').querySelectorAll('.item-mod')];
+  for (const row of rows) {
+    row.classList.remove('may-remove', 'kept');
+    row.querySelector('.remove-odds')?.remove();
+  }
+  const rule = rules[selected];
+  if (!overCard || !action?.ok || mode !== 'basic' || !rule || !['del', 'del_add'].includes(rule.afterTrigger)) return;
+  let removal;
+  try { removal = effectsFor('basic', selected, rule).removal || {}; } catch { return; }
+  const options = removable(item, removal);
+  if (!options.length) return;
+  const share = Math.min(1, (removal.count || 1) / options.length);
+  for (const row of rows) {
+    const hit = options.includes(Number(row.dataset.index));
+    row.classList.add(hit ? 'may-remove' : 'kept');
+    if (hit) {
+      const odds = element('span', t('remove.odds', num(share * 100, share < 1 ? 1 : 0)), 'remove-odds');
+      odds.title = t('remove.oddsHint');
+      row.querySelector('.mod-side').append(odds);
+    }
+  }
+}
+$('item-card').addEventListener('mouseenter', () => { overCard = true; markTarget(); });
+$('item-card').addEventListener('mouseleave', () => { overCard = false; markTarget(); });
 document.addEventListener('mousemove', event => {
   if (held) ghost.style.transform = `translate(${event.clientX}px, ${event.clientY}px)`;
 });
