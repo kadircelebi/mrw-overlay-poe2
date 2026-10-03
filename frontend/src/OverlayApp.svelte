@@ -5,6 +5,8 @@
   import type { Catalog, CurrencyQuote, Item, ItemEntry, Snapshot } from '../bindings/poe2filter/internal/overlay/models'
   import type { Evaluation, SelectedFilter } from '../bindings/poe2filter/internal/trade/models'
   import CurrencyCard from './lib/CurrencyCard.svelte'
+  import FilterVerdict from './lib/FilterVerdict.svelte'
+  import type { FilterExplanation } from '../bindings/poe2filter/models'
   import QuotaBadge from './lib/QuotaBadge.svelte'
   import OverlayItemCard from './lib/OverlayItemCard.svelte'
   import TradeResults from './lib/TradeResults.svelte'
@@ -23,6 +25,20 @@
   let toggles = $state<ItemToggles>({ ...allOn })
   let propertyFilters = $state<PropertyFilter[]>([])
   let result = $state<Evaluation | null>(null)
+  // What the written loot filter does with the item (null while unknown).
+  let explain = $state<FilterExplanation | null>(null)
+
+  // The item's worth for the filter's "hidden but valuable" warning: the
+  // price list's figure, else the median of the cheapest listings found.
+  const worthEx = $derived.by(() => {
+    if (!item) return 0
+    if (quote) return quote.valueEx * Math.max(1, item.stackSize || 1)
+    const e = explain
+    if (!e || !result?.listings?.length) return 0
+    const rate = (c: string) => (c === 'exalted' ? 1 : c === 'divine' ? e.divineEx : c === 'chaos' ? e.chaosEx : 0)
+    const values = result.listings.slice(0, 5).map((l) => l.amount * rate(l.currency)).filter((v) => v > 0).sort((a, b) => a - b)
+    return values.length ? values[Math.floor((values.length - 1) / 2)] : 0
+  })
   let searched = $state<string[]>([])
   let loading = $state(false)
   let error = $state('')
@@ -113,6 +129,7 @@
     exact = true
     item = snap.item
     loadQuote(snap.item)
+    loadExplain(snap.item)
     choices = choicesFor(snap.item, false)
     toggles = { ...allOn }
     propertyFilters = propertyFiltersFor(snap.item)
@@ -139,6 +156,14 @@
     if (!needsUniqueSelection(snap.item)) queueEvaluate(40)
   }
 
+
+  function loadExplain(value: Item) {
+    explain = null
+    const raw = value.raw
+    AppService.ExplainItem(raw).then((e) => {
+      if (item?.raw === raw) explain = e
+    }).catch(() => {})
+  }
 
   function loadQuote(value: Item) {
     // Lineage support gems trade on the currency exchange, so the item search
@@ -334,6 +359,7 @@
           {:else}
           <section class="exchange-title"><strong>{item.baseType || item.name}</strong>{#if quoteChecked}<p>{t('ov.ex.unpriced')}</p>{/if}</section>
           {/if}
+          {#if explain}<FilterVerdict {explain} {worthEx} />{/if}
         </div>
         {:else if quote}
         <CurrencyCard {item} {quote} />
@@ -360,6 +386,7 @@
           onpropertychange={updatePropertyFilter}
         />
         {/if}
+        {#if explain && !exchangeId}<FilterVerdict {explain} {worthEx} />{/if}
       {#if !exchangeId}
       <div class="mode-row">
         <button class:on={exact} onclick={() => setMode(true)}><i></i> {t('ov.exact')}</button>
