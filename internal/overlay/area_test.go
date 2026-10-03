@@ -20,3 +20,18 @@ func TestLastArea(t *testing.T) {
 		t.Errorf("fresh session level %d", level)
 	}
 }
+
+// The hide shortcut defaults to Alt+H, unless the player already gave Alt+H
+// to something else; then it stays off rather than clash.
+func TestHideHotkeyDefault(t *testing.T) {
+	s := Settings{}
+	s.Normalize()
+	if s.HideHotkey != "Alt+H" {
+		t.Errorf("default = %q", s.HideHotkey)
+	}
+	s = Settings{Commands: []ChatCommand{{Hotkey: "Alt+H", Text: "/hideout"}}}
+	s.Normalize()
+	if s.HideHotkey != "" || s.DistinctHotkeys() != nil {
+		t.Errorf("clashing default = %q (%v)", s.HideHotkey, s.DistinctHotkeys())
+	}
+}

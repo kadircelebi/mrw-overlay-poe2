@@ -13,6 +13,13 @@ export interface Config {
     "show_exotics": boolean;
 
     /**
+     * HiddenItems is the "hidden by me" list (Alt+H); HiddenOff switches it
+     * off without losing it.
+     */
+    "hidden_items": HiddenItem[] | null;
+    "hidden_off": boolean;
+
+    /**
      * Value threshold: items worth less are hidden (or dimmed).
      */
     "min_value": number;
@@ -176,6 +183,34 @@ export interface CustomStyle {
     "beam": string;
     "icon": string;
     "shape": string;
+}
+
+/**
+ * HiddenItem is one entry of the "hidden by me" list the player fills with
+ * Alt+H: a base they do not want to see on the ground, optionally only in
+ * some rarities or only in small stacks.
+ */
+export interface HiddenItem {
+    "base": string;
+
+    /**
+     * Rarities limits the entry to these ("Normal", "Magic", "Rare",
+     * "Unique"); empty means any.
+     */
+    "rarities"?: string[] | null;
+
+    /**
+     * BelowStack hides only stacks smaller than this (0 = any stack).
+     */
+    "below_stack"?: number;
+
+    /**
+     * WhileCheap keeps the entry behind the valuable-item rules, so an item
+     * whose price climbs over the threshold shows again by itself. Without
+     * it the entry hides unconditionally.
+     */
+    "while_cheap": boolean;
+    "added_at": number;
 }
 
 /**

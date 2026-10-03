@@ -94,6 +94,9 @@ type Item struct {
 type Snapshot struct {
 	Item  *Item  `json:"item,omitempty"`
 	Error string `json:"error,omitempty"`
+	// Mode is "hide" when the item was read with the hide shortcut (Alt+H):
+	// the window then offers to hide it instead of pricing it.
+	Mode string `json:"mode,omitempty"`
 }
 
 var (

@@ -278,7 +278,11 @@ func main() {
 		if !s.Enabled {
 			return nil
 		}
-		return [][2]any{{s.Hotkey, svc.captureOverlay}, {s.MarketHotkey, svc.toggleMarketFromHotkey}, {s.CraftHotkey, svc.toggleCraftFromHotkey}}
+		list := [][2]any{{s.Hotkey, svc.captureOverlay}, {s.MarketHotkey, svc.toggleMarketFromHotkey}, {s.CraftHotkey, svc.toggleCraftFromHotkey}}
+		if s.HideHotkey != "" {
+			list = append(list, [2]any{s.HideHotkey, svc.captureHide})
+		}
+		return list
 	}
 	register := func(list [][2]any) error {
 		var done []string

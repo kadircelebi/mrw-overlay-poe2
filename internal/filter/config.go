@@ -103,6 +103,10 @@ type Config struct {
 	// cannot swallow valuable bases (Absent/Lament/Portent Amulet...) or
 	// identified items with a valuable modifier.
 	ShowExotics bool `json:"show_exotics"`
+	// HiddenItems is the "hidden by me" list (Alt+H); HiddenOff switches it
+	// off without losing it.
+	HiddenItems []HiddenItem `json:"hidden_items"`
+	HiddenOff   bool         `json:"hidden_off"`
 
 	// Value threshold: items worth less are hidden (or dimmed).
 	MinValue     float64 `json:"min_value"`
@@ -268,6 +272,7 @@ func LoadConfig(path string) Config {
 
 // Normalize clamps values into their valid ranges.
 func (c *Config) Normalize() {
+	c.HiddenItems = normalizeHidden(c.HiddenItems)
 	c.LegacyMinExalt, c.LegacyMinDivine, c.LegacyPreset, c.LegacyIntervalMn = 0, 0, "", 0
 	switch c.MinValueUnit {
 	case "exalted", "chaos", "divine":

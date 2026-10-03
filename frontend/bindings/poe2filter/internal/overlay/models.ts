@@ -236,6 +236,12 @@ export interface Settings {
     "craft_hotkey": string;
 
     /**
+     * HideHotkey reads the item under the cursor and offers to add it to the
+     * loot filter's "hidden by me" list.
+     */
+    "hide_hotkey": string;
+
+    /**
      * ChatEnabled turns on Commands: shortcuts that type a line into the
      * game's chat. Like the overlay it sends keys to the game, so it starts
      * off. The keys are taken only while the game is the active window, so
@@ -274,6 +280,12 @@ export interface Settings {
 export interface Snapshot {
     "item"?: Item | null;
     "error"?: string;
+
+    /**
+     * Mode is "hide" when the item was read with the hide shortcut (Alt+H):
+     * the window then offers to hide it instead of pricing it.
+     */
+    "mode"?: string;
 }
 
 export interface StatEntry {

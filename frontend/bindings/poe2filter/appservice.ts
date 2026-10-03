@@ -263,6 +263,14 @@ export function HideCraft(): $CancellablePromise<void> {
     return $Call.ByID(614296468);
 }
 
+/**
+ * HideItem adds an entry to the "hidden by me" list (Alt+H) and rewrites the
+ * filter. An entry with the same base and limits is replaced.
+ */
+export function HideItem(entry: filter$0.HiddenItem): $CancellablePromise<$models.HideResult> {
+    return $Call.ByID(2616388497, entry);
+}
+
 export function HideMarket(): $CancellablePromise<void> {
     return $Call.ByID(1205462434);
 }
@@ -669,6 +677,14 @@ export function TravelToHideout(token: string): $CancellablePromise<void> {
  */
 export function UIZoom(window: string): $CancellablePromise<number> {
     return $Call.ByID(2370476959, window);
+}
+
+/**
+ * UnhideItem removes the entry with the same base and limits and rewrites
+ * the filter.
+ */
+export function UnhideItem(entry: filter$0.HiddenItem): $CancellablePromise<$models.HideResult> {
+    return $Call.ByID(1907784074, entry);
 }
 
 /**

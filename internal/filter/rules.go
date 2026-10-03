@@ -412,6 +412,13 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 	}
 
+	// Alt+H entries the player wants hidden even when valuable.
+	var hardHidden builder
+	if hardHidden.hiddenRules(cfg, false, canon, snap, thr, &st) {
+		b.section(i18n.T("filter.sec.hiddenHard"))
+		b.add(hardHidden.lines...)
+	}
+
 	// Explicit hide switches and user lists outrank every price-driven style.
 	if cfg.HideExalt {
 		b.rule("Hide", []string{`Class == "Stackable Currency"`, `BaseType == "Exalted Orb"`}, "", nil, nil)
@@ -629,6 +636,15 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			b.add(strings.Split(block, "\n")...)
 			b.add("")
 		}
+	}
+
+	// ---- 7c. hidden by me (Alt+H), behind every valuable-item rule ----------
+	// Valuable currency, uniques, exceptional and exotic bases were shown
+	// above, so these entries hide only while cheap.
+	var cheapHidden builder
+	if cheapHidden.hiddenRules(cfg, true, canon, snap, thr, &st) {
+		b.section(i18n.T("filter.sec.hiddenCheap"))
+		b.add(cheapHidden.lines...)
 	}
 
 	// ---- 8. rares, jewels, quality, waystones, gems, keys --------------------

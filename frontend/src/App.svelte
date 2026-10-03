@@ -1129,6 +1129,19 @@
           {#if section === 'groups'}
             <div class="ld">
               <div class="ld-list" role="list">
+                <!-- The Alt+H list: always present, never deleted. -->
+                <div class="ld-item fixed" class:on={groupSel === -1} role="listitem">
+                  <span class="grip lock" title={t('hidden.locked')} aria-label={t('hidden.locked')}>
+                    <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z" /></svg>
+                  </span>
+                  <button type="button" class="ld-pick" onclick={() => (groupSel = -1)}>
+                    <span class="mode-badge hide">{t('groups.modeHide')}</span>
+                    <span class="ld-text">
+                      <span class="ld-name">{t('hidden.name')}</span>
+                      <small class="num">{cfg.hidden_off ? t('hidden.off') : t('hidden.count', (cfg.hidden_items ?? []).length)}</small>
+                    </span>
+                  </button>
+                </div>
                 {#each cfg.item_groups ?? [] as g, i (g.id || i)}
                   <div
                     class="ld-item"
@@ -1183,7 +1196,43 @@
               </div>
 
               <div class="ld-detail page">
-                {#if cfg.item_groups?.[groupSel]}
+                {#if groupSel === -1}
+                  <div class="group-head">
+                    <h2 class="hidden-title">{t('hidden.name')}</h2>
+                  </div>
+                  <section class="card">
+                    <Toggle
+                      checked={!cfg.hidden_off}
+                      label={t('hidden.on')}
+                      hint={t('hidden.hint', overlaySettings?.hide_hotkey || 'Alt+H')}
+                      onchange={(v) => {
+                        cfg!.hidden_off = !v
+                        queueSave()
+                      }}
+                    />
+                    {#each cfg.hidden_items ?? [] as h, hi (hi + h.base)}
+                      <div class="hidden-row">
+                        <span class="hidden-base">{h.base}</span>
+                        <span class="hidden-tags">
+                          {#if h.rarities?.length}<b>{h.rarities.join(' / ')}</b>{/if}
+                          {#if h.below_stack}<b>{t('hidden.below', h.below_stack)}</b>{/if}
+                          <b class:cheap={h.while_cheap}>{h.while_cheap ? t('hidden.whileCheap') : t('hidden.always')}</b>
+                          {#if h.added_at}<small>{new Date(h.added_at).toLocaleDateString()}</small>{/if}
+                        </span>
+                        <button
+                          type="button"
+                          class="ghost"
+                          onclick={() => {
+                            cfg!.hidden_items = (cfg!.hidden_items ?? []).filter((_, k) => k !== hi)
+                            queueSave()
+                          }}>{t('hidden.remove')}</button
+                        >
+                      </div>
+                    {:else}
+                      <p class="desc hint">{t('hidden.empty', overlaySettings?.hide_hotkey || 'Alt+H')}</p>
+                    {/each}
+                  </section>
+                {:else if cfg.item_groups?.[groupSel]}
                   {@const i = groupSel}
                   {@const g = cfg.item_groups[groupSel]}
                   <div class="group-head">
@@ -1506,6 +1555,8 @@
                         </label>
                         <p class="desc hint">{t('overlay.marketHotkeyHint')}</p>
                         <label class="field stack"><span>{t('craft.hotkey')}</span><HotkeyInput label={t('craft.hotkey')} bind:value={overlaySettings.craft_hotkey} onchange={queueOverlaySave} /></label>
+                        <label class="field stack"><span>{t('hidden.hotkey')}</span><HotkeyInput label={t('hidden.hotkey')} bind:value={overlaySettings.hide_hotkey} onchange={queueOverlaySave} /></label>
+                        <p class="desc hint">{t('hidden.hotkeyHint')}</p>
                         <p class="desc hint">{t('craft.hotkeyHint')}</p>
                       </section>
                     </div>
@@ -2716,6 +2767,59 @@
     color: var(--text-2);
     font-size: 10.5px;
     text-align: center;
+  }
+  .ld-item.fixed {
+    background: rgba(192, 86, 79, 0.04);
+  }
+  .grip.lock {
+    display: grid;
+    place-items: center;
+    cursor: default;
+  }
+  .grip.lock svg {
+    stroke-width: 2;
+  }
+  .hidden-title {
+    margin: 4px 0 8px;
+    font-family: var(--serif);
+    color: var(--gold-bright);
+    font-size: 16px;
+  }
+  .hidden-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-top: 1px solid var(--line);
+  }
+  .hidden-base {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hidden-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+  }
+  .hidden-tags b {
+    padding: 1px 6px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    font-size: 10.5px;
+    font-weight: normal;
+  }
+  .hidden-tags b.cheap {
+    color: var(--gold);
+    border-color: var(--gold-dim);
+  }
+  .hidden-tags small {
+    color: var(--muted);
+    font-size: 10.5px;
   }
   .mode-badge.hide {
     color: var(--bad);

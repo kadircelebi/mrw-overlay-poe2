@@ -20,6 +20,9 @@ type Settings struct {
 	// MarketHotkey opens the full market window with a fresh search.
 	MarketHotkey string `json:"market_hotkey"`
 	CraftHotkey  string `json:"craft_hotkey"`
+	// HideHotkey reads the item under the cursor and offers to add it to the
+	// loot filter's "hidden by me" list.
+	HideHotkey string `json:"hide_hotkey"`
 	// ChatEnabled turns on Commands: shortcuts that type a line into the
 	// game's chat. Like the overlay it sends keys to the game, so it starts
 	// off. The keys are taken only while the game is the active window, so
@@ -44,7 +47,7 @@ type Settings struct {
 // DefaultSettings leaves the overlay off: it registers a global shortcut and
 // sends keys to the game, so players opt in from Settings.
 func DefaultSettings() Settings {
-	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", Commands: DefaultChatCommands(), PanelHotkey: "F9", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true}
+	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", HideHotkey: "Alt+H", Commands: DefaultChatCommands(), PanelHotkey: "F9", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true}
 }
 
 // DefaultLiveSound is a short chime distinct from the loot filter's drops.
@@ -53,10 +56,24 @@ const DefaultLiveSound = "ShExalted"
 // ErrSameHotkey is returned when two of the overlay's shortcuts are the same.
 var ErrSameHotkey = errors.New("each overlay shortcut must be different")
 
+// uses reports whether another shortcut already takes key.
+func (s Settings) uses(key string) bool {
+	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.PanelHotkey, s.HideoutHotkey}
+	for _, c := range s.Commands {
+		keys = append(keys, c.Hotkey)
+	}
+	for _, k := range keys {
+		if strings.EqualFold(strings.TrimSpace(k), key) {
+			return true
+		}
+	}
+	return false
+}
+
 // DistinctHotkeys reports whether every shortcut differs from the others.
 func (s Settings) DistinctHotkeys() error {
 	seen := map[string]bool{}
-	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.PanelHotkey}
+	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.HideHotkey, s.PanelHotkey}
 	for _, c := range s.Commands {
 		keys = append(keys, c.Hotkey)
 	}
@@ -122,6 +139,12 @@ func (s *Settings) Normalize() {
 	s.CraftHotkey = strings.TrimSpace(s.CraftHotkey)
 	if s.CraftHotkey == "" {
 		s.CraftHotkey = "Alt+F"
+	}
+	s.HideHotkey = strings.TrimSpace(s.HideHotkey)
+	if s.HideHotkey == "" && !s.uses("Alt+H") {
+		// A player who already gave Alt+H to something else keeps it; the
+		// hide shortcut then stays off until they pick one.
+		s.HideHotkey = "Alt+H"
 	}
 	if s.Commands == nil {
 		s.Commands = DefaultChatCommands()

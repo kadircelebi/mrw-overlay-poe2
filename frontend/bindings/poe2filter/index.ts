@@ -12,6 +12,7 @@ export type {
     CraftImport,
     CraftPrices,
     FilterExplanation,
+    HideResult,
     LanguageOption,
     Meta,
     StartupStatus,

@@ -6,6 +6,7 @@
   import type { Evaluation, SelectedFilter } from '../bindings/poe2filter/internal/trade/models'
   import CurrencyCard from './lib/CurrencyCard.svelte'
   import FilterVerdict from './lib/FilterVerdict.svelte'
+  import HidePanel from './lib/HidePanel.svelte'
   import type { FilterExplanation } from '../bindings/poe2filter/models'
   import QuotaBadge from './lib/QuotaBadge.svelte'
   import OverlayItemCard from './lib/OverlayItemCard.svelte'
@@ -27,6 +28,8 @@
   let result = $state<Evaluation | null>(null)
   // What the written loot filter does with the item (null while unknown).
   let explain = $state<FilterExplanation | null>(null)
+  // "hide" when the item came with the hide shortcut (Alt+H).
+  let mode = $state('')
 
   // The item's worth for the filter's "hidden but valuable" warning: the
   // price list's figure, else the median of the cheapest listings found.
@@ -121,6 +124,7 @@
     result = null
     quote = null
     quoteChecked = false
+    mode = snap.mode ?? ''
     if (!snap.item) {
       item = null
       choices = []
@@ -153,7 +157,8 @@
     useRequiredLevel = snap.item.requiredLevel > 0 && !isGem(snap.item)
     requiredLevelMin = undefined
     requiredLevelMax = snap.item.requiredLevel || undefined
-    if (!needsUniqueSelection(snap.item)) queueEvaluate(40)
+    // The hide window only needs the filter's answer, not a trade search.
+    if (!needsUniqueSelection(snap.item) && mode !== 'hide') queueEvaluate(40)
   }
 
 
@@ -325,7 +330,7 @@
   <header>
     <img class="mark" src="/emblem.png" alt="" />
     <strong>MrW Overlay</strong>
-    {#if item}<span class="league">{t('ov.priceCheck', item.rarity)}</span>{/if}
+    {#if item}<span class="league">{mode === 'hide' ? t('hide.title') : t('ov.priceCheck', item.rarity)}</span>{/if}
     <QuotaBadge />
     <button title={t('craft.open')} aria-label={t('craft.open')} onclick={() => AppService.ShowCraftFromOverlay()}>⚒</button>
     <button title={t('ov.openMarket')} onclick={openMarket}>▣</button>
@@ -334,7 +339,11 @@
 
   {#if item}
     <div class="body">
-      {#if needsUniqueSelection(item)}
+      {#if mode === 'hide'}
+        <div bind:this={compactEl}>
+          <HidePanel {item} {quote} {explain} {catalog} />
+        </div>
+      {:else if needsUniqueSelection(item)}
         <section class="unique-picker">
           <small>Unidentified · {item.baseType}</small>
           <h2>{t('ov.whichItem')}</h2>

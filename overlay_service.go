@@ -456,7 +456,14 @@ func (s *AppService) OpenTradePage(rawURL string) error {
 	return s.app.Browser.OpenURL(rawURL)
 }
 
-func (s *AppService) captureOverlay() {
+func (s *AppService) captureOverlay() { s.captureItem("") }
+
+// captureHide reads the item like the price check, for the hide window.
+func (s *AppService) captureHide() { s.captureItem("hide") }
+
+// captureItem copies the item under the cursor from the game and shows it
+// in the compact window, priced (mode "") or to hide (mode "hide").
+func (s *AppService) captureItem(mode string) {
 	s.overlayMu.RLock()
 	enabled := s.overlaySettings.Enabled
 	s.overlayMu.RUnlock()
@@ -469,7 +476,7 @@ func (s *AppService) captureOverlay() {
 	// the copy keys go to the focused window and must reach the game instead.
 	switched, _ := overlay.FocusGame()
 	if err := overlay.CopyAdvancedItem(switched); err != nil {
-		s.showOverlaySnapshot(overlay.Snapshot{Error: err.Error()})
+		s.showOverlaySnapshot(overlay.Snapshot{Error: err.Error(), Mode: mode})
 		return
 	}
 	var raw string
@@ -493,22 +500,22 @@ func (s *AppService) captureOverlay() {
 			text, ok = gemFromScreen(catalog)
 		}
 		if !ok {
-			s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.noCopy")})
+			s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.noCopy"), Mode: mode})
 			return
 		}
 		raw = text
 	}
 	if err != nil {
-		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.catalogFailed", err)})
+		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.catalogFailed", err), Mode: mode})
 		return
 	}
 	item, err := overlay.ParseItemWith(raw, catalog, overlay.ParseOptions{SignedIn: s.overlayClient.SignedIn()})
 	if err != nil {
 		// Whatever the parser tripped on, the copy was not a game item.
-		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.notAnItem")})
+		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.notAnItem"), Mode: mode})
 		return
 	}
-	s.showOverlaySnapshot(overlay.Snapshot{Item: &item})
+	s.showOverlaySnapshot(overlay.Snapshot{Item: &item, Mode: mode})
 }
 
 // gemFromScreen reads the gem tooltip under the cursor with Windows' text
@@ -550,7 +557,10 @@ func (s *AppService) showOverlaySnapshot(snap overlay.Snapshot) {
 	// An exchange item shows only its worth card, so the window opens short
 	// (the page then fits it to the card with FitOverlay).
 	height := overlayHeight
-	if snap.Item != nil && snap.Item.Exchange != "" {
+	switch {
+	case snap.Mode == "hide":
+		height = overlayHideHeight
+	case snap.Item != nil && snap.Item.Exchange != "":
 		height = overlayExchangeHeight
 	}
 	s.overlayMu.Lock()
@@ -792,6 +802,7 @@ const (
 	overlayWidth          = 520
 	overlayHeight         = 760
 	overlayExchangeHeight = 230
+	overlayHideHeight     = 360
 )
 
 // The craft window's size in page pixels at scale 1.

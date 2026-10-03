@@ -3,6 +3,9 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as filter$0 from "./internal/filter/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as filtereval$0 from "./internal/filtereval/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -119,6 +122,19 @@ export interface FilterExplanation {
     "thresholdEx": number;
     "divineEx": number;
     "chaosEx": number;
+}
+
+/**
+ * HideResult tells the hide window what happened.
+ */
+export interface HideResult {
+    "hidden": filter$0.HiddenItem[] | null;
+
+    /**
+     * Updating is true when the filter is being rewritten now; false when an
+     * update was already running (the entry applies with the next one).
+     */
+    "updating": boolean;
 }
 
 /**

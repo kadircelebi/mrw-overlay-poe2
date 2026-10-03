@@ -4,6 +4,7 @@
 export type {
     Config,
     CustomStyle,
+    HiddenItem,
     ItemGroup,
     StyleGroup,
     Theme
