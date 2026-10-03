@@ -108,6 +108,23 @@ def spawns_on(mod, tags):
     return not spawn or any(t in tags for t in spawn)
 
 
+# Bases whose implicit changes how many prefixes and suffixes a Rare may have
+# (RePoE gives only the implicit's id; the numbers are the implicit texts on
+# poe2db.tw, e.g. Dusk Ring "+1 Prefix Modifier allowed, -1 Suffix Modifier
+# allowed"), as [prefix, suffix] changes.
+AFFIX_SLOTS = {
+    'RingImplicitPrefixSuffixAllowed1': [1, -1], 'AmuletImplicitPrefixSuffixAllowed1': [1, -1],    # Dusk
+    'RingImplicitPrefixSuffixAllowed2': [-1, 1], 'AmuletImplicitPrefixSuffixAllowed2': [-1, 1],    # Gloam
+    'RingImplicitPrefixSuffixAllowed3': [2, -2], 'AmuletImplicitPrefixSuffixAllowed3': [2, -2],    # Penumbra
+    'RingImplicitPrefixSuffixAllowed4': [-2, 2], 'AmuletImplicitPrefixSuffixAllowed4': [-2, 2],    # Tenebrous
+    'AmuletImplicitPrefixSuffixAllowed5': [-1, 0],   # Twisted
+    'AmuletImplicitPrefixSuffixAllowed6': [0, -1],   # Distorted
+    'AmuletImplicitPrefixSuffixAllowed7': [-1, 0],   # Lament
+    'AmuletImplicitPrefixSuffixAllowed8': [0, -1],   # Portent
+    'AmuletImplicitPrefixSuffixAllowed9': [-1, -1],  # Absent
+}
+
+
 def base_entry(b):
     """What the craft card shows of a base: defences, weapon numbers and
     requirements, with RePoE's units turned into the game's (crit 1000 = 10%,
@@ -130,6 +147,9 @@ def base_entry(b):
         out['aps'] = round(1000 / props['attack_time'], 2)
     if props.get('critical_strike_chance'):
         out['crit'] = props['critical_strike_chance'] / 100
+    for implicit in b.get('implicits') or []:
+        if implicit in AFFIX_SLOTS:
+            out['slots'] = AFFIX_SLOTS[implicit]
     return out
 
 

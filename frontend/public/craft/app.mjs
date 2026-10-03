@@ -10,6 +10,7 @@ import { pageFor, importItem, runesFor, runeStatLines } from './import.mjs';
 import { baseStats, requirementLine } from './stats.mjs';
 import { lineKey, targetOf, hasTarget, targetReason, fastRunner, stats, histogram } from './simulate.mjs';
 import { corrupt, corruptReason, corruptOutcomes } from './corrupt.mjs';
+import { parseLibrary, entryFor, sameCraft, addEntry, removeEntry } from './library.mjs';
 
 const $ = id => document.getElementById(id);
 const clone = object => structuredClone(object);
@@ -90,9 +91,11 @@ function commit(next, label, usage = null, newSession = false) {
   if (undo.length > 100) undo.shift();
   const before = snapshot(item);
   if (newSession) {
+    autoSaveCurrent();
     history = []; sessionStart = new Date().toISOString();
   }
-  item = next;
+  // The base's affix limits travel with the item for the engine.
+  item = { ...next, baseSlots: currentBase(next)?.slots || null };
   const usages = Array.isArray(usage) ? usage : usage ? [usage] : [];
   if (!newSession) history.unshift({ time: new Date().toISOString(), label, usages, before, after:snapshot(next) });
   if (!keepOmens) for (const context of Object.keys(activeOmens)) activeOmens[context] = activeOmens[context].filter(id => !usages.some(u => u.id === id));
@@ -317,6 +320,12 @@ function renderProps(base) {
   if (socketsOf(item)) line('Sockets', Array(socketsOf(item)).fill('S').join(' '), false);
   line('Item Level', item.ilvl, false);
   const runeLines = $('item-runes'); runeLines.replaceChildren();
+  // A base that moves the affix limits shows it as its implicit does in game.
+  (base?.slots || []).forEach((change, i) => {
+    if (!change) return;
+    const side = i ? 'Suffix' : 'Prefix';
+    runeLines.append(element('div', `${change > 0 ? '+' : ''}${change} ${side} Modifier${Math.abs(change) > 1 ? 's' : ''} allowed`, 'rune'));
+  });
   for (const text of item.runeStats || []) runeLines.append(element('div', text, 'rune'));
   for (const id of runesOf(item)) if (runes[id]) {
     const line = element('div', runes[id].text, 'rune'); line.title = runes[id].name; runeLines.append(line);
@@ -724,7 +733,7 @@ function renderMods() {
 function render() { if (ready) {
   if (held && mode === 'essence' && held.id !== specialSelected) drop();
   $('basic-controls').hidden = mode !== 'basic'; $('special-controls').hidden = mode === 'basic';
-  renderItem(); renderSpecials(); renderReveal(); renderCurrencies(); renderMods(); renderSim(); markTarget();
+  renderItem(); renderSpecials(); renderReveal(); renderCurrencies(); renderMods(); renderSim(); renderLibrary(); markTarget();
 } }
 
 // Switching class or defence type starts a new item, like the old base picker.
@@ -1067,7 +1076,8 @@ function renderSim() {
   }
   if (options.length) list.prepend(element('strong', t('sim.omens')));
   const reason = simBusy || simPending ? '' : simReason();
-  $('sim-reason').textContent = reason;
+  // Without a target the hint above says what to do; no red line for it.
+  $('sim-reason').textContent = simTarget ? reason : '';
   $('sim-run').disabled = $('sim-watch').disabled = Boolean(reason || simBusy || simPending);
   $('sim-orb').disabled = $('sim-runs').disabled = Boolean(simBusy || simPending);
   $('sim-stop').hidden = !simBusy;
@@ -1180,6 +1190,75 @@ $('sim-revert').onclick = () => {
   item = simPending.before; simPending = null; $('sim-progress').textContent = ''; render(); status(t('sim.reverted'));
 };
 
+// ---- Craft library -------------------------------------------------------
+// Crafts saved by hand, and the craft a new one replaces (reset, class change,
+// an item from the price check, opening a saved one) saved automatically.
+// Nothing is written before the list has been read, so a slow start cannot
+// overwrite the file with an empty list.
+let library = [], libraryLoaded = false;
+const craftState = () => ({ item, history, sessionStart });
+const craftName = () => currentBase()?.name || itemLabel(item.base);
+const libraryEntry = (name, auto) => entryFor(craftState(), { name, auto, baseName: craftName(), costEx: summarize(history).total || null });
+function saveLibrary() {
+  if (parent !== window) parent.postMessage({ type: 'craft-library-save', data: JSON.stringify(library) }, location.origin);
+}
+function autoSaveCurrent() {
+  if (!libraryLoaded || !history.length || library.some(entry => sameCraft(entry, craftState()))) return;
+  library = addEntry(library, libraryEntry(t('lib.autoName', craftName()), true));
+  saveLibrary();
+}
+const shortTime = iso => new Date(iso).toLocaleString(locale(), { dateStyle: 'short', timeStyle: 'short' });
+function renderLibrary() {
+  const list = $('lib-list'); list.replaceChildren();
+  $('lib-save').disabled = !libraryLoaded || Boolean(simBusy || simPending);
+  if (!library.length) { list.append(element('li', libraryLoaded ? t('lib.empty') : t('loadingShort'), 'lib-empty')); return; }
+  for (const entry of library) {
+    const row = element('li', undefined, 'lib-entry');
+    const head = element('div', undefined, 'lib-head');
+    head.append(element('strong', entry.name || t('lib.unnamed')));
+    if (entry.auto) head.append(element('em', t('lib.auto'), 'lib-tag'));
+    if (entry.sanctified || entry.corrupted) head.append(element('em', entry.sanctified ? 'Sanctified' : 'Corrupted', 'lib-tag lock'));
+    const meta = [entry.baseName || itemLabel(entry.page), entry.rarity, t('lib.mods', entry.mods), t('lib.steps', entry.steps)];
+    if (entry.cost_ex) meta.push(`${exText(entry.cost_ex)} Ex`);
+    meta.push(shortTime(entry.saved_at));
+    const actions = element('div', undefined, 'lib-actions');
+    const open = element('button', t('lib.open'));
+    open.disabled = Boolean(simBusy || simPending);
+    open.onclick = () => void openSaved(entry);
+    // Deleting asks twice: the second click within three seconds deletes.
+    const remove = element('button', t('lib.delete'));
+    remove.onclick = () => {
+      if (!remove.dataset.armed) {
+        remove.dataset.armed = '1'; remove.textContent = t('lib.confirmDelete');
+        setTimeout(() => { if (remove.isConnected) { delete remove.dataset.armed; remove.textContent = t('lib.delete'); } }, 3000);
+        return;
+      }
+      library = removeEntry(library, entry.id); saveLibrary(); renderLibrary(); status(t('lib.deleted', entry.name));
+    };
+    actions.append(open, remove);
+    row.append(head, element('small', meta.join(' · ')), actions);
+    list.append(row);
+  }
+}
+async function openSaved(entry) {
+  if (simBusy || simPending || !ready) return;
+  const saved = structuredClone(entry.state);
+  if (!pages[saved.item.base]) { status(t('lib.badPage'), 'error'); return; }
+  try { await load(saved.item.base); } catch (error) { status(error.message, 'error'); return; }
+  autoSaveCurrent();
+  undo.push({ item: clone(item), history: clone(history), sessionStart, activeOmens: clone(activeOmens) });
+  item = { ...saved.item, baseSlots: currentBase(saved.item)?.slots || null };
+  history = saved.history; sessionStart = saved.sessionStart || new Date().toISOString();
+  render(); persist(); status(t('lib.opened', entry.name), 'success');
+}
+$('lib-save').onclick = () => {
+  if (!libraryLoaded) return;
+  const name = $('lib-name').value.trim() || `${craftName()} · ${shortTime(new Date().toISOString())}`;
+  library = addEntry(library, libraryEntry(name, false));
+  saveLibrary(); $('lib-name').value = ''; renderLibrary(); status(t('lib.saved', name), 'success');
+};
+$('lib-name').onkeydown = event => { if (event.key === 'Enter') $('lib-save').click(); };
+
 $('download').onclick = () => {
   const url = URL.createObjectURL(new Blob([JSON.stringify({ format: 2, item, history, archives, sessionStart }, null, 2)], { type: 'application/json' }));
   const link = element('a'); link.href = url; link.download = 'theoretical-craft.json'; link.click();
@@ -1231,6 +1310,7 @@ try {
     }
   } catch { /* A corrupt stored draft cannot prevent opening the lab. */ }
   if (!pages[item.base]) item = createItem(classes[0].variants[0].page);
+  item = { ...item, baseSlots: currentBase(item)?.slots || null };
   await load(item.base);
   applyStatic();
   ready = true;
@@ -1261,9 +1341,15 @@ window.addEventListener('message',event => {
     if (ready) void importCopied(event.data.item);
   } else if (event.data?.type === 'craft-lang' && typeof event.data.lang === 'string') {
     setLang(event.data.lang); applyStatic(); render();
+  } else if (event.data?.type === 'craft-library') {
+    if (event.data.error) status(t('lib.loadFailed', event.data.error), 'error');
+    else { library = parseLibrary(event.data.data); libraryLoaded = true; renderLibrary(); }
+  } else if (event.data?.type === 'craft-library-saved' && event.data.error) {
+    status(t('lib.saveFailed', event.data.error), 'error');
   } else if (event.data?.type === 'craft-result') {
     status(event.data.error || event.data.message || t('market.sent'),event.data.error ? 'error' : 'success');
     renderItem();
   }
 });
 parent.postMessage({type:'craft-ready'},parentOrigin);
+parent.postMessage({type:'craft-library-load'},parentOrigin);
