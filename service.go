@@ -95,6 +95,12 @@ type AppService struct {
 	overlaySnapshot    overlay.Snapshot
 	// overlayHeight is the compact overlay's height in page pixels (0 = full).
 	overlayHeight int
+	// gameLog is the game's Client.txt, learned when the game comes to the
+	// front (string).
+	gameLog atomic.Value
+	// explainCache keeps the parsed filter while the file is unchanged.
+	explainMu    sync.Mutex
+	explainCache explainCache
 	// pageZoom is the CSS zoom each in-game window's page applies (setWindowZoom).
 	zoomMu         sync.Mutex
 	pageZoom       map[string]float64

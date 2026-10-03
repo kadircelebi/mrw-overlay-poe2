@@ -155,6 +155,7 @@ var tr = map[string]string{
 	"overlay.err.tooComplexSignedOut": "Arama GGG'nin girişsiz arama sınırı için fazla karmaşık; birkaç stat filtresini kaldırın ya da Ayarlar → Hesap'tan pathofexile.com hesabını bağlayın",
 	"overlay.err.searchTimeout":       "GGG araması zaman aşımına uğradı; biraz sonra tekrar deneyin",
 	"overlay.err.blocked":             "pathofexile.com arama sonucu yerine bir web sayfası döndürdü: site bakımda olabilir ya da istekleri şimdilik geri çeviriyor olabilir. Biraz sonra tekrar deneyin.",
+	"explain.noFilter":                "Filtre henüz yazılmadı; panelden bir kez güncelleyin.",
 	"overlay.err.fetchLimit":          "GGG ilan yükleme sınırına ulaşıldı; birkaç saniye sonra tekrar kaydırın",
 	"overlay.err.fetchTimeout":        "İlanlar zaman aşımına uğradı; biraz sonra tekrar deneyin",
 	"overlay.err.hideoutNeedsLogin":   "Hideout'a gitmek için Ayarlar → Hesap'tan tarayıcını bağla",

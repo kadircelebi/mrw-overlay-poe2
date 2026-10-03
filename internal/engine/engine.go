@@ -528,11 +528,9 @@ func (e *Engine) run(ctx context.Context) (err error) {
 		}
 	}
 
-	dest := e.opt.OutPath
-	if dest == "" {
-		if dest, err = filter.FilterPath(cfg.FilterName); err != nil {
-			return err
-		}
+	dest, err := e.FilterPath()
+	if err != nil {
+		return err
 	}
 	cfg, missingSounds := cfg.WithoutMissingSoundFiles(filepath.Dir(dest))
 	if len(missingSounds) > 0 {
@@ -677,4 +675,13 @@ func (e *Engine) ImportScan(data []byte) (trade.ImportResult, error) {
 	e.logf(i18n.T("log.imported"), res.Added, res.Updated, res.Skipped)
 	e.changed()
 	return res, nil
+}
+
+// FilterPath is where the filter is written: the -out path in tests, else
+// the game's filter folder under the configured name.
+func (e *Engine) FilterPath() (string, error) {
+	if e.opt.OutPath != "" {
+		return e.opt.OutPath, nil
+	}
+	return filter.FilterPath(e.Config().FilterName)
 }

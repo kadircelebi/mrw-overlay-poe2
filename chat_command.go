@@ -60,13 +60,16 @@ func (s *AppService) syncChatShortcuts() {
 // is followed for the player who whispered last ({last}).
 func (s *AppService) setGameActive(active bool, hwnd uintptr) {
 	if active {
+		path := overlay.GameLogPath(hwnd)
+		if path != "" {
+			// Kept for the filter explanation's area level (LastArea).
+			s.gameLog.Store(path)
+		}
 		s.overlayMu.RLock()
 		on := s.overlaySettings.ChatEnabled
 		s.overlayMu.RUnlock()
-		if on {
-			if path := overlay.GameLogPath(hwnd); path != "" {
-				s.whispers.Follow(path)
-			}
+		if on && path != "" {
+			s.whispers.Follow(path)
 		}
 	}
 	if s.gameActive.Swap(active) != active {

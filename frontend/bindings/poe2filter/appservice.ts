@@ -152,6 +152,14 @@ export function EvaluateOverlay($in: trade$0.EvaluateRequest, refresh: boolean):
 }
 
 /**
+ * ExplainItem tells which rule of the written filter decides the item in
+ * the copied text (Alt+E's), and whether that is certain.
+ */
+export function ExplainItem(raw: string): $CancellablePromise<$models.FilterExplanation> {
+    return $Call.ByID(2183166722, raw);
+}
+
+/**
  * ExportFilter saves a copy of the filter that was last written, for sharing or
  * for using it on a machine that does not run this app.
  */
