@@ -35,6 +35,8 @@ function availableEssences(item, data, rule) {
 
 export function specialReason(item, data, rule, effects=noOmens) {
   if (item.reveal) return t('err.pendingReveal');
+  if (item.sanctified) return t('err.sanctified');
+  if (item.corrupted) return t('err.corrupted');
   if (!applicable(rule, data)) return t('err.notForClass');
   if (!rule.beforeRarity.includes(item.rarity)) return t('err.needRarity', rule.beforeRarity.join(' / '));
   if (rule.operation === 'desecrate') {

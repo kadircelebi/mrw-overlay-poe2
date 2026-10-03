@@ -9,11 +9,12 @@ import { t, setLang, locale, num, variantName } from './i18n.mjs';
 import { pageFor, importItem, runesFor, runeStatLines } from './import.mjs';
 import { baseStats, requirementLine } from './stats.mjs';
 import { lineKey, targetOf, hasTarget, targetReason, fastRunner, stats, histogram } from './simulate.mjs';
+import { corrupt, corruptReason, corruptOutcomes } from './corrupt.mjs';
 
 const $ = id => document.getElementById(id);
 const clone = object => structuredClone(object);
-const shortNames = { transmute: 'Transmutation', aug: 'Augmentation', regal: 'Regal', exalted: 'Exalted', chaos: 'Chaos', annu: 'Annulment', divine: 'Divine', fracture: 'Fracturing' };
-const order = ['transmute', 'aug', 'regal', 'exalted', 'chaos', 'annu', 'divine', 'fracture'];
+const shortNames = { transmute: 'Transmutation', aug: 'Augmentation', regal: 'Regal', exalted: 'Exalted', chaos: 'Chaos', annu: 'Annulment', divine: 'Divine', fracture: 'Fracturing', vaal: 'Vaal' };
+const order = ['transmute', 'aug', 'regal', 'exalted', 'chaos', 'annu', 'divine', 'fracture', 'vaal'];
 const basePools = ['normal', 'desecrated', 'essence', 'perfect_essence'];
 let item = createItem(), datasets = {}, rules = {}, selected = 'transmute', tier = '', pool = 'normal';
 let history = [], undo = [], ready = false;
@@ -190,6 +191,10 @@ function renderItem() {
   for (const id of ['rarity','item-class','variant','ilvl','quality','clear','reset']) $(id).disabled = Boolean(item.reveal);
   $('item-card').className = 'item-card ' + item.rarity;
   const base = currentBase();
+  $('item-card').classList.toggle('corrupted', Boolean(item.corrupted));
+  $('item-card').classList.toggle('sanctified', Boolean(item.sanctified));
+  $('item-state').textContent = item.sanctified ? 'Sanctified' : item.corrupted ? 'Corrupted' : '';
+  $('item-state').hidden = !item.corrupted && !item.sanctified;
   $('item-name').textContent = base?.name || itemLabel(item.base);
   $('item-class-label').textContent = itemLabel(item.base);
   $('rarity-label').textContent = item.rarity;
@@ -202,6 +207,13 @@ function renderItem() {
   $('crafted-summary').classList.toggle('full', item.mods.filter(isCrafted).length >= craftedLimit(item));
   $('crafted-summary').title = t('crafted.hint');
   const mods = $('item-mods'); mods.replaceChildren();
+  // A corruption enchantment sits above the affixes, as in the game.
+  if (item.enchant) {
+    const row = element('div', undefined, 'item-enchant');
+    row.append(element('p', rolledWithRange(item.enchant), 'mod-value'));
+    row.title = `${item.enchant.name} · Enchant`;
+    mods.append(row);
+  }
   if (!item.mods.length) mods.append(element('p', item.rarity === 'Rare' ? t('empty.rare') : t('empty.other'), 'empty-item'));
   // Laid out like the game's tooltip: prefixes then suffixes, the side named
   // once on the left, the tier on the right (C for crafted), the roll with its
@@ -606,10 +618,15 @@ function renderCurrencies() {
   $('selected-name').textContent = rule.name + (rule.tier ? ` · ${rule.tier}` : '');
   $('selected-detail').textContent = reason || `${t(`effect.${rule.afterTrigger}`)}${rule.afterRarity && rule.afterRarity !== item.rarity ? t('effect.becomes', rule.afterRarity) : ''}${rule.beforeMin_mod_lv ? t('effect.minLevel', rule.beforeMin_mod_lv) : ''}`;
   $('apply').disabled = Boolean(reason);
+  if (selected === 'vaal-orb') {
+    const why = corruptReason(item), outcomes = corruptOutcomes(item, data(), corruptContext());
+    $('selected-detail').textContent = why || t('vaal.detail', outcomes.map(o => t(`vaal.o.${o}`)).join(' · '), num(100 / outcomes.length, 1));
+    $('apply').disabled = Boolean(why);
+  }
   if (!reason && rule.afterTrigger === 'fracture') $('selected-detail').textContent = t('effect.fractureOdds', num(100 / fracturable(item).length, 2));
   if (!reason && usableOmens('basic',selected,rule).length) {
     const removal = omenEffect.removal || {};
-    $('selected-detail').textContent = selected.includes('exalted')
+    $('selected-detail').textContent = omenEffect.sanctify ? t('effect.sanctify') : selected.includes('exalted')
       ? t('effect.omens', omenEffect.quantity, omenEffect.side ? t('effect.side', omenEffect.side) : '')
       : t('effect.removes', removal.count || 1) + (removal.side ? t('effect.side', removal.side) : '') +
         (removal.desecrated ? t('effect.onlyDesecrated') : '') + (removal.lowest ? t('effect.lowest') : '') +
@@ -869,8 +886,15 @@ $('special-apply').onclick = () => attempt(() => {
 });
 $('pool').onchange = () => { pool = $('pool').value; renderMods(); };
 $('search').oninput = renderMods;
+// What a Vaal Orb needs to know of the item besides its modifiers.
+const corruptContext = () => ({ classId: classOf(item.base)?.id, sockets: socketsOf(item), maxSockets: maxSockets(item.base), quality: qualityOf(item) });
 $('apply').onclick = () => attempt(() => {
   const rule = rules[selected];
+  if (selected === 'vaal-orb') {
+    const result = corrupt(item, data(), corruptContext());
+    commit(result.item, t(`vaal.done.${result.outcome}`, result.detail), [payment(selected, rule)]);
+    return;
+  }
   const effects = effectsFor('basic',selected,rule), payments = operationPayments('basic',selected,rule);
   commit(applyOrbOmens(item,data(),selected,rule,effects), t('applied', payments.map(p=>p.name).join(' + ')),payments);
 });
@@ -941,6 +965,8 @@ document.addEventListener('mousemove', event => {
 });
 document.addEventListener('contextmenu', event => { if (held) { event.preventDefault(); drop(); status(t('currency.dropped')); } });
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && held && $('base-pop').hidden) { drop(); status(t('currency.dropped')); } });
+// F11 inside the craft page sizes the app window (the host page owns it).
+document.addEventListener('keydown', event => { if (event.key === 'F11') { event.preventDefault(); parent.postMessage({ type: 'craft-size' }, location.origin); } });
 $('item-card').addEventListener('click', event => {
   const action = heldAction();
   if (!action || event.target.closest('button, input, select, label')) return;
@@ -961,6 +987,9 @@ async function importCopied(copied) {
     Object.assign(next, withRunes({ ...next, sockets }, [...found, ...Array(Math.max(0, sockets - found.length)).fill('')].slice(0, sockets)));
     const quality = /^Quality: \+(\d+)%/m.exec(copied.raw);
     next.quality = quality ? Math.min(20, Number(quality[1])) : 0;
+    // A copied Corrupted or Sanctified item stays locked in the craft too.
+    if (/^Sanctified$/m.test(copied.raw)) next.sanctified = true;
+    else if (/^Corrupted$/m.test(copied.raw)) next.corrupted = true;
     mode = 'basic'; pool = 'normal'; $('pool').value = pool;
     commit(next, t('import.done', itemLabel(where.page), next.mods.length) +
       (unmatched.length ? t('import.unmatched', unmatched.length, unmatched.join(', ')) : '') +
@@ -1175,6 +1204,8 @@ try {
   rules = loadedRules; manifest = loadedManifest; classes = classData.classes; bases = classData.bases || {};
   for (const cls of classes) for (const v of cls.variants) pages[v.page] = { cls, attr: v.attr };
   if (rules['greater-orb-of-augmentation']) rules['greater-orb-of-augmentation'].name = 'Greater Orb of Augmentation';
+  // PoE2DB names the Vaal Orb after the Perfect Exalted Orb.
+  if (rules['vaal-orb']) rules['vaal-orb'].name = 'Vaal Orb';
   specials = specialData.rules; runes = specialData.runes || {};
   omens = omenDefinitions(rules);
   if (omens['omen-of-the-liege']) omens['omen-of-the-liege'].icon = 'Art/2DItems/Currency/Omens/OmenOnAbyssGuarenteedLichTypeMod2.webp';
