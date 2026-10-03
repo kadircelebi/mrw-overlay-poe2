@@ -147,6 +147,16 @@ func (q *Query) SetMin(group, filter string, min int) {
 	q.Query.Filters[group] = g
 }
 
+// SetOption sets a select-style filter inside a filter group.
+func (q *Query) SetOption(group, filter, option string) {
+	g, ok := q.Query.Filters[group]
+	if !ok {
+		g = filterGroup{Filters: map[string]any{}}
+	}
+	g.Filters[filter] = Option{Option: option}
+	q.Query.Filters[group] = g
+}
+
 // SearchResult is the response of a trade search.
 type SearchResult struct {
 	ID     string   `json:"id"`
