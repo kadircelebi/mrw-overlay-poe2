@@ -156,8 +156,10 @@
     useQuality = snap.item.quality > 0
     qualityMin = snap.item.quality || undefined
     qualityMax = undefined
-    // A gem's requirement follows its level, which is searched instead.
-    useRequiredLevel = snap.item.requiredLevel > 0 && !isGem(snap.item)
+    // A gem's requirement follows its level, which is searched instead. The
+    // requirement matters to levelling characters: from level 59 up (endgame
+    // gear) it is offered but not ticked.
+    useRequiredLevel = snap.item.requiredLevel > 0 && snap.item.requiredLevel < 59 && !isGem(snap.item)
     requiredLevelMin = undefined
     requiredLevelMax = snap.item.requiredLevel || undefined
     // The hide window only needs the filter's answer, not a trade search.
