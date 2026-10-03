@@ -542,6 +542,7 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	e.setStep(0.7, i18n.T("step.rules"))
 	ns := e.ns.set(basePath, string(baseContent))
 	cfg.Stacked = filter.StackedBases(neversink.StackedBases(string(baseContent)))
+	cfg.Exotics = neversink.ExoticBlocks(string(baseContent))
 	block, st := filter.GenerateDynamicFilterBlock(cfg, snap, validBases, ns)
 
 	e.setStep(0.85, i18n.T("step.writing"))

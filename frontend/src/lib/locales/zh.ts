@@ -202,6 +202,8 @@ export const zh: Record<string, string> = {
   'rules.pinnacle': '強調 pinnacle 鑰匙',
   'rules.hideExalt': '隱藏 Exalted Orb',
   'rules.hideGold': '隱藏 Gold',
+  'rules.exotics': '永遠顯示 NeverSink 的稀有物品',
+  'rules.exoticsHint': '高價基底（Absent、Lament、Portent Amulet…）與帶有高價詞綴的已鑑定物品，使用 NeverSink 原本的外觀，優先於隱藏裝備規則',
 
   'lists.title': '清單',
   'lists.showTop': '永遠顯示',

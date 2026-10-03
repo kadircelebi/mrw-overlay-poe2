@@ -620,6 +620,17 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 	}
 
+	// ---- 7b. NeverSink's exotic bases and modifiers --------------------------
+	// They sit after our own rules in the base filter, behind the gear hides
+	// below, so they are repeated here with NeverSink's own looks.
+	if cfg.ShowExotics && len(cfg.Exotics) > 0 {
+		b.section(i18n.T("filter.sec.exotic"))
+		for _, block := range cfg.Exotics {
+			b.add(strings.Split(block, "\n")...)
+			b.add("")
+		}
+	}
+
 	// ---- 8. rares, jewels, quality, waystones, gems, keys --------------------
 	if cfg.T5RareTier != TierOff {
 		b.section(fmt.Sprintf(i18n.T("filter.sec.t5rare"), tierLabel(cfg.T5RareTier, "")))

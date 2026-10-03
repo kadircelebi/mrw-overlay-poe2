@@ -205,6 +205,8 @@ export const tr: Record<string, string> = {
   'rules.pinnacle': 'Pinnacle anahtarları vurgusu',
   'rules.hideExalt': "Exalted Orb'ları gizle",
   'rules.hideGold': "Gold'u gizle",
+  'rules.exotics': "NeverSink'in exotic eşyalarını her zaman göster",
+  'rules.exoticsHint': "Değerli tabanlar (Absent, Lament, Portent Amulet…) ve değerli affix'li tanımlı eşyalar, NeverSink'in kendi görünümüyle, ekipman gizlemeden önce",
 
   'lists.title': 'Listeler',
   'lists.showTop': 'Her zaman göster',

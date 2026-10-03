@@ -1149,3 +1149,32 @@ func TestHideGroupRarityScopes(t *testing.T) {
 		t.Error("hiding every rarity of a base with a valuable unique gave no warning")
 	}
 }
+
+// NeverSink's exotic rules come ahead of every gear hide, so Absent or Lament
+// Amulets and identified items with a valuable modifier are not swallowed;
+// switching the rule off leaves them out.
+func TestExoticRulesPrecedeGearHides(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.T5RareTier = TierHide
+	cfg.Exotics = []string{
+		"Show # %D8 $type->exoticbases $tier->pseudocrafts2 !exotics_ctier\n\tRarity Normal Magic Rare\n\tBaseType == \"Lament Amulet\"\n\tSetFontSize 40",
+		"Show # %D6 $type->exoticmods $tier->cmspears !exotics_identifiedmod\n\tIdentified True\n\tClass == \"Spears\"\n\tHasExplicitMod >=1 \"Merciless\"",
+	}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	amulet := blockContaining(t, out, `BaseType == "Lament Amulet"`)
+	mods := blockContaining(t, out, `HasExplicitMod >=1 "Merciless"`)
+	if amulet < 0 || mods < 0 {
+		t.Fatalf("exotic rules missing:\n%s", out)
+	}
+	for _, hide := range [][]string{{"Hide", "Rarity Rare", `"Amulets"`}, {"Hide", "Rarity Normal Magic Rare", `"Amulets"`}} {
+		if i := blockContaining(t, out, hide...); i >= 0 && i < amulet {
+			t.Errorf("hide %v (block %d) comes before the exotic amulet (block %d)", hide, i, amulet)
+		}
+	}
+
+	cfg.ShowExotics = false
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	if blockContaining(t, out, `BaseType == "Lament Amulet"`) >= 0 {
+		t.Error("exotic rules written while switched off")
+	}
+}

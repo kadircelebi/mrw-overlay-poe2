@@ -1466,6 +1466,7 @@
                       <Toggle bind:checked={cfg.boss_keys_and_tablets} label={t('rules.pinnacle')} onchange={() => queueSave()} />
                       <Toggle bind:checked={cfg.hide_exalt} label={t('rules.hideExalt')} onchange={() => queueSave()} />
                       <Toggle bind:checked={cfg.hide_gold} label={t('rules.hideGold')} onchange={() => queueSave()} />
+                      <Toggle bind:checked={cfg.show_exotics} label={t('rules.exotics')} hint={t('rules.exoticsHint')} onchange={() => queueSave()} />
                     </section>
                   </div>
                 </div>

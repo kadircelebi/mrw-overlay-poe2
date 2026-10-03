@@ -96,6 +96,13 @@ const MaxItemGroups = 12
 type Config struct {
 	// Stacked is filled by the engine before each update (see StackedBases).
 	Stacked StackedBases `json:"-"`
+	// Exotics are NeverSink's exotic gear rules, verbatim (neversink.ExoticBlocks),
+	// filled by the engine like Stacked.
+	Exotics []string `json:"-"`
+	// ShowExotics repeats those rules ahead of ours, so the leftover-gear hide
+	// cannot swallow valuable bases (Absent/Lament/Portent Amulet...) or
+	// identified items with a valuable modifier.
+	ShowExotics bool `json:"show_exotics"`
 
 	// Value threshold: items worth less are hidden (or dimmed).
 	MinValue     float64 `json:"min_value"`
@@ -202,6 +209,7 @@ func DefaultConfig() Config {
 		Whitelist:         []string{"Mirror of Kalandra", "Albino Rhoa Feather"},
 		ChanceBases:       []string{"Heavy Belt", "Utility Belt"},
 		WaystoneTier:      14,
+		ShowExotics:       true,
 		UncutGemLevel:     MaxUncutGemLevel,
 		UncutSupportLevel: TierHide,
 		PinnacleKeys:      true,

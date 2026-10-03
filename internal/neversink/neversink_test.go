@@ -131,3 +131,51 @@ Show
 		t.Error("Exalted Orb has no StackSize rule")
 	}
 }
+
+// Exotic gear rules are lifted verbatim; switched-off exotic bases come back
+// (they are always worth picking up) but switched-off modifier rules and the
+// common Breach Ring tiers do not.
+func TestExoticBlocks(t *testing.T) {
+	content := `Show # %D8 $type->exoticbases $tier->pseudocrafts2 !exotics_ctier
+	Rarity Normal Magic Rare
+	BaseType == "Lament Amulet" "Portent Amulet"
+	SetFontSize 40
+
+#Show # %D8 $type->exoticbases $tier->pseudocrafts1 !exotics_btier
+#	Rarity Normal Magic Rare
+#	BaseType == "Absent Amulet"
+
+#Show # %D4 $type->exoticbases $tier->commonexoticbases !gear_jewelmagiclow
+#	Rarity Normal Magic
+#	BaseType == "Breach Ring"
+
+Show # %D6 $type->exoticmods $tier->cmspears !exotics_identifiedmod
+	Identified True
+	Class == "Spears"
+	HasExplicitMod >=1 "Merciless"
+
+#Show # %D6 $type->exoticmods $tier->cmboots !exotics_identifiedmod
+#	Class == "Boots"
+
+Show # $type->currency $tier->a
+	BaseType == "Divine Orb"
+`
+	got := ExoticBlocks(content)
+	if len(got) != 3 {
+		t.Fatalf("blocks = %d:\n%s", len(got), strings.Join(got, "\n---\n"))
+	}
+	if !strings.Contains(got[0], `"Lament Amulet"`) || !strings.Contains(got[0], "\tSetFontSize 40") {
+		t.Errorf("first block = %q", got[0])
+	}
+	if !strings.HasPrefix(got[1], "Show # %D8") || !strings.Contains(got[1], "\tBaseType == \"Absent Amulet\"") {
+		t.Errorf("switched-off exotic base not restored: %q", got[1])
+	}
+	if !strings.Contains(got[2], `HasExplicitMod >=1 "Merciless"`) {
+		t.Errorf("third block = %q", got[2])
+	}
+	for _, b := range got {
+		if strings.Contains(b, "Breach Ring") || strings.Contains(b, "Boots") || strings.Contains(b, "Divine") {
+			t.Errorf("unexpected block %q", b)
+		}
+	}
+}
