@@ -106,7 +106,9 @@ type Config struct {
 	// HiddenItems is the "hidden by me" list (Alt+H); HiddenOff switches it
 	// off without losing it.
 	HiddenItems []HiddenItem `json:"hidden_items"`
-	HiddenOff   bool         `json:"hidden_off"`
+	// Exotic is the player's changes to the Exotic group (see exotic.go).
+	Exotic    ExoticSettings `json:"exotic"`
+	HiddenOff bool           `json:"hidden_off"`
 
 	// Value threshold: items worth less are hidden (or dimmed).
 	MinValue     float64 `json:"min_value"`
@@ -273,6 +275,7 @@ func LoadConfig(path string) Config {
 // Normalize clamps values into their valid ranges.
 func (c *Config) Normalize() {
 	c.HiddenItems = normalizeHidden(c.HiddenItems)
+	normalizeExotic(&c.Exotic)
 	c.LegacyMinExalt, c.LegacyMinDivine, c.LegacyPreset, c.LegacyIntervalMn = 0, 0, "", 0
 	switch c.MinValueUnit {
 	case "exalted", "chaos", "divine":

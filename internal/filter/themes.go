@@ -147,6 +147,8 @@ const (
 	GroupUncutSupport       = "uncut_support"
 	GroupPinnacle           = "pinnacle"
 	GroupChance             = "chance"
+	GroupExoticHigh         = "exotic_high"
+	GroupExoticNormal       = "exotic_normal"
 )
 
 // StyleGroups lists every customisable group in display order.
@@ -168,6 +170,12 @@ var StyleGroups = []StyleGroup{
 	{ID: GroupExceptional, Sample: "Exceptional Sekhema Sandals", AllowDefault: true,
 		DefaultSound: "2", FontSize: 42, HasBeam: true, IconShape: "Diamond",
 		Default: Theme{BgColor: "0 40 70 240", TextColor: "255 255 255 255", Border: "0 210 255 255", Beam: "Cyan"}},
+	{ID: GroupExoticHigh, Sample: "Absent Amulet", AllowDefault: true,
+		DefaultSound: "2", FontSize: 44, HasBeam: true, IconShape: "Diamond",
+		Default: Theme{BgColor: "0 70 55 255", TextColor: "255 255 255 255", Border: "0 255 190 255", Beam: "Green"}},
+	{ID: GroupExoticNormal, Sample: "Lament Amulet", AllowDefault: true,
+		FontSize: 40, IconShape: "Diamond",
+		Default: Theme{BgColor: "0 40 32 240", TextColor: "170 255 220 255", Border: "0 190 150 255"}},
 	{ID: GroupExceptionalUnknown, Sample: "Exceptional Cavalry Boots", AllowDefault: true,
 		FontSize: 36,
 		Default:  Theme{BgColor: "0 25 45 220", TextColor: "200 230 255 255", Border: "0 150 200 255", Beam: "Cyan"}},
@@ -260,6 +268,8 @@ var NeverSinkPreset = map[string]string{
 	GroupUnique:             "uniques_a",
 	GroupExceptional:        "exotics_btier",
 	GroupExceptionalUnknown: "exotics_ctier",
+	GroupExoticHigh:         "exotics_btier",
+	GroupExoticNormal:       "exotics_ctier",
 	GroupT5Rare:             "gear_tieredjewellery",
 	GroupRareJewel:          "gear_jewelrare",
 	GroupQuality:            "itemproperty_salvage1",
@@ -539,6 +549,8 @@ var groupLabelKeys = map[string][2]string{
 	GroupUnique:             {"group.unique", "groupDefault.unique"},
 	GroupExceptional:        {"group.exceptional", "groupDefault.exceptional"},
 	GroupExceptionalUnknown: {"group.exceptionalUnknown", "groupDefault.exceptionalUnknown"},
+	GroupExoticHigh:         {"group.exoticHigh", "groupDefault.exoticHigh"},
+	GroupExoticNormal:       {"group.exoticNormal", "groupDefault.exoticNormal"},
 	GroupT5Rare:             {"group.t5rare", "groupDefault.t5rare"},
 	GroupRareJewel:          {"group.rareJewel", "groupDefault.rareJewel"},
 	GroupQuality:            {"group.quality", "groupDefault.quality"},

@@ -4,6 +4,8 @@
 export type {
     Config,
     CustomStyle,
+    ExoticEntry,
+    ExoticSettings,
     HiddenItem,
     ItemGroup,
     StyleGroup,

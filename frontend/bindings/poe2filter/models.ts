@@ -78,6 +78,34 @@ export interface CraftPrices {
 }
 
 /**
+ * ExoticModOption is a modifier an item class can roll, for the Exotic
+ * group's "add a modifier" search.
+ */
+export interface ExoticModOption {
+    "stat": string;
+    "text": string;
+    "affix": string;
+    "tiers": ExoticTier[] | null;
+}
+
+/**
+ * ExoticTier is one tier of a modifier: its name is what the filter matches.
+ */
+export interface ExoticTier {
+    "tier": number;
+    "name": string;
+    "level": number;
+    "min": number;
+    "max": number;
+
+    /**
+     * Also are other modifiers of the class that use the same name; an
+     * entry with this tier catches them too.
+     */
+    "also"?: string[] | null;
+}
+
+/**
  * FilterExplanation is what the written filter does with an item and why.
  */
 export interface FilterExplanation {

@@ -17,6 +17,11 @@ export interface Config {
      * off without losing it.
      */
     "hidden_items": HiddenItem[] | null;
+
+    /**
+     * Exotic is the player's changes to the Exotic group (see exotic.go).
+     */
+    "exotic": ExoticSettings;
     "hidden_off": boolean;
 
     /**
@@ -183,6 +188,68 @@ export interface CustomStyle {
     "beam": string;
     "icon": string;
     "shape": string;
+}
+
+/**
+ * ExoticEntry is one line of the Exotic group.
+ */
+export interface ExoticEntry {
+    "key": string;
+    "kind": string;
+    "base"?: string;
+
+    /**
+     * Classes and Names make a modifier entry: items of these classes with
+     * an explicit modifier of one of these names (a stat's tier names).
+     */
+    "classes"?: string[] | null;
+    "names"?: string[] | null;
+
+    /**
+     * Stat and MinTier record a player's modifier entry (the stat chosen and
+     * the lowest tier kept), so the panel can show and edit it.
+     */
+    "stat"?: string;
+    "min_tier"?: number;
+
+    /**
+     * Label is the modifier as the game prints it, for the panel.
+     */
+    "label"?: string;
+
+    /**
+     * Conds are the rule's other conditions as written ("Rarity Normal
+     * Magic Rare", "ItemLevel >= 82", "Identified True"...).
+     */
+    "conds"?: string[] | null;
+    "level": string;
+
+    /**
+     * "neversink" or "user"
+     */
+    "source": string;
+
+    /**
+     * Tier is NeverSink's tier tag of the rule the entry came from.
+     */
+    "tier"?: string;
+}
+
+/**
+ * ExoticSettings are the player's differences from NeverSink.
+ */
+export interface ExoticSettings {
+    "added": ExoticEntry[] | null;
+
+    /**
+     * Removed are keys of NeverSink entries switched off.
+     */
+    "removed": string[] | null;
+
+    /**
+     * Levels moves entries (NeverSink's or the player's) to another level.
+     */
+    "levels": { [_ in string]?: string } | null;
 }
 
 /**

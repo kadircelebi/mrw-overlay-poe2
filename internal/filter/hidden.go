@@ -86,23 +86,16 @@ func HiddenKey(h HiddenItem) string {
 
 var quotedValueRE = regexp.MustCompile(`"([^"]+)"`)
 
-// exoticBases are the bases the NeverSink exotic rules name; they win over
-// the hidden list (the player keeps them by leaving that rule on).
+// exoticBases are the bases the Exotic group shows; they win over the
+// hidden list (the player keeps or drops them in that group).
 func exoticBases(cfg Config) map[string]bool {
 	out := map[string]bool{}
 	if !cfg.ShowExotics {
 		return out
 	}
-	for _, block := range cfg.Exotics {
-		if !strings.Contains(block, "$type->exoticbases") {
-			continue
-		}
-		for _, line := range strings.Split(block, "\n") {
-			if strings.HasPrefix(strings.TrimSpace(line), "BaseType") {
-				for _, m := range quotedValueRE.FindAllStringSubmatch(line, -1) {
-					out[strings.ToLower(m[1])] = true
-				}
-			}
+	for _, r := range ExoticRows(NeverSinkExotics(cfg.Exotics), cfg.Exotic) {
+		if !r.Off && r.Kind == ExoticBase {
+			out[strings.ToLower(r.Base)] = true
 		}
 	}
 	return out

@@ -80,3 +80,22 @@ func (e *Engine) NeverSinkThemes() []filter.Theme {
 	defer e.ns.mu.Unlock()
 	return e.ns.list
 }
+
+// NeverSinkExotics returns the base filter's exotic rules (see
+// neversink.ExoticBlocks) from the file on disk; nothing is downloaded.
+func (e *Engine) NeverSinkExotics() []string {
+	cfg := e.Config()
+	path := cfg.CustomBaseFilter
+	if path == "" {
+		name, err := neversink.FileName(cfg.Strictness)
+		if err != nil {
+			return nil
+		}
+		path = filepath.Join(e.dataDir, "neversink", name)
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	return neversink.ExoticBlocks(string(content))
+}

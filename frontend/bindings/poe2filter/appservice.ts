@@ -152,6 +152,24 @@ export function EvaluateOverlay($in: trade$0.EvaluateRequest, refresh: boolean):
 }
 
 /**
+ * ExoticModOptions lists the explicit modifiers items of the class can roll,
+ * with their tiers (best first) and the names they share with other
+ * modifiers of the class.
+ */
+export function ExoticModOptions($class: string): $CancellablePromise<$models.ExoticModOption[] | null> {
+    return $Call.ByID(1830936758, $class);
+}
+
+/**
+ * ExoticNeverSink lists NeverSink's exotic entries (bases and modifier
+ * names) from the base filter on disk; the panel lays the player's changes
+ * (Config.Exotic) over them.
+ */
+export function ExoticNeverSink(): $CancellablePromise<filter$0.ExoticEntry[] | null> {
+    return $Call.ByID(452802301);
+}
+
+/**
  * ExplainItem tells which rule of the written filter decides the item in
  * the copied text (Alt+E's), and whether that is certain.
  */

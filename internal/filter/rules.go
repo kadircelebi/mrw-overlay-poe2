@@ -126,6 +126,10 @@ var (
 		icon: "2 Cyan Circle"}
 	styleExceptional = &style{font: 42, text: "255 255 255 255", border: "0 210 255 255", bg: "0 40 70 240",
 		beam: "Cyan", icon: "1 Cyan Diamond", sound: "2"}
+	styleExoticHigh = &style{font: 44, text: "255 255 255 255", border: "0 255 190 255", bg: "0 70 55 255",
+		beam: "Green", icon: "0 Green Diamond", sound: "2"}
+	styleExoticNormal = &style{font: 40, text: "170 255 220 255", border: "0 190 150 255", bg: "0 40 32 240",
+		icon: "1 Green Diamond"}
 	styleExceptionalUnknown = &style{font: 36, text: "200 230 255 255", border: "0 150 200 255", bg: "0 25 45 220"}
 	styleT5Rare             = &style{font: 40, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
 		icon: "2 Yellow Diamond"}
@@ -374,6 +378,25 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// ---- 0. user stack groups (more specific than anything below) ---------
 	b.userStackGroups(cfg, ns, canon)
 
+	// ---- 0b. the Exotic group (NeverSink's exotic rules + the player's) -----
+	// The player keeps these on purpose, so they win over every hide below
+	// (their own hide groups and the Alt+H list included). NeverSink's own
+	// copies sit after our block, behind the gear hides, so they are written
+	// here, in the group's two looks.
+	exotic := exoticBases(cfg)
+	if cfg.ShowExotics {
+		var ex builder
+		hp, _ := cfg.Palette(GroupExoticHigh, ns)
+		np, _ := cfg.Palette(GroupExoticNormal, ns)
+		ex.exoticRules(cfg,
+			styleExoticHigh.with(hp).withSound(cfg.Sound(GroupExoticHigh)).withVolume(cfg.Volume(GroupExoticHigh)).withFont(cfg.FontSize(GroupExoticHigh)),
+			styleExoticNormal.with(np).withSound(cfg.Sound(GroupExoticNormal)).withVolume(cfg.Volume(GroupExoticNormal)).withFont(cfg.FontSize(GroupExoticNormal)))
+		if len(ex.lines) > 0 {
+			b.section(i18n.T("filter.sec.exotic"))
+			b.add(ex.lines...)
+		}
+	}
+
 	// ---- 1. user hide groups (first, so they really are unconditional) ----
 	for _, g := range cfg.ItemGroups {
 		if g.GroupMode() != ItemGroupModeHide {
@@ -396,6 +419,11 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		l := resolveList(keep, uniqueToBase, canon)
 		for _, raw := range l.unknown {
 			st.Warnings = append(st.Warnings, fmt.Sprintf(i18n.T("warn.blacklistUnknown"), raw))
+		}
+		for _, base := range l.all {
+			if exotic[strings.ToLower(base)] {
+				st.Warnings = append(st.Warnings, fmt.Sprintf(i18n.T("warn.hideGroupExotic"), g.Name, base))
+			}
 		}
 		// A plain base means every rarity, uniques included; say so when that
 		// hides a valuable unique ("Utility Belt" hides Mageblood).
@@ -624,17 +652,6 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			sort.Strings(valuableEx[g])
 			b.rule("Show", append([]string{"Corrupted False", "Rarity Normal Magic Rare"}, exCond(g)...),
 				"BaseType", valuableEx[g], styleExceptional.with(exPal).withSound(cfg.Sound(GroupExceptional)).withVolume(cfg.Volume(GroupExceptional)).withFont(cfg.FontSize(GroupExceptional)))
-		}
-	}
-
-	// ---- 7b. NeverSink's exotic bases and modifiers --------------------------
-	// They sit after our own rules in the base filter, behind the gear hides
-	// below, so they are repeated here with NeverSink's own looks.
-	if cfg.ShowExotics && len(cfg.Exotics) > 0 {
-		b.section(i18n.T("filter.sec.exotic"))
-		for _, block := range cfg.Exotics {
-			b.add(strings.Split(block, "\n")...)
-			b.add("")
 		}
 	}
 

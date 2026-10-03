@@ -9,6 +9,7 @@
   import AccountLink from './lib/AccountLink.svelte'
   import Segmented from './lib/Segmented.svelte'
   import ListEditor from './lib/ListEditor.svelte'
+  import ExoticGroup from './lib/ExoticGroup.svelte'
   import StylePreview from './lib/StylePreview.svelte'
   import ThemePicker from './lib/ThemePicker.svelte'
   import TierSlider from './lib/TierSlider.svelte'
@@ -1129,7 +1130,19 @@
           {#if section === 'groups'}
             <div class="ld">
               <div class="ld-list" role="list">
-                <!-- The Alt+H list: always present, never deleted. -->
+                <!-- Built-in groups: always present, never deleted. -->
+                <div class="ld-item fixed exotic" class:on={groupSel === -2} role="listitem">
+                  <span class="grip lock" title={t('hidden.locked')} aria-label={t('hidden.locked')}>
+                    <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z" /></svg>
+                  </span>
+                  <button type="button" class="ld-pick" onclick={() => (groupSel = -2)}>
+                    <span class="mode-badge exotic">{t('exotic.badge')}</span>
+                    <span class="ld-text">
+                      <span class="ld-name">{t('exotic.name')}</span>
+                      <small class="num">{cfg.show_exotics ? 'NeverSink' : t('hidden.off')}</small>
+                    </span>
+                  </button>
+                </div>
                 <div class="ld-item fixed" class:on={groupSel === -1} role="listitem">
                   <span class="grip lock" title={t('hidden.locked')} aria-label={t('hidden.locked')}>
                     <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z" /></svg>
@@ -1196,7 +1209,12 @@
               </div>
 
               <div class="ld-detail page">
-                {#if groupSel === -1}
+                {#if groupSel === -2}
+                  <div class="group-head">
+                    <h2 class="hidden-title">{t('exotic.name')}</h2>
+                  </div>
+                  <ExoticGroup {cfg} onchange={() => queueSave()} />
+                {:else if groupSel === -1}
                   <div class="group-head">
                     <h2 class="hidden-title">{t('hidden.name')}</h2>
                   </div>
@@ -1515,7 +1533,6 @@
                       <Toggle bind:checked={cfg.boss_keys_and_tablets} label={t('rules.pinnacle')} onchange={() => queueSave()} />
                       <Toggle bind:checked={cfg.hide_exalt} label={t('rules.hideExalt')} onchange={() => queueSave()} />
                       <Toggle bind:checked={cfg.hide_gold} label={t('rules.hideGold')} onchange={() => queueSave()} />
-                      <Toggle bind:checked={cfg.show_exotics} label={t('rules.exotics')} hint={t('rules.exoticsHint')} onchange={() => queueSave()} />
                     </section>
                   </div>
                 </div>
@@ -2768,6 +2785,13 @@
     font-size: 10.5px;
     text-align: center;
   }
+  .ld-item.fixed.exotic {
+    background: rgba(0, 200, 150, 0.04);
+  }
+  .mode-badge.exotic {
+    color: #6fe0b8;
+    border-color: rgba(0, 200, 150, 0.45);
+  }
   .ld-item.fixed {
     background: rgba(192, 86, 79, 0.04);
   }
@@ -2781,7 +2805,12 @@
   }
   .hidden-title {
     margin: 4px 0 8px;
-    font-family: var(--serif);
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    text-transform: none;
+    letter-spacing: 0;
     color: var(--gold-bright);
     font-size: 16px;
   }
