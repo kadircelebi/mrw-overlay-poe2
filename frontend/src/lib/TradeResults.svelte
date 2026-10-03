@@ -7,12 +7,14 @@
   import { uniqueListings } from './listingDedup'
   import { currencyLabel, listedAgo, PAGE_SIZE, propertySortKey, statSortKey, type SortOption, type SortState } from './overlayQuery'
 
-  let { result = null, loading = false, error = '', expanded = false, sort = null, sortOptions = [], onsort, searched = [] }: {
+  let { result = null, loading = false, error = '', expanded = false, sort = null, sortOptions = [], onsort, onfilter, searched = [] }: {
     result?: Evaluation | null; loading?: boolean; error?: string; expanded?: boolean
     // Stat ids the search filtered on; their lines are tinted on each listing.
     searched?: string[]
     // Sorting is offered only where the caller can run a new search for it.
     sort?: SortState | null; sortOptions?: SortOption[]; onsort?: (key: string, label?: string) => void
+    // "Filter by item stats": the market opens a search built from a listing.
+    onfilter?: (row: EvaluatedListing) => void
   } = $props()
   let preview = $state<EvaluatedListing | null>(null)
   const searchedSet = $derived(new Set(searched))
@@ -183,6 +185,7 @@
   {@const rarity = (row.item.rarity ?? '').toLowerCase()}
   {@const options = optionStats(row.item.mods ?? [])}
   <div class="preview" class:full={expanded}>
+    {#if onfilter}<button type="button" class="filter-item" title={t('ov.filterByItem')} onclick={() => onfilter?.(row)}>⊞</button>{/if}
     <div class="preview-title rarity-{rarity}">
       {#if row.item.icon}<img src={row.item.icon} alt="" />{/if}
       <!-- A magic item has one title line, its full name, as in the game. -->
@@ -371,6 +374,9 @@
   .account { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#a6b887; }
   .preview { padding:10px 12px 12px; border-top:1px solid #594527; background:radial-gradient(circle at top,rgba(120,76,25,.11),transparent 55%),#090a0b; text-align:center; }
   .preview.full { padding:13px 14px 14px; border-top:0; }
+  .preview { position:relative; }
+  .filter-item { position:absolute; top:8px; left:8px; width:24px; height:24px; padding:0; border:1px solid #56523f; border-radius:2px; background:#181a17; color:#a99c72; font-size:14px; line-height:20px; }
+  .filter-item:hover { background:#2b2d27; color:var(--gold-bright); border-color:var(--gold); }
   .preview-title { display:flex; justify-content:center; align-items:center; gap:10px; color:#d7b76d; font-family:var(--serif); }
   .preview-title img { width:42px; height:42px; object-fit:contain; }
   .preview-title strong,.preview-title span { display:block; }

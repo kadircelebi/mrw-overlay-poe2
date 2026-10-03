@@ -450,6 +450,7 @@ export const zh: Record<string, string> = {
   'ov.col.listed': '刊登',
   'ov.listing': '刊登',
   'ov.showItem': '顯示物品',
+  'ov.filterByItem': '依物品屬性篩選：以此物品的基底與詞綴開啟新搜尋',
   'ov.hideout.sent': '已送出請求；遊戲正帶你前往賣家的藏身處',
   'ov.hideout.notInstant': '此刊登無法立即購買',
   'ov.hideout.needLogin': '要前往藏身處，請在「設定 → 帳號」連結瀏覽器',

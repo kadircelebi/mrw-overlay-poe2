@@ -2,8 +2,8 @@
   import { onMount } from 'svelte'
   import { Events } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter'
-  import type { Catalog, Item, ItemEntry, SavedSearch, SearchLibrary, Snapshot, StatEntry, Tier, TierTable, TradeFilter } from '../bindings/poe2filter/internal/overlay/models'
-  import type { EvaluateRequest, Evaluation, SelectedFilter, SelectedStat, SelectedStatGroup } from '../bindings/poe2filter/internal/trade/models'
+  import type { Catalog, Item, ItemEntry, ItemMod, SavedSearch, SearchLibrary, Snapshot, StatEntry, Tier, TierTable, TradeFilter } from '../bindings/poe2filter/internal/overlay/models'
+  import type { EvaluateRequest, Evaluation, EvaluatedListing, SelectedFilter, SelectedStat, SelectedStatGroup } from '../bindings/poe2filter/internal/trade/models'
   import TradeResults from './lib/TradeResults.svelte'
   import LiveSearch from './lib/LiveSearch.svelte'
   import QuotaBadge from './lib/QuotaBadge.svelte'
@@ -716,6 +716,72 @@
     saveName = saved.name
   }
 
+  // "Filter by item stats" on a listing, as on the trade site: a new tab
+  // searching that base (or unique) with the listing's affixes, each from its
+  // roll (Broad, 90%). Socketed runes start unselected: they are not the item.
+  function filterByListing(row: EvaluatedListing) {
+    const listed = row.item
+    const rarity = (listed.rarity ?? '').toLowerCase()
+    const mods: ItemMod[] = []
+    for (const mod of listed.mods ?? []) {
+      if (!mod.statId) continue
+      const values = (mod.description.match(/[+-]?\d+(?:\.\d+)?/g) ?? []).map(Number)
+      // GGG names a "reduced" line by its "increased" stat: the roll is then
+      // searched as a negative maximum, the way the price check does it.
+      const catalogText = statEntries.find((entry) => entry.id === mod.statId)?.text ?? ''
+      const negated = /\b(reduced|less)\b/i.test(mod.description) && /\b(increased|more)\b/i.test(catalogText)
+      const signed = negated ? values.map((v) => -Math.abs(v)) : values
+      // Two affixes of one stat (a hybrid's 41% and a plain 74% increased
+      // Energy Shield) are listed apart but searched as their sum. Option
+      // stats (Mageblood's Legacies) stay apart: each one counts.
+      const twin = !mod.statId.includes('|') && signed.length === 1
+        ? mods.find((other) => other.statId === mod.statId && other.values?.length === 1)
+        : undefined
+      if (twin) {
+        const sum = (twin.values?.[0] ?? 0) + signed[0]
+        twin.values = [sum]
+        twin.text = catalogText ? catalogText.replace('#', String(Math.abs(sum))) : twin.text
+        continue
+      }
+      mods.push({
+        key: `listing-${mods.length}-${mod.statId}`, statId: mod.statId, text: mod.description, type: mod.type,
+        affix: '', name: mod.name ?? '', tier: 0, values: signed, negated, selected: mod.type !== 'rune',
+      })
+    }
+    const next: Item = {
+      ...blankItem(), rarity, name: rarity === 'unique' ? listed.name : '', baseType: listed.baseType,
+      itemLevel: listed.itemLevel, quality: listed.quality, runeSockets: listed.sockets, gemLevel: listed.gemLevel, gemSockets: listed.gemSockets,
+      unidentified: listed.unidentified, fractured: listed.fractured, corrupted: listed.corrupted, twiceCorrupted: listed.twiceCorrupted,
+      mirrored: listed.mirrored, sanctified: listed.sanctified, mods,
+    }
+    openInTab('listing:' + row.id, () => {
+      // openInTab keeps the open tab when it is still empty: start it clean.
+      newSearch()
+      const current = tabs.find((tab) => tab.id === activeTab)
+      if (current) current.origin = 'listing:' + row.id
+      item = next
+      // A whole-number roll stays whole: 90% of 41 is searched as 36, not
+      // 36.9. A decimal roll (1.5% crit) keeps one decimal.
+      choices = choicesFor(next, true).map((choice) => {
+        const step = (choice.mod.values ?? []).every(Number.isInteger) ? 1 : 10
+        return {
+          ...choice,
+          min: choice.min === undefined ? undefined : Math.floor(choice.min * step) / step,
+          max: choice.max === undefined ? undefined : Math.ceil(choice.max * step) / step,
+        }
+      })
+      statGroups = [{ key: nextGroupKey++, type: 'and', choiceKeys: choices.map((choice) => choice.mod.key), weights: {} }]
+      itemQuery = searchLabel(next)
+      seedTypeFilters(rarity, '')
+      if (isGem(next)) {
+        if (next.gemLevel > 0) filters[stateKey('misc_filters', 'gem_level')] = { min: next.gemLevel }
+        if (next.gemSockets > 0) filters[stateKey('misc_filters', 'gem_sockets')] = { min: next.gemSockets }
+        if (next.quality > 0) filters[stateKey('type_filters', 'quality')] = { min: next.quality }
+      }
+    })
+    mode = 'search'
+  }
+
   function requestGroups(): SelectedStatGroup[] {
     return statGroups.map((group) => ({
       type: group.type,
@@ -836,7 +902,7 @@
         {/if}
       </div>
       <button class="search-button" disabled={!canSearch || !!searchingTab} onclick={() => search(true)}>{loading ? t('ov.searching') : t('ov.search')}</button>
-      <TradeResults {result} {loading} {error} {searched} expanded {sort} {sortOptions} onsort={setSort} />
+      <TradeResults {result} {loading} {error} {searched} expanded {sort} {sortOptions} onsort={setSort} onfilter={filterByListing} />
     </section>
 
     {#if showAdvanced}
