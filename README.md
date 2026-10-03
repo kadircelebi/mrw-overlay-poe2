@@ -38,7 +38,7 @@ Gereksinim: Windows 10/11 ve WebView2 (Windows 11'de yüklü gelir). Ayarlar ve 
 
 ## İlk çalıştırmada ne olur
 
-- Uygulama NeverSink filtresini ve güncel fiyatları indirir, birkaç saniye içinde filtreyi yazar: `Belgeler\My Games\Path of Exile 2\auto_updated.filter` (dosya adını ayarlardan değiştirebilirsin).
+- Uygulama NeverSink filtresini ve güncel fiyatları indirir, birkaç saniye içinde filtreyi yazar: `Belgeler\My Games\Path of Exile 2\auto_updated.filter` (dosya adını ayarlardan değiştirebilirsin). Belgeler klasörün OneDrive'a taşınmışsa (`OneDrive\Documents`) uygulama onu kendisi bulur.
 - **Oyun filtreyi kendiliğinden yeniden okumaz.** Her güncellemeden sonra oyunda Options → Item Filter → **Reload** demen gerekir.
 - Exceptional taban taraması arka planda, yavaş yavaş ilerler: trade API'sinin kotasını zorlamamak için saatler sürer ve uygulama açık kaldıkça birikir. Panel ilk tam taramanın tahmini süresini gösterir. İlk gün eksik sonuç görmen normaldir; fiyatı bilinmeyen exceptional tabanlar gizlenmez, gösterilir.
 - Sonraki güncellemeler varsayılan olarak 4 saatte bir kendiliğinden yapılır.
