@@ -461,6 +461,7 @@ export const tr: Record<string, string> = {
   'ov.col.listed': 'Süre',
   'ov.listing': 'İlan',
   'ov.showItem': 'Eşyayı göster',
+  'ov.filterByItem': 'Eşyanın özellikleriyle ara: bu eşyanın tabanı ve affix\'leriyle yeni bir arama',
   'ov.hideout.sent': "İstek gönderildi; oyunda satıcının hideout'una götürülüyorsun",
   'ov.hideout.notInstant': 'Bu ilan anında satın alınabilir değil',
   'ov.hideout.needLogin': "Hideout'a gitmek için Ayarlar → Hesap'tan tarayıcını bağla",
