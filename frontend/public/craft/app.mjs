@@ -48,7 +48,10 @@ const maxSockets = page => {
   const id = pages[page]?.cls.id;
   return !id || ['amulet', 'ring', 'belt', 'quiver'].includes(id) ? 0 : twoHanded.has(id) ? 3 : 2;
 };
-const socketsOf = state => Math.min(maxSockets(state.base),
+// A Vaal Orb adds a socket past that limit (an exceptional bow with three
+// becomes four), so a Corrupted item may hold one more.
+const socketCap = state => maxSockets(state.base) ? maxSockets(state.base) + (state.corrupted ? 1 : 0) : 0;
+const socketsOf = state => Math.min(socketCap(state),
   Number.isInteger(state.sockets) ? state.sockets : (state.runes || []).filter(Boolean).length || (state.rune ? 1 : 0));
 // The rune in each socket ('' = empty or a rune that does not matter to
 // crafting). Drafts from before sockets had a single item.rune.
@@ -154,7 +157,7 @@ function renderClassPicker() {
   if ($('base').disabled) closeBasePicker();
   // Sockets first; a modifier rune needs one, and only one such rune fits an
   // item. It is socket-bound: once in, it stays until a new craft.
-  const most = maxSockets(item.base), sockets = socketsOf(item);
+  const most = socketCap(item), sockets = socketsOf(item);
   $('socket-field').hidden = !most;
   $('sockets').replaceChildren(...Array.from({ length: most + 1 }, (_, n) => new Option(String(n), String(n))));
   $('sockets').value = String(sockets);

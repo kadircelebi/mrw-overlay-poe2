@@ -35,7 +35,10 @@ test('Vaal outcomes depend on the item class', () => {
   assert.deepEqual(corruptOutcomes(wand, wands, { classId: 'wand', quality: 23 }), ['nothing', 'reroll', 'scale', 'enchant']);
   const glove = { ...rare(gloves, []), base: 'Gloves_str' };
   assert.deepEqual(corruptOutcomes(glove, gloves, { classId: 'gloves', sockets: 1, maxSockets: 2 }), ['nothing', 'socket', 'enchant']);
-  assert.ok(!corruptOutcomes(glove, gloves, { classId: 'gloves', sockets: 2, maxSockets: 2 }).includes('socket'));
+  // Corruption ignores the limit: a full item still gains a socket (3 → 4 on an exceptional bow).
+  assert.ok(corruptOutcomes(glove, gloves, { classId: 'gloves', sockets: 2, maxSockets: 2 }).includes('socket'));
+  const bow = corrupt({ ...rare(wands, []), base: 'Bows' }, wands, { classId: 'bow', sockets: 3, maxSockets: 3 }, () => 0.5);
+  assert.equal(bow.outcome, 'socket'); assert.equal(bow.item.sockets, 4);
   const ring = rare(rings, []);
   assert.ok(!corruptOutcomes(ring, rings, { classId: 'ring', maxSockets: 0 }).some(o => o === 'socket' || o === 'quality'));
   assert.ok(!corruptOutcomes({ ...wand, enchant: enchantRows(wands)[0] }, wands, { classId: 'wand' }).includes('enchant'));
