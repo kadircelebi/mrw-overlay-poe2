@@ -78,6 +78,19 @@ export interface CraftPrices {
 }
 
 /**
+ * ExoticCandidate is something of a copied item that can go to the Exotic
+ * group: its base, or one of its named explicit modifiers.
+ */
+export interface ExoticCandidate {
+    "entry": filter$0.ExoticEntry;
+
+    /**
+     * Present is set when the group already shows it.
+     */
+    "present": boolean;
+}
+
+/**
  * ExoticModOption is a modifier an item class can roll, for the Exotic
  * group's "add a modifier" search.
  */

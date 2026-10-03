@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -95,4 +96,105 @@ func appendUnique(list []string, v string) []string {
 		}
 	}
 	return append(list, v)
+}
+
+// ExoticCandidate is something of a copied item that can go to the Exotic
+// group: its base, or one of its named explicit modifiers.
+type ExoticCandidate struct {
+	Entry filter.ExoticEntry `json:"entry"`
+	// Present is set when the group already shows it.
+	Present bool `json:"present"`
+}
+
+// ExoticCandidates lists the copied item's base and named explicit
+// modifiers (as the advanced copy writes them) for Alt+E's "add to Exotic".
+// Only Normal, Magic and Rare gear qualifies.
+func (s *AppService) ExoticCandidates(raw string) ([]ExoticCandidate, error) {
+	catalog, err := s.overlayCatalog.Load(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	item, err := overlay.ParseItem(raw, catalog)
+	if err != nil {
+		return nil, err
+	}
+	switch strings.ToLower(item.Rarity) {
+	case "normal", "magic", "rare":
+	default:
+		return []ExoticCandidate{}, nil
+	}
+	if item.StackSize > 0 || item.Exchange != "" || item.Class == "" {
+		return []ExoticCandidate{}, nil
+	}
+	cfg := s.eng.Config()
+	present := map[string]bool{}
+	for _, r := range filter.ExoticRows(filter.NeverSinkExotics(s.eng.NeverSinkExotics()), cfg.Exotic) {
+		if r.Off {
+			continue
+		}
+		if r.Kind == filter.ExoticBase {
+			present["base|"+strings.ToLower(r.Base)] = true
+			continue
+		}
+		for _, c := range r.Classes {
+			for _, n := range r.Names {
+				present["mod|"+c+"|"+strings.ToLower(n)] = true
+			}
+		}
+	}
+	out := []ExoticCandidate{{
+		Entry:   filter.ExoticEntry{Kind: filter.ExoticBase, Base: item.BaseType, Level: filter.ExoticNormal, Source: "user"},
+		Present: present["base|"+strings.ToLower(item.BaseType)],
+	}}
+	for _, m := range namedModifiers(raw) {
+		e := filter.ExoticEntry{Kind: filter.ExoticMod, Classes: []string{item.Class}, Names: []string{m.name},
+			Label: m.text + ` ("` + m.name + `")`, Level: filter.ExoticNormal, Source: "user"}
+		out = append(out, ExoticCandidate{Entry: e, Present: present["mod|"+item.Class+"|"+strings.ToLower(m.name)]})
+	}
+	return out, nil
+}
+
+// AddExotic adds an entry to the Exotic group and rewrites the filter.
+func (s *AppService) AddExotic(entry filter.ExoticEntry) (HideResult, error) {
+	cfg := s.eng.Config()
+	cfg.Exotic.Added = append(cfg.Exotic.Added, entry)
+	cfg.ShowExotics = true
+	saved, err := s.SaveConfig(cfg)
+	if err != nil {
+		return HideResult{}, err
+	}
+	return HideResult{Hidden: saved.HiddenItems, Updating: s.eng.UpdateNow() == nil}, nil
+}
+
+type namedModifier struct{ name, text string }
+
+// rangeRE is a roll's range after its value: "29(26-32)%".
+var rangeRE = regexp.MustCompile(`\(-?[\d.]+-?-?[\d.]*\)`)
+
+var explicitHeaderRE = regexp.MustCompile(`^\{\s*(?:(?:Desecrated|Crafted|Fractured)\s+)?(?:Prefix|Suffix)\s+Modifier\s+"([^"]+)"`)
+
+// namedModifiers takes each explicit modifier's name and first stat line
+// from the advanced copy's text.
+func namedModifiers(raw string) []namedModifier {
+	var out []namedModifier
+	lines := strings.Split(strings.ReplaceAll(raw, "\r\n", "\n"), "\n")
+	for i, line := range lines {
+		m := explicitHeaderRE.FindStringSubmatch(strings.TrimSpace(line))
+		if m == nil {
+			continue
+		}
+		text := ""
+		for _, next := range lines[i+1:] {
+			next = strings.TrimSpace(next)
+			if next == "" || strings.HasPrefix(next, "{") || strings.HasPrefix(next, "---") {
+				break
+			}
+			if !strings.HasPrefix(next, "(") {
+				text = next
+				break
+			}
+		}
+		out = append(out, namedModifier{name: m[1], text: strings.TrimSpace(rangeRE.ReplaceAllString(text, ""))})
+	}
+	return out
 }

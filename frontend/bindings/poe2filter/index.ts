@@ -11,6 +11,7 @@ export type {
     ChromiumBrowser,
     CraftImport,
     CraftPrices,
+    ExoticCandidate,
     ExoticModOption,
     ExoticTier,
     FilterExplanation,

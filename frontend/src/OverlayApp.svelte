@@ -7,7 +7,8 @@
   import CurrencyCard from './lib/CurrencyCard.svelte'
   import FilterVerdict from './lib/FilterVerdict.svelte'
   import HidePanel from './lib/HidePanel.svelte'
-  import type { FilterExplanation } from '../bindings/poe2filter/models'
+  import ExoticAdd from './lib/ExoticAdd.svelte'
+  import type { ExoticCandidate, FilterExplanation } from '../bindings/poe2filter/models'
   import QuotaBadge from './lib/QuotaBadge.svelte'
   import OverlayItemCard from './lib/OverlayItemCard.svelte'
   import TradeResults from './lib/TradeResults.svelte'
@@ -28,6 +29,8 @@
   let result = $state<Evaluation | null>(null)
   // What the written loot filter does with the item (null while unknown).
   let explain = $state<FilterExplanation | null>(null)
+  // What of the item can go to the Exotic group (base, named modifiers).
+  let exoticCandidates = $state<ExoticCandidate[]>([])
   // "hide" when the item came with the hide shortcut (Alt+H).
   let mode = $state('')
 
@@ -164,9 +167,13 @@
 
   function loadExplain(value: Item) {
     explain = null
+    exoticCandidates = []
     const raw = value.raw
     AppService.ExplainItem(raw).then((e) => {
       if (item?.raw === raw) explain = e
+    }).catch(() => {})
+    AppService.ExoticCandidates(raw).then((list) => {
+      if (item?.raw === raw) exoticCandidates = list ?? []
     }).catch(() => {})
   }
 
@@ -396,6 +403,7 @@
         />
         {/if}
         {#if explain && !exchangeId}<FilterVerdict {explain} {worthEx} />{/if}
+        {#if exoticCandidates.length && !exchangeId}<ExoticAdd candidates={exoticCandidates} />{/if}
       {#if !exchangeId}
       <div class="mode-row">
         <button class:on={exact} onclick={() => setMode(true)}><i></i> {t('ov.exact')}</button>

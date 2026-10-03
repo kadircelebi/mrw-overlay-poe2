@@ -35,6 +35,13 @@ import * as trade$0 from "./internal/trade/models.js";
 import * as $models from "./models.js";
 
 /**
+ * AddExotic adds an entry to the Exotic group and rewrites the filter.
+ */
+export function AddExotic(entry: filter$0.ExoticEntry): $CancellablePromise<$models.HideResult> {
+    return $Call.ByID(849276699, entry);
+}
+
+/**
  * AddSound copies a sound the user picks into the filter folder, which is the
  * only place the game reads CustomAlertSound files from. It returns the name
  * the file ended up with, or "" if the dialog was cancelled.
@@ -149,6 +156,15 @@ export function DownloadAppUpdate(): $CancellablePromise<appupdate$0.State> {
  */
 export function EvaluateOverlay($in: trade$0.EvaluateRequest, refresh: boolean): $CancellablePromise<trade$0.Evaluation> {
     return $Call.ByID(986547535, $in, refresh);
+}
+
+/**
+ * ExoticCandidates lists the copied item's base and named explicit
+ * modifiers (as the advanced copy writes them) for Alt+E's "add to Exotic".
+ * Only Normal, Magic and Rare gear qualifies.
+ */
+export function ExoticCandidates(raw: string): $CancellablePromise<$models.ExoticCandidate[] | null> {
+    return $Call.ByID(3842999478, raw);
 }
 
 /**
