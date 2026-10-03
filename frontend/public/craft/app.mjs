@@ -8,6 +8,7 @@ import { omenDefinitions, relevantOmens, omenEffects, filterOmenRows, orbOmenRea
 import { t, setLang, locale, num, variantName } from './i18n.mjs';
 import { pageFor, importItem, runesFor, runeStatLines } from './import.mjs';
 import { baseStats, requirementLine } from './stats.mjs';
+import { lineKey, targetOf, hasTarget, targetReason, fastRunner, stats, histogram } from './simulate.mjs';
 
 const $ = id => document.getElementById(id);
 const clone = object => structuredClone(object);
@@ -65,7 +66,8 @@ const runeShort = r => r.kind === 'pool' ? r.label : r.kind === 'suffix' ? '+1 S
 // The runes of the current page ("Gloves: Can roll Marksman modifiers").
 const pageRunes = (page = item.base) => Object.entries(runes).filter(([, r]) => r.pages.includes(page));
 function persist() {
-  try { localStorage.setItem(storageKey,JSON.stringify({format:2,item,history,archives,priceOverrides,sessionStart,mode,activeOmens,selected,tier,specialSelected,specialRemember,pool})); }
+  try { localStorage.setItem(storageKey,JSON.stringify({format:2,item:simPending ? simPending.before : item,history,archives,priceOverrides,sessionStart,mode,activeOmens,selected,tier,specialSelected,specialRemember,pool,
+    sim:{target:simTarget,orb:simOrb,omens:simOmens}})); }
   catch { status(t('storage.failed'),'error'); }
 }
 
@@ -77,6 +79,8 @@ function element(tag, text, className) {
 }
 function status(text, kind = '') { $('status').textContent = text; $('status').className = kind; }
 function commit(next, label, usage = null, newSession = false) {
+  // A running or unkept simulation owns the item card.
+  if (simBusy || simPending) return;
   if (newSession && !history.length && JSON.stringify(snapshot(item)) === JSON.stringify(snapshot(next))) return;
   undo.push({ item: clone(item), history: clone(history), sessionStart,activeOmens:clone(activeOmens) });
   if (undo.length > 100) undo.shift();
@@ -665,7 +669,18 @@ function renderMods() {
         button.setAttribute('aria-label', t('tier.aria', row.name, row.tier, t(active ? 'tier.aria.on' : existing ? 'tier.aria.replace' : 'tier.aria.add')));
         button.onclick = () => attempt(() => commit(existing ? replaceTier(item, existingIndex, row) : manualAdd(item, row),
           existing ? t('tier.replaced', existing.name, existing.tier, row.name, row.tier) : t('tier.added', row.name, row.tier)));
-        entry.append(element('span', `T${row.tier}`, 'tier-id'), description, button); familyList.append(entry);
+        entry.append(element('span', `T${row.tier}`, 'tier-id'), description, button);
+        // ◎ makes this line and tier the Chaos simulation's target; only rows a
+        // Chaos Orb can roll (the base pool and socketed rune pools) have it.
+        if (rollPools(item).includes(row.pool)) {
+          const aim = simTarget && lineKey(row) === simTarget.key && row.tier === simTarget.tier;
+          const goal = element('button', '◎', `sim-aim${aim ? ' active' : ''}`);
+          goal.title = t('sim.setTarget'); goal.setAttribute('aria-label', t('sim.setTargetAria', row.name, row.tier));
+          goal.setAttribute('aria-pressed', String(Boolean(aim)));
+          goal.onclick = () => setSimTarget(row);
+          entry.classList.add('with-target'); entry.append(goal);
+        }
+        familyList.append(entry);
       }
       details.append(summary, familyList); list.append(details);
     }
@@ -676,7 +691,7 @@ function renderMods() {
 function render() { if (ready) {
   if (held && mode === 'essence' && held.id !== specialSelected) drop();
   $('basic-controls').hidden = mode !== 'basic'; $('special-controls').hidden = mode === 'basic';
-  renderItem(); renderSpecials(); renderReveal(); renderCurrencies(); renderMods(); markTarget();
+  renderItem(); renderSpecials(); renderReveal(); renderCurrencies(); renderMods(); renderSim(); markTarget();
 } }
 
 // Switching class or defence type starts a new item, like the old base picker.
@@ -808,6 +823,7 @@ $('ilvl').onchange = () => attempt(() => {
 $('clear').onclick = () => commit(clearMods(item), t('cleared', item.rarity));
 $('reset').onclick = () => commit({ ...createItem(item.base), ilvl: item.ilvl, baseName: item.baseName, quality: qualityOf(item), sockets: socketsOf(item) }, t('reset.done'),null,true);
 $('undo').onclick = () => {
+  if (simBusy || simPending) return;
   const last = undo.pop(); if (!last) return;
   item = last.item; history = last.history; sessionStart = last.sessionStart; activeOmens = last.activeOmens;
   render(); status(t('undo.done')); persist();
@@ -906,6 +922,188 @@ async function importCopied(copied) {
   } catch (error) { status(error.message, 'error'); }
 }
 
+// ---- Chaos simulation --------------------------------------------------
+// The user marks a modifier line and tier (◎ in the list below), picks a
+// Chaos Orb and its omens; the simulation presses that orb on the current
+// item until the line reaches the tier. "Simulate" repeats it many times for
+// the statistics; "Watch" plays one run on the item card, orb by orb.
+const simCap = 20000;
+let simTarget = null, simOrb = 'chaos', simOmens = [], simResult = null, simBusy = '', simStop = false, simPending = null;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const chaosIds = () => visibleRules().map(([id]) => id).filter(id => rules[id].afterTrigger === 'del_add' && id.includes('chaos'));
+const lineText = text => text.replace(/\((-?\d+(?:\.\d+)?)[—–](-?\d+(?:\.\d+)?)\)|-?\d+(?:\.\d+)?/g, '#');
+const simLines = target => {
+  const seen = new Set();
+  return data().mods.filter(m => rollPools(item).includes(m.pool) && lineKey(m) === target.key)
+    .sort((a, b) => a.tier - b.tier).filter(m => !seen.has(m.tier) && seen.add(m.tier));
+};
+const simEffects = () => omenEffects(omens, simOmens, simOrb, rules[simOrb], data());
+const simSignature = () => JSON.stringify([snapshot(item), simTarget, simOrb, simOmens]);
+// The cost of one press: the orb and every omen it uses up; null when one
+// of them has no price.
+function simUnit() {
+  const parts = [payment(simOrb, rules[simOrb]), ...simOmens.map(id => payment(id, omens[id]))];
+  return parts.some(p => p.unit_ex === null) ? null : parts.reduce((sum, p) => sum + p.unit_ex, 0);
+}
+function simReason() {
+  try { return targetReason(item, data(), simOrb, rules[simOrb], simEffects(), simTarget); }
+  catch (error) { return error.message; }
+}
+function setSimTarget(row) {
+  simTarget = targetOf(row); simResult = null;
+  persist(); render(); status(t('sim.targetSet', lineText(row.text), row.tier), 'success');
+}
+
+function renderSim() {
+  const ids = chaosIds();
+  if (!ids.includes(simOrb)) simOrb = ids[0] || 'chaos';
+  $('sim-orb').replaceChildren(...ids.map(id => new Option(rules[id].name, id)));
+  $('sim-orb').value = simOrb;
+  const lines = simTarget ? simLines(simTarget) : [];
+  if (simTarget && !lines.length) simTarget = null;
+  const box = $('sim-target'); box.replaceChildren();
+  if (!simTarget) box.append(element('p', t('sim.pickTarget'), 'hint'));
+  else {
+    const select = element('select'); select.id = 'sim-tier'; select.setAttribute('aria-label', t('sim.tier'));
+    for (const row of lines) select.append(new Option(t('sim.tierOption', row.tier, row.text, row.required_ilvl), row.tier));
+    select.value = String(simTarget.tier); select.disabled = Boolean(simBusy || simPending);
+    select.onchange = () => { simTarget = { ...simTarget, tier: Number(select.value) }; persist(); render(); };
+    const clear = element('button', '×'); clear.type = 'button'; clear.setAttribute('aria-label', t('sim.clearTarget'));
+    clear.disabled = Boolean(simBusy || simPending);
+    clear.onclick = () => { simTarget = null; simResult = null; persist(); render(); };
+    box.append(element('span', `${simTarget.affix} · ${lineText(simTarget.text)}`, 'sim-line'), select, clear);
+  }
+  const list = $('sim-omens'); list.replaceChildren();
+  const options = relevantOmens(omens, simOrb, rules[simOrb], data());
+  simOmens = simOmens.filter(id => options.some(([key]) => key === id));
+  for (const [key, omen] of options) {
+    const label = element('label'), input = element('input'); input.type = 'checkbox';
+    input.checked = simOmens.includes(key); input.disabled = Boolean(simBusy || simPending);
+    input.setAttribute('aria-label', omen.name);
+    const usage = payment(key, omen);
+    label.append(input, iconElement(omen.icon), element('span', omen.name),
+      element('small', usage.unit_ex === null ? t('omen.noPrice') : `${num(usage.unit_ex, 4)} Ex`));
+    input.onchange = () => {
+      simOmens = input.checked ? [...simOmens.filter(id => !omen.exclusives?.includes(id)), key] : simOmens.filter(id => id !== key);
+      persist(); render();
+    };
+    list.append(label);
+  }
+  if (options.length) list.prepend(element('strong', t('sim.omens')));
+  const reason = simBusy || simPending ? '' : simReason();
+  $('sim-reason').textContent = reason;
+  $('sim-run').disabled = $('sim-watch').disabled = Boolean(reason || simBusy || simPending);
+  $('sim-orb').disabled = $('sim-runs').disabled = Boolean(simBusy || simPending);
+  $('sim-stop').hidden = !simBusy;
+  $('sim-pending').hidden = !simPending;
+  $('workbench').classList.toggle('sim-running', Boolean(simBusy || simPending));
+  renderSimResult();
+}
+
+function renderSimResult() {
+  const box = $('sim-result');
+  box.hidden = !simResult;
+  if (!simResult) return;
+  box.replaceChildren();
+  const r = simResult, s = r.stats, div = divineEx();
+  const money = n => r.unit === null ? '' : ` · ${exText(n * r.unit)} Ex${div ? ` (${num(n * r.unit / div, 2)} Div)` : ''}`;
+  box.append(element('p', t('sim.summary', num(r.done, 0), r.orbName), 'sim-head'));
+  if (s) {
+    const grid = element('div', undefined, 'sim-stats');
+    for (const [key, value] of [['sim.mean', s.mean], ['sim.median', s.median], ['sim.p90', s.p90], ['sim.best', s.min], ['sim.worst', s.max]]) {
+      const cell = element('div');
+      cell.append(element('small', t(key)), element('b', num(Math.round(value), 0)), element('span', money(value).replace(/^ · /, ''), 'sim-money'));
+      grid.append(cell);
+    }
+    box.append(grid);
+    const chances = element('ul', undefined, 'sim-chances');
+    for (const [pct, value] of [[25, s.p25], [50, s.median], [75, s.p75], [90, s.p90], [99, s.p99]]) {
+      chances.append(element('li', t('sim.within', pct, num(value, 0)) + money(value)));
+    }
+    box.append(chances);
+    const max = Math.max(...r.bars.map(b => b.count), 1), chart = element('div', undefined, 'sim-chart');
+    chart.setAttribute('role', 'img'); chart.setAttribute('aria-label', t('sim.chart'));
+    for (const bar of r.bars) {
+      const column = element('span'); column.style.height = `${Math.max(2, bar.count / max * 100)}%`;
+      column.title = t('sim.bar', num(bar.from, 0), num(bar.to, 0), num(bar.count, 0));
+      chart.append(column);
+    }
+    box.append(chart, element('p', t('sim.axis', num(r.bars.at(-1)?.to ?? 0, 0)), 'hint'));
+  }
+  if (r.capped) box.append(element('p', t('sim.capped', num(r.capped, 0), num(r.capped / r.done * 100, 1), num(simCap, 0)), 'sim-warn'));
+  if (r.stuck) box.append(element('p', t('sim.stuck', num(r.stuck, 0)), 'sim-warn'));
+  if (r.early) box.append(element('p', t('sim.early'), 'sim-warn'));
+  if (r.unit === null) box.append(element('p', t('sim.noPrice'), 'hint'));
+  if (r.signature !== simSignature()) box.append(element('p', t('sim.stale'), 'hint'));
+}
+
+async function runSim() {
+  if (simBusy || simReason()) return;
+  const rule = rules[simOrb], effects = simEffects(), target = simTarget, total = Number($('sim-runs').value) || 10000;
+  const runner = fastRunner(item, data(), rule, effects, target);
+  const counts = [];
+  let done = 0, capped = 0, stuck = 0, early = false;
+  simBusy = 'run'; simStop = false; render();
+  const signature = simSignature(), unit = simUnit(), orbName = rule.name + (simOmens.length ? ' + ' + simOmens.map(id => omens[id].name).join(' + ') : '');
+  while (done < total && !simStop) {
+    const start = performance.now();
+    while (done < total && performance.now() - start < 40) {
+      const result = runner(Math.random, simCap);
+      if (result.capped) capped++; else if (result.stuck) stuck++; else counts.push(result.orbs);
+      done++;
+    }
+    // A setup that almost never finishes would take minutes to confirm.
+    if (done >= 200 && (capped + stuck) / done > 0.5) { early = done < total; break; }
+    $('sim-progress').textContent = t('sim.progress', num(done, 0), num(total, 0));
+    await sleep(0);
+  }
+  simBusy = ''; $('sim-progress').textContent = '';
+  simResult = { stats: stats(counts), bars: histogram(counts), done, capped, stuck, early, unit, orbName, signature };
+  render();
+  status(simStop ? t('sim.stopped', num(done, 0)) : t('sim.done', num(done, 0)), 'success');
+}
+
+async function watchSim() {
+  if (simBusy || simReason()) return;
+  const rule = rules[simOrb], effects = simEffects(), target = simTarget, before = item, ids = [simOrb, ...simOmens];
+  const perSecond = Number($('sim-speed').value) || 50, frame = 1000 / Math.min(perSecond, 30), batch = Math.max(1, Math.round(perSecond / 30));
+  let state = item, orbs = 0, end = '';
+  simBusy = 'watch'; simStop = false; simPending = null; render();
+  while (!end) {
+    for (let i = 0; i < batch && !end; i++) {
+      try { state = applyOrbOmens(state, data(), simOrb, rule, effects); orbs++; }
+      catch { end = 'stuck'; break; }
+      if (hasTarget(state, target)) end = 'hit';
+      else if (orbs >= simCap) end = 'capped';
+    }
+    if (simStop && !end) end = 'stopped';
+    item = state; renderItem();
+    $('sim-progress').textContent = t('sim.watchCount', num(orbs, 0));
+    if (!end) await sleep(frame);
+  }
+  // The result stays on the card (and the page locked) until it is kept or
+  // reverted; only "keep" records it, with every orb and omen in the cost.
+  simBusy = ''; simPending = { before, state, orbs, ids };
+  $('sim-pending-text').textContent = t(`sim.watch.${end}`, num(orbs, 0));
+  $('sim-keep').disabled = !orbs;
+  render();
+}
+
+$('sim-orb').onchange = () => { simOrb = $('sim-orb').value; persist(); render(); };
+$('sim-run').onclick = () => void runSim();
+$('sim-watch').onclick = () => void watchSim();
+$('sim-stop').onclick = () => { simStop = true; };
+$('sim-keep').onclick = () => {
+  if (!simPending) return;
+  const { before, state, orbs, ids } = simPending; simPending = null; item = before; $('sim-progress').textContent = '';
+  const usages = ids.map(id => ({ ...payment(id, rules[id] || omens[id]), quantity: orbs }));
+  commit(state, t('sim.kept', num(orbs, 0), rules[simOrb].name), usages);
+};
+$('sim-revert').onclick = () => {
+  if (!simPending) return;
+  item = simPending.before; simPending = null; $('sim-progress').textContent = ''; render(); status(t('sim.reverted'));
+};
+
 $('download').onclick = () => {
   const url = URL.createObjectURL(new Blob([JSON.stringify({ format: 2, item, history, archives, sessionStart }, null, 2)], { type: 'application/json' }));
   const link = element('a'); link.href = url; link.download = 'theoretical-craft.json'; link.click();
@@ -946,6 +1144,11 @@ try {
       if (mode !== 'basic') specialSelected = specialRemember[mode];
       pool = typeof saved.pool === 'string' ? saved.pool : mode === 'desecrate' ? 'desecrated' : mode === 'essence' ? 'essence' : 'normal';
       $('pool').value = pool;
+      if (saved.sim) {
+        if (saved.sim.target?.key && Number.isFinite(saved.sim.target.tier)) simTarget = saved.sim.target;
+        if (typeof saved.sim.orb === 'string' && rules[saved.sim.orb]) simOrb = saved.sim.orb;
+        if (Array.isArray(saved.sim.omens)) simOmens = saved.sim.omens.filter(id => omens[id]);
+      }
     }
   } catch { /* A corrupt stored draft cannot prevent opening the lab. */ }
   if (!pages[item.base]) item = createItem(classes[0].variants[0].page);
