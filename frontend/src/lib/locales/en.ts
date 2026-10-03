@@ -70,6 +70,8 @@ export const en: Record<string, string> = {
   'window.minimise': 'Minimise',
   'window.maximise': 'Maximise',
   'window.close': 'Close',
+  'craft.fullscreen': 'Full screen (F11, or double-click the title bar)',
+  'craft.restoreSize': 'Restore size (F11)',
   'overlay.title': 'Price-check overlay',
   'overlay.desc': 'Hover an item in game and press the shortcut to open its price search.',
   'overlay.enable': 'Enable overlay',
