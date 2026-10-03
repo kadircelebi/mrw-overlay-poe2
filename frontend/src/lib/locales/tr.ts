@@ -376,6 +376,8 @@ export const tr: Record<string, string> = {
   'editor.familyCount': '{0} eşyayı ekler',
   'editor.uniqueOnlyTop': 'Sadece Unique · en değerli {0}',
   'editor.allRarities': 'Tüm nadirlikler',
+  'editor.nonUnique': "Unique hariç (normal, magic, rare)",
+  'editor.nonUniqueTag': 'Unique hariç',
   'editor.remove': '{0} kaldır',
   'editor.stackHint': '× kutusu: yalnız bu büyüklükteki yığınlar eşleşir (ör. Simulacrum Splinter × 15, Verisium × 500). Böyle bir girdi her kuraldan önce gelir; aynı eşyayı gizleyen grubu da yener. Boş: her yığın.',
   'editor.stackAny': 'hepsi',

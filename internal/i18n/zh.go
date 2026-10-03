@@ -53,6 +53,7 @@ var zh = map[string]string{
 	"err.soundCopy":         "無法將音效複製到過濾器資料夾：%w",
 
 	"warn.blacklistSkipped": "黑名單：已略過 %q，同一基底（%s）上有高價的 %s",
+	"warn.hideHidesUnique":  "%s：%s 的所有稀有度都會被隱藏，包括高價的 %s。若只想隱藏一般物品，請選「非 Unique」",
 	"warn.blacklistUnknown": "黑名單：無法辨識 %q",
 	"warn.valueTierBelow":   "已忽略價值群組 %q：%.1f Exalted 不高於基本門檻 %.1f",
 

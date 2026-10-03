@@ -365,6 +365,8 @@ export const zh: Record<string, string> = {
   'editor.familyCount': '加入 {0} 個物品',
   'editor.uniqueOnlyTop': '僅 Unique · 最高價 {0}',
   'editor.allRarities': '所有稀有度',
+  'editor.nonUnique': '非 Unique（普通、魔法、稀有）',
+  'editor.nonUniqueTag': '非 Unique',
   'editor.remove': '移除 {0}',
   'editor.stackHint': '× 欄：只有達到此數量的堆疊才會符合（例如 Simulacrum Splinter × 15、Verisium × 500）。此類項目排在所有規則之前，也會勝過隱藏同一物品的群組。留空：所有堆疊。',
   'editor.stackAny': '全部',
