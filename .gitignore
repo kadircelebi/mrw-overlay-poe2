@@ -26,3 +26,7 @@ CLAUDE.md
 
 # kişisel notlar, site doğrulama dosyaları vb. (yayınlanmaz)
 /do_not_share/
+
+# Claude Code ayarları ve ajan notları (kişisel, yayınlanmaz)
+/.claude/
+AGENTS.md
