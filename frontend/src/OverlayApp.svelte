@@ -117,7 +117,9 @@
   }
 
   function loadQuote(value: Item) {
-    if (!(value.stackSize > 0 || value.rarity === 'currency')) return
+    // Lineage support gems trade on the currency exchange, so the item search
+    // finds none; the price list has them. Other gems simply are not found.
+    if (!(value.stackSize > 0 || value.rarity === 'currency' || isGem(value))) return
     // item is a state proxy, so compare the copied text rather than identity.
     const raw = value.raw
     AppService.QuoteCurrency(value.baseType || value.name).then((q) => {

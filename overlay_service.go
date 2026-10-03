@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -483,11 +484,20 @@ func (s *AppService) captureOverlay() {
 			}
 		}
 	}
-	if raw == "" || raw == sentinel {
-		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.noCopy")})
-		return
-	}
 	catalog, err := s.overlayCatalog.Load(context.Background())
+	if raw == "" || raw == sentinel {
+		// The game copies nothing for a gem socketed in the Skills panel; its
+		// tooltip is read off the screen instead, only then.
+		text, ok := "", false
+		if err == nil {
+			text, ok = gemFromScreen(catalog)
+		}
+		if !ok {
+			s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.noCopy")})
+			return
+		}
+		raw = text
+	}
 	if err != nil {
 		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.catalogFailed", err)})
 		return
@@ -499,6 +509,29 @@ func (s *AppService) captureOverlay() {
 		return
 	}
 	s.showOverlaySnapshot(overlay.Snapshot{Item: &item})
+}
+
+// gemFromScreen reads the gem tooltip under the cursor with Windows' text
+// recognizer and returns it as copied item text.
+func gemFromScreen(catalog overlay.Catalog) (string, bool) {
+	var names []string
+	for _, group := range catalog.Items {
+		if group.ID != "gem" {
+			continue
+		}
+		for _, entry := range group.Entries {
+			names = append(names, entry.Type)
+		}
+	}
+	if len(names) == 0 {
+		return "", false
+	}
+	lines, x, y, err := overlay.ReadGameText()
+	if err != nil {
+		log.Printf("overlay: screen text: %v", err)
+		return "", false
+	}
+	return overlay.GemFromText(lines, float64(x), float64(y), names)
 }
 
 func (s *AppService) setOverlaySnapshot(snap overlay.Snapshot) {
