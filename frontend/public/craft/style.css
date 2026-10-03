@@ -141,6 +141,7 @@ body.holding, body.holding * { cursor: none !important; }
 .omen-options { padding: var(--space-sm) var(--space-md); display: grid; gap: var(--space-xs); border-top: 1px solid var(--line); }
 .omen-options:empty { display: none; }
 .omen-options label { display: flex; gap: var(--space-xs); align-items: center; margin: 0; font-size: .8rem; color: var(--secondary); cursor: pointer; }
+.omen-options label.omen-keep { margin-top: .2rem; padding-top: var(--space-xs); border-top: 1px dashed var(--line); color: var(--muted); }
 .omen-options input { width: 18px; min-height: 18px; flex-shrink: 0; accent-color: var(--gold); }
 .omen-options img { width: 28px; height: 28px; object-fit: contain; }
 .omen-options small { color: var(--muted); font-size: .75rem; }
