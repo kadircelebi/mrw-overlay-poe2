@@ -96,6 +96,31 @@ func TestFetchListingCarriesTravelAndItemState(t *testing.T) {
 	}
 }
 
+// GGG files fractured and desecrated lines among the explicit mods, marked by
+// "domain" (a real Absent Amulet listing, 2026-10-03); they must keep their
+// kind so the market shows them as the game does.
+func TestFetchListingReadsModDomains(t *testing.T) {
+	raw := []byte(`{"result":[{"id":"amulet","listing":{"price":{"amount":8,"currency":"exalted"}},"item":{"typeLine":"Absent Amulet","fractured":true,
+		"explicitMods":[
+			{"description":"11% increased [Spell] Damage","flags":{"fractured":true},"domain":"fractured","hash":"stat.fractured.stat_2974417149","mods":[{"name":"Adept's","tier":"P5","level":16}]},
+			{"description":"+16% to [Resistances|Chaos Resistance]","flags":{"desecrated":true},"domain":"desecrated","hash":"stat.desecrated.stat_2923486259","mods":[{"name":"of Expulsion","tier":"S3","level":56}]},
+			{"description":"+50 to [Spirit|Spirit]","domain":"explicit","hash":"stat.explicit.stat_3981240776","mods":[{"name":"Countess'","tier":"P1","level":54}]}]}}]}`)
+	var response evaluatedFetchResponse
+	if err := json.Unmarshal(raw, &response); err != nil {
+		t.Fatal(err)
+	}
+	mods := evaluatedListings(response)[0].Item.Mods
+	want := []struct{ kind, tier string }{{"fractured", "P5"}, {"desecrated", "S3"}, {"explicit", "P1"}}
+	if len(mods) != len(want) {
+		t.Fatalf("got %d mods: %+v", len(mods), mods)
+	}
+	for i, w := range want {
+		if mods[i].Type != w.kind || mods[i].Tier != w.tier {
+			t.Errorf("mod %d = %s %s, want %s %s (%s)", i, mods[i].Type, mods[i].Tier, w.kind, w.tier, mods[i].Description)
+		}
+	}
+}
+
 // Gem listings come with "extended": [] (an empty array, not an object); that
 // used to fail the whole fetch.
 func TestFetchListingAcceptsArrayExtended(t *testing.T) {

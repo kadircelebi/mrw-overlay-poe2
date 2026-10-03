@@ -227,6 +227,11 @@ func (e *listingExtended) UnmarshalJSON(data []byte) error {
 
 type evaluatedModLine struct {
 	Description string `json:"description"`
+	// Domain is the line's kind when GGG files it among the explicit mods:
+	// fractured and desecrated lines arrive in explicitMods with
+	// "domain":"fractured" / "desecrated" (seen 2026-10-03; fracturedMods
+	// stays empty).
+	Domain string `json:"domain"`
 	// Hash is the line's trade stat ("stat.explicit.stat_1999113824").
 	Hash string `json:"hash"`
 	// Mods are the affixes behind the line: the trade site shows one line per
@@ -419,7 +424,14 @@ func evaluatedListings(fetched evaluatedFetchResponse) []EvaluatedListing {
 		}
 		appendMods := func(kind string, lines []evaluatedModLine) {
 			for _, line := range lines {
-				mod := EvaluatedMod{Type: kind, Description: cleanTradeDescription(line.Description), StatID: strings.TrimPrefix(line.Hash, "stat.")}
+				lineKind := kind
+				if kind == "explicit" {
+					switch line.Domain {
+					case "fractured", "desecrated", "crafted":
+						lineKind = line.Domain
+					}
+				}
+				mod := EvaluatedMod{Type: lineKind, Description: cleanTradeDescription(line.Description), StatID: strings.TrimPrefix(line.Hash, "stat.")}
 				if len(line.Mods) > 0 {
 					mod.Name, mod.Tier = line.Mods[0].Name, line.Mods[0].Tier
 				}
