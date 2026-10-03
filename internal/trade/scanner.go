@@ -98,9 +98,10 @@ type scanState struct {
 
 const scanStateVersion = 1
 
-// scanQueryVersion changes whenever the search behind a price changes:
-// 1 left out corrupted listings and listings older than three days.
-const scanQueryVersion = 1
+// scanQueryVersion changes whenever the search or the sum behind a price
+// changes: 1 left out corrupted listings and listings older than three days,
+// 2 dropped listings above three times the median.
+const scanQueryVersion = 2
 
 // Scanner prices exceptional bases in the background.
 type Scanner struct {
@@ -507,7 +508,9 @@ func (s *Scanner) scan(ctx context.Context, t *target) error {
 }
 
 // TrimmedMean averages the cheapest listings after dropping the lowest one or
-// two, which are often mispriced or subtly different items.
+// two, which are often mispriced or subtly different items, and any listing
+// above three times the median of the rest: one troll price (a Mirror among
+// three chaos-priced Full Plates) would otherwise set the average.
 func TrimmedMean(values []float64) (float64, int) {
 	if len(values) == 0 {
 		return 0, 0
@@ -519,6 +522,13 @@ func TrimmedMean(values []float64) (float64, int) {
 		v = v[2:]
 	case len(v) >= 5:
 		v = v[1:]
+	}
+	med := v[len(v)/2]
+	if len(v)%2 == 0 {
+		med = (v[len(v)/2-1] + v[len(v)/2]) / 2
+	}
+	for len(v) > 1 && v[len(v)-1] > 3*med {
+		v = v[:len(v)-1]
 	}
 	sum := 0.0
 	for _, x := range v {
