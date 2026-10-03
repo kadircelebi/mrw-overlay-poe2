@@ -35,6 +35,11 @@ export interface CurrencyEntry {
     "id": string;
     "text": string;
     "image": string;
+
+    /**
+     * Group is the exchange section ("Currency", "Ritual", "Waystones"...).
+     */
+    "group": string;
 }
 
 /**
