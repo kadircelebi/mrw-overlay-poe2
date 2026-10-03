@@ -83,6 +83,10 @@ type keyState struct {
 	prices.ExceptionalPrice
 	LastAttempt time.Time `json:"last_attempt"`
 	LastError   string    `json:"last_error,omitempty"`
+	// QueryVersion is the scanQueryVersion the price was searched with. A
+	// price from an older search is due again at once, keeping its value
+	// until the new one arrives.
+	QueryVersion int `json:"query_version,omitempty"`
 }
 
 type scanState struct {
@@ -93,6 +97,10 @@ type scanState struct {
 }
 
 const scanStateVersion = 1
+
+// scanQueryVersion changes whenever the search behind a price changes:
+// 1 left out corrupted listings and listings older than three days.
+const scanQueryVersion = 1
 
 // Scanner prices exceptional bases in the background.
 type Scanner struct {
@@ -312,7 +320,7 @@ func (s *Scanner) next(now time.Time) *target {
 					continue
 				}
 				ks := s.st.Keys[key]
-				if ks != nil && ks.Min == k.min && now.Sub(ks.LastAttempt) < s.refreshAfter(ks) {
+				if ks != nil && ks.Min == k.min && (ks.QueryVersion == scanQueryVersion || ks.LastError != "") && now.Sub(ks.LastAttempt) < s.refreshAfter(ks) {
 					continue
 				}
 				due = append(due, target{key: key, base: c.Base, kind: k.kind, min: k.min, bucket: b, priority: c.Priority, state: ks})
@@ -400,6 +408,12 @@ func (s *Scanner) Run(ctx context.Context) {
 
 func (s *Scanner) scan(ctx context.Context, t *target) error {
 	q := NewBaseQuery(t.base, "normal")
+	// The filter's exceptional rules show only uncorrupted items, so the
+	// price must come from those too: a Vaal Orb's cheap extra socket is not
+	// the item on the ground. Listings older than three days are left out
+	// too, so long-forgotten (or banned sellers') prices do not set it.
+	q.SetOption("misc_filters", "corrupted", "false")
+	q.SetOption("trade_filters", "indexed", "3days")
 	if t.kind == prices.KindQuality {
 		q.SetMin("type_filters", "quality", t.min)
 	} else {
@@ -413,8 +427,9 @@ func (s *Scanner) scan(ctx context.Context, t *target) error {
 	record := func(p prices.ExceptionalPrice, err error) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		ks := &keyState{ExceptionalPrice: p, LastAttempt: time.Now().UTC()}
+		ks := &keyState{ExceptionalPrice: p, LastAttempt: time.Now().UTC(), QueryVersion: scanQueryVersion}
 		if err != nil {
+			ks.QueryVersion = 0
 			// Keep the last good price; only note the failure.
 			if old := s.st.Keys[t.key]; old != nil {
 				ks.ExceptionalPrice = old.ExceptionalPrice

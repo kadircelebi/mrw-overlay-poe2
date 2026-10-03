@@ -87,3 +87,26 @@ func TestScanShareRejectsJunk(t *testing.T) {
 		t.Error("expected an error for a newer file format")
 	}
 }
+
+// A price from an older search (corrupted and old listings counted) is
+// scanned again at once, even while it is still fresh; one searched the new
+// way waits.
+func TestScannerRescansPricesThatCountedCorrupted(t *testing.T) {
+	now := time.Now().UTC()
+	s := newTestScanner(t, "Forbidden Rites")
+	s.st.Classes["Chiming Staff"] = "Staves"
+	s.SetCandidates([]Candidate{{Base: "Chiming Staff"}})
+	min := ExceptionalSocketMin("Staves")
+	quality := &keyState{ExceptionalPrice: prices.ExceptionalPrice{Base: "Chiming Staff", Kind: prices.KindQuality, Min: ExceptionalQualityMin, ValueEx: 20, Listings: 10}, LastAttempt: now, QueryVersion: scanQueryVersion}
+	sockets := &keyState{ExceptionalPrice: prices.ExceptionalPrice{Base: "Chiming Staff", Kind: prices.KindSockets, Min: min, ValueEx: 60, Listings: 10}, LastAttempt: now}
+	s.st.Keys["Chiming Staff|quality"] = quality
+	s.st.Keys["Chiming Staff|sockets"] = sockets
+	next := s.next(now)
+	if next == nil || next.key != "Chiming Staff|sockets" {
+		t.Fatalf("next = %+v, want the sockets key that counted corrupted listings", next)
+	}
+	sockets.QueryVersion = scanQueryVersion
+	if next := s.next(now); next != nil {
+		t.Fatalf("next = %+v, want nothing due", next)
+	}
+}
