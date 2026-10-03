@@ -51,14 +51,30 @@ func TestWindowScaleFitsTheGame(t *testing.T) {
 		}
 	}
 
-	// The personal scale applies to every window, yet never pushes one out of
-	// the game.
-	fhd := cases["1080p 125%"]
-	if got := overlayScaleFor(overlay.Settings{UIScale: 175}, fhd); overlayHeight*got > fhd.height*0.951 {
-		t.Errorf("175%% overlay %.0f tall in %.0f", overlayHeight*got, fhd.height)
+	// A larger personal scale always means larger windows; one taller than
+	// the game is cut to it, and no page grows wider than the game.
+	for name, a := range map[string]windowArea{"1440p": qhd, "1080p 125%": cases["1080p 125%"]} {
+		prevO, prevC, prevM := 0.0, 0.0, 0.0
+		for _, pct := range []int{75, 100, 125, 150, 175} {
+			st := overlay.Settings{AutoScale: true, UIScale: pct}
+			o, c, m := overlayScaleFor(st, a), craftScaleFor(st, a), marketScaleFor(st, a)
+			if o < prevO || c < prevC || m < prevM {
+				t.Errorf("%s %d%%: scales went down (%.2f %.2f %.2f after %.2f %.2f %.2f)", name, pct, o, c, m, prevO, prevC, prevM)
+			}
+			if h := overlayWindowHeight(a, overlayHeight, o); float64(h) > a.height*0.951 {
+				t.Errorf("%s %d%%: overlay window %d tall in %.0f", name, pct, h, a.height)
+			}
+			if overlayWidth*o > a.width || craftWidth*c > a.width+0.5 {
+				t.Errorf("%s %d%%: page wider than the game", name, pct)
+			}
+			prevO, prevC, prevM = o, c, m
+		}
 	}
-	if got := craftScaleFor(overlay.Settings{UIScale: 175}, fhd); craftHeight*got > fhd.height+0.5 {
-		t.Errorf("175%% craft %.0f tall in %.0f", craftHeight*got, fhd.height)
+	if big, normal := overlayScaleFor(overlay.Settings{AutoScale: true, UIScale: 175}, qhd), overlayScaleFor(auto, qhd); big < normal*1.5 {
+		t.Errorf("175%% overlay %.2f is barely larger than 100%% %.2f", big, normal)
+	}
+	if big := craftScaleFor(overlay.Settings{AutoScale: true, UIScale: 175}, qhd); big < 1.3 {
+		t.Errorf("175%% craft %.2f did not grow", big)
 	}
 	small := overlay.Settings{AutoScale: true, UIScale: 75}
 	if got, want := craftScaleFor(small, qhd), 0.75*craftScaleFor(auto, qhd); got < want-0.01 || got > want+0.01 {

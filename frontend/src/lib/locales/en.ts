@@ -111,7 +111,7 @@ export const en: Record<string, string> = {
   'overlay.size': 'Interface size',
   'overlay.autoScale': 'Scale automatically for the game',
   'overlay.autoScaleHint': 'Enlarges the windows on 2K and 4K and shrinks them to fit a 1080p or windowed game',
-  'overlay.scaleHint': 'Your personal scale, on top of the automatic one. Applies to the price check, market and theoretical craft windows.',
+  'overlay.scaleHint': 'Above 100% makes the windows larger, below makes them smaller, on top of the automatic size. Applies to the price check, market and theoretical craft windows.',
   'overlay.catalog': 'GGG trade catalog',
   'overlay.catalogDesc': 'Affix, item and filter lists use a daily local JSON cache.',
   'overlay.affixes': 'searchable affixes',

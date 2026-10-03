@@ -110,7 +110,7 @@ export const tr: Record<string, string> = {
   'overlay.size': 'Arayüz boyutu',
   'overlay.autoScale': 'Oyuna göre otomatik boyutlandır',
   'overlay.autoScaleHint': '2K ve 4K ekranlarda pencereleri büyütür, 1080p ya da pencereli oyunda sığacak kadar küçültür',
-  'overlay.scaleHint': 'Otomatik boyutun üzerine uygulanan kişisel ölçek. Fiyat sorgusu, pazar ve teorik craft pencerelerinin hepsine uygulanır.',
+  'overlay.scaleHint': '%100 üstü pencereleri büyütür, altı küçültür; otomatik boyutun üzerine uygulanır. Fiyat sorgusu, pazar ve teorik craft pencerelerinin hepsine uygulanır.',
   'overlay.catalog': 'GGG trade kataloğu',
   'overlay.catalogDesc': 'Affix, item ve filtre listeleri günlük JSON önbellekten kullanılır.',
   'overlay.affixes': 'aranabilir affix',
