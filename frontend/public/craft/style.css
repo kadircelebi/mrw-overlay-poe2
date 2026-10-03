@@ -247,6 +247,10 @@ a { color: var(--gold); white-space: nowrap; }
 .item-mod.desecrated, .item-mod.desecrated-bg { background: linear-gradient(90deg, transparent, oklch(45% .09 145 / .28) 18%, oklch(45% .09 145 / .28) 82%, transparent); }
 .item-mod.desecrated .mod-tier { color: oklch(75% .1 145); }
 .item-mod.unrevealed .mod-value { color: oklch(70% .06 145); font-style: italic; }
+/* Holding Chaos / Annulment over the item: what it may remove, and what stays. */
+.item-mod.may-remove { box-shadow: inset 3px 0 var(--bad); background: linear-gradient(90deg, oklch(55% .12 25 / .22), transparent 70%); }
+.item-mod.kept { opacity: .42; }
+.item-mod .remove-odds { display: block; margin-top: .15rem; color: var(--bad); font-size: .68rem; font-variant-numeric: tabular-nums; }
 .mod-editor { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-xs);
   margin: .3rem 0 .4rem; padding: .45rem; border: 1px solid var(--line); background: var(--sunk); font-size: .8rem; color: var(--muted); cursor: default; }
 .mod-editor small { flex-basis: 100%; text-align: center; }
