@@ -69,6 +69,8 @@ export const zh: Record<string, string> = {
   'window.minimise': '最小化',
   'window.maximise': '最大化',
   'window.close': '關閉',
+  'craft.fullscreen': '全螢幕（F11，或雙擊標題列）',
+  'craft.restoreSize': '還原大小（F11）',
   'overlay.title': '價格查詢 Overlay',
   'overlay.desc': '在遊戲中將游標移到物品上並按快捷鍵，即可開啟價格查詢。',
   'overlay.enable': '啟用 Overlay',

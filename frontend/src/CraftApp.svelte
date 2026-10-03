@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { Events } from '@wailsio/runtime'
+  import { Events, Window } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter'
   import { allOn, buildRequest, choicesFor, modifiableFilters, searchedStats } from './lib/overlayQuery'
   import { t, currentLang } from './lib/i18n.svelte'
@@ -10,6 +10,12 @@
   import type { EvaluateRequest, Evaluation } from '../bindings/poe2filter/internal/trade/models'
 
   let frame: HTMLIFrameElement
+  // The craft window fills the screen on demand (button, double click on the
+  // title bar, F11 in either page) and remembers it while hidden.
+  let maximised = $state(false)
+  async function toggleSize() {
+    try { await Window.ToggleMaximise(); maximised = await Window.IsMaximised() } catch { /* not in the app */ }
+  }
   let error = $state('')
   let searching = false
   // The price panel: the crafted item searched on the trade site, right
@@ -73,6 +79,7 @@
     const offImport = Events.On('craft-import', (ev) => { pendingImport = ev.data; sendImport() })
     const receive = async (event: MessageEvent) => {
       if (event.source !== frame?.contentWindow || event.origin !== location.origin) return
+      if (event.data?.type === 'craft-size') { void toggleSize(); return }
       if (event.data?.type === 'craft-ready') { frameReady = true; sendLang(); sendImport(); void sendIcons(); await refreshPrices(); return }
       if (event.data?.type !== 'craft-price' || typeof event.data.raw !== 'string' || searching) return
       searching = true; error = ''
@@ -92,17 +99,23 @@
     window.addEventListener('message', receive)
     const onFocus = () => { void refreshPrices(); if (!iconsSent) void sendIcons() }
     window.addEventListener('focus', onFocus)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'F11') { e.preventDefault(); void toggleSize() } }
+    window.addEventListener('keydown', onKey)
+    Window.IsMaximised().then((v) => (maximised = v)).catch(() => {})
     return () => {
       offLang(); offPrices(); offImport()
       window.removeEventListener('message', receive)
       window.removeEventListener('focus', onFocus)
+      window.removeEventListener('keydown', onKey)
     }
   })
 </script>
 
 <main class="craft-shell">
-  <header style="--wails-draggable:drag">
+  <header style="--wails-draggable:drag" role="toolbar" tabindex="-1" ondblclick={(e) => { if (!(e.target as HTMLElement).closest('button')) void toggleSize() }}>
     <img src="/emblem.png" alt="" /><strong>MrW Overlay · {t('craft.open')}</strong>
+    <button class="size" title={maximised ? t('craft.restoreSize') : t('craft.fullscreen')} aria-label={maximised ? t('craft.restoreSize') : t('craft.fullscreen')}
+      aria-pressed={maximised} onclick={toggleSize}>{maximised ? '❐' : '□'}</button>
     <button title={t('window.close')} aria-label={t('window.close')} onclick={() => AppService.HideCraft()}>×</button>
   </header>
   {#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -139,6 +152,7 @@
   header img { width:24px; height:24px; }
   header strong { color:var(--gold-bright); font:500 14px var(--serif); flex:1; }
   header button { --wails-draggable:no-drag; padding:1px 8px; font-size:22px; }
+  header button.size { font-size:17px; padding:3px 9px; }
   .body { flex:1; min-height:0; display:flex; position:relative; }
   iframe { width:100%; flex:1; min-height:0; border:0; background:var(--bg); }
   .price { position:absolute; top:0; right:0; bottom:0; width:min(470px, 92%); display:flex; flex-direction:column; gap:8px;

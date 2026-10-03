@@ -69,6 +69,8 @@ export const tr: Record<string, string> = {
   'window.minimise': 'Küçült',
   'window.maximise': 'Büyüt',
   'window.close': 'Kapat',
+  'craft.fullscreen': 'Tam ekran (F11 ya da başlık çubuğuna çift tıkla)',
+  'craft.restoreSize': 'Eski boyuta dön (F11)',
   'overlay.title': 'Fiyat sorgulayıcı overlay',
   'overlay.desc': 'Oyunda bir itemın üzerine gelip kısayola basınca fiyat sorgusu açılır.',
   'overlay.enable': 'Overlay açık',
