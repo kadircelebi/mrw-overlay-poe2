@@ -222,7 +222,8 @@
               {#if repeat}
                 <small class="tier option" class:repeat={repeat > 1}>{repeat > 1 ? `×${repeat}` : '+'}</small>
               {:else}
-                <small class="tier" class:prefix={group.tier.startsWith('P')} class:suffix={group.tier.startsWith('S')} title={group.name || undefined}>{i === 0 ? group.tier || (group.name ? '•' : '') : ''}</small>
+                <!-- A fractured affix reads "P1-F", in the game's fractured gold. -->
+                <small class="tier" class:prefix={group.tier.startsWith('P')} class:suffix={group.tier.startsWith('S')} class:fractured={group.type === 'fractured'} title={group.type === 'fractured' ? `Fractured${group.name ? ` · ${group.name}` : ''}` : group.name || undefined}>{i === 0 ? (group.tier ? group.tier + (group.type === 'fractured' ? '-F' : '') : group.name ? '•' : '') : ''}</small>
               {/if}
               <p class:searched={!!line.mod.statId && searchedSet.has(line.mod.statId)} title={line.mod.parts?.length ? t('ov.summedAffix', line.mod.description) : undefined}>
                 {#if key}
@@ -392,15 +393,17 @@
   /* Tier column left, an equal empty column right so the text stays centred. */
   /* The tier sits on the first line of its text: a wrapped line's button
      would otherwise pull a baseline-aligned label down to its last line. */
-  .preview .affix-line { display:grid; grid-template-columns:24px 1fr 24px; align-items:start; gap:4px; }
+  .preview .affix-line { display:grid; grid-template-columns:30px 1fr 30px; align-items:start; gap:4px; }
   .preview .affix .tier { text-align:left; color:#9d76b6; font-size:9.5px; line-height:16px; font-weight:bold; cursor:default; }
   .preview .affix .tier.prefix { color:#d0675c; }
   .preview .affix .tier.suffix { color:#6f9bd6; }
+  .preview .affix .tier.fractured { color:#c9aa71; }
   .preview .affix .tier.option { color:#7e899d; }
   .preview .affix .tier.option.repeat { color:#d6b36a; }
   .preview p.option-sum { margin:3px 0 0; color:#8a8f99; text-align:center; }
   .preview .type-implicit p { color:#7188c4; }
-  .preview .type-fractured p { color:#9ed0d8; }
+  /* The game draws fractured affixes in gold. */
+  .preview .type-fractured p { color:#c9aa71; }
   .preview .type-crafted p { color:#9d76b6; }
   .preview .type-desecrated p { color:#d68869; }
   .preview .type-rune p { color:#7e899d; }
@@ -409,7 +412,7 @@
   .item-states { display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-top:8px; }
   .item-states span { padding:1px 6px;border:1px solid currentColor;border-radius:2px;font-size:8.5px;line-height:14px;text-transform:uppercase;letter-spacing:.06em;background:rgba(0,0,0,.35); }
   .item-states .unidentified,.item-states .corrupted { color:#d54a45; }
-  .item-states .fractured { color:#9ed0d8; }
+  .item-states .fractured { color:#c9aa71; }
   .item-states .mirrored { color:#8fa8e6; }
   .item-states .sanctified { color:#d7bd74; }
   .loading { display:flex; justify-content:center; gap:5px; padding:18px; }
