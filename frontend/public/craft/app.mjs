@@ -21,6 +21,9 @@ let runes = {}, specials = {}, specialSelected = 'preserved-rib', prices = {curr
 // Legacy archives remain in saved/exported data, but are no longer created or displayed.
 const storageKey = 'mrw-craft-v1';
 let mode = 'basic', omens = {}, activeOmens = {basic:[],desecrate:[],essence:[]};
+// In the game an omen is used up with the currency; keepOmens leaves it
+// ticked for the next press (each press still pays for one).
+let keepOmens = false;
 const specialRemember = {desecrate:'preserved-rib',essence:'greater-essence-of-the-mind'};
 // Item classes and their defence variants; item.base is the data page
 // ("Gloves_str", "Rings"), so drafts saved before other classes still load.
@@ -66,7 +69,7 @@ const runeShort = r => r.kind === 'pool' ? r.label : r.kind === 'suffix' ? '+1 S
 // The runes of the current page ("Gloves: Can roll Marksman modifiers").
 const pageRunes = (page = item.base) => Object.entries(runes).filter(([, r]) => r.pages.includes(page));
 function persist() {
-  try { localStorage.setItem(storageKey,JSON.stringify({format:2,item:simPending ? simPending.before : item,history,archives,priceOverrides,sessionStart,mode,activeOmens,selected,tier,specialSelected,specialRemember,pool,
+  try { localStorage.setItem(storageKey,JSON.stringify({format:2,item:simPending ? simPending.before : item,history,archives,priceOverrides,sessionStart,mode,activeOmens,selected,tier,specialSelected,specialRemember,pool,keepOmens,
     sim:{target:simTarget,orb:simOrb,omens:simOmens}})); }
   catch { status(t('storage.failed'),'error'); }
 }
@@ -91,7 +94,7 @@ function commit(next, label, usage = null, newSession = false) {
   item = next;
   const usages = Array.isArray(usage) ? usage : usage ? [usage] : [];
   if (!newSession) history.unshift({ time: new Date().toISOString(), label, usages, before, after:snapshot(next) });
-  for (const context of Object.keys(activeOmens)) activeOmens[context] = activeOmens[context].filter(id => !usages.some(u => u.id === id));
+  if (!keepOmens) for (const context of Object.keys(activeOmens)) activeOmens[context] = activeOmens[context].filter(id => !usages.some(u => u.id === id));
   render();
   status(label, 'success');
   persist();
@@ -353,7 +356,9 @@ function iconElement(icon, orb = false) {
 function renderOmens(context,id,rule) {
   const list = $(context === 'basic' ? 'orb-omens' : 'special-omens'); list.replaceChildren();
   const options = relevantOmens(omens,id,rule,data());
-  activeOmens[context] = activeOmens[context].filter(id => options.some(([key]) => key === id));
+  // Kept omens survive a switch to a currency they do not fit, and work
+  // again when it comes back.
+  if (!keepOmens) activeOmens[context] = activeOmens[context].filter(id => options.some(([key]) => key === id));
   if (!options.length) return;
   list.append(element('strong',t('omen.next')));
   for (const [key,omen] of options) {
@@ -370,9 +375,19 @@ function renderOmens(context,id,rule) {
     };
     list.append(label);
   }
+  const keep = element('label', undefined, 'omen-keep'), box = element('input'); box.type = 'checkbox';
+  box.checked = keepOmens; box.setAttribute('aria-label', t('omen.keep'));
+  keep.append(box, element('span', t('omen.keep')));
+  box.onchange = () => { keepOmens = box.checked; render(); persist(); status(t(keepOmens ? 'omen.keepOn' : 'omen.keepOff')); };
+  list.append(keep);
 }
-const effectsFor = (context,id,rule) => omenEffects(omens,activeOmens[context],id,rule,data());
-const operationPayments = (context,id,rule) => [payment(id,rule),...activeOmens[context].map(id => payment(id,omens[id]))];
+// The ticked omens that fit this currency (kept ones may not).
+const usableOmens = (context,id,rule) => {
+  const fits = new Set(relevantOmens(omens,id,rule,data()).map(([key]) => key));
+  return activeOmens[context].filter(key => fits.has(key));
+};
+const effectsFor = (context,id,rule) => omenEffects(omens,usableOmens(context,id,rule),id,rule,data());
+const operationPayments = (context,id,rule) => [payment(id,rule),...usableOmens(context,id,rule).map(id => payment(id,omens[id]))];
 function renderSpecials() {
   const context = mode === 'essence' ? 'essence' : 'desecrate';
   const visible = Object.entries(specials).filter(([id,r]) => applicable(r,data()) &&
@@ -591,7 +606,7 @@ function renderCurrencies() {
   $('selected-detail').textContent = reason || `${t(`effect.${rule.afterTrigger}`)}${rule.afterRarity && rule.afterRarity !== item.rarity ? t('effect.becomes', rule.afterRarity) : ''}${rule.beforeMin_mod_lv ? t('effect.minLevel', rule.beforeMin_mod_lv) : ''}`;
   $('apply').disabled = Boolean(reason);
   if (!reason && rule.afterTrigger === 'fracture') $('selected-detail').textContent = t('effect.fractureOdds', num(100 / fracturable(item).length, 2));
-  if (!reason && activeOmens.basic.length) {
+  if (!reason && usableOmens('basic',selected,rule).length) {
     const removal = omenEffect.removal || {};
     $('selected-detail').textContent = selected.includes('exalted')
       ? t('effect.omens', omenEffect.quantity, omenEffect.side ? t('effect.side', omenEffect.side) : '')
@@ -1141,6 +1156,7 @@ try {
       if (saved.selected && supported(saved.selected) && rules[saved.selected]) { selected = saved.selected; tier = rules[selected].tier || ''; }
       for (const context of ['desecrate','essence']) if (specials[saved.specialRemember?.[context]]?.operation === context) specialRemember[context] = saved.specialRemember[context];
       if (saved.activeOmens && ['basic','desecrate','essence'].every(k=>Array.isArray(saved.activeOmens[k]))) activeOmens = saved.activeOmens;
+      keepOmens = saved.keepOmens === true;
       if (mode !== 'basic') specialSelected = specialRemember[mode];
       pool = typeof saved.pool === 'string' ? saved.pool : mode === 'desecrate' ? 'desecrated' : mode === 'essence' ? 'essence' : 'normal';
       $('pool').value = pool;
