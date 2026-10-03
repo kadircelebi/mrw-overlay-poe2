@@ -18,6 +18,9 @@ func TestTrimmedMean(t *testing.T) {
 		{[]float64{10, 20}, 15, 2},
 		{[]float64{1, 50, 50, 50, 50}, 50, 4},                   // one outlier dropped
 		{[]float64{1, 2, 100, 100, 100, 100, 100, 100}, 100, 6}, // two dropped
+		{[]float64{256, 256, 512, 3_000_000}, 1024.0 / 3, 3},    // a troll price dropped
+		{[]float64{50, 60, 70, 100, 140}, 92.5, 4},              // a spread kept (median 85)
+		{[]float64{5_000_000}, 5_000_000, 1},                    // a lone price stays
 	}
 	for _, c := range cases {
 		got, n := TrimmedMean(c.in)
