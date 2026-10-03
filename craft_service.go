@@ -111,7 +111,7 @@ func (s *AppService) ShowCraft() {
 		settings := s.overlaySettings
 		s.overlayMu.RUnlock()
 		scale := craftScaleFor(settings, s.windowArea())
-		s.craftWindow.SetZoom(scale)
+		s.setWindowZoom(s.craftWindow, scale)
 		if !s.craftWindow.IsMaximised() {
 			s.craftWindow.SetScreen(screen)
 			bounds := screen.WorkArea

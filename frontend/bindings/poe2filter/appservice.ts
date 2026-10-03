@@ -656,6 +656,14 @@ export function TravelToHideout(token: string): $CancellablePromise<void> {
 }
 
 /**
+ * UIZoom is the CSS zoom a window's page applies to itself (1 = none), for a
+ * page that loads after the window was sized.
+ */
+export function UIZoom(window: string): $CancellablePromise<number> {
+    return $Call.ByID(2370476959, window);
+}
+
+/**
  * UniqueIcons maps unique names to their art, from the last price snapshot
  * (poe.ninja sends an icon with each unique). An unidentified unique shows
  * these so the player can tell the candidates apart by their look.

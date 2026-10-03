@@ -94,7 +94,10 @@ type AppService struct {
 	overlayEvalFlights map[string]*overlayEvaluationFlight
 	overlaySnapshot    overlay.Snapshot
 	// overlayHeight is the compact overlay's height in page pixels (0 = full).
-	overlayHeight  int
+	overlayHeight int
+	// pageZoom is the CSS zoom each in-game window's page applies (setWindowZoom).
+	zoomMu         sync.Mutex
+	pageZoom       map[string]float64
 	overlayDraft   trade.EvaluateRequest
 	overlayWindow  application.Window
 	marketWindow   application.Window
