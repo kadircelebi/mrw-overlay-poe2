@@ -511,9 +511,15 @@ func (st *style) with(p Theme) *style {
 	if iconColour == "" {
 		iconColour, _, _ = strings.Cut(p.Beam, " ") // "Purple Temp" -> "Purple"
 	}
-	size, shape := "", ""
+	size, colour, shape := "", "", ""
 	if f := strings.Fields(s.icon); len(f) == 3 {
-		size, shape = f[0], f[2]
+		size, colour, shape = f[0], f[1], f[2]
+	}
+	// A palette without a beam or icon colour keeps the group's own icon
+	// colour: "MinimapIcon 1  Diamond" (no colour) makes the game reject the
+	// whole filter.
+	if iconColour == "" {
+		iconColour = colour
 	}
 	if p.Full {
 		s.beam = p.Beam
@@ -533,7 +539,10 @@ func (st *style) with(p Theme) *style {
 		if p.Shape != "" {
 			shape = p.Shape
 		}
-		s.icon = size + " " + iconColour + " " + shape
+		s.icon = ""
+		if iconColour != "" {
+			s.icon = size + " " + iconColour + " " + shape
+		}
 	}
 	return &s
 }
