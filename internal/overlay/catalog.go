@@ -86,6 +86,8 @@ type CurrencyEntry struct {
 	ID    string `json:"id"`
 	Text  string `json:"text"`
 	Image string `json:"image"`
+	// Group is the exchange section ("Currency", "Ritual", "Waystones"...).
+	Group string `json:"group"`
 }
 
 type staticGroup struct {
@@ -113,7 +115,7 @@ func currenciesFrom(groups []staticGroup) []CurrencyEntry {
 			if strings.HasPrefix(image, "/") {
 				image = iconBase + image
 			}
-			out = append(out, CurrencyEntry{ID: e.ID, Text: e.Text, Image: image})
+			out = append(out, CurrencyEntry{ID: e.ID, Text: e.Text, Image: image, Group: group.ID})
 		}
 	}
 	return out

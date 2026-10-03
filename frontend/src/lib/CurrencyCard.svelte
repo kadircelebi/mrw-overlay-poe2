@@ -3,7 +3,9 @@
   import { listedAgo } from './overlayQuery'
   import { t } from './i18n.svelte'
 
-  let { item, quote }: { item: Item; quote: CurrencyQuote } = $props()
+  // source replaces the price-list line when the figure comes from elsewhere
+  // (the currency exchange).
+  let { item, quote, source, sourceTitle }: { item: Item; quote: CurrencyQuote; source?: string; sourceTitle?: string } = $props()
 
   const stock = $derived(Math.max(1, item.stackSize || 1))
   const totalEx = $derived(quote.valueEx * stock)
@@ -58,7 +60,7 @@
       <span><b>{amount(1 / perDivine)}</b> {t('ov.cc.divEach')}</span>
     {/if}
   </div>
-  <p class="source" title={t('ov.cc.sourceTitle')}>{t('ov.cc.source', quote.league, updated)}</p>
+  <p class="source" title={sourceTitle ?? t('ov.cc.sourceTitle')}>{source ?? t('ov.cc.source', quote.league, updated)}</p>
 </section>
 
 <style>
