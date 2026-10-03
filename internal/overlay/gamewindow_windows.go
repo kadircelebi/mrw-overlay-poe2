@@ -241,6 +241,19 @@ func GameCenter() (int, int, bool) {
 	return int(r.Left + r.width()/2), int(r.Top + r.height()/2), true
 }
 
+// GameSize returns the physical size of the game window's client area.
+func GameSize() (int, int, bool) {
+	g := gameWindow()
+	if g == 0 {
+		return 0, 0, false
+	}
+	r, ok := clientRect(g)
+	if !ok {
+		return 0, 0, false
+	}
+	return int(r.width()), int(r.height()), true
+}
+
 // shift moves r inside b without resizing; a window larger than b is pinned
 // to b's top-left corner.
 func shift(r *rect, b rect) {

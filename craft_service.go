@@ -106,12 +106,20 @@ func (s *AppService) ShowCraft() {
 	s.confineWindows()
 	// A window the player made full screen stays so; only a normal one is
 	// placed on the game's screen at its usual size.
-	if screen := s.anchorScreen(); screen != nil && !s.craftWindow.IsMaximised() {
-		s.craftWindow.SetScreen(screen)
-		bounds := screen.WorkArea
-		bounds.Width, bounds.Height = min(1120, bounds.Width), min(900, bounds.Height)
-		s.craftWindow.SetBounds(bounds)
-		overlay.PlaceInGame(uintptr(s.craftWindow.NativeWindow()), false)
+	if screen := s.anchorScreen(); screen != nil {
+		s.overlayMu.RLock()
+		settings := s.overlaySettings
+		s.overlayMu.RUnlock()
+		scale := craftScaleFor(settings, s.windowArea())
+		s.craftWindow.SetZoom(scale)
+		if !s.craftWindow.IsMaximised() {
+			s.craftWindow.SetScreen(screen)
+			bounds := screen.WorkArea
+			bounds.Width = min(int(craftWidth*scale), bounds.Width)
+			bounds.Height = min(int(craftHeight*scale), bounds.Height)
+			s.craftWindow.SetBounds(bounds)
+			overlay.PlaceInGame(uintptr(s.craftWindow.NativeWindow()), false)
+		}
 	}
 	s.craftWindow.Show()
 	s.craftWindow.Focus()

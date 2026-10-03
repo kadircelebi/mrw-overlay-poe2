@@ -439,7 +439,8 @@ function renderSpecials() {
   $('special').disabled = Boolean(item.reveal);
   const usage = payment(specialSelected,rule);
   $('special-price').disabled = Boolean(item.reveal);
-  $('special-price').value = usage.unit_ex ?? '';
+  // Rates arrive with full float precision; two decimals are what one types.
+  $('special-price').value = usage.unit_ex == null ? '' : Math.round(usage.unit_ex * 100) / 100;
   $('special-price').placeholder = t('special.priceUnknown');
   $('special-name').textContent = rule.name;
   setIcon($('special-icon'), rule.icon);

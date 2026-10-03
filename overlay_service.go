@@ -660,7 +660,7 @@ func (s *AppService) showMarketWindow() {
 			bounds.Width = screen.WorkArea.Width
 		}
 		s.marketWindow.SetBounds(bounds)
-		s.marketWindow.SetZoom(marketScaleForScreen(settings, screen))
+		s.marketWindow.SetZoom(marketScaleFor(settings, s.windowArea()))
 		overlay.PlaceInGame(uintptr(s.marketWindow.NativeWindow()), false)
 	} else {
 		s.marketWindow.Maximise()
@@ -670,34 +670,99 @@ func (s *AppService) showMarketWindow() {
 	s.marketWindow.Focus()
 }
 
-func marketScaleForScreen(settings overlay.Settings, screen *application.Screen) float64 {
-	scale := overlayScaleForScreen(settings, screen) * 0.82
-	if scale < 0.70 {
-		return 0.70
-	}
-	if scale > 1.45 {
-		return 1.45
-	}
-	return scale
+// windowArea is the room the overlay windows have, in window (DIP) pixels:
+// the game's client area on its screen, or the screen's work area when the
+// game is not running. physicalHeight is the height the game draws at, which
+// its own interface scales with.
+type windowArea struct {
+	width, height  float64
+	physicalHeight int
 }
 
-func overlayScaleForScreen(settings overlay.Settings, screen *application.Screen) float64 {
-	scale := float64(settings.UIScale) / 100
-	if settings.AutoScale && screen != nil {
-		switch {
-		case screen.PhysicalBounds.Height >= 2000:
-			scale *= 1.25
-		case screen.PhysicalBounds.Height >= 1400:
-			scale *= 1.10
+func areaOf(screen *application.Screen, gameW, gameH int, haveGame bool) windowArea {
+	if screen == nil {
+		return windowArea{}
+	}
+	a := windowArea{width: float64(screen.WorkArea.Width), height: float64(screen.WorkArea.Height), physicalHeight: screen.PhysicalBounds.Height}
+	if haveGame && gameW > 0 && gameH > 0 {
+		dpi := float64(screen.ScaleFactor)
+		if dpi <= 0 {
+			dpi = 1
 		}
+		a.width = min(a.width, float64(gameW)/dpi)
+		a.height = min(a.height, float64(gameH)/dpi)
+		a.physicalHeight = gameH
 	}
-	if scale < 0.75 {
-		return 0.75
+	return a
+}
+
+// windowArea measures the room on the game's screen now.
+func (s *AppService) windowArea() windowArea {
+	if s.app == nil {
+		return windowArea{}
 	}
-	if scale > 2.0 {
-		return 2.0
+	w, h, ok := overlay.GameSize()
+	return areaOf(s.anchorScreen(), w, h, ok)
+}
+
+// autoScale enlarges the windows when the game runs tall (2K, 4K), where its
+// own interface grows with the resolution.
+func autoScale(settings overlay.Settings, a windowArea) float64 {
+	if !settings.AutoScale {
+		return 1
 	}
-	return scale
+	switch {
+	case a.physicalHeight >= 2000:
+		return 1.25
+	case a.physicalHeight >= 1400:
+		return 1.10
+	}
+	return 1
+}
+
+// fitScale is how far a page designed at w×h pixels must shrink to take at
+// most share of the area (1 when it already fits). A 1080p game with Windows
+// scaling leaves only ~830 pixels of height.
+func fitScale(a windowArea, w, h, share float64) float64 {
+	if a.width <= 0 || a.height <= 0 {
+		return 1
+	}
+	return min(1, a.width*share/w, a.height*share/h)
+}
+
+func clampScale(v, lo, hi float64) float64 {
+	return min(max(v, lo), hi)
+}
+
+// The UI size setting applies to every in-game window (price check, market,
+// craft): the automatic part follows the game's size and shrinks a window
+// that would not fit, the personal scale applies on top, and nothing lets a
+// window outgrow the game.
+
+func overlayScaleFor(settings overlay.Settings, a windowArea) float64 {
+	auto := autoScale(settings, a)
+	if settings.AutoScale {
+		auto = min(auto, fitScale(a, overlayWidth, overlayHeight, 0.85))
+	}
+	scale := float64(settings.UIScale) / 100 * auto
+	return clampScale(min(scale, fitScale(a, overlayWidth, overlayHeight, 0.95)), 0.5, 2.0)
+}
+
+// The market fills a third of the screen's width; only its contents scale.
+func marketScaleFor(settings overlay.Settings, a windowArea) float64 {
+	scale := clampScale(float64(settings.UIScale)/100*autoScale(settings, a), 0.5, 2.0) * 0.82
+	return clampScale(scale, 0.5, 1.45)
+}
+
+// craftScaleFor keeps the craft page at its full two-column width: a window
+// squeezed into a small game would otherwise stack the columns.
+func craftScaleFor(settings overlay.Settings, a windowArea) float64 {
+	auto := 1.0
+	if settings.AutoScale {
+		auto = fitScale(a, craftWidth, craftHeight, 1)
+	}
+	scale := float64(settings.UIScale) / 100 * auto
+	return clampScale(min(scale, fitScale(a, craftWidth, craftHeight, 1)), 0.5, 1.75)
 }
 
 // The compact overlay's size in page pixels (before UI scale). An exchange
@@ -706,6 +771,12 @@ const (
 	overlayWidth          = 520
 	overlayHeight         = 760
 	overlayExchangeHeight = 230
+)
+
+// The craft window's size in page pixels at scale 1.
+const (
+	craftWidth  = 1120
+	craftHeight = 900
 )
 
 func (s *AppService) currentOverlayHeight() int {
@@ -734,17 +805,17 @@ func (s *AppService) applyOverlayScale() {
 	s.overlayMu.RLock()
 	settings := s.overlaySettings
 	s.overlayMu.RUnlock()
-	var screen *application.Screen
-	if s.app != nil {
-		screen = s.app.Screen.GetPrimary()
-	}
-	scale := overlayScaleForScreen(settings, screen)
+	area := s.windowArea()
+	scale := overlayScaleFor(settings, area)
 	if s.overlayWindow != nil {
 		s.overlayWindow.SetSize(int(overlayWidth*scale), int(float64(s.currentOverlayHeight())*scale))
 		s.overlayWindow.SetZoom(scale)
 	}
 	if s.marketWindow != nil {
-		s.marketWindow.SetZoom(marketScaleForScreen(settings, screen))
+		s.marketWindow.SetZoom(marketScaleFor(settings, area))
+	}
+	if s.craftWindow != nil {
+		s.craftWindow.SetZoom(craftScaleFor(settings, area))
 	}
 }
 
