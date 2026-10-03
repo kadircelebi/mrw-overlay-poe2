@@ -23,6 +23,12 @@ type FilterExplanation struct {
 	// and towns skipped), used for NeverSink's AreaLevel rules; 0 = unknown.
 	AreaLevel int    `json:"areaLevel"`
 	Area      string `json:"area"`
+	// ThresholdEx is the filter's value threshold and DivineEx/ChaosEx the
+	// rates it was written with, so the window can tell a hidden item that
+	// is worth more than the threshold.
+	ThresholdEx float64 `json:"thresholdEx"`
+	DivineEx    float64 `json:"divineEx"`
+	ChaosEx     float64 `json:"chaosEx"`
 }
 
 type explainCache struct {
@@ -55,6 +61,9 @@ func (s *AppService) ExplainItem(raw string) (FilterExplanation, error) {
 	if log, _ := s.gameLog.Load().(string); log != "" {
 		out.AreaLevel, out.Area = overlay.LastArea(log)
 		facts.AreaLevel = out.AreaLevel
+	}
+	if last := s.eng.State().Last; last != nil {
+		out.ThresholdEx, out.DivineEx, out.ChaosEx = last.ThresholdEx, last.DivineEx, last.ChaosEx
 	}
 	out.Result = filtereval.Evaluate(blocks, facts)
 	out.Verdict = filtereval.VerdictOf(out.Result)

@@ -110,6 +110,15 @@ export interface FilterExplanation {
      */
     "areaLevel": number;
     "area": string;
+
+    /**
+     * ThresholdEx is the filter's value threshold and DivineEx/ChaosEx the
+     * rates it was written with, so the window can tell a hidden item that
+     * is worth more than the threshold.
+     */
+    "thresholdEx": number;
+    "divineEx": number;
+    "chaosEx": number;
 }
 
 /**
