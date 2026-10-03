@@ -10,8 +10,8 @@ import { candidates, chooseWeighted, roll } from './engine.mjs';
 //   reroll    - 1 to 3 affixes are replaced by new random ones
 //   scale     - every affix's values are multiplied, each by its own
 //               0.78-1.22 (0.01 steps), rounded to the nearest
-//   socket    - one more augment socket, past the normal limit (armour,
-//               martial weapons); wands and staves gain quality up to 23%
+//   socket    - one more augment socket, whatever the item already has
+//               (armour, martial weapons); wands and staves gain quality up to 23%
 //               instead; jewellery and quivers have neither
 //   enchant   - a corruption enchantment; the game gives them no weights,
 //               so each of the class's enchantments is equally likely
@@ -51,7 +51,9 @@ export function corruptOutcomes(item, data, { classId, sockets = 0, maxSockets =
   const loose = item.mods.filter(m => !m.fractured && !m.unrevealed);
   if (loose.length) out.push('reroll', 'scale');
   if (quality.wandsStaves.has(classId)) { if (current < quality.max) out.push('quality'); }
-  else if (maxSockets > 0 && sockets < maxSockets) out.push('socket');
+  // Corruption ignores the socket limit: an item that already has its most
+  // (an exceptional bow's three) still gains one.
+  else if (maxSockets > 0) out.push('socket');
   if (!item.enchant && enchantRows(data).length) out.push('enchant');
   return out;
 }
