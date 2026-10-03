@@ -429,8 +429,8 @@ export function PrepareBrowserExtension(): $CancellablePromise<string> {
  * PreviewGameSound plays one of the game's own alert sounds. The sound ships
  * with the app and is written out on first use, since playback needs a path.
  */
-export function PreviewGameSound(id: string): $CancellablePromise<void> {
-    return $Call.ByID(3037340691, id);
+export function PreviewGameSound(id: string, volume: number): $CancellablePromise<void> {
+    return $Call.ByID(3037340691, id, volume);
 }
 
 /**
@@ -443,10 +443,11 @@ export function PreviewOverlay(): $CancellablePromise<void> {
 }
 
 /**
- * PreviewSound plays a sound file from the filter folder.
+ * PreviewSound plays a sound file from the filter folder at a filter volume
+ * (0 for the loudest).
  */
-export function PreviewSound(name: string): $CancellablePromise<void> {
-    return $Call.ByID(3555643989, name);
+export function PreviewSound(name: string, volume: number): $CancellablePromise<void> {
+    return $Call.ByID(3555643989, name, volume);
 }
 
 /**

@@ -45,8 +45,9 @@ type style struct {
 	font             int
 	text, border, bg string
 	beam, icon       string
-	sound            string // PlayAlertSound arguments, e.g. "6 300"
+	sound            string // PlayAlertSound id, e.g. "6" or "ShMirror"
 	custom           string // CustomAlertSound file in the filter folder
+	volume           int    // 0 for MaxSoundVolume
 }
 
 type builder struct {
@@ -91,11 +92,15 @@ func (b *builder) rule(action string, conds []string, listKey string, list []str
 			if st.icon != "" {
 				b.add("    MinimapIcon " + st.icon)
 			}
+			vol := st.volume
+			if vol <= 0 {
+				vol = MaxSoundVolume
+			}
 			if st.sound != "" {
-				b.add("    PlayAlertSound " + st.sound)
+				b.add(fmt.Sprintf("    PlayAlertSound %s %d", st.sound, vol))
 			}
 			if st.custom != "" {
-				b.add(`    CustomAlertSound "` + st.custom + `" 300`)
+				b.add(fmt.Sprintf(`    CustomAlertSound "%s" %d`, st.custom, vol))
 			}
 		}
 		b.add("")
@@ -110,34 +115,34 @@ func (b *builder) rule(action string, conds []string, listKey string, list []str
 }
 
 var (
-	styleDivine = &style{font: 45, beam: "Cyan", icon: "0 Cyan Star", sound: "6 300"}
+	styleDivine = &style{font: 45, beam: "Cyan", icon: "0 Cyan Star", sound: "6"}
 	styleMid    = &style{font: 40, text: "240 220 255 255", border: "180 120 255 255", bg: "70 20 100 230",
-		icon: "1 Purple Diamond", sound: "2 300"}
+		icon: "1 Purple Diamond", sound: "2"}
 	styleMax = &style{font: 45, text: "255 255 255 255", border: "255 215 0 255", bg: "180 0 0 255",
-		beam: "Red", icon: "0 Red Star", sound: "6 300"}
+		beam: "Red", icon: "0 Red Star", sound: "6"}
 	styleUnique = &style{font: 44, text: "255 255 255 255", border: "255 100 0 255", bg: "175 40 0 255",
-		beam: "Red", icon: "0 Red Star", sound: "6 300"}
+		beam: "Red", icon: "0 Red Star", sound: "6"}
 	styleChance = &style{font: 38, text: "0 240 255 255", border: "0 200 255 255", bg: "10 30 50 240",
 		icon: "2 Cyan Circle"}
 	styleExceptional = &style{font: 42, text: "255 255 255 255", border: "0 210 255 255", bg: "0 40 70 240",
-		beam: "Cyan", icon: "1 Cyan Diamond", sound: "2 300"}
+		beam: "Cyan", icon: "1 Cyan Diamond", sound: "2"}
 	styleExceptionalUnknown = &style{font: 36, text: "200 230 255 255", border: "0 150 200 255", bg: "0 25 45 220"}
 	styleT5Rare             = &style{font: 40, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
 		icon: "2 Yellow Diamond"}
 	styleWaystone = &style{font: 42, text: "255 255 255 255", border: "255 0 0 255", bg: "120 0 0 240",
-		beam: "Red", icon: "1 Red Square", sound: "2 300"}
+		beam: "Red", icon: "1 Red Square", sound: "2"}
 	// Top-tier rare jewels get the loud look; lower tiers keep the colours
 	// but drop the beam and the sound.
 	styleRareJewel = &style{font: 42, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
-		beam: "Yellow", icon: "1 Yellow Diamond", sound: "2 300"}
+		beam: "Yellow", icon: "1 Yellow Diamond", sound: "2"}
 	styleRareJewelQuiet = &style{font: 40, text: "255 215 0 255", border: "255 180 0 255", bg: "40 25 0 255",
 		icon: "2 Yellow Diamond"}
 	styleQuality = &style{font: 40, text: "255 255 255 255", border: "255 215 0 255", bg: "40 30 0 240",
 		icon: "1 Yellow Diamond"}
 	styleUncutGem = &style{font: 42, text: "80 255 160 255", border: "0 255 130 255", bg: "5 50 20 255",
-		beam: "Green", icon: "1 Green Triangle", sound: "2 300"}
+		beam: "Green", icon: "1 Green Triangle", sound: "2"}
 	stylePinnacle = &style{font: 45, text: "255 255 255 255", border: "255 215 0 255", bg: "140 0 170 255",
-		beam: "Red", icon: "0 Red Star", sound: "6 300"}
+		beam: "Red", icon: "0 Red Star", sound: "6"}
 	styleDim = &style{font: 18, text: "120 120 120 180", border: "0 0 0 0", bg: "0 0 0 150"}
 	// styleKeep is the "always show" list: never hidden, but plain, so a cheap
 	// entry does not look like a valuable drop. Valuable entries are caught
@@ -424,7 +429,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	dp, _ := cfg.Palette(GroupDivine, ns)
 	b.section(i18n.T("filter.sec.divine"))
 	b.rule("Show", []string{`Class == "Stackable Currency"`, `BaseType == "Divine Orb"`}, "", nil,
-		styleDivine.with(dp).withSound(cfg.Sound(GroupDivine)).withFont(cfg.FontSize(GroupDivine)))
+		styleDivine.with(dp).withSound(cfg.Sound(GroupDivine)).withVolume(cfg.Volume(GroupDivine)).withFont(cfg.FontSize(GroupDivine)))
 
 	// ---- 3. user value tiers ----------------------------------------------
 	// Tiers are written from highest to lowest. The first matching block wins,
@@ -436,7 +441,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		b.section(fmt.Sprintf(i18n.T("filter.sec.valueTier"), strings.ToUpper(tier.group.Name),
 			tier.group.ThresholdValue, tier.group.ThresholdUnit, tier.thresholdEx))
 		pal, _ := cfg.Palette(tier.group.StyleKey(), ns)
-		tierStyle := styleMid.with(pal).withSound(cfg.Sound(tier.group.StyleKey())).withFont(cfg.FontSize(tier.group.StyleKey()))
+		tierStyle := styleMid.with(pal).withSound(cfg.Sound(tier.group.StyleKey())).withVolume(cfg.Volume(tier.group.StyleKey())).withFont(cfg.FontSize(tier.group.StyleKey()))
 		sort.Strings(tier.currency)
 		sort.Strings(tier.uniques)
 		b.rule("Show", nil, "BaseType", tier.currency, tierStyle)
@@ -454,15 +459,16 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	currencyStyles := func(cat string) (*style, *style) {
 		th := categoryTheme(cat)
 		apex := &style{font: 45, text: "255 255 255 255",
-			border: "255 215 0 255", bg: th.BgT1, beam: th.Beam, icon: "0 " + th.IconColor + " Star", sound: "6 300"}
+			border: "255 215 0 255", bg: th.BgT1, beam: th.Beam, icon: "0 " + th.IconColor + " Star", sound: "6"}
 		high := &style{font: 42, text: th.Text, border: th.Border,
-			bg: th.BgT1, beam: th.Beam, icon: "1 " + th.IconColor + " " + th.IconShape, sound: "1 300"}
+			bg: th.BgT1, beam: th.Beam, icon: "1 " + th.IconColor + " " + th.IconShape, sound: "1"}
 		if curPal, custom := cfg.Palette(GroupCurrency, ns); custom {
 			apex, high = apex.with(curPal), high.with(curPal)
 		}
 		if snd := cfg.Sound(GroupCurrency); snd != SoundDefault {
 			apex, high = apex.withSound(snd), high.withSound(snd)
 		}
+		apex, high = apex.withVolume(cfg.Volume(GroupCurrency)), high.withVolume(cfg.Volume(GroupCurrency))
 		// A chosen size is the top tier's; the next keeps its step below.
 		if size := cfg.FontSize(GroupCurrency); size > 0 {
 			apex, high = apex.withFont(size), high.withFont(size-3)
@@ -490,7 +496,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			key := "tier:" + tier.group.ID
 			if stackStyles[key] == nil {
 				pal, _ := cfg.Palette(tier.group.StyleKey(), ns)
-				stackStyles[key] = styleMid.with(pal).withSound(cfg.Sound(tier.group.StyleKey())).withFont(cfg.FontSize(tier.group.StyleKey()))
+				stackStyles[key] = styleMid.with(pal).withSound(cfg.Sound(tier.group.StyleKey())).withVolume(cfg.Volume(tier.group.StyleKey())).withFont(cfg.FontSize(tier.group.StyleKey()))
 			}
 			return key, stackStyles[key]
 		}
@@ -580,7 +586,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	if len(valuableUniqueBases) > 0 {
 		b.section(i18n.T("filter.sec.unique"))
 		up, _ := cfg.Palette(GroupUnique, ns)
-		b.rule("Show", []string{"Rarity Unique"}, "BaseType", valuableUniqueBases, styleUnique.with(up).withSound(cfg.Sound(GroupUnique)).withFont(cfg.FontSize(GroupUnique)))
+		b.rule("Show", []string{"Rarity Unique"}, "BaseType", valuableUniqueBases, styleUnique.with(up).withSound(cfg.Sound(GroupUnique)).withVolume(cfg.Volume(GroupUnique)).withFont(cfg.FontSize(GroupUnique)))
 	}
 
 	// ---- 7. chance bases ---------------------------------------------------
@@ -597,7 +603,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 			b.section(i18n.T("filter.sec.chance"))
 			// Orb of Chance only works on normal items.
 			cp, _ := cfg.Palette(GroupChance, ns)
-			b.rule("Show", []string{"Rarity Normal"}, "BaseType", bases, styleChance.with(cp).withSound(cfg.Sound(GroupChance)).withFont(cfg.FontSize(GroupChance)))
+			b.rule("Show", []string{"Rarity Normal"}, "BaseType", bases, styleChance.with(cp).withSound(cfg.Sound(GroupChance)).withVolume(cfg.Volume(GroupChance)).withFont(cfg.FontSize(GroupChance)))
 		}
 	}
 
@@ -608,7 +614,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		for _, g := range exGroups(valuableEx) {
 			sort.Strings(valuableEx[g])
 			b.rule("Show", append([]string{"Corrupted False", "Rarity Normal Magic Rare"}, exCond(g)...),
-				"BaseType", valuableEx[g], styleExceptional.with(exPal).withSound(cfg.Sound(GroupExceptional)).withFont(cfg.FontSize(GroupExceptional)))
+				"BaseType", valuableEx[g], styleExceptional.with(exPal).withSound(cfg.Sound(GroupExceptional)).withVolume(cfg.Volume(GroupExceptional)).withFont(cfg.FontSize(GroupExceptional)))
 		}
 	}
 
@@ -620,7 +626,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		} else {
 			tp, _ := cfg.Palette(GroupT5Rare, ns)
 			b.rule("Show", []string{"Rarity Rare", fmt.Sprintf("UnidentifiedItemTier >= %d", cfg.T5RareTier)},
-				"Class", gearClasses, styleT5Rare.with(tp).withSound(cfg.Sound(GroupT5Rare)).withFont(cfg.FontSize(GroupT5Rare)))
+				"Class", gearClasses, styleT5Rare.with(tp).withSound(cfg.Sound(GroupT5Rare)).withVolume(cfg.Volume(GroupT5Rare)).withFont(cfg.FontSize(GroupT5Rare)))
 		}
 	}
 	if cfg.RareJewelTier != TierOff {
@@ -632,7 +638,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 				st = styleRareJewelQuiet
 			}
 			jp, _ := cfg.Palette(GroupRareJewel, ns)
-			st = st.with(jp).withSound(cfg.Sound(GroupRareJewel)).withFont(cfg.FontSize(GroupRareJewel))
+			st = st.with(jp).withSound(cfg.Sound(GroupRareJewel)).withVolume(cfg.Volume(GroupRareJewel)).withFont(cfg.FontSize(GroupRareJewel))
 			conds := []string{`Class == "Jewels"`, "Rarity Rare"}
 			if cfg.RareJewelTier > 0 {
 				conds = append(conds, fmt.Sprintf("UnidentifiedItemTier >= %d", cfg.RareJewelTier))
@@ -646,7 +652,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		b.section(fmt.Sprintf(i18n.T("filter.sec.quality"), cfg.QualityThreshold))
 		qp, _ := cfg.Palette(GroupQuality, ns)
 		b.rule("Show", []string{"Rarity Normal Magic Rare", fmt.Sprintf("Quality >= %d", cfg.QualityThreshold)}, "Class", gearClasses,
-			styleQuality.with(qp).withSound(cfg.Sound(GroupQuality)).withFont(cfg.FontSize(GroupQuality)))
+			styleQuality.with(qp).withSound(cfg.Sound(GroupQuality)).withVolume(cfg.Volume(GroupQuality)).withFont(cfg.FontSize(GroupQuality)))
 	}
 	if cfg.WaystoneTier != TierOff {
 		b.section(fmt.Sprintf(i18n.T("filter.sec.waystones"), tierLabel(cfg.WaystoneTier, "T")))
@@ -655,15 +661,15 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		} else {
 			wp, _ := cfg.Palette(GroupWaystone, ns)
 			b.rule("Show", []string{`Class == "Waystones"`, fmt.Sprintf("WaystoneTier >= %d", cfg.WaystoneTier)}, "", nil,
-				styleWaystone.with(wp).withSound(cfg.Sound(GroupWaystone)).withFont(cfg.FontSize(GroupWaystone)))
+				styleWaystone.with(wp).withSound(cfg.Sound(GroupWaystone)).withVolume(cfg.Volume(GroupWaystone)).withFont(cfg.FontSize(GroupWaystone)))
 		}
 	}
 	// Skill and spirit gems share one slider; support gems have their own
 	// because they drop far more often.
 	gp, _ := cfg.Palette(GroupUncutGem, ns)
-	gemStyle := styleUncutGem.with(gp).withSound(cfg.Sound(GroupUncutGem)).withFont(cfg.FontSize(GroupUncutGem))
+	gemStyle := styleUncutGem.with(gp).withSound(cfg.Sound(GroupUncutGem)).withVolume(cfg.Volume(GroupUncutGem)).withFont(cfg.FontSize(GroupUncutGem))
 	sp, _ := cfg.Palette(GroupUncutSupport, ns)
-	supportStyle := styleUncutGem.with(sp).withSound(cfg.Sound(GroupUncutSupport)).withFont(cfg.FontSize(GroupUncutSupport))
+	supportStyle := styleUncutGem.with(sp).withSound(cfg.Sound(GroupUncutSupport)).withVolume(cfg.Volume(GroupUncutSupport)).withFont(cfg.FontSize(GroupUncutSupport))
 	// No "==" here, unlike everywhere else: an uncut gem carries its level in
 	// its base type ("Uncut Support Gem (Level 5)"), so an exact match never
 	// fires and the rules below would silently do nothing. NeverSink matches
@@ -693,7 +699,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		b.section(i18n.T("filter.sec.pinnacle"))
 		pp, _ := cfg.Palette(GroupPinnacle, ns)
 		b.rule("Show", []string{`Class == "Pinnacle Keys"`}, "", nil,
-			stylePinnacle.with(pp).withSound(cfg.Sound(GroupPinnacle)).withFont(cfg.FontSize(GroupPinnacle)))
+			stylePinnacle.with(pp).withSound(cfg.Sound(GroupPinnacle)).withVolume(cfg.Volume(GroupPinnacle)).withFont(cfg.FontSize(GroupPinnacle)))
 	}
 
 	// ---- 8.7 medium whitelist -----------------------------------------------
@@ -711,7 +717,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		if len(uniqueBases)+len(bases)+len(classes) > 0 {
 			b.section(i18n.T("filter.sec.whitelist"))
 			wl, _ := cfg.Palette(GroupWhitelist, ns)
-			wst := styleKeep.with(wl).withSound(cfg.Sound(GroupWhitelist)).withFont(cfg.FontSize(GroupWhitelist))
+			wst := styleKeep.with(wl).withSound(cfg.Sound(GroupWhitelist)).withVolume(cfg.Volume(GroupWhitelist)).withFont(cfg.FontSize(GroupWhitelist))
 			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, wst)
 			b.rule("Show", nil, "BaseType", bases, wst)
 			b.rule("Show", nil, "Class", classes, wst)
@@ -748,7 +754,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		// items are not "unpriced": they are not worth pricing.
 		b.section(i18n.T("filter.sec.unpriced"))
 		unk, _ := cfg.Palette(GroupExceptionalUnknown, ns)
-		styleUnk := styleExceptionalUnknown.with(unk).withSound(cfg.Sound(GroupExceptionalUnknown)).withFont(cfg.FontSize(GroupExceptionalUnknown))
+		styleUnk := styleExceptionalUnknown.with(unk).withSound(cfg.Sound(GroupExceptionalUnknown)).withVolume(cfg.Volume(GroupExceptionalUnknown)).withFont(cfg.FontSize(GroupExceptionalUnknown))
 		unpriced := func(c string) []string {
 			conds := []string{"Corrupted False", "Rarity Normal Magic", c}
 			if bucketFloor > 0 {
@@ -784,7 +790,7 @@ func (b *builder) userShowGroups(cfg Config, ns map[string]Theme, uniqueToBase m
 			continue
 		}
 		pal, _ := cfg.Palette(g.StyleKey(), ns)
-		st := styleMid.with(pal).withSound(cfg.Sound(g.StyleKey())).withFont(cfg.FontSize(g.StyleKey()))
+		st := styleMid.with(pal).withSound(cfg.Sound(g.StyleKey())).withVolume(cfg.Volume(g.StyleKey())).withFont(cfg.FontSize(g.StyleKey()))
 		b.section(fmt.Sprintf(i18n.T("filter.sec.userShow"), strings.ToUpper(g.Name)))
 		b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, st)
 		b.rule("Show", nil, "BaseType", bases, st)
@@ -826,7 +832,7 @@ func (b *builder) userStackGroups(cfg Config, ns map[string]Theme, canon func(st
 	sort.SliceStable(entries, func(i, j int) bool { return entries[i].n > entries[j].n })
 	for _, e := range entries {
 		pal, _ := cfg.Palette(e.group.StyleKey(), ns)
-		st := styleMid.with(pal).withSound(cfg.Sound(e.group.StyleKey())).withFont(cfg.FontSize(e.group.StyleKey()))
+		st := styleMid.with(pal).withSound(cfg.Sound(e.group.StyleKey())).withVolume(cfg.Volume(e.group.StyleKey())).withFont(cfg.FontSize(e.group.StyleKey()))
 		sort.Strings(e.bases)
 		b.section(fmt.Sprintf(i18n.T("filter.sec.userStack"), strings.ToUpper(e.group.Name), e.n))
 		b.rule("Show", []string{fmt.Sprintf("StackSize >= %d", e.n)}, "BaseType", e.bases, st)

@@ -719,6 +719,24 @@
     return next[group] ?? g.fontSize
   }
 
+  // Alert sound volume (filter.MinSoundVolume..MaxSoundVolume). Rules always
+  // played at the maximum, so that is the default and is not stored.
+  const VOL_MIN = 1
+  const VOL_MAX = 300
+  function volumeOf(g: StyleGroup): number {
+    return cfg?.volumes?.[g.id] || VOL_MAX
+  }
+  function setVolume(group: string, raw: string): number {
+    if (!cfg) return VOL_MAX
+    const next = { ...(cfg.volumes ?? {}) }
+    const n = Math.round(Number(raw))
+    if (raw === '' || !Number.isFinite(n) || n >= VOL_MAX) delete next[group]
+    else next[group] = Math.max(VOL_MIN, n)
+    cfg.volumes = next
+    queueSave()
+    return next[group] ?? VOL_MAX
+  }
+
   function setSound(group: string, v: string) {
     if (!cfg) return
     const next = { ...(cfg.sounds ?? {}) }
@@ -771,8 +789,8 @@
     soundError = ''
     try {
       const id = soundGameID(g)
-      if (soundFile(g)) await AppService.PreviewSound(soundFile(g))
-      else if (id) await AppService.PreviewGameSound(id)
+      if (soundFile(g)) await AppService.PreviewSound(soundFile(g), volumeOf(g))
+      else if (id) await AppService.PreviewGameSound(id, volumeOf(g))
     } catch (e) {
       soundError = String(e)
     }
@@ -1340,6 +1358,20 @@
                         {/if}
                       </span>
                     </label>
+                    {#if soundFile(selGroup) || soundGameID(selGroup)}
+                      <label class="field">
+                        <span>{t('look.volume')}</span>
+                        <span class="font-row">
+                          <input type="range" min={VOL_MIN} max={VOL_MAX} step="1" value={volumeOf(selGroup)}
+                            oninput={(e) => setVolume(selGroup.id, e.currentTarget.value)} aria-label={t('look.volume')} />
+                          <input type="number" min={VOL_MIN} max={VOL_MAX} step="1" value={volumeOf(selGroup)}
+                            onchange={(e) => { e.currentTarget.value = String(setVolume(selGroup.id, e.currentTarget.value)) }}
+                            aria-label={t('look.volume')} />
+                          <button type="button" class="ghost" disabled={!cfg.volumes?.[selGroup.id]}
+                            onclick={() => setVolume(selGroup.id, '')}>{t('look.volumeDefault', VOL_MAX)}</button>
+                        </span>
+                      </label>
+                    {/if}
                     {#if soundIsGame(selGroup)}
                       <p class="desc hint">{t('look.gameSoundNote')}</p>
                     {/if}

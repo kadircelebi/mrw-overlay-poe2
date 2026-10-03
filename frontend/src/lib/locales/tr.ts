@@ -256,6 +256,8 @@ export const tr: Record<string, string> = {
   'look.customised': 'Özelleştirildi',
   'look.fontSize': 'Yazı boyutu',
   'look.fontDefault': 'Varsayılan ({0})',
+  'look.volume': 'Ses düzeyi',
+  'look.volumeDefault': 'Varsayılan ({0})',
   'look.fontHint': 'Yerdeki eşya etiketinin boyutu, {0} ile {1} arası. Dışında bir değer yazılırsa en yakın sınıra çekilir.',
   'look.sound': 'Ses',
   'look.soundDefault': 'Varsayılan ({0})',

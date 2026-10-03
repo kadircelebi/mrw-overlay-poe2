@@ -63,6 +63,12 @@ export interface Config {
      * (MinFontSize..MaxFontSize); a missing group keeps its built-in size.
      */
     "font_sizes": { [_ in string]?: number } | null;
+
+    /**
+     * Volumes maps a style group id to the volume its sound plays at
+     * (MinSoundVolume..MaxSoundVolume-1); a missing group plays at the maximum.
+     */
+    "volumes": { [_ in string]?: number } | null;
     "custom_sound_path": string;
     "hide_exalt": boolean;
     "hide_gold": boolean;

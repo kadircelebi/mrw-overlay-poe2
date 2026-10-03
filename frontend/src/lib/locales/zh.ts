@@ -250,6 +250,8 @@ export const zh: Record<string, string> = {
   'look.customised': '已自訂',
   'look.fontSize': '標籤大小',
   'look.fontDefault': '預設（{0}）',
+  'look.volume': '音量',
+  'look.volumeDefault': '預設（{0}）',
   'look.fontHint': '地上物品標籤的大小，{0} 到 {1}。超出範圍的數值會調整為最接近的邊界。',
   'look.sound': '音效',
   'look.soundDefault': '預設（{0}）',
