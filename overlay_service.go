@@ -735,9 +735,19 @@ func clampScale(v, lo, hi float64) float64 {
 }
 
 // The UI size setting applies to every in-game window (price check, market,
-// craft): the automatic part follows the game's size and shrinks a window
-// that would not fit, the personal scale applies on top, and nothing lets a
-// window outgrow the game.
+// craft). The automatic part follows the game's size and shrinks a window
+// that would not fit; the personal scale then enlarges or shrinks it. A
+// window larger than the game is cut to it and its page scrolls, but the
+// page is never zoomed wider than the game, so nothing is cut off sideways.
+
+// widthRoom is the largest zoom at which a page w pixels wide still fits the
+// area's width (no limit when the area is unknown).
+func widthRoom(a windowArea, w, share float64) float64 {
+	if a.width <= 0 {
+		return 2
+	}
+	return a.width * share / w
+}
 
 func overlayScaleFor(settings overlay.Settings, a windowArea) float64 {
 	auto := autoScale(settings, a)
@@ -745,7 +755,17 @@ func overlayScaleFor(settings overlay.Settings, a windowArea) float64 {
 		auto = min(auto, fitScale(a, overlayWidth, overlayHeight, 0.85))
 	}
 	scale := float64(settings.UIScale) / 100 * auto
-	return clampScale(min(scale, fitScale(a, overlayWidth, overlayHeight, 0.95)), 0.5, 2.0)
+	return clampScale(min(scale, widthRoom(a, overlayWidth, 0.95)), 0.5, 2.0)
+}
+
+// overlayWindowHeight is the window height for a page of h pixels at scale,
+// cut to 95% of the area's height (the page scrolls inside).
+func overlayWindowHeight(a windowArea, h int, scale float64) int {
+	px := float64(h) * scale
+	if a.height > 0 {
+		px = min(px, a.height*0.95)
+	}
+	return int(px)
 }
 
 // The market fills a third of the screen's width; only its contents scale.
@@ -755,14 +775,15 @@ func marketScaleFor(settings overlay.Settings, a windowArea) float64 {
 }
 
 // craftScaleFor keeps the craft page at its full two-column width: a window
-// squeezed into a small game would otherwise stack the columns.
+// squeezed into a small game would otherwise stack the columns. Its height
+// may run past the game; the columns scroll.
 func craftScaleFor(settings overlay.Settings, a windowArea) float64 {
 	auto := 1.0
 	if settings.AutoScale {
 		auto = fitScale(a, craftWidth, craftHeight, 1)
 	}
 	scale := float64(settings.UIScale) / 100 * auto
-	return clampScale(min(scale, fitScale(a, craftWidth, craftHeight, 1)), 0.5, 1.75)
+	return clampScale(min(scale, widthRoom(a, craftWidth, 1)), 0.5, 1.75)
 }
 
 // The compact overlay's size in page pixels (before UI scale). An exchange
@@ -808,7 +829,7 @@ func (s *AppService) applyOverlayScale() {
 	area := s.windowArea()
 	scale := overlayScaleFor(settings, area)
 	if s.overlayWindow != nil {
-		s.overlayWindow.SetSize(int(overlayWidth*scale), int(float64(s.currentOverlayHeight())*scale))
+		s.overlayWindow.SetSize(int(overlayWidth*scale), overlayWindowHeight(area, s.currentOverlayHeight(), scale))
 		s.setWindowZoom(s.overlayWindow, scale)
 	}
 	if s.marketWindow != nil {

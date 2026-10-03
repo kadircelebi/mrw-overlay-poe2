@@ -110,7 +110,7 @@ export const zh: Record<string, string> = {
   'overlay.size': '介面大小',
   'overlay.autoScale': '依遊戲自動調整大小',
   'overlay.autoScaleHint': '在 2K 與 4K 上放大視窗，在 1080p 或視窗化遊戲中縮小以完整顯示',
-  'overlay.scaleHint': '套用於自動大小之上的個人比例，適用於價格查詢、市集與理論製作視窗。',
+  'overlay.scaleHint': '高於 100% 放大視窗，低於則縮小，套用於自動大小之上。適用於價格查詢、市集與理論製作視窗。',
   'overlay.catalog': 'GGG 交易資料',
   'overlay.catalogDesc': '詞綴、物品與篩選清單使用每日本機 JSON 快取。',
   'overlay.affixes': '可搜尋詞綴',
