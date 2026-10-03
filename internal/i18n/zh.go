@@ -112,6 +112,7 @@ var zh = map[string]string{
 	"filter.sec.unique":    "5. 高價 UNIQUE 基底（基底上最貴的 unique >= 門檻）",
 	"filter.sec.chance":    "6. CHANCE 與 CRAFTING 基底",
 	"filter.sec.except":    "7. 高價 EXCEPTIONAL 基底（trade 掃描）",
+	"filter.sec.exotic":    "7b. NEVERSINK 稀有基底與詞綴（在隱藏裝備之前保留）",
 	"filter.sec.t5rare":    "8.1 RARE 裝備（%s）",
 	"filter.sec.jewels":    "8.2 RARE JEWEL（%s）",
 	"filter.sec.quality":   "8.3 高品質裝備（品質 >= %d）",

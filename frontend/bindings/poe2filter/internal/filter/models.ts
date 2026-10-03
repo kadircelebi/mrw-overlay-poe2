@@ -6,6 +6,13 @@
  */
 export interface Config {
     /**
+     * ShowExotics repeats those rules ahead of ours, so the leftover-gear hide
+     * cannot swallow valuable bases (Absent/Lament/Portent Amulet...) or
+     * identified items with a valuable modifier.
+     */
+    "show_exotics": boolean;
+
+    /**
      * Value threshold: items worth less are hidden (or dimmed).
      */
     "min_value": number;

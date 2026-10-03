@@ -109,6 +109,7 @@ var tr = map[string]string{
 	"filter.sec.unique":    "5. DEĞERLİ UNIQUE TABANLAR (tabandaki en iyi unique >= eşik)",
 	"filter.sec.chance":    "6. CHANCE VE CRAFTING TABANLARI",
 	"filter.sec.except":    "7. DEĞERLİ EXCEPTIONAL TABANLAR (trade taraması)",
+	"filter.sec.exotic":    "7b. NEVERSINK EXOTIC TABANLAR VE AFFIX'LER (ekipman gizlemeden önce korunur)",
 	"filter.sec.t5rare":    "8.1 RARE EKİPMAN (%s)",
 	"filter.sec.jewels":    "8.2 RARE JEWEL (%s)",
 	"filter.sec.quality":   "8.3 YÜKSEK KALİTE EKİPMAN (Kalite >= %d)",

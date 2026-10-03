@@ -125,6 +125,7 @@ var en = map[string]string{
 	"filter.sec.unique":    "5. VALUABLE UNIQUE BASES (best unique on the base >= threshold)",
 	"filter.sec.chance":    "6. CHANCE & CRAFTING BASES",
 	"filter.sec.except":    "7. VALUABLE EXCEPTIONAL BASES (trade scan)",
+	"filter.sec.exotic":    "7b. NEVERSINK EXOTIC BASES AND MODIFIERS (kept ahead of the gear hides)",
 	"filter.sec.t5rare":    "8.1 RARE EQUIPMENT (%s)",
 	"filter.sec.jewels":    "8.2 RARE JEWELS (%s)",
 	"filter.sec.quality":   "8.3 HIGH QUALITY GEAR (Quality >= %d)",

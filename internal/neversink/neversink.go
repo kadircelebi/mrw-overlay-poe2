@@ -252,3 +252,55 @@ func Styles(content string) []Style {
 	flush()
 	return out
 }
+
+// ExoticBlocks returns NeverSink's exotic gear rules verbatim: valuable bases
+// ("$type->exoticbases", e.g. Absent or Lament Amulet) and identified items
+// with a valuable modifier ("$type->exoticmods", HasExplicitMod). Our block
+// runs first and hides leftover gear, so these must be repeated ahead of it.
+// Active rules come as they are; the exotic bases are taken even when this
+// strictness switches them off (they are always worth picking up), except
+// the common ones (plain Breach Rings).
+func ExoticBlocks(content string) []string {
+	var out []string
+	var cur []string
+	keep := false
+	flush := func() {
+		if keep && len(cur) > 0 {
+			out = append(out, strings.Join(cur, "\n"))
+		}
+		cur, keep = nil, false
+	}
+	sc := bufio.NewScanner(strings.NewReader(content))
+	sc.Buffer(make([]byte, 1<<20), 1<<20)
+	for sc.Scan() {
+		raw := strings.TrimRight(sc.Text(), " \t\r")
+		line := uncomment(raw)
+		if strings.HasPrefix(line, "Show") || strings.HasPrefix(line, "Hide") || strings.HasPrefix(line, "Minimal") {
+			flush()
+			active := !strings.HasPrefix(strings.TrimSpace(raw), "#")
+			bases := strings.Contains(line, "$type->exoticbases")
+			mods := strings.Contains(line, "$type->exoticmods")
+			switch {
+			case !strings.HasPrefix(line, "Show"):
+			case bases && (active || !strings.Contains(line, "$tier->commonexotic")):
+				keep = true
+			case mods && active:
+				keep = true
+			}
+			if keep {
+				cur = []string{line}
+			}
+			continue
+		}
+		if !keep {
+			continue
+		}
+		if line == "" {
+			flush()
+			continue
+		}
+		cur = append(cur, "\t"+line)
+	}
+	flush()
+	return out
+}

@@ -211,6 +211,8 @@ export const en: Record<string, string> = {
   'rules.pinnacle': 'Highlight pinnacle keys',
   'rules.hideExalt': 'Hide Exalted Orbs',
   'rules.hideGold': 'Hide Gold',
+  'rules.exotics': "Always show NeverSink's exotic items",
+  'rules.exoticsHint': "Valuable bases (Absent, Lament, Portent Amulet…) and identified items with a valuable modifier, in NeverSink's own looks, ahead of the gear hides",
 
   // Lists
   'lists.title': 'Lists',
