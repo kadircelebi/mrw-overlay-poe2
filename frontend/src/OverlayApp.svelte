@@ -80,25 +80,24 @@
     return value.unidentified && value.rarity === 'unique' && !value.name
   }
 
-  // Waystones and uncut gems are on the exchange too, but are priced by their
-  // tier or level through the item search, which handles them already.
-  const itemSearchGroups = new Set(['Waystones', 'UncutGems'])
-
   // Boss keys, splinters, omens and other bulk items trade only on the
   // in-game currency exchange (Ange), which no API shows; the few trade site
-  // listings are face-to-face offers and say nothing about the price. They
-  // get the price list's figure and no search. This is their exchange id, or
-  // '' for an item the item search should price.
-  function exchangeIdFor(value: Item | null): string {
-    if (!value || !catalog || needsUniqueSelection(value)) return ''
-    if (['magic', 'rare', 'unique'].includes(value.rarity?.toLowerCase())) return ''
-    const name = (value.baseType || value.name || '').toLowerCase()
-    if (!name || name === 'expedition logbook') return ''
-    const entry = (catalog.currencies ?? []).find((e) => e.text.toLowerCase() === name && !itemSearchGroups.has(e.group))
-    return entry?.id ?? ''
-  }
+  // listings are face-to-face offers and say nothing about the price. The
+  // parser marks them; they get the price list's worth card alone, in a
+  // window fitted to it, and no search.
+  const exchangeId = $derived(item?.exchange ?? '')
 
-  const exchangeId = $derived(exchangeIdFor(item))
+  // Fit the window to the worth card. Page pixels: the window's own scale
+  // multiplies them on the Go side.
+  let compactEl = $state<HTMLElement | null>(null)
+  $effect(() => {
+    const el = compactEl
+    if (!el) return
+    const fit = () => AppService.FitOverlay(Math.ceil(el.getBoundingClientRect().height) + 37 + 22).catch(() => {})
+    const observer = new ResizeObserver(fit)
+    observer.observe(el)
+    return () => observer.disconnect()
+  })
 
   function accept(snap: Snapshot) {
     error = snap.error ?? ''
@@ -143,7 +142,7 @@
   function loadQuote(value: Item) {
     // Lineage support gems trade on the currency exchange, so the item search
     // finds none; the price list has them. Other gems simply are not found.
-    if (!(value.stackSize > 0 || value.rarity === 'currency' || isGem(value) || exchangeIdFor(value))) return
+    if (!(value.stackSize > 0 || value.rarity === 'currency' || isGem(value) || value.exchange)) return
     // item is a state proxy, so compare the copied text rather than identity.
     const raw = value.raw
     AppService.QuoteCurrency(value.baseType || value.name).then((q) => {
@@ -327,10 +326,16 @@
           {/if}
         </section>
       {:else}
-        {#if quote}
+        {#if exchangeId}
+        <div bind:this={compactEl}>
+          {#if quote}
+          <CurrencyCard {item} {quote} />
+          {:else}
+          <section class="exchange-title"><strong>{item.baseType || item.name}</strong>{#if quoteChecked}<p>{t('ov.ex.unpriced')}</p>{/if}</section>
+          {/if}
+        </div>
+        {:else if quote}
         <CurrencyCard {item} {quote} />
-        {:else if exchangeId}
-        <section class="exchange-title"><strong>{item.baseType || item.name}</strong>{#if quoteChecked}<p>{t('ov.ex.unpriced')}</p>{/if}</section>
         {:else}
         <OverlayItemCard
           {item}
@@ -354,9 +359,7 @@
           onpropertychange={updatePropertyFilter}
         />
         {/if}
-      {#if exchangeId}
-      <p class="exchange-note">{t('ov.ex.note')}</p>
-      {:else}
+      {#if !exchangeId}
       <div class="mode-row">
         <button class:on={exact} onclick={() => setMode(true)}><i></i> {t('ov.exact')}</button>
         <button class:on={!exact} onclick={() => setMode(false)}><i></i> {t('ov.broad')}</button>
@@ -419,7 +422,6 @@
   .exchange-title { padding:12px; text-align:center; border:1px solid #4a4030; background:rgba(7,8,9,.88); }
   .exchange-title strong { font-family:var(--serif); letter-spacing:.04em; color:#d7b76d; font-size:14px; }
   .exchange-title p { margin:8px 0 0; color:var(--muted); }
-  .exchange-note { margin:8px 2px; color:var(--muted); font-size:11px; text-align:center; }
   .search-button{width:100%;margin:6px 0 3px;padding:9px;border:1px solid #8c7b50;background:#171917;color:var(--gold-bright);font-family:var(--serif);font-weight:bold}.search-button:hover{background:#25261f}.search-button:disabled{opacity:.55}
   .capture-error { box-sizing:border-box; width:calc(100% - 40px); min-width:0; max-width:460px; margin:auto; padding:28px 20px; overflow:hidden; text-align:center; border:1px solid #4a4435; background:#121412; }
   .capture-error>span { display:block; color:var(--gold); font-size:34px; }.capture-error strong{display:block;font-family:var(--serif);color:var(--gold-bright);margin:8px}.capture-error p{margin:8px 0 0;color:var(--muted);overflow-wrap:anywhere}

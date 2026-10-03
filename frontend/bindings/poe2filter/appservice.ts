@@ -183,6 +183,14 @@ export function FetchOverlayListings(searchID: string, ids: string[] | null): $C
 }
 
 /**
+ * FitOverlay sets the compact overlay's height to the page's content (in page
+ * pixels), within the normal height. The window keeps its top edge.
+ */
+export function FitOverlay(height: number): $CancellablePromise<void> {
+    return $Call.ByID(30438639, height);
+}
+
+/**
  * GetAppUpdateState returns the cached application-update status without doing
  * network work, so opening the settings panel stays instant.
  */

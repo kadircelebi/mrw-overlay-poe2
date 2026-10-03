@@ -63,3 +63,25 @@ func TestExceptionalPrefixIsNotPartOfTheBase(t *testing.T) {
 		t.Errorf("real currency name changed: %q stack %d", currency.BaseType, currency.StackSize)
 	}
 }
+
+// Items that trade only on the currency exchange are marked; waystones, which
+// the item search prices by tier, and anything with a rarity of its own are not.
+func TestExchangeItemsAreMarked(t *testing.T) {
+	catalog := Catalog{Currencies: []CurrencyEntry{
+		{ID: "an-audience-with-the-king", Text: "An Audience with the King", Group: "Ritual"},
+		{ID: "waystone-15", Text: "Waystone (Tier 15)", Group: "Waystones"},
+	}}
+	for raw, want := range map[string]string{
+		"Item Class: Map Fragments\nRarity: Normal\nAn Audience with the King\n--------\nCan be used in a personal Map Device.\n": "an-audience-with-the-king",
+		"Item Class: Waystones\nRarity: Normal\nWaystone (Tier 15)\n--------\nWaystone Tier: 15\n":                                "",
+		"Item Class: Waystones\nRarity: Rare\nDark Road\nWaystone (Tier 15)\n--------\nWaystone Tier: 15\n":                       "",
+	} {
+		item, err := ParseItem(raw, catalog)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if item.Exchange != want {
+			t.Errorf("%q: exchange %q, want %q", item.BaseType, item.Exchange, want)
+		}
+	}
+}
