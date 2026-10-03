@@ -499,7 +499,6 @@ export const en: Record<string, string> = {
   'ov.cc.sourceTitle': 'The price list the filter uses',
   'ov.cc.justNow': 'just now',
   'ov.ex.unpriced': 'The price list has no figure for this item yet.',
-  'ov.ex.note': 'Trades on the in-game currency exchange (Ange), which the trade site cannot search: the figure comes from the price list.',
   'ov.cc.ago': '{0} ago',
   'ov.q.none': 'GGG search quota: no trade response yet',
   'ov.q.head': 'GGG search quota (this IP, every app included):',

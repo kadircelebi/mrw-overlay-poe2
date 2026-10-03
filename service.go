@@ -93,16 +93,18 @@ type AppService struct {
 	overlayEvalCache   map[string]overlayEvaluationCacheEntry
 	overlayEvalFlights map[string]*overlayEvaluationFlight
 	overlaySnapshot    overlay.Snapshot
-	overlayDraft       trade.EvaluateRequest
-	overlayWindow      application.Window
-	marketWindow       application.Window
-	craftWindow        application.Window
-	marketSnapshot     *overlay.Snapshot
-	settingsWindow     application.Window
-	overlayHotkey      string
-	confineOnce        sync.Once
-	rebindOverlay      func(old, next overlay.Settings) error
-	hotkeyCapture      bool
+	// overlayHeight is the compact overlay's height in page pixels (0 = full).
+	overlayHeight  int
+	overlayDraft   trade.EvaluateRequest
+	overlayWindow  application.Window
+	marketWindow   application.Window
+	craftWindow    application.Window
+	marketSnapshot *overlay.Snapshot
+	settingsWindow application.Window
+	overlayHotkey  string
+	confineOnce    sync.Once
+	rebindOverlay  func(old, next overlay.Settings) error
+	hotkeyCapture  bool
 	// Chat command shortcuts held while the game is the active window.
 	chatMu     sync.Mutex
 	chatKeys   []string

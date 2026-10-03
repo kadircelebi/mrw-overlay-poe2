@@ -470,7 +470,6 @@ export const zh: Record<string, string> = {
   'ov.cc.sourceTitle': '過濾器使用的價格清單',
   'ov.cc.justNow': '剛剛',
   'ov.ex.unpriced': '價格清單中尚無此物品的價格。',
-  'ov.ex.note': '此物品在遊戲內通貨交換（Ange）交易，交易網站無法搜尋：價格來自價格清單。',
   'ov.cc.ago': '{0}前',
   'ov.q.none': 'GGG 搜尋配額：尚未收到交易回應',
   'ov.q.head': 'GGG 搜尋配額（此 IP，包含所有應用程式）：',

@@ -116,6 +116,12 @@ export interface Item {
     "mirrored": boolean;
     "properties": ItemProperty[] | null;
     "mods": ItemMod[] | null;
+
+    /**
+     * Exchange is the currency exchange id of an item that trades only there
+     * (see exchangeID); such items get a worth card and no search.
+     */
+    "exchange"?: string;
 }
 
 export interface ItemEntry {

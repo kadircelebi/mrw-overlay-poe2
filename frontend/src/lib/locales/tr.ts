@@ -481,7 +481,6 @@ export const tr: Record<string, string> = {
   'ov.cc.sourceTitle': 'Filtrenin kullandığı fiyat listesi',
   'ov.cc.justNow': 'az önce',
   'ov.ex.unpriced': 'Fiyat listesinde bu eşyanın fiyatı henüz yok.',
-  'ov.ex.note': 'Oyun içi kur takasında (Ange) satılır, trade sitesinde aranamaz: fiyat, fiyat listesinden.',
   'ov.cc.ago': '{0} önce',
   'ov.q.none': 'GGG arama kotası: henüz bir trade yanıtı alınmadı',
   'ov.q.head': 'GGG arama kotası (bu IP, tüm uygulamalar dahil):',

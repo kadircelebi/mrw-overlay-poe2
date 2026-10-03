@@ -84,6 +84,9 @@ type Item struct {
 	Mirrored       bool           `json:"mirrored"`
 	Properties     []ItemProperty `json:"properties"`
 	Mods           []ItemMod      `json:"mods"`
+	// Exchange is the currency exchange id of an item that trades only there
+	// (see exchangeID); such items get a worth card and no search.
+	Exchange string `json:"exchange,omitempty"`
 }
 
 // Snapshot is kept by the service so windows opened after the hotkey event can
@@ -391,7 +394,35 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 	for i := range item.Mods {
 		item.Mods[i].Key = "mod-" + strconv.Itoa(i+1)
 	}
+	item.Exchange = catalog.exchangeID(item)
 	return item, nil
+}
+
+// itemSearchGroups are exchange sections whose items are still priced by the
+// item search: waystones by tier, uncut gems by level.
+var itemSearchGroups = map[string]bool{"Waystones": true, "UncutGems": true}
+
+// exchangeID is the trade id of an item that trades only on the in-game
+// currency exchange (boss keys, splinters, omens, currency...), or "".
+func (c Catalog) exchangeID(item Item) string {
+	switch item.Rarity {
+	case "magic", "rare", "unique":
+		return ""
+	}
+	name := item.BaseType
+	if name == "" {
+		name = item.Name
+	}
+	// Logbooks are on the exchange too, but their modifiers set the price.
+	if name == "" || strings.EqualFold(name, "Expedition Logbook") {
+		return ""
+	}
+	for _, e := range c.Currencies {
+		if strings.EqualFold(e.Text, name) && !itemSearchGroups[e.Group] {
+			return e.ID
+		}
+	}
+	return ""
 }
 
 // Affix slots on each side (prefix and suffix) by rarity: magic 1, rare 3,

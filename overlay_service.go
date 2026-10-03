@@ -547,6 +547,15 @@ func (s *AppService) showOverlaySnapshot(snap overlay.Snapshot) {
 		return
 	}
 	s.confineWindows()
+	// An exchange item shows only its worth card, so the window opens short
+	// (the page then fits it to the card with FitOverlay).
+	height := overlayHeight
+	if snap.Item != nil && snap.Item.Exchange != "" {
+		height = overlayExchangeHeight
+	}
+	s.overlayMu.Lock()
+	s.overlayHeight = height
+	s.overlayMu.Unlock()
 	s.applyOverlayScale()
 	s.positionOverlayWindow(s.overlayWindow)
 	s.overlayWindow.EmitEvent("overlay-item", snap)
@@ -691,6 +700,36 @@ func overlayScaleForScreen(settings overlay.Settings, screen *application.Screen
 	return scale
 }
 
+// The compact overlay's size in page pixels (before UI scale). An exchange
+// item's worth card needs far less height than a search.
+const (
+	overlayWidth          = 520
+	overlayHeight         = 760
+	overlayExchangeHeight = 230
+)
+
+func (s *AppService) currentOverlayHeight() int {
+	s.overlayMu.RLock()
+	defer s.overlayMu.RUnlock()
+	if s.overlayHeight <= 0 {
+		return overlayHeight
+	}
+	return s.overlayHeight
+}
+
+// FitOverlay sets the compact overlay's height to the page's content (in page
+// pixels), within the normal height. The window keeps its top edge.
+func (s *AppService) FitOverlay(height int) {
+	height = min(max(height, 120), overlayHeight)
+	s.overlayMu.Lock()
+	changed := s.overlayHeight != height
+	s.overlayHeight = height
+	s.overlayMu.Unlock()
+	if changed {
+		s.applyOverlayScale()
+	}
+}
+
 func (s *AppService) applyOverlayScale() {
 	s.overlayMu.RLock()
 	settings := s.overlaySettings
@@ -701,7 +740,7 @@ func (s *AppService) applyOverlayScale() {
 	}
 	scale := overlayScaleForScreen(settings, screen)
 	if s.overlayWindow != nil {
-		s.overlayWindow.SetSize(int(520*scale), int(760*scale))
+		s.overlayWindow.SetSize(int(overlayWidth*scale), int(float64(s.currentOverlayHeight())*scale))
 		s.overlayWindow.SetZoom(scale)
 	}
 	if s.marketWindow != nil {
