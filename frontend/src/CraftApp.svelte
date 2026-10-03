@@ -80,6 +80,18 @@
     const receive = async (event: MessageEvent) => {
       if (event.source !== frame?.contentWindow || event.origin !== location.origin) return
       if (event.data?.type === 'craft-size') { void toggleSize(); return }
+      // The craft library lives in a file the app writes; the page asks for
+      // it and hands back the whole list to save.
+      if (event.data?.type === 'craft-library-load') {
+        try { send({ type: 'craft-library', data: await AppService.CraftLibrary() }) }
+        catch (e) { send({ type: 'craft-library', error: cleanError(e) }) }
+        return
+      }
+      if (event.data?.type === 'craft-library-save' && typeof event.data.data === 'string') {
+        try { await AppService.SaveCraftLibrary(event.data.data); send({ type: 'craft-library-saved' }) }
+        catch (e) { send({ type: 'craft-library-saved', error: cleanError(e) }) }
+        return
+      }
       if (event.data?.type === 'craft-ready') { frameReady = true; sendLang(); sendImport(); void sendIcons(); await refreshPrices(); return }
       if (event.data?.type !== 'craft-price' || typeof event.data.raw !== 'string' || searching) return
       searching = true; error = ''

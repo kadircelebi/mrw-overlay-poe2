@@ -74,6 +74,19 @@ h3 { font-size: 1rem; font-weight: 400; }
 .history ol { margin: var(--space-sm) 0 0; padding: 0; list-style: none; max-height: 230px; overflow-y: auto; }
 .history li { padding: .5rem 0; border-bottom: 1px solid var(--line); color: var(--secondary); font-size: .82rem; }
 .history time { color: var(--muted); margin-right: .5rem; }
+/* Saved crafts */
+.lib-save { display: flex; gap: var(--space-xs); margin-top: var(--space-sm); }
+.lib-save input { flex: 1; min-width: 0; padding: 0 .6rem; }
+.lib-list { margin: var(--space-sm) 0 0; padding: 0; list-style: none; max-height: 360px; overflow-y: auto; }
+.lib-list .lib-empty { color: var(--muted); font-size: .82rem; padding: .4rem 0; }
+.lib-entry { padding: .55rem 0; border-bottom: 1px solid var(--line); display: grid; gap: .25rem; }
+.lib-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem; }
+.lib-head strong { color: var(--bright); font-weight: 400; font-size: .9rem; }
+.lib-tag { font-style: normal; font-size: .7rem; color: var(--muted); border: 1px solid var(--line); padding: 0 .3rem; }
+.lib-tag.lock { color: var(--bad); border-color: oklch(55% .12 25 / .5); }
+.lib-entry small { color: var(--muted); font-size: .76rem; }
+.lib-actions { display: flex; gap: var(--space-xs); }
+.lib-actions button { min-height: 30px; padding: .2rem .7rem; font-size: .8rem; }
 .currency-section, .mod-section { border: 1px solid var(--steel); background: var(--surface); }
 .section-head { padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--steel); display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-xs); }
 .section-head > span { font-size: .82rem; color: var(--muted); }

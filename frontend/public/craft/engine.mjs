@@ -11,9 +11,12 @@ export const overlaps = (a, b) => a.affix === b.affix && a.families.some(f => b.
 // rune of drafts saved before sockets.
 export const rollPools = item => ['normal', ...(item.runePools || (item.runePool ? [item.runePool] : []))];
 // Serle's Triumph allows one more suffix (item.suffixBonus); Astrid's
-// Creativity one more crafted (essence) modifier (item.craftedLimit).
-export const sideLimit = (item, side, rarity = item.rarity) =>
-  limits[rarity] + (side === 'Suffix' && rarity !== 'Normal' ? item.suffixBonus || 0 : 0);
+// Creativity one more crafted (essence) modifier (item.craftedLimit). Some
+// ring and amulet bases move the Rare limits (item.baseSlots, [prefix,
+// suffix]: Dusk Ring +1/-1, Absent Amulet -1/-1).
+export const sideLimit = (item, side, rarity = item.rarity) => Math.max(0,
+  limits[rarity] + (side === 'Suffix' && rarity !== 'Normal' ? item.suffixBonus || 0 : 0) +
+  (rarity === 'Rare' ? item.baseSlots?.[side === 'Prefix' ? 0 : 1] || 0 : 0));
 export const isFull = (item, rarity = 'Rare') => ['Prefix', 'Suffix'].every(side => count(item, side) >= sideLimit(item, side, rarity));
 export const isCrafted = mod => mod.crafted || mod.pool === 'essence' || mod.pool === 'perfect_essence';
 export const craftedLimit = item => item.craftedLimit || 1;

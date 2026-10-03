@@ -91,6 +91,13 @@ export function ConnectBrowser(openBrowser: boolean): $CancellablePromise<$model
     return $Call.ByID(1678967024, openBrowser);
 }
 
+/**
+ * CraftLibrary returns the saved crafts as JSON text ("[]" when there are none).
+ */
+export function CraftLibrary(): $CancellablePromise<string> {
+    return $Call.ByID(1080672015);
+}
+
 export function CreateSearchFolder(name: string): $CancellablePromise<overlay$0.SearchLibrary> {
     return $Call.ByID(2940423614, name);
 }
@@ -491,6 +498,13 @@ export function RenameSearchFolder(id: string, name: string): $CancellablePromis
  */
 export function SaveConfig(c: filter$0.Config): $CancellablePromise<filter$0.Config> {
     return $Call.ByID(2775748437, c);
+}
+
+/**
+ * SaveCraftLibrary replaces the saved crafts with data, a JSON array.
+ */
+export function SaveCraftLibrary(data: string): $CancellablePromise<void> {
+    return $Call.ByID(1784249606, data);
 }
 
 export function SaveOverlaySearch(name: string, folder: string, query: trade$0.EvaluateRequest): $CancellablePromise<overlay$0.SearchLibrary> {
