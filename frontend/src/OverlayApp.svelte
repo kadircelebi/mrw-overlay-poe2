@@ -93,7 +93,8 @@
   $effect(() => {
     const el = compactEl
     if (!el) return
-    const fit = () => AppService.FitOverlay(Math.ceil(el.getBoundingClientRect().height) + 37 + 22).catch(() => {})
+    // offsetHeight stays in page pixels when the page zooms itself (uiZoom).
+    const fit = () => AppService.FitOverlay(el.offsetHeight + 37 + 22).catch(() => {})
     const observer = new ResizeObserver(fit)
     observer.observe(el)
     return () => observer.disconnect()

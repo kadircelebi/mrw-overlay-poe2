@@ -7,6 +7,7 @@ import OverlayApp from './OverlayApp.svelte'
 import MarketApp from './MarketApp.svelte'
 import CraftApp from './CraftApp.svelte'
 import { installWheelNumbers } from './lib/wheelNumbers'
+import { followUIZoom } from './lib/uiZoom'
 
 const view = new URLSearchParams(location.search).get('view')
 const target = document.getElementById('app')!
@@ -15,3 +16,4 @@ else if (view === 'craft') mount(CraftApp, { target })
 else if (view === 'market') mount(MarketApp, { target })
 else mount(App, { target, props: { win: view === 'settings' ? 'settings' : 'panel' } })
 installWheelNumbers()
+if (view === 'overlay' || view === 'craft' || view === 'market') followUIZoom(view)

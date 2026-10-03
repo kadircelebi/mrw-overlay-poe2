@@ -660,7 +660,7 @@ func (s *AppService) showMarketWindow() {
 			bounds.Width = screen.WorkArea.Width
 		}
 		s.marketWindow.SetBounds(bounds)
-		s.marketWindow.SetZoom(marketScaleFor(settings, s.windowArea()))
+		s.setWindowZoom(s.marketWindow, marketScaleFor(settings, s.windowArea()))
 		overlay.PlaceInGame(uintptr(s.marketWindow.NativeWindow()), false)
 	} else {
 		s.marketWindow.Maximise()
@@ -809,14 +809,44 @@ func (s *AppService) applyOverlayScale() {
 	scale := overlayScaleFor(settings, area)
 	if s.overlayWindow != nil {
 		s.overlayWindow.SetSize(int(overlayWidth*scale), int(float64(s.currentOverlayHeight())*scale))
-		s.overlayWindow.SetZoom(scale)
+		s.setWindowZoom(s.overlayWindow, scale)
 	}
 	if s.marketWindow != nil {
-		s.marketWindow.SetZoom(marketScaleFor(settings, area))
+		s.setWindowZoom(s.marketWindow, marketScaleFor(settings, area))
 	}
 	if s.craftWindow != nil {
-		s.craftWindow.SetZoom(craftScaleFor(settings, area))
+		s.setWindowZoom(s.craftWindow, craftScaleFor(settings, area))
 	}
+}
+
+// setWindowZoom scales a window's page. WebView2's zoom, as Wails sets it,
+// never goes below 1 (smaller values silently become 1), so the part under
+// 1 is applied by the page itself as CSS zoom; see UIZoom.
+func (s *AppService) setWindowZoom(w application.Window, scale float64) {
+	if w == nil {
+		return
+	}
+	w.SetZoom(max(scale, 1))
+	css := min(scale, 1)
+	s.zoomMu.Lock()
+	if s.pageZoom == nil {
+		s.pageZoom = map[string]float64{}
+	}
+	s.pageZoom[w.Name()] = css
+	s.zoomMu.Unlock()
+	// Events reach every window, so each page picks its own by name.
+	w.EmitEvent("ui-zoom", map[string]any{"window": w.Name(), "zoom": css})
+}
+
+// UIZoom is the CSS zoom a window's page applies to itself (1 = none), for a
+// page that loads after the window was sized.
+func (s *AppService) UIZoom(window string) float64 {
+	s.zoomMu.Lock()
+	defer s.zoomMu.Unlock()
+	if z, ok := s.pageZoom[window]; ok && z > 0 {
+		return z
+	}
+	return 1
 }
 
 func hasWeightGroup(in trade.EvaluateRequest) bool {
