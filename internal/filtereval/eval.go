@@ -282,3 +282,27 @@ func evalExplicitMods(c Cond, f Facts) Outcome {
 	}
 	return boolOutcome(compare(op, n, want))
 }
+
+// Verdict is the item's fate in a few words.
+type Verdict string
+
+const (
+	VerdictShow    Verdict = "show"
+	VerdictHide    Verdict = "hide"
+	VerdictMinimal Verdict = "minimal"
+	VerdictNone    Verdict = "none" // no rule matches: the game shows it plainly
+)
+
+// VerdictOf is the verdict of a result.
+func VerdictOf(r Result) Verdict {
+	if r.Final == nil {
+		return VerdictNone
+	}
+	switch r.Final.Block.Action {
+	case Hide:
+		return VerdictHide
+	case Minimal:
+		return VerdictMinimal
+	}
+	return VerdictShow
+}

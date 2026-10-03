@@ -3,6 +3,9 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as filtereval$0 from "./internal/filtereval/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as prices$0 from "./internal/prices/models.js";
 
 export interface BrowserLinkStatus {
@@ -69,6 +72,44 @@ export interface CraftPrices {
     "league": string;
     "generated_at": string;
     "currency": prices$0.CurrencyPrice[] | null;
+}
+
+/**
+ * FilterExplanation is what the written filter does with an item and why.
+ */
+export interface FilterExplanation {
+    /**
+     * Final is the block that decides the item (the first certain match
+     * without Continue); nil when no rule matches and the game shows it.
+     */
+    "final"?: filtereval$0.Match | null;
+
+    /**
+     * Maybe are blocks above Final that would decide instead if their
+     * unknown conditions hold, nearest first.
+     */
+    "maybe"?: filtereval$0.Match[] | null;
+
+    /**
+     * Decorations are Continue blocks that matched above Final and lent it
+     * their looks (NeverSink's "ilvl 82" or "corrupted" frames).
+     */
+    "decorations"?: filtereval$0.Match[] | null;
+    "verdict": filtereval$0.Verdict;
+
+    /**
+     * FilterPath and WrittenAt describe the file the answer comes from; the
+     * game may still use an older copy until the filter is reloaded.
+     */
+    "filterPath": string;
+    "writtenAt": string;
+
+    /**
+     * AreaLevel and Area are the last area of this game session (hideouts
+     * and towns skipped), used for NeverSink's AreaLevel rules; 0 = unknown.
+     */
+    "areaLevel": number;
+    "area": string;
 }
 
 /**
