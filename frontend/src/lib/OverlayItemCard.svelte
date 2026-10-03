@@ -260,22 +260,24 @@
   .mod-copy { min-width:0; }
   .plain-mod small { display:block; color:#9f77b7; font-size:10px; text-transform:uppercase; }
   .plain-mod.fractured small { color:#c9aa71; }
-  .plain-mod.crafted small { color:#b892c8; }
-  .plain-mod.desecrated small { color:#d68869; }
+  .plain-mod.crafted small { color:#c6d2f2; }
+  .plain-mod.desecrated small { color:#7fc48f; }
   .mod-copy { display:block; color:#9aa8d2; font-style:normal; white-space:pre-line; line-height:1.25; }
   .tag { color:#9f77b7; font-size:10px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tag.prefix { color:#d0675c; }.tag.suffix { color:#6f9bd6; }
   .mod-row.pseudo .tag { color:#c2ae7e; }
   .mod-row.pseudo .mod-copy { color:#b9b3a0; }
   .mod-row.fractured .mod-copy { color:#c9aa71; }
-  .mod-row.crafted .mod-copy { color:#b892c8; }
-  .mod-row.desecrated .mod-copy { color:#d68869; }
+  .mod-row.crafted .mod-copy { color:#c6d2f2; }
+  .mod-row.desecrated { background:linear-gradient(90deg,transparent,rgba(52,128,72,.3) 18%,rgba(52,128,72,.3) 82%,transparent); }
   .range { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
   .range input { min-width:0; width:100%; padding:3px 4px; background:#111313; border:1px solid #3d3a31; color:var(--gold-bright); border-radius:2px; }
   .unmatched { opacity:.48; }
   .plain-mod { padding:4px 5px; text-align:center; color:#9aa8d2; white-space:pre-line; }
   .plain-mod.implicit { color:#7388c2; }
-  .plain-mod.crafted { color:#9a78b2; }
+  .plain-mod.crafted { color:#c6d2f2; }
+  .plain-mod.fractured { color:#c9aa71; }
+  .plain-mod.desecrated { background:linear-gradient(90deg,transparent,rgba(52,128,72,.3) 18%,rgba(52,128,72,.3) 82%,transparent); }
   .compact .mods { max-height:300px; overflow:auto; }
   .item-states { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:8px 14px; padding:7px 10px; border-top:1px solid #3b3025; font-family:var(--serif); font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
   .state-control{display:flex;align-items:center;gap:7px}.state-control select{width:72px;padding:4px 18px 4px 6px;border:1px solid #4b473b;border-radius:2px;background:#191b18;color:#c6c2ad;font-family:var(--sans);font-size:10px;text-transform:none;letter-spacing:0}

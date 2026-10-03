@@ -402,10 +402,13 @@
   .preview .affix .tier.option.repeat { color:#d6b36a; }
   .preview p.option-sum { margin:3px 0 0; color:#8a8f99; text-align:center; }
   .preview .type-implicit p { color:#7188c4; }
-  /* The game draws fractured affixes in gold. */
-  .preview .type-fractured p { color:#c9aa71; }
-  .preview .type-crafted p { color:#9d76b6; }
-  .preview .type-desecrated p { color:#d68869; }
+  /* The game's colours: explicit blue, fractured gold, crafted a near-white
+     blue, desecrated the explicit blue on Abyss green. The sort button
+     carries the text, so it takes the colour too. */
+  .preview .type-fractured p, .preview .type-fractured .mod-sort { color:#c9aa71; }
+  .preview .type-crafted p, .preview .type-crafted .mod-sort { color:#c6d2f2; }
+  .preview .type-desecrated p { background:linear-gradient(90deg,transparent,rgba(52,128,72,.34) 18%,rgba(52,128,72,.34) 82%,transparent); }
+  .preview .affix.type-desecrated .tier { color:#7fc48f; }
   .preview .type-rune p { color:#7e899d; }
   .listing-card b.corr { margin-left:3px; color:#d54a45; font-size:9px; font-weight:700; }
   /* Item states as small badges, in the colours the game uses for them. */
