@@ -5,6 +5,7 @@ import { usageEntry, summarize } from './ledger.mjs';
 import { craftText } from './trade.mjs';
 import { iconIndex, iconFor } from './icons.mjs';
 import { catalystRules, catalystBoost, augmentedValues, catalystFromCopy, catalystTypes, catalystClasses } from './catalyst.mjs';
+import { infuserRules, maxQuality, infuserBeyond, currentQuality, corruptChance } from './infuser.mjs';
 import { omenDefinitions, relevantOmens, omenEffects, filterOmenRows, orbOmenReason, applyOrbOmens } from './omens.mjs';
 import { t, setLang, locale, num, variantName } from './i18n.mjs';
 import { pageFor, importItem, runesFor, runeStatLines } from './import.mjs';
@@ -591,8 +592,11 @@ function renderCurrencies() {
   const rows = { '': currencyRow(t('currency.standard')), II: currencyRow('Greater · II'), III: currencyRow('Perfect · III') };
   const jewellery = catalystClasses.includes(data().options?.ItemClassesCode);
   if (jewellery) rows.Catalyst = currencyRow(t('currency.catalyst'));
+  const classCode = data().options?.ItemClassesCode;
   for (const [id, rule] of visibleRules()) {
     if (rule.tier === 'Catalyst' && !jewellery) continue;
+    if (rule.tier === 'Vaal' && !rule.classes.includes(classCode)) continue;
+    if (rule.tier === 'Vaal') rows.Vaal ??= currencyRow(t('currency.infuser'));
     const reason = currencyReason(item, data(), id, rule);
     const button = element('button', undefined, `currency${reason ? ' unavailable' : ''}`);
     button.dataset.currency = id; button.setAttribute('aria-pressed', String(mode === 'basic' && selected === id));
@@ -648,6 +652,10 @@ function renderCurrencies() {
     const why = corruptReason(item), outcomes = corruptOutcomes(item, data(), corruptContext());
     $('selected-detail').textContent = why || t('vaal.detail', outcomes.map(o => t(`vaal.o.${o}`)).join(' · '), num(100 / outcomes.length, 1));
     $('apply').disabled = Boolean(why);
+  }
+  if (!reason && rule.afterTrigger === 'infuse') {
+    const q = currentQuality(item, data()), max = maxQuality(item);
+    $('selected-detail').textContent = t('effect.infuseOdds', q, max, max + infuserBeyond, num(corruptChance(q, max) * 100, 0));
   }
   if (!reason && rule.afterTrigger === 'fracture') $('selected-detail').textContent = t('effect.fractureOdds', num(100 / fracturable(item).length, 2));
   if (!reason && usableOmens('basic',selected,rule).length) {
@@ -761,7 +769,7 @@ async function switchPage(page, baseName) {
   if (!pages[page] || page === item.base) return;
   try {
     await load(page);
-    commit({ ...createItem(page), ilvl: item.ilvl, quality: qualityOf(item), baseName }, t('class.changed'), null, true);
+    commit({ ...createItem(page), ilvl: item.ilvl, quality: jewelleryPages.includes(item.base) ? undefined : qualityOf(item), baseName }, t('class.changed'), null, true);
   } catch (error) { status(error.message, 'error'); renderItem(); }
 }
 $('item-class').onchange = () => {
@@ -869,7 +877,7 @@ $('base-search').onkeydown = event => {
 document.addEventListener('mousedown', event => { if (!event.target.closest('.base-picker')) closeBasePicker(); });
 $('quality').onchange = () => attempt(() => {
   const value = Number($('quality').value);
-  if (!Number.isInteger(value) || value < 0 || value > 20) { $('quality').value = qualityOf(item); throw new Error(t('quality.invalid')); }
+  if (!Number.isInteger(value) || value < 0 || value > maxQuality(item) + infuserBeyond) { $('quality').value = qualityOf(item); throw new Error(t('quality.invalid', maxQuality(item) + infuserBeyond)); }
   commit({ ...item, quality: value }, t('quality.set', value));
 });
 $('rarity').onchange = () => attempt(() => {
@@ -1015,7 +1023,7 @@ async function importCopied(copied) {
     const sockets = Math.min(maxSockets(where.page), Math.max(found.length, socketLine ? socketLine[1].trim().split(/\s+/).length : 0));
     Object.assign(next, withRunes({ ...next, sockets }, [...found, ...Array(Math.max(0, sockets - found.length)).fill('')].slice(0, sockets)));
     const quality = /^Quality: \+(\d+)%/m.exec(copied.raw);
-    next.quality = quality ? Math.min(20, Number(quality[1])) : 0;
+    next.quality = quality ? Math.min(maxQuality(next) + infuserBeyond, Number(quality[1])) : 0;
     const catalyst = catalystFromCopy(copied.raw);
     if (catalyst) next.catalyst = catalyst;
     // A copied Corrupted or Sanctified item stays locked in the craft too.
@@ -1302,7 +1310,7 @@ try {
     readJSON('data/special-currencies.json'), readJSON('data/classes.json'), readJSON('data/bases.json'),
   ]);
   baseData = loadedBases;
-  rules = { ...loadedRules, ...catalystRules() }; manifest = loadedManifest; classes = classData.classes; bases = classData.bases || {};
+  rules = { ...loadedRules, ...catalystRules(), ...infuserRules() }; manifest = loadedManifest; classes = classData.classes; bases = classData.bases || {};
   for (const cls of classes) for (const v of cls.variants) pages[v.page] = { cls, attr: v.attr };
   if (rules['greater-orb-of-augmentation']) rules['greater-orb-of-augmentation'].name = 'Greater Orb of Augmentation';
   // PoE2DB names the Vaal Orb after the Perfect Exalted Orb.

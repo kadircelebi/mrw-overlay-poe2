@@ -1,6 +1,9 @@
 import { t } from './i18n.mjs';
+import { maxQuality } from './infuser.mjs';
 // Breach catalysts on rings and amulets: each adds 1% quality of one
-// modifier type (20% at most; checked in game) and replaces any other type.
+// modifier type up to the item's maximum (20%, more on Breach Rings and with
+// Essence of the Breach: infuser.mjs; checked in game) and replaces any other
+// type.
 // That quality raises the matching modifiers' values (+100 Life is +120 at
 // 20%, rounded down: checked in game) and, with an Omen of Catalysing
 // Exaltation, the next Exalted Orb's chance of a matching modifier.
@@ -28,7 +31,9 @@ export const catalystTypes = {
   'necrotic-catalyst': { name: 'Necrotic Catalyst', label: 'Minion', tags: ['minion'], icon: art('Necrotic') },
 };
 export const catalystClasses = ['Ring', 'Amulet'];
-export const catalystMax = 20;
+// The highest catalyst quality any ring reaches (Refined Breach Ring 45 +
+// Essence of the Breach 20 + Infusers 10).
+export const catalystMax = 75;
 export const isCatalyst = id => Object.hasOwn(catalystTypes, id);
 
 // Catalysts as currency rules, so the board, holding, the ledger and prices
@@ -40,12 +45,12 @@ export const catalystRules = () => Object.fromEntries(Object.entries(catalystTyp
 
 export function catalystReason(item, data, id) {
   if (!catalystClasses.includes(data.options?.ItemClassesCode)) return t('err.catalystClass');
-  if (item.catalyst?.id === id && item.catalyst.quality >= catalystMax) return t('err.catalystMax', catalystMax);
+  if (item.catalyst?.id === id && item.catalyst.quality >= maxQuality(item)) return t('err.catalystMax', maxQuality(item));
   return '';
 }
 
 export function applyCatalyst(item, id) {
-  const quality = Math.min(catalystMax, (item.catalyst?.quality || 0) + 1);
+  const quality = Math.min(maxQuality(item), (item.catalyst?.quality || 0) + 1);
   return { ...item, catalyst: { id, quality } };
 }
 

@@ -1,8 +1,9 @@
 import { t } from './i18n.mjs';
 import { isCatalyst, catalystReason, applyCatalyst } from './catalyst.mjs';
+import { isInfuser, infuseReason, applyInfuser } from './infuser.mjs';
 // The craft state is independent of the UI. Rarity is never inferred on removal.
 export const limits = { Normal: 0, Magic: 1, Rare: 3 };
-export const supported = id => isCatalyst(id) || /^(transmute|aug|regal|exalted|chaos|annu|divine|fracturing-orb|vaal-orb|(?:greater|perfect)-(?:orb-of-transmutation|orb-of-augmentation|regal-orb|exalted-orb|chaos-orb))$/.test(id);
+export const supported = id => isCatalyst(id) || isInfuser(id) || /^(transmute|aug|regal|exalted|chaos|annu|divine|fracturing-orb|vaal-orb|(?:greater|perfect)-(?:orb-of-transmutation|orb-of-augmentation|regal-orb|exalted-orb|chaos-orb))$/.test(id);
 export const createItem = (base = 'Gloves_str') => ({ base, rarity: 'Normal', ilvl: 81, mods: [] });
 export const count = (item, side) => item.mods.filter(m => m.affix === side).length;
 export const overlaps = (a, b) => a.affix === b.affix && a.families.some(f => b.families.includes(f));
@@ -155,6 +156,7 @@ export function currencyReason(item, data, id, rule, removal = {}) {
   if (!supported(id)) return t('err.unsupported');
   if (!rule.beforeRarity.includes(item.rarity)) return t('err.needRarity', rule.beforeRarity.join(' / '));
   if (rule.afterTrigger === 'catalyst') return catalystReason(item, data, id);
+  if (rule.afterTrigger === 'infuse') return infuseReason(item, data, id);
   if (rule.afterTrigger === 'fracture') {
     if (item.mods.some(m => m.fractured)) return t('err.alreadyFractured');
     if (item.mods.length < fractureMinimum) return t('err.fractureNeedsMods', fractureMinimum);
@@ -185,6 +187,7 @@ export function applyCurrency(item, data, id, rule, random = Math.random, remova
   if (rule.afterTrigger === 'add_enchant') throw new Error(t('err.unsupported'));
   let next = { ...item, mods: [...item.mods] };
   if (rule.afterTrigger === 'catalyst') return applyCatalyst(next, id);
+  if (rule.afterTrigger === 'infuse') return applyInfuser(next, data, id, random);
   if (rule.afterTrigger === 'fracture') {
     const options = fracturable(next), index = options[Math.floor(random() * options.length)];
     next.mods[index] = { ...next.mods[index], fractured: true };
