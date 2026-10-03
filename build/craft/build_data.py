@@ -54,7 +54,9 @@ CLASSES = [
     ('wand', 'Wands', 'weapon.wand', 'Wand', ('Wands', None)),
 ]
 
-POOLS = {'normal', 'desecrated', 'essence', 'perfect_essence'}
+POOLS = {'normal', 'desecrated', 'essence', 'perfect_essence', 'corrupted'}
+# PoE2DB lists a Vaal Orb's enchantments with affix code 5 and weight 1 for
+# every row: the game gives them no weights, each is equally likely.
 
 # Runes that open a modifier pool ("Gloves: Can roll Marksman modifiers"). They
 # are socket-bound: once in the item they stay. PoE2DB gives their modifiers
@@ -165,6 +167,9 @@ def main():
             # essence variant through.
             tags = sorted((common | set(page_tags)) - {'default'})
             rows = [{k: m[k] for k in FIELDS} for m in mods['mods'] if m['pool'] in POOLS]
+            for r in rows:
+                if r['pool'] == 'corrupted':
+                    r['affix'] = 'Enchant'
             measured = special_weights.get(page, {})
             for m in mods['mods']:
                 if m['pool'] in RUNE_POOLS and measured.get(m['source_id']):

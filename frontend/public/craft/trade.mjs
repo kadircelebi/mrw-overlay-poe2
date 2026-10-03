@@ -16,6 +16,7 @@ export function craftText(item, itemClass = 'Gloves', base = null) {
   if (properties.length) lines.push(...properties,'--------');
   if (item.sockets) lines.push(`Sockets: ${Array(item.sockets).fill('S').join(' ')}`,'--------');
   lines.push(`Item Level: ${item.ilvl}`,'--------');
+  if (item.enchant) lines.push(`${rolledText(item.enchant)} (enchant)`,'--------');
   for (const {mod} of sortedMods(item)) {
     // An unrevealed Desecrated modifier has no stat to search for yet.
     if (mod.unrevealed) continue;
@@ -25,5 +26,7 @@ export function craftText(item, itemClass = 'Gloves', base = null) {
     lines.push(`{ ${kind}${mod.affix} Modifier (Tier: ${mod.tier}) }`);
     lines.push(...rolledText(mod).split(/\n|<br\s*\/?\s*>/i));
   }
+  if (item.sanctified) lines.push('--------','Sanctified');
+  else if (item.corrupted) lines.push('--------','Corrupted');
   return lines.join('\n');
 }

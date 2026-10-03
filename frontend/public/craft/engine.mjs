@@ -1,7 +1,7 @@
 import { t } from './i18n.mjs';
 // The craft state is independent of the UI. Rarity is never inferred on removal.
 export const limits = { Normal: 0, Magic: 1, Rare: 3 };
-export const supported = id => /^(transmute|aug|regal|exalted|chaos|annu|divine|fracturing-orb|(?:greater|perfect)-(?:orb-of-transmutation|orb-of-augmentation|regal-orb|exalted-orb|chaos-orb))$/.test(id);
+export const supported = id => /^(transmute|aug|regal|exalted|chaos|annu|divine|fracturing-orb|vaal-orb|(?:greater|perfect)-(?:orb-of-transmutation|orb-of-augmentation|regal-orb|exalted-orb|chaos-orb))$/.test(id);
 export const createItem = (base = 'Gloves_str') => ({ base, rarity: 'Normal', ilvl: 81, mods: [] });
 export const count = (item, side) => item.mods.filter(m => m.affix === side).length;
 export const overlaps = (a, b) => a.affix === b.affix && a.families.some(f => b.families.includes(f));
@@ -145,6 +145,9 @@ export const fracturable = item => item.mods.map((m, i) => i).filter(i => !item.
 // removal carries the omens that steer a removal (see removable).
 export function currencyReason(item, data, id, rule, removal = {}) {
   if (item.reveal) return t('err.pendingReveal');
+  // A Corrupted or Sanctified item takes no more currency.
+  if (item.sanctified) return t('err.sanctified');
+  if (item.corrupted) return t('err.corrupted');
   if (!supported(id)) return t('err.unsupported');
   if (!rule.beforeRarity.includes(item.rarity)) return t('err.needRarity', rule.beforeRarity.join(' / '));
   if (rule.afterTrigger === 'fracture') {
@@ -173,6 +176,8 @@ export function currencyReason(item, data, id, rule, removal = {}) {
 export function applyCurrency(item, data, id, rule, random = Math.random, removal = {}) {
   const reason = currencyReason(item, data, id, rule, removal);
   if (reason) throw new Error(reason);
+  // A Vaal Orb needs the item class and sockets (corrupt.mjs, called by the page).
+  if (rule.afterTrigger === 'add_enchant') throw new Error(t('err.unsupported'));
   let next = { ...item, mods: [...item.mods] };
   if (rule.afterTrigger === 'fracture') {
     const options = fracturable(next), index = options[Math.floor(random() * options.length)];
