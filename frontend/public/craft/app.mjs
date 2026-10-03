@@ -4,6 +4,7 @@ import { applicable, essenceRows, essenceTier, specialReason, applySpecial, reve
 import { usageEntry, summarize } from './ledger.mjs';
 import { craftText } from './trade.mjs';
 import { iconIndex, iconFor } from './icons.mjs';
+import { catalystRules, catalystBoost, augmentedValues, catalystFromCopy, catalystTypes, catalystClasses } from './catalyst.mjs';
 import { omenDefinitions, relevantOmens, omenEffects, filterOmenRows, orbOmenReason, applyOrbOmens } from './omens.mjs';
 import { t, setLang, locale, num, variantName } from './i18n.mjs';
 import { pageFor, importItem, runesFor, runeStatLines } from './import.mjs';
@@ -37,8 +38,10 @@ let classes = [], pages = {}, bases = {}, manifest = null;
 let baseData = { pages: {} };
 const baseList = page => baseData.pages[page] || [];
 const currentBase = (state = item) => baseList(state.base).find(b => b.name === state.baseName) || baseList(state.base).at(-1) || null;
-const qualityOf = state => Number.isInteger(state.quality) ? state.quality : 20;
-const snapshot = state => ({base:state.base,baseName:currentBase(state)?.name || '',quality:qualityOf(state),rarity:state.rarity,ilvl:state.ilvl,runes:runesOf(state).join(','),sockets:socketsOf(state),runeStats:(state.runeStats || []).join('|'),
+// Rings and amulets have no plain quality, only a catalyst's (item.catalyst).
+const jewelleryPages = ['Rings', 'Amulets'];
+const qualityOf = state => jewelleryPages.includes(state.base) ? 0 : Number.isInteger(state.quality) ? state.quality : 20;
+const snapshot = state => ({base:state.base,baseName:currentBase(state)?.name || '',quality:qualityOf(state),catalyst:state.catalyst ? `${state.catalyst.id}:${state.catalyst.quality}` : '',rarity:state.rarity,ilvl:state.ilvl,runes:runesOf(state).join(','),sockets:socketsOf(state),runeStats:(state.runeStats || []).join('|'),
   mods:state.mods.map(m => ({source_id:m.source_id,pool:m.pool,affix:m.affix,tier:m.tier,values:m.values,desecrated:Boolean(m.desecrated),fractured:Boolean(m.fractured),crafted:Boolean(m.crafted)}))});
 // Augment sockets: Craft of Exile's normal maximum (body armour and two-hand
 // weapons 2, other equipment 1) plus one more, which corruption and some
@@ -195,6 +198,8 @@ function renderItem() {
   $('ilvl').value = item.ilvl;
   $('quality').value = qualityOf(item);
   for (const id of ['rarity','item-class','variant','ilvl','quality','clear','reset']) $(id).disabled = Boolean(item.reveal);
+  // Jewellery quality comes only from catalysts.
+  if (jewelleryPages.includes(item.base)) { $('quality').disabled = true; $('quality').title = t('quality.catalystOnly'); } else $('quality').title = '';
   $('item-card').className = 'item-card ' + item.rarity;
   const base = currentBase();
   $('item-card').classList.toggle('corrupted', Boolean(item.corrupted));
@@ -232,8 +237,12 @@ function renderItem() {
     const key = `${mod.affix}:${mod.source_id}`;
     row.append(element('span', mod.affix !== lastSide ? mod.affix : '', 'mod-side'));
     lastSide = mod.affix;
-    const text = element('p', mod.unrevealed ? t('mod.unrevealed') : rolledWithRange(mod), 'mod-value');
-    text.title = `${mod.name} · ${mod.desecrated ? 'Desecrated' : mod.pool}${mod.fractured ? ' · Fractured' : ''}`;
+    // Catalyst quality raises matching values, shown as the game does.
+    const raised = mod.unrevealed ? null : augmentedValues(mod, item);
+    // Like the game's tooltip, the raised value stands alone; the roll and
+    // its range go to the hover text.
+    const text = element('p', mod.unrevealed ? t('mod.unrevealed') : raised ? rolledText({ ...mod, values: raised }) : rolledWithRange(mod), `mod-value${raised ? ' augmented' : ''}`);
+    text.title = `${mod.name} · ${mod.desecrated ? 'Desecrated' : mod.pool}${mod.fractured ? ' · Fractured' : ''}${raised ? ` · ${rolledWithRange(mod)} + ${item.catalyst.quality}%` : ''}`;
     row.append(text, element('span', isCrafted(mod) ? 'C' : `T${mod.tier}`, 'mod-tier'));
     row.onclick = event => {
       if (held || event.target.closest('.mod-editor')) return;
@@ -320,6 +329,7 @@ function renderProps(base) {
       line('DPS', `${num(stats.dps, 1)} (P ${num(stats.pdps, 1)} · E ${num(stats.edps, 1)})`, false, 'dps');
     }
   }
+  if (item.catalyst?.quality) line(`Quality (${catalystTypes[item.catalyst.id]?.label || '?'} Modifiers)`, `+${item.catalyst.quality}%`, true);
   if (socketsOf(item)) line('Sockets', Array(socketsOf(item)).fill('S').join(' '), false);
   line('Item Level', item.ilvl, false);
   const runeLines = $('item-runes'); runeLines.replaceChildren();
@@ -579,14 +589,17 @@ function currencyRow(label) {
 function renderCurrencies() {
   $('currencies').replaceChildren();
   const rows = { '': currencyRow(t('currency.standard')), II: currencyRow('Greater · II'), III: currencyRow('Perfect · III') };
+  const jewellery = catalystClasses.includes(data().options?.ItemClassesCode);
+  if (jewellery) rows.Catalyst = currencyRow(t('currency.catalyst'));
   for (const [id, rule] of visibleRules()) {
+    if (rule.tier === 'Catalyst' && !jewellery) continue;
     const reason = currencyReason(item, data(), id, rule);
     const button = element('button', undefined, `currency${reason ? ' unavailable' : ''}`);
     button.dataset.currency = id; button.setAttribute('aria-pressed', String(mode === 'basic' && selected === id));
     button.setAttribute('aria-label', rule.name + (rule.tier ? ` ${rule.tier}` : ''));
     button.title = reason ? `${rule.name}: ${reason}` : rule.name;
     const img = iconElement(rule.icon, true);
-    button.append(img, element('span', shortNames[kind(id)] || rule.name));
+    button.append(img, element('span', shortNames[kind(id)] || rule.short || rule.name));
     button.onclick = () => {
       if (held?.id === id) { drop(); return; }
       selected = id; selectMode('basic'); hold(id, rule.icon); status(reason || t('currency.holdHint'));
@@ -640,7 +653,8 @@ function renderCurrencies() {
   if (!reason && usableOmens('basic',selected,rule).length) {
     const removal = omenEffect.removal || {};
     $('selected-detail').textContent = omenEffect.sanctify ? t('effect.sanctify') : selected.includes('exalted')
-      ? t('effect.omens', omenEffect.quantity, omenEffect.side ? t('effect.side', omenEffect.side) : '')
+      ? t('effect.omens', omenEffect.quantity, omenEffect.side ? t('effect.side', omenEffect.side) : '') +
+        (omenEffect.catalyse && item.catalyst?.quality ? t('effect.catalyse', catalystTypes[item.catalyst.id]?.label || '?', item.catalyst.quality, num(1 + 0.2 * Math.min(item.catalyst.quality, 20), 1)) : '')
       : t('effect.removes', removal.count || 1) + (removal.side ? t('effect.side', removal.side) : '') +
         (removal.desecrated ? t('effect.onlyDesecrated') : '') + (removal.lowest ? t('effect.lowest') : '') +
         (rule.afterTrigger === 'del_add' ? t('effect.thenAdds') : '') + t('effect.omensUsed');
@@ -673,8 +687,9 @@ function renderMods() {
   // The base pool and a socketed rune's pool roll together, so their odds
   // are shares of the combined weight; a rune pool without its rune cannot roll.
   const pools = rollPools(item).includes(pool) ? rollPools(item) : [pool];
-  const potential = Object.values(runes).some(r => r.pool === pool) && !rollPools(item).includes(pool) ? []
+  let potential = Object.values(runes).some(r => r.pool === pool) && !rollPools(item).includes(pool) ? []
     : filterOmenRows(candidates(item, data(), { pool: pools, rarity: 'Rare' }),listEffects);
+  if (listEffects.catalyse) potential = catalystBoost(item, potential);
   for (const side of ['Prefix', 'Suffix']) {
     const list = $(side.toLowerCase() + '-list'); list.replaceChildren();
     const groups = new Map();
@@ -706,7 +721,8 @@ function renderMods() {
         const description = element('div', undefined, 'tier-description');
         description.append(element('p', row.text));
         const eligible = potential.some(m => m.source_id === row.source_id);
-        const share = eligible && total ? `${num(row.weight / total * 100, 3)}%` : '—';
+        const weight = potential.find(m => m.source_id === row.source_id)?.weight ?? row.weight;
+        const share = eligible && total ? `${num(weight / total * 100, 3)}%` : '—';
         description.append(element('small', `${row.name} · ilvl ${row.required_ilvl} · w ${row.weight} · ${share}`));
         const button = element('button', active ? '✓' : existing ? '↔' : '+');
         const reason = manualReason(existing ? removeMod(item, existingIndex) : item, row);
@@ -1000,6 +1016,8 @@ async function importCopied(copied) {
     Object.assign(next, withRunes({ ...next, sockets }, [...found, ...Array(Math.max(0, sockets - found.length)).fill('')].slice(0, sockets)));
     const quality = /^Quality: \+(\d+)%/m.exec(copied.raw);
     next.quality = quality ? Math.min(20, Number(quality[1])) : 0;
+    const catalyst = catalystFromCopy(copied.raw);
+    if (catalyst) next.catalyst = catalyst;
     // A copied Corrupted or Sanctified item stays locked in the craft too.
     if (/^Sanctified$/m.test(copied.raw)) next.sanctified = true;
     else if (/^Corrupted$/m.test(copied.raw)) next.corrupted = true;
@@ -1284,7 +1302,7 @@ try {
     readJSON('data/special-currencies.json'), readJSON('data/classes.json'), readJSON('data/bases.json'),
   ]);
   baseData = loadedBases;
-  rules = loadedRules; manifest = loadedManifest; classes = classData.classes; bases = classData.bases || {};
+  rules = { ...loadedRules, ...catalystRules() }; manifest = loadedManifest; classes = classData.classes; bases = classData.bases || {};
   for (const cls of classes) for (const v of cls.variants) pages[v.page] = { cls, attr: v.attr };
   if (rules['greater-orb-of-augmentation']) rules['greater-orb-of-augmentation'].name = 'Greater Orb of Augmentation';
   // PoE2DB names the Vaal Orb after the Perfect Exalted Orb.

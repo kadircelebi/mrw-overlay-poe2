@@ -243,6 +243,8 @@ a { color: var(--gold); white-space: nowrap; }
 .item-props:empty, .item-runes:empty { display: none; }
 .item-props b { color: oklch(92% .005 98); font-weight: 400; font-variant-numeric: tabular-nums; }
 .item-props b.changed { color: var(--explicit); }
+/* A value raised by catalyst quality, coloured like the game's augmented values. */
+.mod-value.augmented { color: #9fb6ff; }
 .item-props .req { margin-top: .3rem; font-size: .82rem; }
 .item-props .dps { color: var(--secondary); }
 .item-runes .rune { color: var(--rune-text); }

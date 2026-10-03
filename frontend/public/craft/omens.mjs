@@ -1,6 +1,7 @@
 import { t } from './i18n.mjs';
 import { candidates, currencyReason, applyCurrency, chooseWeighted, roll } from './engine.mjs';
 import { sanctify, sanctifyReason } from './corrupt.mjs';
+import { catalystBoost } from './catalyst.mjs';
 
 const ids = new Set(['omen-of-greater-exaltation','omen-of-sinistral-exaltation','omen-of-dextral-exaltation',
   'omen-of-sinistral-necromancy','omen-of-dextral-necromancy','omen-of-the-liege','omen-of-the-sovereign','omen-of-the-blackblooded',
@@ -10,7 +11,10 @@ const ids = new Set(['omen-of-greater-exaltation','omen-of-sinistral-exaltation'
   // Which side a Perfect or Corrupted essence removes from.
   'omen-of-sinistral-crystallisation','omen-of-dextral-crystallisation',
   // A Divine Orb on a Rare Sanctifies it instead (corrupt.mjs).
-  'omen-of-sanctification']);
+  'omen-of-sanctification',
+  // The next Exalted Orb uses up a ring's or amulet's catalyst quality to
+  // favour that type of modifier (catalyst.mjs).
+  'omen-of-catalysing-exaltation']);
 const crystallisation = ['omen-of-sinistral-crystallisation','omen-of-dextral-crystallisation'];
 // The data gives the Crystallisation pair no exclusives; they exclude each other.
 export const omenDefinitions = rules => Object.fromEntries(Object.entries(rules).filter(([id]) => ids.has(id))
@@ -26,7 +30,7 @@ export function relevantOmens(definitions, currencyId, rule, data) {
 const removesWith = omen => omen.reqids?.some(id => id === 'annu' || id.includes('chaos') || id === 'perfect-essences');
 export function omenEffects(definitions, chosen, currencyId, rule, data) {
   const allowed = new Map(relevantOmens(definitions,currencyId,rule,data));
-  const effects = {side:null,tags:[],quantity:1,removal:{},sanctify:false};
+  const effects = {side:null,tags:[],quantity:1,removal:{},sanctify:false,catalyse:false};
   for (const id of chosen) {
     const omen = allowed.get(id);
     if (!omen) throw new Error(t('err.omenNotUsable'));
@@ -43,6 +47,7 @@ export function omenEffects(definitions, chosen, currencyId, rule, data) {
     if (omen.harvest_only) effects.tags = omen.harvest_only;
     if (id === 'omen-of-greater-exaltation') effects.quantity = 2;
     if (id === 'omen-of-sanctification') effects.sanctify = true;
+    if (id === 'omen-of-catalysing-exaltation') effects.catalyse = true;
   }
   return effects;
 }
@@ -53,6 +58,7 @@ export function orbOmenReason(item,data,id,rule,effects) {
   if (effects.sanctify) return sanctifyReason(item);
   const baseReason = currencyReason(item,data,id,rule,effects.removal || {}); if (baseReason) return baseReason;
   if (!id.includes('exalted')) return '';
+  if (effects.catalyse && !item.catalyst?.quality) return t('err.noCatalystQuality');
   const rows = filterOmenRows(candidates(item,data,{minimum:rule.beforeMin_mod_lv || 1}),effects);
   if (!rows.length) return t('err.omenNoRoom');
   if (effects.quantity === 2 && rows.some(row => {
@@ -67,8 +73,11 @@ export function applyOrbOmens(item,data,id,rule,effects,random=Math.random) {
   if (!id.includes('exalted')) return applyCurrency(item,data,id,rule,random,effects.removal || {});
   const next = {...item,mods:[...item.mods]};
   for (let i=0;i<effects.quantity;i++) {
-    const rows = filterOmenRows(candidates(next,data,{minimum:rule.beforeMin_mod_lv || 1}),effects);
+    let rows = filterOmenRows(candidates(next,data,{minimum:rule.beforeMin_mod_lv || 1}),effects);
+    if (effects.catalyse) rows = catalystBoost(next,rows);
     next.mods.push(roll(chooseWeighted(rows,random),random));
   }
+  // The omen uses all the catalyst quality up.
+  if (effects.catalyse) next.catalyst = {...next.catalyst,quality:0};
   return next;
 }
