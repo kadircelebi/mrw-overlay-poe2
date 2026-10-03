@@ -124,7 +124,7 @@
           {#each soundIds as id, i}<option value={id}>{soundLabel(id, i)}</option>{/each}
         </select>
       </label>
-      <button type="button" class="play" title={t('live.preview')} disabled={sound === 'none'} onclick={() => AppService.PreviewGameSound(sound)}>▶</button>
+      <button type="button" class="play" title={t('live.preview')} disabled={sound === 'none'} onclick={() => AppService.PreviewGameSound(sound, 0)}>▶</button>
       <label class="check"><input type="checkbox" bind:checked={notify} onchange={saveAlerts} /><i></i><span>{t('live.notify')}</span></label>
     </div>
     <div class="table-head"><span>{t('live.col.name')}</span><span>{t('live.col.status')}</span><span>{t('live.col.found')}</span><span class:full={active >= MAX_LIVE}>{t('live.active', active, MAX_LIVE)}</span></div>

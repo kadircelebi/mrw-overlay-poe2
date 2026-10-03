@@ -118,7 +118,10 @@ type Config struct {
 	Sounds map[string]string `json:"sounds"`
 	// FontSizes maps a style group id to the label size its rules write
 	// (MinFontSize..MaxFontSize); a missing group keeps its built-in size.
-	FontSizes       map[string]int `json:"font_sizes"`
+	FontSizes map[string]int `json:"font_sizes"`
+	// Volumes maps a style group id to the volume its sound plays at
+	// (MinSoundVolume..MaxSoundVolume-1); a missing group plays at the maximum.
+	Volumes         map[string]int `json:"volumes"`
 	CustomSoundPath string         `json:"custom_sound_path"`
 	HideExalt       bool           `json:"hide_exalt"`
 	HideGold        bool           `json:"hide_gold"`

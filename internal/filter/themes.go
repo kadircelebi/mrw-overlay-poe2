@@ -408,6 +408,13 @@ func (c *Config) normalizeStyles() {
 		}
 		c.FontSizes[group] = ClampFontSize(v)
 	}
+	for group, v := range c.Volumes {
+		if _, ok := known(group); !ok || v <= 0 || v >= MaxSoundVolume {
+			delete(c.Volumes, group)
+			continue
+		}
+		c.Volumes[group] = ClampSoundVolume(v)
+	}
 }
 
 // Sound returns the effective sound choice for a group.
@@ -452,8 +459,36 @@ func (st *style) withSound(v string) *style {
 	case strings.HasPrefix(v, SoundFilePrefix):
 		s.sound, s.custom = "", strings.TrimPrefix(v, SoundFilePrefix)
 	default:
-		s.sound, s.custom = v+" 300", ""
+		s.sound, s.custom = v, ""
 	}
+	return &s
+}
+
+// The volumes PlayAlertSound and CustomAlertSound accept. Rules always wrote
+// the loudest, so that stays the default.
+const (
+	MinSoundVolume = 1
+	MaxSoundVolume = 300
+)
+
+// ClampSoundVolume brings a volume into MinSoundVolume..MaxSoundVolume.
+func ClampSoundVolume(v int) int { return min(MaxSoundVolume, max(MinSoundVolume, v)) }
+
+// Volume returns the chosen sound volume of a group, 0 for the default.
+func (c Config) Volume(group string) int {
+	if v := c.Volumes[group]; v > 0 {
+		return ClampSoundVolume(v)
+	}
+	return 0
+}
+
+// withVolume applies a chosen volume to a copy of st (unchanged for 0).
+func (st *style) withVolume(v int) *style {
+	if v <= 0 {
+		return st
+	}
+	s := *st
+	s.volume = ClampSoundVolume(v)
 	return &s
 }
 

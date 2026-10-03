@@ -264,6 +264,8 @@ export const en: Record<string, string> = {
   'look.customised': 'Customised',
   'look.fontSize': 'Label size',
   'look.fontDefault': 'Default ({0})',
+  'look.volume': 'Volume',
+  'look.volumeDefault': 'Default ({0})',
   'look.fontHint': 'The size of the item label on the ground, {0} to {1}. A value outside is brought to the nearest end.',
   'look.sound': 'Sound',
   'look.soundDefault': 'Default ({0})',

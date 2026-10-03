@@ -31,8 +31,9 @@ func (s *AppService) ListSounds() []string {
 	return out
 }
 
-// PreviewSound plays a sound file from the filter folder.
-func (s *AppService) PreviewSound(name string) error {
+// PreviewSound plays a sound file from the filter folder at a filter volume
+// (0 for the loudest).
+func (s *AppService) PreviewSound(name string, volume int) error {
 	base := filepath.Base(name)
 	if base != name || !soundExts[strings.ToLower(filepath.Ext(base))] {
 		return errors.New(i18n.T("err.soundInvalid"))
@@ -41,7 +42,7 @@ func (s *AppService) PreviewSound(name string) error {
 	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf(i18n.T("err.soundNotFound"), base)
 	}
-	return playSound(path)
+	return playSound(path, volume)
 }
 
 // AddSound copies a sound the user picks into the filter folder, which is the
@@ -96,7 +97,7 @@ func sameFile(a, b string) (bool, error) {
 
 // PreviewGameSound plays one of the game's own alert sounds. The sound ships
 // with the app and is written out on first use, since playback needs a path.
-func (s *AppService) PreviewGameSound(id string) error {
+func (s *AppService) PreviewGameSound(id string, volume int) error {
 	if !gamesounds.Known(id) {
 		return errors.New(i18n.T("err.soundInvalid"))
 	}
@@ -104,5 +105,5 @@ func (s *AppService) PreviewGameSound(id string) error {
 	if err != nil {
 		return err
 	}
-	return playSound(path)
+	return playSound(path, volume)
 }

@@ -130,7 +130,7 @@ func (s *AppService) liveFound(state trade.LiveState, listings []trade.Evaluated
 		s.liveAlert.mu.Unlock()
 		if due {
 			if path, err := gamesounds.Ensure(s.meta.DataDir, settings.LiveSound); err == nil {
-				_ = playSound(path)
+				_ = playSound(path, 0)
 			}
 		}
 	}

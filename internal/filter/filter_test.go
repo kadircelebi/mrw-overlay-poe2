@@ -968,6 +968,32 @@ func TestMissingSoundFileFallsBackToTheGroupDefault(t *testing.T) {
 
 // A group's label size can be chosen; a size typed outside what the game
 // accepts is brought back in, so it cannot break the filter.
+func TestGroupVolumeIsWritten(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.WaystoneTier = 15
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	if blockContaining(t, out, `Class == "Waystones"`, "PlayAlertSound 2 300") < 0 {
+		t.Fatal("the default volume changed")
+	}
+
+	cfg.Volumes = map[string]int{GroupWaystone: 120}
+	cfg.Sounds = map[string]string{GroupDivine: SoundFilePrefix + "a.mp3"}
+	cfg.Volumes[GroupDivine] = 50
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	if blockContaining(t, out, `Class == "Waystones"`, "PlayAlertSound 2 120") < 0 {
+		t.Error("the chosen game sound volume was not written")
+	}
+	if !strings.Contains(out, `CustomAlertSound "a.mp3" 50`) {
+		t.Error("the chosen custom sound volume was not written")
+	}
+
+	cfg.Volumes = map[string]int{GroupWaystone: 900, GroupDivine: -3, "no-such-group": 10, GroupT5Rare: 40}
+	cfg.Normalize()
+	if len(cfg.Volumes) != 1 || cfg.Volumes[GroupT5Rare] != 40 {
+		t.Errorf("volumes were not normalised: %v", cfg.Volumes)
+	}
+}
+
 func TestGroupFontSizeIsChosenAndClamped(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.WaystoneTier = 15
