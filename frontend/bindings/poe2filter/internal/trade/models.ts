@@ -124,36 +124,6 @@ export interface Evaluation {
 }
 
 /**
- * ExchangeOffer is one seller's ratio on the bulk exchange: Pay of Currency
- * for Get of the wanted item, with Stock of it on hand.
- */
-export interface ExchangeOffer {
-    "account": string;
-    "currency": string;
-    "pay": number;
-    "get": number;
-    "stock": number;
-    "indexed": string;
-
-    /**
-     * ValueEx is the price of one item in Exalted Orbs (0 when the currency
-     * has no known rate).
-     */
-    "valueEx": number;
-}
-
-/**
- * ExchangeResult is a bulk exchange search, cheapest offer first.
- */
-export interface ExchangeResult {
-    "want": string;
-    "league": string;
-    "total": number;
-    "offers": ExchangeOffer[] | null;
-    "tradeUrl": string;
-}
-
-/**
  * ImportResult reports what an import changed.
  */
 export interface ImportResult {

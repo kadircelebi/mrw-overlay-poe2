@@ -169,7 +169,6 @@ var en = map[string]string{
 	"overlay.err.tooComplex":          "The search is too complex for GGG; remove a few stat filters",
 	"overlay.err.tooComplexSignedOut": "The search is too complex for GGG's signed-out limit; remove a few stat filters or link your pathofexile.com account under Settings → Account",
 	"overlay.err.searchTimeout":       "The GGG search timed out; try again in a moment",
-	"overlay.err.noExchangeItem":      "This item is not on the currency exchange.",
 	"overlay.err.blocked":             "pathofexile.com answered with a web page instead of search results: the site may be down for maintenance, or turning requests away for now. Try again later.",
 	"overlay.err.fetchLimit":          "GGG's listing limit was reached; scroll again in a few seconds",
 	"overlay.err.fetchTimeout":        "Loading the listings timed out; try again in a moment",

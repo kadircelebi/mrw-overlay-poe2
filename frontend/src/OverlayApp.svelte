@@ -3,9 +3,8 @@
   import { Events } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter'
   import type { Catalog, CurrencyQuote, Item, ItemEntry, Snapshot } from '../bindings/poe2filter/internal/overlay/models'
-  import type { Evaluation, ExchangeResult, SelectedFilter } from '../bindings/poe2filter/internal/trade/models'
+  import type { Evaluation, SelectedFilter } from '../bindings/poe2filter/internal/trade/models'
   import CurrencyCard from './lib/CurrencyCard.svelte'
-  import ExchangeResults from './lib/ExchangeResults.svelte'
   import QuotaBadge from './lib/QuotaBadge.svelte'
   import OverlayItemCard from './lib/OverlayItemCard.svelte'
   import TradeResults from './lib/TradeResults.svelte'
@@ -17,11 +16,8 @@
   // Set for stackable items the price list knows: they get a worth card
   // instead of the affix card.
   let quote = $state<CurrencyQuote | null>(null)
-  // The price list's rates (and league) for an exchange item it does not
-  // carry: the worth card is then built from the exchange's offers.
-  let rates = $state<CurrencyQuote | null>(null)
-  let exchangeResult = $state<ExchangeResult | null>(null)
-  let exchangeStatus = $state('online')
+  // Set once the price list has answered for the current item.
+  let quoteChecked = $state(false)
   let catalog = $state<Catalog | null>(null)
   let choices = $state<ModChoice[]>([])
   let toggles = $state<ItemToggles>({ ...allOn })
@@ -89,8 +85,10 @@
   const itemSearchGroups = new Set(['Waystones', 'UncutGems'])
 
   // Boss keys, splinters, omens and other bulk items trade only on the
-  // currency exchange (Ange); the item search finds none of them. This is
-  // their exchange id, or '' for an item the item search should price.
+  // in-game currency exchange (Ange), which no API shows; the few trade site
+  // listings are face-to-face offers and say nothing about the price. They
+  // get the price list's figure and no search. This is their exchange id, or
+  // '' for an item the item search should price.
   function exchangeIdFor(value: Item | null): string {
     if (!value || !catalog || needsUniqueSelection(value)) return ''
     if (['magic', 'rare', 'unique'].includes(value.rarity?.toLowerCase())) return ''
@@ -102,22 +100,11 @@
 
   const exchangeId = $derived(exchangeIdFor(item))
 
-  // A worth figure from the exchange: the median of the five cheapest priced
-  // offers, so one odd seller does not set it.
-  const exchangeQuote = $derived.by(() => {
-    if (quote || !rates || !item || !exchangeResult) return null
-    const values = (exchangeResult.offers ?? []).map((o) => o.valueEx).filter((v) => v > 0).slice(0, 5).sort((a, b) => a - b)
-    if (!values.length) return null
-    const valueEx = values[Math.floor((values.length - 1) / 2)]
-    return { ...rates, found: true, name: item.baseType || item.name, valueEx, sampled: values.length } as CurrencyQuote & { sampled: number }
-  })
-
   function accept(snap: Snapshot) {
     error = snap.error ?? ''
     result = null
     quote = null
-    rates = null
-    exchangeResult = null
+    quoteChecked = false
     if (!snap.item) {
       item = null
       choices = []
@@ -152,20 +139,6 @@
     if (!needsUniqueSelection(snap.item)) queueEvaluate(40)
   }
 
-  async function runExchange(refresh: boolean) {
-    const want = exchangeId
-    if (!want || loading) return
-    loading = true
-    error = ''
-    try {
-      exchangeResult = await AppService.ExchangeOverlay(want, exchangeStatus, refresh)
-    } catch (e) {
-      error = cleanError(e)
-      exchangeResult = null
-    } finally {
-      loading = false
-    }
-  }
 
   function loadQuote(value: Item) {
     // Lineage support gems trade on the currency exchange, so the item search
@@ -176,8 +149,8 @@
     AppService.QuoteCurrency(value.baseType || value.name).then((q) => {
       if (item?.raw !== raw) return
       if (q.found) quote = q
-      else rates = q
-    }).catch(() => {})
+      quoteChecked = true
+    }).catch(() => { if (item?.raw === raw) quoteChecked = true })
   }
 
   onMount(() => {
@@ -221,7 +194,8 @@
 
   function queueEvaluate(delay = 320) {
     clearTimeout(evaluateTimer)
-    evaluateTimer = setTimeout(() => (exchangeId ? runExchange(false) : evaluate(false)), delay)
+    if (exchangeId) return
+    evaluateTimer = setTimeout(() => evaluate(false), delay)
   }
 
   async function evaluate(refresh: boolean) {
@@ -355,10 +329,8 @@
       {:else}
         {#if quote}
         <CurrencyCard {item} {quote} />
-        {:else if exchangeQuote}
-        <CurrencyCard {item} quote={exchangeQuote} source={t('ov.ex.source', exchangeQuote.league, exchangeQuote.sampled)} sourceTitle={t('ov.ex.sourceTitle')} />
         {:else if exchangeId}
-        <section class="exchange-title"><strong>{item.baseType || item.name}</strong></section>
+        <section class="exchange-title"><strong>{item.baseType || item.name}</strong>{#if quoteChecked}<p>{t('ov.ex.unpriced')}</p>{/if}</section>
         {:else}
         <OverlayItemCard
           {item}
@@ -383,14 +355,7 @@
         />
         {/if}
       {#if exchangeId}
-      <div class="filters exchange">
-        <select bind:value={exchangeStatus} onchange={() => (exchangeResult = null)} title={t('ov.saleType')}>
-          <option value="online">{t('ov.ex.online')}</option>
-          <option value="any">{t('ov.any')}</option>
-        </select>
-      </div>
-      <button class="search-button" disabled={loading} onclick={() => runExchange(true)}>{loading ? t('ov.searching') : t('ov.search')}</button>
-      <ExchangeResults result={exchangeResult} {loading} {error} />
+      <p class="exchange-note">{t('ov.ex.note')}</p>
       {:else}
       <div class="mode-row">
         <button class:on={exact} onclick={() => setMode(true)}><i></i> {t('ov.exact')}</button>
@@ -451,9 +416,10 @@
   .mode-row button.on { color:var(--gold-bright); }.mode-row button.on i{background:var(--gold);box-shadow:inset 0 0 0 3px #151615}
   .filters { display:grid; grid-template-columns:1.05fr 1fr 1fr; gap:6px; padding:8px 0 3px; }
   select { min-width:0; width:100%; padding:7px 22px 7px 7px; border:1px solid #4b473b; border-radius:2px; background:#191b18; color:#c6c2ad; }
-  .filters.exchange { grid-template-columns:1fr; }
   .exchange-title { padding:12px; text-align:center; border:1px solid #4a4030; background:rgba(7,8,9,.88); }
   .exchange-title strong { font-family:var(--serif); letter-spacing:.04em; color:#d7b76d; font-size:14px; }
+  .exchange-title p { margin:8px 0 0; color:var(--muted); }
+  .exchange-note { margin:8px 2px; color:var(--muted); font-size:11px; text-align:center; }
   .search-button{width:100%;margin:6px 0 3px;padding:9px;border:1px solid #8c7b50;background:#171917;color:var(--gold-bright);font-family:var(--serif);font-weight:bold}.search-button:hover{background:#25261f}.search-button:disabled{opacity:.55}
   .capture-error { box-sizing:border-box; width:calc(100% - 40px); min-width:0; max-width:460px; margin:auto; padding:28px 20px; overflow:hidden; text-align:center; border:1px solid #4a4435; background:#121412; }
   .capture-error>span { display:block; color:var(--gold); font-size:34px; }.capture-error strong{display:block;font-family:var(--serif);color:var(--gold-bright);margin:8px}.capture-error p{margin:8px 0 0;color:var(--muted);overflow-wrap:anywhere}

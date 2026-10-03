@@ -27,10 +27,6 @@ type Client struct {
 	league string
 	Search *Limiter
 	Fetch  *Limiter
-	budget float64
-
-	exchangeOnce sync.Once
-	exchange     *Limiter
 
 	// session is the player's pathofexile.com session (POESESSID). Only the
 	// interactive client gets one, and it is sent only to pathofexile.com.
@@ -64,7 +60,6 @@ func NewClient(league string, budget float64) *Client {
 	return &Client{
 		http:   &http.Client{Timeout: 30 * time.Second},
 		league: league,
-		budget: budget,
 		Search: NewLimiter(budget, SearchSeedRules),
 		Fetch:  NewLimiter(budget, FetchSeedRules),
 	}
