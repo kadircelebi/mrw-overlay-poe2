@@ -379,34 +379,36 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		if g.GroupMode() != ItemGroupModeHide {
 			continue
 		}
-		var uniqueBases, bases, classes []string
+		var keep []string
 		for _, raw := range g.Items {
-			key := strings.ToLower(strings.TrimSpace(raw))
-			if base, ok := uniqueToBase[key]; ok {
+			name, _, _ := ParseListEntry(raw)
+			if base, ok := uniqueToBase[strings.ToLower(name)]; ok {
 				// Never hide a base because of one junk unique if another
 				// unique on the same base is valuable.
-				if ub := snap.UniqueBases[base]; ub.MaxEx >= thr && !strings.EqualFold(ub.TopName, raw) {
+				if ub := snap.UniqueBases[base]; ub.MaxEx >= thr && !strings.EqualFold(ub.TopName, name) {
 					st.Warnings = append(st.Warnings, fmt.Sprintf(
 						i18n.T("warn.blacklistSkipped"), raw, base, ub.TopName))
 					continue
 				}
-				uniqueBases = append(uniqueBases, base)
-			} else if class, ok := itemClass(raw); ok {
-				classes = append(classes, class)
-			} else if name, ok := canon(raw); ok {
-				bases = append(bases, name)
-			} else {
-				st.Warnings = append(st.Warnings, fmt.Sprintf(i18n.T("warn.blacklistUnknown"), raw))
+			}
+			keep = append(keep, raw)
+		}
+		l := resolveList(keep, uniqueToBase, canon)
+		for _, raw := range l.unknown {
+			st.Warnings = append(st.Warnings, fmt.Sprintf(i18n.T("warn.blacklistUnknown"), raw))
+		}
+		// A plain base means every rarity, uniques included; say so when that
+		// hides a valuable unique ("Utility Belt" hides Mageblood).
+		for _, base := range l.all {
+			if ub, ok := snap.UniqueBases[base]; ok && ub.MaxEx >= thr {
+				st.Warnings = append(st.Warnings, fmt.Sprintf(i18n.T("warn.hideHidesUnique"), g.Name, base, ub.TopName))
 			}
 		}
-		if len(uniqueBases)+len(bases)+len(classes) > 0 {
+		if !l.empty() {
 			b.section(fmt.Sprintf(i18n.T("filter.sec.userHide"), strings.ToUpper(g.Name)))
-			b.rule("Hide", []string{"Rarity Unique"}, "BaseType", uniqueBases, nil)
-			// A base selection means every item that can drop on that exact base,
-			// including uniques. Crafted Runeforged/Runemastered variants have
-			// different BaseTypes and therefore remain unaffected.
-			b.rule("Hide", nil, "BaseType", bases, nil)
-			b.rule("Hide", nil, "Class", classes, nil)
+			// Crafted Runeforged/Runemastered variants have different
+			// BaseTypes and therefore remain unaffected.
+			b.listRules("Hide", l, nil)
 		}
 	}
 
@@ -713,14 +715,11 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// what is left (a cheap catalyst, a junk unique on a Headhunter base) is
 	// shown plainly instead of disappearing under the threshold hides below.
 	if len(cfg.Whitelist) > 0 {
-		uniqueBases, bases, classes := resolveShowList(cfg.Whitelist, uniqueToBase, canon)
-		if len(uniqueBases)+len(bases)+len(classes) > 0 {
+		if l := resolveList(cfg.Whitelist, uniqueToBase, canon); !l.empty() {
 			b.section(i18n.T("filter.sec.whitelist"))
 			wl, _ := cfg.Palette(GroupWhitelist, ns)
 			wst := styleKeep.with(wl).withSound(cfg.Sound(GroupWhitelist)).withVolume(cfg.Volume(GroupWhitelist)).withFont(cfg.FontSize(GroupWhitelist))
-			b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, wst)
-			b.rule("Show", nil, "BaseType", bases, wst)
-			b.rule("Show", nil, "Class", classes, wst)
+			b.listRules("Show", l, wst)
 		}
 	}
 
@@ -774,8 +773,6 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	return strings.Join(b.lines, "\n"), st
 }
 
-// resolveShowList splits a show list into bases shown for uniques only (unique
-// names and "|unique" entries) and bases shown for every rarity.
 // userShowGroups writes the user's shown groups, in their own order. always
 // selects which half to write: the groups that outrank the valuable styles, or
 // the ones that come after them.
@@ -785,16 +782,14 @@ func (b *builder) userShowGroups(cfg Config, ns map[string]Theme, uniqueToBase m
 		if g.GroupMode() != ItemGroupModeShow || g.Always != always {
 			continue
 		}
-		uniqueBases, bases, classes := resolveShowList(g.Items, uniqueToBase, canon)
-		if len(uniqueBases)+len(bases)+len(classes) == 0 {
+		l := resolveList(g.Items, uniqueToBase, canon)
+		if l.empty() {
 			continue
 		}
 		pal, _ := cfg.Palette(g.StyleKey(), ns)
 		st := styleMid.with(pal).withSound(cfg.Sound(g.StyleKey())).withVolume(cfg.Volume(g.StyleKey())).withFont(cfg.FontSize(g.StyleKey()))
 		b.section(fmt.Sprintf(i18n.T("filter.sec.userShow"), strings.ToUpper(g.Name)))
-		b.rule("Show", []string{"Rarity Unique"}, "BaseType", uniqueBases, st)
-		b.rule("Show", nil, "BaseType", bases, st)
-		b.rule("Show", nil, "Class", classes, st)
+		b.listRules("Show", l, st)
 	}
 }
 
@@ -865,49 +860,95 @@ func gemLevelLabel(cfg Config) string {
 	return tierLabel(cfg.UncutGemLevel, "") + " / " + tierLabel(cfg.UncutSupportLevel, "")
 }
 
-func resolveShowList(list []string, uniqueToBase map[string]string, canon func(string) (string, bool)) (uniqueBases, bases, classes []string) {
+// itemList is a user list resolved into filter conditions.
+type itemList struct {
+	unique    []string // bases matched for Rarity Unique only
+	nonUnique []string // bases matched for every rarity but unique
+	all       []string // bases matched for every rarity
+	classes   []string
+	unknown   []string // entries that name no item
+}
+
+func (l itemList) empty() bool {
+	return len(l.unique)+len(l.nonUnique)+len(l.all)+len(l.classes) == 0
+}
+
+// listRules writes one rule per kind of entry.
+func (b *builder) listRules(action string, l itemList, st *style) {
+	b.rule(action, []string{"Rarity Unique"}, "BaseType", l.unique, st)
+	b.rule(action, []string{"Rarity Normal Magic Rare"}, "BaseType", l.nonUnique, st)
+	b.rule(action, nil, "BaseType", l.all, st)
+	b.rule(action, nil, "Class", l.classes, st)
+}
+
+// resolveList resolves a user list. A unique name stands for its base with
+// uniques only (the filter cannot see unique names); stack entries are left
+// to userStackGroups.
+func resolveList(list []string, uniqueToBase map[string]string, canon func(string) (string, bool)) itemList {
+	var l itemList
 	for _, raw := range list {
-		item, uniqueOnly, stack := ParseListEntry(raw)
+		item, scope, stack := ParseListEntry(raw)
 		if stack > 0 {
 			// Written by userStackGroups, before everything else.
 			continue
 		}
 		if base, ok := uniqueToBase[strings.ToLower(item)]; ok {
-			uniqueBases = append(uniqueBases, base)
+			l.unique = append(l.unique, base)
 		} else if class, ok := itemClass(item); ok {
-			classes = append(classes, class)
+			l.classes = append(l.classes, class)
 		} else if name, ok := canon(item); ok {
-			if uniqueOnly {
-				uniqueBases = append(uniqueBases, name)
-			} else {
-				bases = append(bases, name)
+			switch scope {
+			case ScopeUnique:
+				l.unique = append(l.unique, name)
+			case ScopeNonUnique:
+				l.nonUnique = append(l.nonUnique, name)
+			default:
+				l.all = append(l.all, name)
 			}
+		} else {
+			l.unknown = append(l.unknown, raw)
 		}
 	}
-	return uniqueBases, bases, classes
+	return l
 }
 
 // UniqueOnlySuffix marks a list entry that applies to the unique items of a
 // base only, e.g. "Sapphire|unique".
 const UniqueOnlySuffix = "|unique"
 
+// NonUniqueSuffix marks a list entry that applies to every rarity of a base
+// except unique, e.g. "Utility Belt|nonunique" leaves Mageblood alone.
+const NonUniqueSuffix = "|nonunique"
+
+// RarityScope says which rarities of a base a list entry covers.
+type RarityScope int
+
+const (
+	ScopeAll RarityScope = iota
+	ScopeUnique
+	ScopeNonUnique
+)
+
 // StackSuffix marks a show-list entry that matches only stacks of at least
 // that many: "Simulacrum Splinter|x15".
 const StackSuffix = "|x"
 
-// ParseListEntry splits a custom list entry into its item name and whether it
-// is restricted to uniques.
-func ParseListEntry(raw string) (name string, uniqueOnly bool, minStack int) {
+// ParseListEntry splits a custom list entry into its item name, the rarities
+// it covers and its minimum stack.
+func ParseListEntry(raw string) (name string, scope RarityScope, minStack int) {
 	raw = strings.TrimSpace(raw)
+	if n, ok := strings.CutSuffix(raw, NonUniqueSuffix); ok {
+		return strings.TrimSpace(n), ScopeNonUnique, 0
+	}
 	if n, ok := strings.CutSuffix(raw, UniqueOnlySuffix); ok {
-		return strings.TrimSpace(n), true, 0
+		return strings.TrimSpace(n), ScopeUnique, 0
 	}
 	if i := strings.LastIndex(raw, StackSuffix); i > 0 {
 		if v, err := strconv.Atoi(raw[i+len(StackSuffix):]); err == nil && v > 0 {
-			return strings.TrimSpace(raw[:i]), false, min(v, MaxMinStack)
+			return strings.TrimSpace(raw[:i]), ScopeAll, min(v, MaxMinStack)
 		}
 	}
-	return raw, false, 0
+	return raw, ScopeAll, 0
 }
 
 func chunkSlice(items []string, size int) [][]string {

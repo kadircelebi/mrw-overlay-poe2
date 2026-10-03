@@ -1100,7 +1100,52 @@ func TestStackGroupBeatsHideGroup(t *testing.T) {
 	if blockContaining(t, out, "USER GROUP: BIG PILES\n", `"Orb of Alchemy"`) >= 0 {
 		t.Fatal("a stack entry was also written as a plain show rule")
 	}
-	if name, unique, n := ParseListEntry("Verisium|x500"); name != "Verisium" || unique || n != 500 {
-		t.Fatalf("parsed %q %v %d", name, unique, n)
+	if name, scope, n := ParseListEntry("Verisium|x500"); name != "Verisium" || scope != ScopeAll || n != 500 {
+		t.Fatalf("parsed %q %v %d", name, scope, n)
+	}
+}
+
+// "Utility Belt|nonunique" hides the white belts and leaves Mageblood; a
+// plain base hides every rarity and warns when that takes a valuable unique.
+func TestHideGroupRarityScopes(t *testing.T) {
+	snap := testSnapshot()
+	var base string
+	var top float64
+	for b, ub := range snap.UniqueBases {
+		if _, ok := testBases[strings.ToLower(b)]; ok && ub.MaxEx > top {
+			base, top = b, ub.MaxEx
+		}
+	}
+	if base == "" {
+		t.Skip("test snapshot has no unique base")
+	}
+	cfg := DefaultConfig()
+	cfg.MinValue, cfg.MinValueUnit = 0.001, "exalted"
+
+	cfg.ItemGroups = []ItemGroup{{ID: "h", Name: "Junk", Mode: ItemGroupModeHide, Items: []string{base + NonUniqueSuffix}}}
+	out, st := GenerateDynamicFilterBlock(cfg, snap, testBases, nil)
+	if blockContaining(t, out, "Rarity Normal Magic Rare", `"`+base+`"`) < 0 {
+		t.Fatal("the non-unique entry was not limited to non-unique rarities")
+	}
+	for _, w := range st.Warnings {
+		if strings.Contains(w, base) {
+			t.Errorf("non-unique entry warned: %s", w)
+		}
+	}
+
+	cfg.ItemGroups[0].Items = []string{base + UniqueOnlySuffix}
+	out, _ = GenerateDynamicFilterBlock(cfg, snap, testBases, nil)
+	if blockContaining(t, out, "Rarity Unique", `"`+base+`"`) < 0 {
+		t.Fatal("the unique-only entry was not limited to uniques")
+	}
+
+	cfg.ItemGroups[0].Items = []string{base}
+	_, st = GenerateDynamicFilterBlock(cfg, snap, testBases, nil)
+	warned := false
+	for _, w := range st.Warnings {
+		warned = warned || strings.Contains(w, base)
+	}
+	if !warned {
+		t.Error("hiding every rarity of a base with a valuable unique gave no warning")
 	}
 }

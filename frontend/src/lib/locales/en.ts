@@ -390,6 +390,8 @@ export const en: Record<string, string> = {
   'editor.familyCount': 'Adds {0} items',
   'editor.uniqueOnlyTop': 'Unique only · best {0}',
   'editor.allRarities': 'All rarities',
+  'editor.nonUnique': 'Non-unique (normal, magic, rare)',
+  'editor.nonUniqueTag': 'Non-unique',
   'editor.remove': 'remove {0}',
   'editor.stackHint': '× box: only stacks of at least this many match (e.g. Simulacrum Splinter × 15, Verisium × 500). Such an entry comes before every other rule, a hide group of the same item included. Empty: every stack.',
   'editor.stackAny': 'all',

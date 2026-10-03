@@ -13,15 +13,16 @@
     items: string[] | null
     placeholder: string
     onchange?: () => void
-    /** Offer "unique only" entries for bases that have uniques. */
+    /** Offer "unique only" and "non-unique" entries for bases that have uniques. */
     uniqueVariants?: boolean
     /** Let each entry ask for a minimum stack size ("Simulacrum Splinter|x15"). */
     stacks?: boolean
   } = $props()
 
   const UNIQUE = '|unique'
+  const NON_UNIQUE = '|nonunique'
   const STACK = /\|x(\d+)$/
-  type Option = { value: string; name: string; note: string; unique: boolean; members?: string[] }
+  type Option = { value: string; name: string; note: string; unique: boolean; nonUnique?: boolean; members?: string[] }
 
   const list = $derived(items ?? [])
 
@@ -48,6 +49,7 @@
       } else if (uniqueVariants && r.type === 'base' && r.related_uniques?.length) {
         out.push({ value: r.name + UNIQUE, name: r.name, unique: true,
           note: p ? t('editor.uniqueOnlyTop', p) : t('editor.uniqueOnly') })
+        out.push({ value: r.name + NON_UNIQUE, name: r.name, unique: false, nonUnique: true, note: t('editor.nonUnique') })
         out.push({ value: r.name, name: r.name, unique: false, note: t('editor.allRarities') })
       } else {
         out.push({ value: r.name, name: r.name, unique: false, note: p ? `${r.category} · ${p}` : r.category })
@@ -56,7 +58,8 @@
     return out
   }
 
-  function label(v: string): { name: string; unique: boolean; stack: number } {
+  function label(v: string): { name: string; unique: boolean; nonUnique?: boolean; stack: number } {
+    if (v.endsWith(NON_UNIQUE)) return { name: v.slice(0, -NON_UNIQUE.length), unique: false, nonUnique: true, stack: 0 }
     if (v.endsWith(UNIQUE)) return { name: v.slice(0, -UNIQUE.length), unique: true, stack: 0 }
     const m = STACK.exec(v)
     return m ? { name: v.slice(0, m.index), unique: false, stack: Number(m[1]) } : { name: v, unique: false, stack: 0 }
@@ -130,7 +133,7 @@
     <div class="tags">
       {#each list as it (it)}
         {@const l = label(it)}
-        <span class="tag" class:stacked={l.stack > 0}>{l.name}{#if l.unique}<em class="u">Unique</em>{/if}{#if stacks && !l.unique}<label class="stack" title={t('editor.stackHint')}>×<input
+        <span class="tag" class:stacked={l.stack > 0}>{l.name}{#if l.unique}<em class="u">Unique</em>{/if}{#if l.nonUnique}<em class="nu">{t('editor.nonUniqueTag')}</em>{/if}{#if stacks && !l.unique && !l.nonUnique}<label class="stack" title={t('editor.stackHint')}>×<input
                 type="number"
                 min="0"
                 max="5000"
@@ -274,6 +277,16 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .nu {
+    margin-left: 5px;
+    padding: 0 5px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--muted);
+    font-style: normal;
+    font-size: 10.5px;
+    font-weight: 600;
   }
   .name.unique {
     color: #e6893a;
