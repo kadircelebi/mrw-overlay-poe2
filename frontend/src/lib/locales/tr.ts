@@ -564,6 +564,8 @@ export const tr: Record<string, string> = {
   'exotic.srcUser': "Senin",
   'exotic.turnOn': "Aç",
   'exotic.turnOff': "Kapat",
+  'exotic.pool': "Breach (Genesis)",
+  'exotic.poolHint': "Breach'in Genesis ağacından gelir (Wombgift eşyaları); oyun verisi hangi türlerde çıktığını söylemediği için her türde sunulur.",
   'exoticAdd.title': "Exotic'e ekle",
   'exoticAdd.hint': "bu tabanı ya da bir affix'ini görünür tut",
   'exoticAdd.base': "Taban: {0}",

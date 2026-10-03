@@ -36,6 +36,10 @@ type ExoticModOption struct {
 	Text  string       `json:"text"`
 	Affix string       `json:"affix"`
 	Tiers []ExoticTier `json:"tiers"`
+	// Pool names the special pool of a modifier outside the normal drop
+	// pool ("genesis_tree_caster": Breach's genesis tree); the export does
+	// not say which item classes it reaches.
+	Pool string `json:"pool,omitempty"`
 }
 
 // ExoticModOptions lists the explicit modifiers items of the class can roll,
@@ -54,6 +58,13 @@ func (s *AppService) ExoticModOptions(class string) ([]ExoticModOption, error) {
 		}
 	}
 	tables := data.For("", class)
+	pools := make([]string, len(tables))
+	for _, pool := range data.PoolNames() {
+		for _, t := range data.Pool(pool) {
+			tables = append(tables, t)
+			pools = append(pools, pool)
+		}
+	}
 	label := func(t overlay.TierTable) string {
 		text := texts[t.Stat]
 		if text == "" {
@@ -71,8 +82,8 @@ func (s *AppService) ExoticModOptions(class string) ([]ExoticModOption, error) {
 		}
 	}
 	out := make([]ExoticModOption, 0, len(tables))
-	for _, t := range tables {
-		opt := ExoticModOption{Stat: t.Stat, Text: label(t), Affix: t.Affix}
+	for ti, t := range tables {
+		opt := ExoticModOption{Stat: t.Stat, Text: label(t), Affix: t.Affix, Pool: pools[ti]}
 		for _, tier := range t.Tiers {
 			et := ExoticTier{Tier: tier.Tier, Name: tier.Name, Level: tier.Level, Min: tier.Min, Max: tier.Max}
 			for _, other := range users[tier.Name] {

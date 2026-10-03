@@ -212,7 +212,23 @@ func TestTiersFromRealExport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("tables %d, bases %d, classes %d", len(data.Tables), len(data.Bases), len(data.Classes))
+	t.Logf("tables %d, bases %d, classes %d, pools %v", len(data.Tables), len(data.Bases), len(data.Classes), data.PoolNames())
+	// Breach's genesis tree modifiers are on no base's list but must be
+	// offered: Spirited is T2 of Arcane Surge effect.
+	foundSpirited := false
+	for _, pool := range data.PoolNames() {
+		for _, table := range data.Pool(pool) {
+			for _, tier := range table.Tiers {
+				if tier.Name == "Spirited" {
+					foundSpirited = tier.Tier == 2 && tier.Min == 26 && tier.Max == 32
+					t.Logf("%s: %s %+v", pool, table.Stat, table.Tiers)
+				}
+			}
+		}
+	}
+	if !foundSpirited {
+		t.Error("Spirited (Arcane Surge effect, genesis tree) missing from the pools")
+	}
 	for _, check := range []struct{ base, stat string }{{"Irradiated Tablet", "Rare Monsters"}, {"Heavy Belt", "to Strength"}, {"Slipstrike Vest", "Evasion"}} {
 		for _, table := range data.For(check.base, "") {
 			var text string

@@ -210,7 +210,7 @@
             <div class="matches">
               {#each matches as o (o.stat + o.text)}
                 <button type="button" onclick={() => choose(o)}>
-                  <span>{o.text}</span><small>{o.affix} · T1 {o.tiers?.[0] ? range(o.tiers[0]) : ''}</small>
+                  <span>{o.text}</span><small>{o.affix}{#if o.pool} · <b class="pool">{t('exotic.pool')}</b>{/if} · T1 {o.tiers?.[0] ? range(o.tiers[0]) : ''}</small>
                 </button>
               {/each}
             </div>
@@ -220,6 +220,7 @@
           {#if chosen}
             <div class="chosen">
               <strong>{chosen.text}</strong>
+              {#if chosen.pool}<p class="desc hint">{t('exotic.poolHint')}</p>{/if}
               <label class="field stack">
                 <span>{t('exotic.minTier')}</span>
                 <select bind:value={minTier}>
@@ -281,6 +282,7 @@
   .matches button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 8px; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text-2); text-align: left; }
   .matches button:hover { background: rgba(255, 255, 255, 0.04); }
   .matches small { color: var(--muted); font-size: 10.5px; }
+  .matches .pool { color: #b48cf0; font-weight: normal; }
   .chosen { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line-strong); }
   .chosen strong { color: var(--gold-bright); font-weight: normal; }
 </style>

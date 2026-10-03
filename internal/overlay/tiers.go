@@ -32,7 +32,7 @@ const repoeBaseURL = "https://repoe-fork.github.io/poe2/"
 
 // tierFormat is bumped when the built file changes shape or the build rules
 // change, so an old cache is rebuilt instead of read.
-const tierFormat = 2
+const tierFormat = 3
 
 // Tier is one tier of a modifier family: T1 is the best, the one needing the
 // highest item level. Min and Max are what the trade site compares ("Adds X to
@@ -64,6 +64,10 @@ type TierData struct {
 	Tables  []TierTable      `json:"tables"`
 	Bases   map[string][]int `json:"bases"`
 	Classes map[string][]int `json:"classes"`
+	// Pools are modifier families outside the normal drop pool, by the
+	// special pool that grants them (Breach's genesis tree: "genesis_tree_caster",
+	// "genesis_tree_minion"). The export does not tie them to item classes.
+	Pools map[string][]int `json:"pools,omitempty"`
 }
 
 // For returns the tables of a base, or of an item class when the base is not
@@ -102,6 +106,26 @@ type repoeMod struct {
 	Stats []struct {
 		ID string `json:"id"`
 	} `json:"stats"`
+	Domain         string `json:"domain"`
+	GenerationType string `json:"generation_type"`
+	Type           string `json:"type"`
+	RequiredLevel  int    `json:"required_level"`
+	SpawnWeights   []struct {
+		Tag    string `json:"tag"`
+		Weight int    `json:"weight"`
+	} `json:"spawn_weights"`
+}
+
+// specialPool is the special pool a modifier spawns from ("" for none):
+// Breach's genesis tree, whose modifiers (Spirited, ...) are on no base's
+// normal list.
+func (m repoeMod) specialPool() string {
+	for _, w := range m.SpawnWeights {
+		if w.Weight > 0 && strings.HasPrefix(w.Tag, "genesis_tree") {
+			return w.Tag
+		}
+	}
+	return ""
 }
 
 type repoeBase struct {
@@ -271,7 +295,72 @@ func BuildTiers(modsByBase, mods, baseItems []byte, catalog Catalog, source stri
 	if len(data.Tables) == 0 {
 		return nil, fmt.Errorf("no modifier tiers matched the trade catalog")
 	}
+	addPools(data, modList, stats, tableIndex)
 	return data, nil
+}
+
+// addPools adds the special pools' modifier families as tables of their own
+// (by pool, not by class), tiers by required level like the rest.
+func addPools(data *TierData, modList map[string]repoeMod, stats statIndex, tableIndex map[string]int) {
+	type key struct{ pool, affix, family string }
+	families := map[key]map[string]int{}
+	for id, m := range modList {
+		if m.Domain != "item" || m.Name == "" || (m.GenerationType != "prefix" && m.GenerationType != "suffix") {
+			continue
+		}
+		pool := m.specialPool()
+		if pool == "" {
+			continue
+		}
+		k := key{pool, m.GenerationType, m.Type}
+		if families[k] == nil {
+			families[k] = map[string]int{}
+		}
+		families[k][id] = m.RequiredLevel
+	}
+	keys := make([]key, 0, len(families))
+	for k := range families {
+		keys = append(keys, k)
+	}
+	slices.SortFunc(keys, func(a, b key) int {
+		return cmp.Or(cmp.Compare(a.pool, b.pool), cmp.Compare(a.affix, b.affix), cmp.Compare(a.family, b.family))
+	})
+	for _, k := range keys {
+		for _, table := range familyTables(families[k], modList, k.affix, stats) {
+			raw, _ := json.Marshal(table)
+			i, ok := tableIndex[string(raw)]
+			if !ok {
+				i = len(data.Tables)
+				tableIndex[string(raw)] = i
+				data.Tables = append(data.Tables, table)
+			}
+			if data.Pools == nil {
+				data.Pools = map[string][]int{}
+			}
+			data.Pools[k.pool] = mergeIndexes(data.Pools[k.pool], []int{i})
+		}
+	}
+}
+
+// Pool returns the tables of a special pool.
+func (d *TierData) Pool(name string) []TierTable {
+	out := make([]TierTable, 0, len(d.Pools[name]))
+	for _, i := range d.Pools[name] {
+		if i >= 0 && i < len(d.Tables) {
+			out = append(out, d.Tables[i])
+		}
+	}
+	return out
+}
+
+// PoolNames lists the special pools, sorted.
+func (d *TierData) PoolNames() []string {
+	out := make([]string, 0, len(d.Pools))
+	for name := range d.Pools {
+		out = append(out, name)
+	}
+	slices.Sort(out)
+	return out
 }
 
 func mergeIndexes(a, b []int) []int {

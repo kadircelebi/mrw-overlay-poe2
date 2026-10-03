@@ -99,6 +99,13 @@ export interface ExoticModOption {
     "text": string;
     "affix": string;
     "tiers": ExoticTier[] | null;
+
+    /**
+     * Pool names the special pool of a modifier outside the normal drop
+     * pool ("genesis_tree_caster": Breach's genesis tree); the export does
+     * not say which item classes it reaches.
+     */
+    "pool"?: string;
 }
 
 /**

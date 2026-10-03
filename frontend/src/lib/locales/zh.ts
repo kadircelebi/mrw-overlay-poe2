@@ -553,6 +553,8 @@ export const zh: Record<string, string> = {
   'exotic.srcUser': "你的",
   'exotic.turnOn': "開啟",
   'exotic.turnOff': "關閉",
+  'exotic.pool': "Breach（Genesis）",
+  'exotic.poolHint': "來自 Breach 的 Genesis 樹（Wombgift 物品）；遊戲資料未說明會出現在哪些物品類型，因此每種類型都會提供。",
   'exoticAdd.title': "加入稀有",
   'exoticAdd.hint': "讓此基底或其詞綴保持可見",
   'exoticAdd.base': "基底：{0}",

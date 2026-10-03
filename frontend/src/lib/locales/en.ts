@@ -582,6 +582,8 @@ export const en: Record<string, string> = {
   'exotic.srcUser': "Yours",
   'exotic.turnOn': "Turn on",
   'exotic.turnOff': "Turn off",
+  'exotic.pool': "Breach (Genesis)",
+  'exotic.poolHint': "From Breach's genesis tree (Wombgift items); the game data does not say which item types it reaches, so it is offered for every type.",
   'exoticAdd.title': "Add to Exotic",
   'exoticAdd.hint': "keep this base or a modifier of it visible",
   'exoticAdd.base': "Base: {0}",
