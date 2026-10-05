@@ -10,7 +10,7 @@ import (
 // a link goes live by filling it in here.
 const (
 	discordURL  = ""
-	sponsorsURL = "" // https://github.com/sponsors/kadircelebi once GitHub approves the account
+	sponsorsURL = "https://github.com/sponsors/kadircelebi"
 	siteURL     = "https://poe2.mrwproject.com/"
 )
 

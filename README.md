@@ -217,6 +217,10 @@ python build/art/make_icons.py  # regenerate the icons from the logo (needs Pill
 | `cmd/` | `storepack` (MSIX package), `packext` (extension zips), `scanner` (shared scan server and its systemd unit) |
 | `samples/` | Exported scan results and a sample profile to import |
 
+## Support
+
+The app is free and stays free. If it saves you time, you can support its development through [GitHub Sponsors](https://github.com/sponsors/kadircelebi). Sponsoring unlocks nothing in the app: every feature is the same for everyone.
+
 ## License
 
 MIT, see [LICENSE](LICENSE). The one exception is the 26 alert sounds under `internal/gamesounds/files/`: they are the game's own sound files, belong to Grinding Gear Games and are not covered by the MIT license — see [NOTICE](NOTICE). NeverSink's filter is separately MIT licensed and is not distributed in this repository; the app downloads it at runtime from the [NeverSinkDev/NeverSink-Filter-for-PoE2](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2) repository. Price data comes from poe.ninja, poe2scout and the official trade API. This project is not affiliated with Grinding Gear Games.
