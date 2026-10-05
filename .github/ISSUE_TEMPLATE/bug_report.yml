@@ -1,0 +1,59 @@
+name: Bug report
+description: Something in the app does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. English or Turkish is fine. Screenshots help a lot; please blur other players' names.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown at the bottom of the panel or under Settings → Updates.
+      placeholder: "2.10.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Where did you install it from?
+      options:
+        - Microsoft Store
+        - GitHub release (exe)
+        - Built from source
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Loot filter
+        - Price check overlay (Alt+E)
+        - Market / live search (Alt+M)
+        - Theoretical craft (Alt+F)
+        - Browser extension / account link
+        - Settings, updates or other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: For overlay or market problems, paste the item text (Ctrl+C on the item in game).
+      placeholder: |
+        1. ...
+        2. ...
+  - type: textarea
+    id: crashlog
+    attributes:
+      label: crash.log (if the app closed by itself)
+      description: Found at `%APPDATA%\PoE2Filtre\crash.log`. Do not paste anything from config files; they can contain your session.
+      render: text

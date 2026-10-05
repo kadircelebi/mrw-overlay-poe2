@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/kadircelebi/mrw-overlay-poe2/discussions
+    about: Ask how something works or share ideas in Discussions.
+  - name: Website
+    url: https://poe2.mrwproject.com
+    about: Installation guide, browser extension and privacy policy.
