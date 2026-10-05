@@ -2,8 +2,31 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"reflect"
 	"testing"
 )
+
+func TestExtensionPackageContainsBrowserAssetsOnly(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "icons"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"manifest.json", "background.js", "content.js", "embed.go", ".private", "icons/icon-16.png"} {
+		if err := os.WriteFile(filepath.Join(dir, filepath.FromSlash(name)), []byte("fixture"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	files, err := sourceFiles(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"background.js", "content.js", "icons/icon-16.png"}
+	if !reflect.DeepEqual(files, want) {
+		t.Fatalf("extension assets = %v, want %v", files, want)
+	}
+}
 
 func TestStoreManifestsDropTheDevKeyAndForeignSettings(t *testing.T) {
 	src := map[string]any{

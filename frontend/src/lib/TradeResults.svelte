@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte'
-  import { AppService } from '../../bindings/poe2filter'
+  import { AppService } from '../../bindings/poe2filter/internal/app'
   import type { Evaluation, EvaluatedListing, EvaluatedMod } from '../../bindings/poe2filter/internal/trade/models'
   import { currencyInfo } from './currencies.svelte'
   import { currentLang, t } from './i18n.svelte'

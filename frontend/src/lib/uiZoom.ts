@@ -1,5 +1,5 @@
 import { Events } from '@wailsio/runtime'
-import { AppService } from '../../bindings/poe2filter'
+import { AppService } from '../../bindings/poe2filter/internal/app'
 
 // The in-game windows' UI size below 100%. WebView2's zoom cannot go under 1
 // through Wails, so the Go side sends the remaining factor and the page

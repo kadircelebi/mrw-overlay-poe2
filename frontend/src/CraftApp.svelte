@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { Events, Window } from '@wailsio/runtime'
-  import { AppService } from '../bindings/poe2filter'
+  import { AppService } from '../bindings/poe2filter/internal/app'
   import { allOn, buildRequest, choicesFor, modifiableFilters, searchedStats } from './lib/overlayQuery'
   import { t, currentLang } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'

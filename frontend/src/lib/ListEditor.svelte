@@ -1,6 +1,6 @@
 <script lang="ts">
   import { t } from './i18n.svelte'
-  import { SearchItems } from '../../bindings/poe2filter/appservice'
+  import { SearchItems } from '../../bindings/poe2filter/internal/app/appservice'
   import type { SearchItem } from '../../bindings/poe2filter/internal/insights/models'
 
   let {

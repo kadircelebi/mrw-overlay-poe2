@@ -1,5 +1,5 @@
 import type { ExoticEntry } from '../../bindings/poe2filter/internal/filter/models'
-import type { ExoticTier } from '../../bindings/poe2filter/models'
+import type { ExoticTier } from '../../bindings/poe2filter/internal/app/models'
 
 // Shared by the Exotic group and Alt+E's "add to Exotic": a modifier entry
 // keeps a tier and every better one.

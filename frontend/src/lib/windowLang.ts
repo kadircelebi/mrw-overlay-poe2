@@ -5,7 +5,7 @@
 // is the game's own English (Item Level, Prefix, Corrupted), and CSS
 // uppercasing under lang="tr" would turn its "i" into "İ".
 import { Events } from '@wailsio/runtime'
-import { AppService } from '../../bindings/poe2filter'
+import { AppService } from '../../bindings/poe2filter/internal/app'
 import type { Config } from '../../bindings/poe2filter/internal/filter/models'
 import { setLang } from './i18n.svelte'
 

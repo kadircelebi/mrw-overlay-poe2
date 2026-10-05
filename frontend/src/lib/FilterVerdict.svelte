@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { FilterExplanation } from '../../bindings/poe2filter/models'
+  import type { FilterExplanation } from '../../bindings/poe2filter/internal/app/models'
   import type { Block, Match } from '../../bindings/poe2filter/internal/filtereval/models'
   import { listedAgo } from './overlayQuery'
   import { t } from './i18n.svelte'

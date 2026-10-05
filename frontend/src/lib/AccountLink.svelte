@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { AppService } from '../../bindings/poe2filter'
-  import type { BrowserLinkStatus, ChromiumBrowser } from '../../bindings/poe2filter/models'
+  import { AppService } from '../../bindings/poe2filter/internal/app'
+  import type { BrowserLinkStatus, ChromiumBrowser } from '../../bindings/poe2filter/internal/app/models'
   import { t } from './i18n.svelte'
 
   // Connecting the pathofexile.com session through the browser extension, in

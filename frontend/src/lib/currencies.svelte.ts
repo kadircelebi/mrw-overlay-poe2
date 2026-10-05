@@ -1,4 +1,4 @@
-import { AppService } from '../../bindings/poe2filter'
+import { AppService } from '../../bindings/poe2filter/internal/app'
 import type { CurrencyEntry } from '../../bindings/poe2filter/internal/overlay/models'
 
 // The trade site's currency list (name and icon by the id a listing is priced

@@ -92,8 +92,8 @@ func clone(m map[string]any) map[string]any {
 	return out
 }
 
-// sourceFiles lists what goes into the package: everything but the manifest
-// (written per store) and dot files.
+// sourceFiles lists browser assets, excluding the per-store manifest,
+// dot files and the Go helper that embeds the assets in the desktop app.
 func sourceFiles(root string) ([]string, error) {
 	var files []string
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
@@ -107,6 +107,9 @@ func sourceFiles(root string) ([]string, error) {
 			return nil
 		}
 		if d.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(d.Name(), ".go") {
 			return nil
 		}
 		rel, err := filepath.Rel(root, p)

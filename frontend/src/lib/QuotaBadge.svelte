@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { AppService } from '../../bindings/poe2filter'
+  import { AppService } from '../../bindings/poe2filter/internal/app'
   import type { QuotaStatus, QuotaWindow } from '../../bindings/poe2filter/internal/trade/models'
   import { t } from './i18n.svelte'
 

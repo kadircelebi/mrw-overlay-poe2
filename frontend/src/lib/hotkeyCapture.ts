@@ -1,4 +1,4 @@
-import { AppService } from '../../bindings/poe2filter'
+import { AppService } from '../../bindings/poe2filter/internal/app'
 
 let pending: Promise<void> = Promise.resolve()
 // Preserve focus/blur order when switching rapidly between shortcut fields.

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { AppService } from '../../bindings/poe2filter'
-  import type { ExoticCandidate } from '../../bindings/poe2filter/models'
+  import { AppService } from '../../bindings/poe2filter/internal/app'
+  import type { ExoticCandidate } from '../../bindings/poe2filter/internal/app/models'
   import { modLabel, range, tiersUpTo } from './exoticTiers'
   import { t } from './i18n.svelte'
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { Events } from '@wailsio/runtime'
-  import { AppService } from '../../bindings/poe2filter'
+  import { AppService } from '../../bindings/poe2filter/internal/app'
   import type { SearchLibrary } from '../../bindings/poe2filter/internal/overlay/models'
   import type { EvaluatedListing, Evaluation, LiveState } from '../../bindings/poe2filter/internal/trade/models'
   import TradeResults from './TradeResults.svelte'

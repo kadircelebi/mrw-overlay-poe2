@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { AppService } from '../../bindings/poe2filter'
-  import type { FilterExplanation } from '../../bindings/poe2filter/models'
+  import { AppService } from '../../bindings/poe2filter/internal/app'
+  import type { FilterExplanation } from '../../bindings/poe2filter/internal/app/models'
   import type { Catalog, CurrencyQuote, Item } from '../../bindings/poe2filter/internal/overlay/models'
   import type { HiddenItem } from '../../bindings/poe2filter/internal/filter/models'
   import FilterVerdict from './FilterVerdict.svelte'

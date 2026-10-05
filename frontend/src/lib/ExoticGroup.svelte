@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { AppService } from '../../bindings/poe2filter'
+  import { AppService } from '../../bindings/poe2filter/internal/app'
   import type { Config, ExoticEntry } from '../../bindings/poe2filter/internal/filter/models'
-  import type { ExoticModOption } from '../../bindings/poe2filter/models'
+  import type { ExoticModOption } from '../../bindings/poe2filter/internal/app/models'
   import Segmented from './Segmented.svelte'
   import Toggle from './Toggle.svelte'
   import { modLabel, range, tierOption, tiersUpTo, userKey } from './exoticTiers'
