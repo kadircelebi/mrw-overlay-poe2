@@ -162,7 +162,7 @@ func Run(opt Options) {
 		DisableResize:    true,
 		HideOnEscape:     true,
 		HideOnFocusLost:  !opt.Show,
-		BackgroundColour: application.NewRGB(15, 13, 17),
+		BackgroundColour: svc.uiThemeBackground(),
 		Windows:          application.WindowsWindow{HiddenOnTaskbar: true},
 		URL:              "/",
 	})
@@ -183,7 +183,7 @@ func Run(opt Options) {
 		DisableResize:    true,
 		HideOnEscape:     true,
 		HideOnFocusLost:  !opt.Show, // -show (testing) keeps it up for screenshots
-		BackgroundColour: application.NewRGB(15, 13, 17),
+		BackgroundColour: svc.uiThemeBackground(),
 		Windows:          application.WindowsWindow{HiddenOnTaskbar: true},
 		URL:              "/?view=overlay",
 	})
@@ -203,7 +203,7 @@ func Run(opt Options) {
 		AlwaysOnTop:      true,
 		Hidden:           true,
 		HideOnEscape:     true,
-		BackgroundColour: application.NewRGB(15, 13, 17),
+		BackgroundColour: svc.uiThemeBackground(),
 		Windows:          application.WindowsWindow{HiddenOnTaskbar: true},
 		URL:              "/?view=market",
 	})
@@ -216,7 +216,7 @@ func Run(opt Options) {
 		Name: "craft", Title: "MrW Overlay · Craft", Width: 1120, Height: 820,
 		MinWidth: 760, MinHeight: 560, Frameless: true, AlwaysOnTop: true,
 		Hidden: !opt.ShowCraft, HideOnEscape: true,
-		BackgroundColour: application.NewRGB(15, 13, 17),
+		BackgroundColour: svc.uiThemeBackground(),
 		Windows:          application.WindowsWindow{HiddenOnTaskbar: true}, URL: "/?view=craft",
 	})
 	craftWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
@@ -236,7 +236,7 @@ func Run(opt Options) {
 		MinHeight:        520,
 		Frameless:        true,
 		Hidden:           true,
-		BackgroundColour: application.NewRGB(15, 13, 17),
+		BackgroundColour: svc.uiThemeBackground(),
 		URL:              "/?view=settings",
 	})
 	settingsWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {

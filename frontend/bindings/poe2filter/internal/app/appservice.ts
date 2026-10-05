@@ -29,6 +29,9 @@ import * as overlay$0 from "../overlay/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as trade$0 from "../trade/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as uitheme$0 from "../uitheme/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -109,6 +112,10 @@ export function CreateSearchFolder(name: string): $CancellablePromise<overlay$0.
     return $Call.ByID(1348054129, name);
 }
 
+export function CreateUITheme(sourceID: string, name: string): $CancellablePromise<uitheme$0.State> {
+    return $Call.ByID(2260403068, sourceID, name);
+}
+
 /**
  * DefaultChatCommands are the game command shortcuts a new install starts
  * with, for the settings page's "restore defaults".
@@ -133,6 +140,10 @@ export function DeleteProfile(name: string): $CancellablePromise<filter$0.Config
  */
 export function DeleteSearchFolder(id: string): $CancellablePromise<overlay$0.SearchLibrary> {
     return $Call.ByID(3261759658, id);
+}
+
+export function DeleteUITheme(id: string): $CancellablePromise<uitheme$0.State> {
+    return $Call.ByID(2475084489, id);
 }
 
 /**
@@ -291,6 +302,10 @@ export function GetState(): $CancellablePromise<engine$0.State> {
 
 export function GetTradeCatalog(): $CancellablePromise<overlay$0.Catalog> {
     return $Call.ByID(2776211382);
+}
+
+export function GetUIThemes(): $CancellablePromise<uitheme$0.State> {
+    return $Call.ByID(2536073259);
 }
 
 export function HideCraft(): $CancellablePromise<void> {
@@ -580,11 +595,19 @@ export function SaveProfileAs(name: string): $CancellablePromise<engine$0.Profil
     return $Call.ByID(3751431605, name);
 }
 
+export function SaveUITheme(theme: uitheme$0.Theme): $CancellablePromise<uitheme$0.State> {
+    return $Call.ByID(1693342699, theme);
+}
+
 /**
  * SearchItems finds uniques, currency and bases for the custom lists.
  */
 export function SearchItems(query: string): $CancellablePromise<insights$0.SearchItem[] | null> {
     return $Call.ByID(343239747, query);
+}
+
+export function SelectUITheme(id: string): $CancellablePromise<uitheme$0.State> {
+    return $Call.ByID(3676360300, id);
 }
 
 /**

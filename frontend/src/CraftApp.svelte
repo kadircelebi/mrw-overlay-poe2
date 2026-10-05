@@ -5,6 +5,7 @@
   import { allOn, buildRequest, choicesFor, modifiableFilters, searchedStats } from './lib/overlayQuery'
   import { t, currentLang } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
+  import { themePayload, onThemeChange } from './lib/uiTheme'
   import TradeResults from './lib/TradeResults.svelte'
   import type { Item } from '../bindings/poe2filter/internal/overlay/models'
   import type { EvaluateRequest, Evaluation } from '../bindings/poe2filter/internal/trade/models'
@@ -54,6 +55,7 @@
   // follows later changes.
   const frameSrc = `/craft/index.html?lang=${encodeURIComponent(currentLang())}`
   const sendLang = () => send({ type: 'craft-lang', lang: currentLang() })
+  const sendTheme = () => send(themePayload())
   // An item sent from the price check waits until the page has loaded.
   let frameReady = false
   let pendingImport: unknown = null
@@ -75,6 +77,7 @@
   }
   onMount(() => {
     const offLang = followAppLanguage()
+    const offTheme = onThemeChange(sendTheme)
     const offPrices = Events.On('state', () => void refreshPrices())
     const offImport = Events.On('craft-import', (ev) => { pendingImport = ev.data; sendImport() })
     const receive = async (event: MessageEvent) => {
@@ -92,7 +95,7 @@
         catch (e) { send({ type: 'craft-library-saved', error: cleanError(e) }) }
         return
       }
-      if (event.data?.type === 'craft-ready') { frameReady = true; sendLang(); sendImport(); void sendIcons(); await refreshPrices(); return }
+      if (event.data?.type === 'craft-ready') { frameReady = true; sendLang(); sendTheme(); sendImport(); void sendIcons(); await refreshPrices(); return }
       if (event.data?.type !== 'craft-price' || typeof event.data.raw !== 'string' || searching) return
       searching = true; error = ''
       try {
@@ -115,7 +118,7 @@
     window.addEventListener('keydown', onKey)
     Window.IsMaximised().then((v) => (maximised = v)).catch(() => {})
     return () => {
-      offLang(); offPrices(); offImport()
+      offLang(); offTheme(); offPrices(); offImport()
       window.removeEventListener('message', receive)
       window.removeEventListener('focus', onFocus)
       window.removeEventListener('keydown', onKey)
@@ -168,7 +171,7 @@
   .body { flex:1; min-height:0; display:flex; position:relative; }
   iframe { width:100%; flex:1; min-height:0; border:0; background:var(--bg); }
   .price { position:absolute; top:0; right:0; bottom:0; width:min(470px, 92%); display:flex; flex-direction:column; gap:8px;
-    padding:10px 12px; background:var(--surface, var(--bg)); border-left:1px solid var(--line-strong); box-shadow:-12px 0 28px rgba(0,0,0,.45); }
+    padding:10px 12px; background:var(--surface, var(--bg)); border-left:1px solid var(--line-strong); box-shadow:-12px 0 28px var(--ui-shadow,rgba(0,0,0,.45)); }
   .price-head { display:flex; align-items:center; gap:8px; }
   .price-head strong { flex:1; color:var(--gold-bright); font:500 14px var(--serif); }
   .price-head .close { padding:1px 8px; font-size:20px; }

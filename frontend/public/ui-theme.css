@@ -1,0 +1,7 @@
+/* Shared fixed game colors on the approved light card background. */
+:root[data-ui-item-light='true'] :is(.item-title,.preview-title,.item-heading h2,.type-fractured p,.type-crafted p,.type-desecrated p,.plain-mod.fractured,.plain-mod.crafted,.plain-mod.desecrated,.mod-row.fractured .mod-copy,.mod-row.crafted .mod-copy,.mod-row.desecrated .mod-copy,.desecrated .tier,.item-states .fractured,.item-mod.crafted .mod-value,.item-mod.fractured .mod-value,.item-mod.desecrated .mod-tier,.item-mod.desecrated .mod-value) {
+  -webkit-text-stroke:.35px var(--ui-item-outline,#524e43);
+}
+:root[data-ui-item-light='true'] .item-heading > span { color:var(--ui-item-muted); }
+:root[data-ui-item-light='true'] .currency-card .title strong { -webkit-text-stroke:.35px var(--ui-item-outline,#524e43); }
+::selection { background:var(--gold);color:var(--ui-on-accent,var(--bg)); }

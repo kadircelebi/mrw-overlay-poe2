@@ -12,6 +12,7 @@
   import ExoticGroup from './lib/ExoticGroup.svelte'
   import StylePreview from './lib/StylePreview.svelte'
   import ThemePicker from './lib/ThemePicker.svelte'
+  import UIThemeEditor from './lib/UIThemeEditor.svelte'
   import TierSlider from './lib/TierSlider.svelte'
   import Swatch from './lib/Swatch.svelte'
   import { lookOf, fromHex } from './lib/look'
@@ -1777,6 +1778,7 @@
                 {/if}
               {:else if section === 'general'}
                 <div class="narrow">
+                  <UIThemeEditor />
                   <section class="card">
                     <h2>{t('general.title')}</h2>
                     <Toggle checked={startup?.enabled ?? false} disabled={startupBusy || !startup?.canChange} label={t('startup.label')} hint={t('startup.hint')} onchange={changeStartup} />
@@ -1847,14 +1849,14 @@
        own panels are lit. No coloured glow: that is what made this look like a
        landing page rather than something from the game. */
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 260px),
+      linear-gradient(180deg, var(--ui-tint,rgba(255, 255, 255, 0.03)), transparent 260px),
       var(--grain),
       var(--bg);
     border: 1px solid var(--line-strong);
     border-radius: var(--radius);
     box-shadow:
-      inset 0 0 0 1px #000,
-      inset 0 0 40px rgba(0, 0, 0, 0.7);
+      inset 0 0 0 1px var(--ui-shadow,#000),
+      inset 0 0 40px var(--ui-shadow,rgba(0, 0, 0, 0.7));
     overflow: hidden;
   }
 
@@ -1967,7 +1969,7 @@
   /* A titled group, like the game's "Advanced Settings" block: a framed recess
      with its name on a band across the top. */
   .card {
-    background: rgba(0, 0, 0, 0.22);
+    background: var(--ui-tint,rgba(0, 0, 0, 0.22));
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     padding: 12px 14px;
@@ -1983,7 +1985,7 @@
     margin: -12px -14px 10px;
     padding: 7px 14px 6px;
     border-bottom: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.025);
+    background: var(--ui-tint,rgba(255, 255, 255, 0.025));
     font-family: var(--serif);
     font-weight: 600;
     font-size: 11.5px;
@@ -1999,7 +2001,7 @@
     margin: -12px -14px 10px;
     padding: 0 14px 0 0;
     border-bottom: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.025);
+    background: var(--ui-tint,rgba(255, 255, 255, 0.025));
   }
   .card-title h2 {
     margin: 0;
@@ -2193,20 +2195,20 @@
     -webkit-box-orient: vertical;
   }
   .status.bad .sub {
-    color: #e39a95;
+    color: var(--ui-bad,#e39a95);
   }
   .notice {
     margin: 10px 0 0;
     padding: 7px 9px;
     border-radius: var(--radius-sm);
-    background: rgba(224, 166, 74, 0.1);
-    border: 1px solid rgba(224, 166, 74, 0.25);
+    background: var(--ui-tint,rgba(224, 166, 74, 0.1));
+    border: 1px solid var(--ui-line-strong,rgba(224, 166, 74, 0.25));
     color: var(--warn);
     font-size: 12px;
   }
   .notice.bad {
-    background: rgba(226, 92, 92, 0.1);
-    border-color: rgba(226, 92, 92, 0.28);
+    background: var(--ui-tint,rgba(226, 92, 92, 0.1));
+    border-color: var(--ui-line-strong,rgba(226, 92, 92, 0.28));
     color: var(--bad);
   }
   /* A metal plate, like the game's own buttons: dark face, thin lit edge,
@@ -2215,10 +2217,10 @@
     width: 100%;
     margin-top: 12px;
     padding: 9px;
-    border: 1px solid #8d7f5c;
+    border: 1px solid var(--ui-line-strong,#8d7f5c);
     border-radius: var(--radius-sm);
-    background: linear-gradient(180deg, #2c333b, #191d22);
-    box-shadow: inset 0 0 0 1px #000;
+    background: linear-gradient(180deg, var(--ui-surface-3,#2c333b), var(--ui-surface-2,#191d22));
+    box-shadow: inset 0 0 0 1px var(--ui-shadow,#000);
     color: var(--gold-bright);
     font-family: var(--serif);
     font-weight: 600;
@@ -2276,7 +2278,7 @@
     transition: width 0.3s ease;
   }
   .bar span.cyan {
-    background: linear-gradient(90deg, #2f6f80, var(--exceptional));
+    background: linear-gradient(90deg, var(--ui-surface-3,#2f6f80), var(--exceptional));
   }
 
   /* Threshold */
@@ -2341,8 +2343,8 @@
     -webkit-appearance: none;
     width: 11px;
     height: 11px;
-    background: linear-gradient(135deg, #ddd0aa, #7c7256);
-    border: 1px solid #14161a;
+    background: linear-gradient(135deg, var(--ui-surface-3,#ddd0aa), var(--ui-surface-3,#7c7256));
+    border: 1px solid var(--ui-line,#14161a);
     transform: rotate(45deg);
     cursor: pointer;
   }
@@ -2489,13 +2491,13 @@
     border-color: var(--gold-dim);
   }
   .community-links .discord:hover svg {
-    color: #8b93f8;
+    color: var(--ui-text,#8b93f8);
   }
   .community-links .support {
     flex-grow: 1.5;
   }
   .community-links .support svg {
-    color: #c86a5a;
+    color: var(--ui-bad,#c86a5a);
   }
   .actions .danger:hover {
     color: var(--bad);
@@ -2527,7 +2529,7 @@
     height: 40px;
     padding: 0 4px 0 12px;
     border-bottom: 1px solid var(--line-strong);
-    background: linear-gradient(#1b1f25, #121518);
+    background: linear-gradient(var(--ui-surface-2,#1b1f25), var(--ui-surface,#121518));
   }
   .emblem.small {
     width: 22px;
@@ -2557,8 +2559,8 @@
     color: var(--text);
   }
   .wbtn.close:hover {
-    background: #8a2c27;
-    color: #fff;
+    background: var(--ui-hover,#8a2c27);
+    color: var(--ui-text,#fff);
   }
   .wbtn svg {
     width: 14px;
@@ -2578,7 +2580,7 @@
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--line-strong);
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--ui-tint,rgba(0, 0, 0, 0.25));
   }
   .side nav {
     flex: 1;
@@ -2612,12 +2614,12 @@
   }
   .side nav button:hover {
     color: var(--text);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--ui-tint,rgba(255, 255, 255, 0.03));
   }
   .side nav button.on {
     color: var(--gold-bright);
     border-left-color: var(--gold);
-    background: linear-gradient(90deg, rgba(194, 174, 126, 0.13), transparent);
+    background: linear-gradient(90deg, var(--ui-tint,rgba(194, 174, 126, 0.13)), transparent);
   }
   .count {
     margin-left: auto;
@@ -2627,7 +2629,7 @@
   .side-status {
     padding: 12px;
     border-top: 1px solid var(--line-strong);
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--ui-tint,rgba(0, 0, 0, 0.25));
   }
   .side-status .status-text strong {
     font-size: 13px;
@@ -2718,7 +2720,7 @@
     overflow-y: auto;
     padding-bottom: 12px;
     border-right: 1px solid var(--line-strong);
-    background: rgba(0, 0, 0, 0.18);
+    background: var(--ui-tint,rgba(0, 0, 0, 0.18));
   }
   .ld-detail {
     min-width: 0;
@@ -2737,12 +2739,12 @@
     text-align: left;
   }
   .ld-item:hover {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--ui-tint,rgba(255, 255, 255, 0.03));
   }
   .ld-item.on {
     color: var(--gold-bright);
     border-left-color: var(--gold);
-    background: linear-gradient(90deg, rgba(194, 174, 126, 0.13), transparent);
+    background: linear-gradient(90deg, var(--ui-tint,rgba(194, 174, 126, 0.13)), transparent);
   }
   .ld-item.drag-over {
     box-shadow: inset 0 0 0 1px var(--gold-bright);
@@ -2786,14 +2788,14 @@
     text-align: center;
   }
   .ld-item.fixed.exotic {
-    background: rgba(0, 200, 150, 0.04);
+    background: var(--ui-tint,rgba(0, 200, 150, 0.04));
   }
   .mode-badge.exotic {
-    color: #6fe0b8;
-    border-color: rgba(0, 200, 150, 0.45);
+    color: var(--ui-bad,#6fe0b8);
+    border-color: var(--ui-line-strong,rgba(0, 200, 150, 0.45));
   }
   .ld-item.fixed {
-    background: rgba(192, 86, 79, 0.04);
+    background: var(--ui-tint,rgba(192, 86, 79, 0.04));
   }
   .grip.lock {
     display: grid;
@@ -2852,7 +2854,7 @@
   }
   .mode-badge.hide {
     color: var(--bad);
-    border-color: rgba(192, 86, 79, 0.45);
+    border-color: var(--ui-line-strong,rgba(192, 86, 79, 0.45));
   }
   .mode-badge.value {
     color: var(--gold);

@@ -4,6 +4,7 @@ import { applicable, essenceRows, essenceTier, specialReason, applySpecial, reve
 import { usageEntry, summarize } from './ledger.mjs';
 import { craftText } from './trade.mjs';
 import { iconIndex, iconFor } from './icons.mjs';
+import { applyThemePalette } from '../ui-theme.mjs';
 import { catalystRules, catalystBoost, augmentedValues, catalystFromCopy, catalystTypes, catalystClasses } from './catalyst.mjs';
 import { infuserRules, maxQuality, infuserBeyond, currentQuality, corruptChance } from './infuser.mjs';
 import { omenDefinitions, relevantOmens, omenEffects, filterOmenRows, orbOmenReason, applyOrbOmens } from './omens.mjs';
@@ -1361,7 +1362,9 @@ $('price-check').onclick = () => {
 };
 window.addEventListener('message',event => {
   if (event.source !== parent || event.origin !== parentOrigin) return;
-  if (event.data?.type === 'craft-prices' && Array.isArray(event.data.prices?.currency)) {
+  if (event.data?.type === 'craft-theme') {
+    applyThemePalette(event.data);
+  } else if (event.data?.type === 'craft-prices' && Array.isArray(event.data.prices?.currency)) {
     prices = {...event.data.prices,origin:'app'};
     render();
   } else if (event.data?.type === 'craft-icons' && Array.isArray(event.data.currencies)) {

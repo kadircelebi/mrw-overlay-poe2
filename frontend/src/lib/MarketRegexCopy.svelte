@@ -55,15 +55,15 @@
 
 <style>
   .regex-copy{position:relative;display:flex}
-  .regex-trigger{display:flex;align-items:center;justify-content:center;width:36px;border:1px solid #8c7b50;background:#171917;color:var(--gold-bright)}
-  .regex-trigger:hover,.regex-trigger[aria-expanded="true"]{background:#25261f}
+  .regex-trigger{display:flex;align-items:center;justify-content:center;width:36px;border:1px solid var(--ui-line-strong,#8c7b50);background:var(--ui-surface,#171917);color:var(--gold-bright)}
+  .regex-trigger:hover,.regex-trigger[aria-expanded="true"]{background:var(--ui-hover,#25261f)}
   .regex-trigger:focus-visible,.regex-menu button:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px}
-  .regex-menu{position:absolute;z-index:30;top:calc(100% + 4px);right:0;width:220px;padding:4px;border:1px solid #8c7b50;background:#171917;box-shadow:0 8px 20px #0009}
+  .regex-menu{position:absolute;z-index:30;top:calc(100% + 4px);right:0;width:220px;padding:4px;border:1px solid var(--ui-line-strong,#8c7b50);background:var(--ui-surface,#171917);box-shadow:0 8px 20px var(--ui-shadow,#0009)}
   .regex-menu button{display:block;width:100%;padding:9px 10px;border:0;background:none;color:var(--gold-bright);text-align:left;font-size:11px}
-  .regex-menu button:hover:not(:disabled){background:#2b2d23}
+  .regex-menu button:hover:not(:disabled){background:var(--ui-hover,#2b2d23)}
   .regex-menu button:disabled{opacity:.45}
-  .regex-menu p{margin:5px 7px;color:#d9924a;font-size:10px;line-height:1.4;overflow-wrap:anywhere}
+  .regex-menu p{margin:5px 7px;color:var(--ui-gold-bright,#d9924a);font-size:10px;line-height:1.4;overflow-wrap:anywhere}
   .omissions{max-height:130px;overflow:auto}
-  .feedback{position:absolute;z-index:30;top:calc(100% + 4px);right:0;min-width:145px;padding:9px;border:1px solid #6f9c6c;background:#171917;color:#a5c599;font-size:11px}
-  .feedback.failed{border-color:#ba7065;color:#e2a095}
+  .feedback{position:absolute;z-index:30;top:calc(100% + 4px);right:0;min-width:145px;padding:9px;border:1px solid var(--ui-line-strong,#6f9c6c);background:var(--ui-surface,#171917);color:var(--ui-ok,#a5c599);font-size:11px}
+  .feedback.failed{border-color:var(--ui-line-strong,#ba7065);color:var(--ui-bad,#e2a095)}
 </style>

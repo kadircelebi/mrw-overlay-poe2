@@ -109,8 +109,8 @@
     -webkit-appearance: none;
     width: 11px;
     height: 11px;
-    background: linear-gradient(135deg, #ddd0aa, #7c7256);
-    border: 1px solid #14161a;
+    background: linear-gradient(135deg, var(--ui-surface-3,#ddd0aa), var(--ui-surface-3,#7c7256));
+    border: 1px solid var(--ui-line,#14161a);
     transform: rotate(45deg);
     cursor: pointer;
   }

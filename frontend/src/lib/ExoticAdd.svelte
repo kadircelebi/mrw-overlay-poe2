@@ -89,17 +89,17 @@
 </section>
 
 <style>
-  .exotic-add { margin-top: 6px; border: 1px solid #2e3a34; background: #0f1311; }
+  .exotic-add { margin-top: 6px; border: 1px solid var(--ui-line,#2e3a34); background: var(--ui-sunk,#0f1311); }
   .line { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; border: 0; background: none; color: var(--muted); text-align: left; font-size: 11px; }
-  .line:hover { background: #151a17; }
-  .line b { color: #6fe0b8; font-weight: 600; }
+  .line:hover { background: var(--ui-hover,#151a17); }
+  .line b { color: var(--ui-ok,#6fe0b8); font-weight: 600; }
   .line span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .line em { font-style: normal; color: #6f746c; }
+  .line em { font-style: normal; color: var(--ui-muted,#6f746c); }
   .chips { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 10px 8px; }
-  .chips button { padding: 3px 8px; border: 1px solid #2f5a4a; border-radius: 2px; background: #121a16; color: #b8e0cf; font-size: 10.5px; text-align: left; }
-  .chips button:hover:not(:disabled) { background: #183026; }
+  .chips button { padding: 3px 8px; border: 1px solid var(--ui-line-strong,#2f5a4a); border-radius: 2px; background: var(--ui-surface,#121a16); color: var(--ui-ok,#b8e0cf); font-size: 10.5px; text-align: left; }
+  .chips button:hover:not(:disabled) { background: var(--ui-hover,#183026); }
   .pick { display: inline-flex; }
-  .pick select { margin-left: -1px; padding: 2px 4px; border: 1px solid #2f5a4a; border-radius: 2px; background: #121a16; color: #8fbfaa; font-size: 10.5px; }
-  .chips button.done { border-color: #2a3a33; color: #6f8a7e; }
-  .note { margin: 0; padding: 0 10px 8px; color: #8fd18a; font-size: 10.5px; }
+  .pick select { margin-left: -1px; padding: 2px 4px; border: 1px solid var(--ui-line-strong,#2f5a4a); border-radius: 2px; background: var(--ui-surface,#121a16); color: var(--ui-ok,#8fbfaa); font-size: 10.5px; }
+  .chips button.done { border-color: var(--ui-line,#2a3a33); color: var(--ui-ok,#6f8a7e); }
+  .note { margin: 0; padding: 0 10px 8px; color: var(--ui-ok,#8fd18a); font-size: 10.5px; }
 </style>

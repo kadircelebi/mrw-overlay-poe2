@@ -257,7 +257,7 @@
     background: var(--surface-2);
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-sm);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 30px var(--ui-shadow,rgba(0, 0, 0, 0.5));
   }
   li button {
     display: flex;
@@ -289,7 +289,7 @@
     font-weight: 600;
   }
   .name.unique {
-    color: #e6893a;
+    color: var(--ui-gold-bright,#e6893a);
   }
   .name.family {
     color: var(--gold);
@@ -299,8 +299,8 @@
     margin-left: 5px;
     padding: 0 5px;
     border-radius: var(--radius-sm);
-    background: rgba(230, 137, 58, 0.18);
-    color: #f0a766;
+    background: var(--ui-tint,rgba(230, 137, 58, 0.18));
+    color: var(--ui-gold-bright,#f0a766);
     font-style: normal;
     font-size: 10.5px;
     font-weight: 600;

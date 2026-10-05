@@ -30,7 +30,7 @@
 </script>
 
 <section class="currency-card">
-  <div class="title">
+  <div class="title" data-rarity={item.rarity?.toLowerCase()}>
     <strong>{quote.name}</strong>
     <span class="stock">{t('ov.cc.stock')} <b>{stock.toLocaleString('en-US')}</b></span>
   </div>
@@ -62,19 +62,20 @@
 </section>
 
 <style>
-  .currency-card { border: 1px solid #4a4030; background: rgba(7,8,9,.88); box-shadow: inset 0 0 32px #000; }
-  .title { padding: 9px 12px 8px; text-align: center; border-bottom: 1px solid #4a4030; background: linear-gradient(90deg, transparent, rgba(194,151,70,.10), transparent); }
-  .title strong { display: block; font-family: var(--serif); letter-spacing: .04em; color: #d7b76d; font-size: 14px; }
-  .stock { display: inline-block; margin-top: 5px; padding: 1px 7px; border: 1px solid #3e3a2f; background: #1b1c19; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+  .currency-card { border: 1px solid var(--ui-item-line,#4a4030); background: var(--ui-item-bg,rgba(7,8,9,.88)); box-shadow: inset 0 0 32px var(--ui-shadow,#000); }
+  .title { padding: 9px 12px 8px; text-align: center; border-bottom: 1px solid var(--ui-line-strong,#4a4030); background: linear-gradient(90deg, transparent, var(--ui-tint,rgba(194,151,70,.10)), transparent); }
+  .title strong { display: block; font-family: var(--serif); letter-spacing: .04em; color:#c8c8c8; font-size: 14px; }
+  .title[data-rarity='rare'] strong{color:#ebe27a}.title[data-rarity='magic'] strong{color:#8f94ff}.title[data-rarity='unique'] strong{color:#d68d45}
+  .stock { display: inline-block; margin-top: 5px; padding: 1px 7px; border: 1px solid var(--ui-line,#3e3a2f); background: var(--ui-surface,#1b1c19); color: var(--muted); font-size: 10px; text-transform: uppercase; }
   .stock b { color: var(--gold-bright); }
   .worth { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; padding: 12px 12px 8px; }
   .side { display: grid; justify-items: center; gap: 2px; text-align: center; }
   .side b { color: var(--gold-bright); font-size: 17px; }
   .side b i { color: var(--gold); font-size: 11px; font-style: normal; }
   .side small { color: var(--muted); font-size: 10px; }
-  .total b { color: #f0e0b0; }
+  .total b { color: var(--ui-gold-bright,#f0e0b0); }
   .swap { color: var(--gold-dim); font-size: 18px; }
   .rates { display: flex; justify-content: center; gap: 14px; padding: 0 12px 8px; color: var(--muted); font-size: 10px; }
   .rates b { color: var(--gold-bright); }
-  .source { margin: 0; padding: 5px 12px 7px; border-top: 1px solid #2a2820; color: #686e74; font-size: 9px; text-align: center; }
+  .source { margin: 0; padding: 5px 12px 7px; border-top: 1px solid var(--ui-line,#2a2820); color: var(--ui-muted,#686e74); font-size: 9px; text-align: center; }
 </style>

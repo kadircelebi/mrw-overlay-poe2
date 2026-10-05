@@ -298,7 +298,7 @@
   .split { display: grid; grid-template-columns: 170px 1fr; gap: 10px; min-height: 0; }
   .kinds { display: flex; flex-direction: column; max-height: 420px; overflow: auto; border: 1px solid var(--line); }
   .kinds button { display: flex; justify-content: space-between; gap: 6px; padding: 6px 10px; border: 0; border-bottom: 1px solid var(--line); border-left: 2px solid transparent; background: none; color: var(--text-2); text-align: left; font-size: 12px; }
-  .kinds button.on { color: var(--gold-bright); border-left-color: var(--gold); background: linear-gradient(90deg, rgba(194, 174, 126, 0.13), transparent); }
+  .kinds button.on { color: var(--gold-bright); border-left-color: var(--gold); background: linear-gradient(90deg, var(--ui-tint,rgba(194, 174, 126, 0.13)), transparent); }
   .kinds small { color: var(--muted); }
   .entries { min-width: 0; }
   .row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
@@ -308,17 +308,17 @@
   .badge.user { color: var(--gold); border-color: var(--gold-dim); }
   .badge.offb { color: var(--muted); }
   .add { display: flex; gap: 6px; margin-top: 8px; }
-  .add input, .add-mod input, .chosen select { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line-strong); background: var(--bg-2, #191b18); color: var(--text); }
+  .add input, .add-mod input, .chosen select { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line-strong); background: var(--bg-2, var(--ui-surface,#191b18)); color: var(--text); }
   .add-mod { margin-top: 10px; display: grid; gap: 6px; }
   .matches { display: flex; flex-direction: column; max-height: 220px; overflow: auto; border: 1px solid var(--line); }
   .matches button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 8px; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text-2); text-align: left; }
-  .matches button:hover { background: rgba(255, 255, 255, 0.04); }
+  .matches button:hover { background: var(--ui-tint,rgba(255, 255, 255, 0.04)); }
   .matches small { color: var(--muted); font-size: 10.5px; }
-  .matches .pool { color: #b48cf0; font-weight: normal; }
+  .matches .pool { color: var(--ui-text,#b48cf0); font-weight: normal; }
   .chosen { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line-strong); }
   .row:has(.tier) { flex-wrap: wrap; }
   .row:has(.tier) .name { flex-basis: 100%; }
   .row:has(.tier) .badge { margin-left: auto; }
-  .row .tier { flex: 0 1 auto; min-width: 0; max-width: 260px; padding: 3px 6px; border: 1px solid var(--line-strong); background: var(--bg-2, #191b18); color: var(--text-2); font-size: 11px; }
+  .row .tier { flex: 0 1 auto; min-width: 0; max-width: 260px; padding: 3px 6px; border: 1px solid var(--line-strong); background: var(--bg-2, var(--ui-surface,#191b18)); color: var(--text-2); font-size: 11px; }
   .chosen strong { color: var(--gold-bright); font-weight: normal; }
 </style>

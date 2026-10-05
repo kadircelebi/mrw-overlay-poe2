@@ -69,7 +69,7 @@
 </span>
 
 <style>
-  .quota { --wails-draggable: no-drag; flex: 0 0 auto; margin-left: auto; padding: 2px 6px; border: 1px solid #3b3d36; border-radius: 2px; background: #1a1c19; color: var(--muted); font-size: 10px; white-space: nowrap; cursor: help; font-variant-numeric: tabular-nums; }
-  .quota.warn { border-color: #6b5a2c; color: var(--warn); }
-  .quota.bad { border-color: #6e3230; background: rgba(90, 20, 20, .35); color: #ec8f87; }
+  .quota { --wails-draggable: no-drag; flex: 0 0 auto; margin-left: auto; padding: 2px 6px; border: 1px solid var(--ui-line,#3b3d36); border-radius: 2px; background: var(--ui-surface,#1a1c19); color: var(--muted); font-size: 10px; white-space: nowrap; cursor: help; font-variant-numeric: tabular-nums; }
+  .quota.warn { border-color: var(--ui-line-strong,#6b5a2c); color: var(--warn); }
+  .quota.bad { border-color: var(--ui-line-strong,#6e3230); background: var(--ui-tint,rgba(90, 20, 20, .35)); color: var(--ui-bad,#ec8f87); }
 </style>

@@ -55,7 +55,7 @@
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, var(--surface-3), var(--sunk));
     border: 1px solid var(--line-strong);
-    box-shadow: inset 0 1px 2px #000;
+    box-shadow: inset 0 1px 2px var(--ui-shadow,#000);
     position: relative;
     transition: border-color 0.15s;
   }

@@ -21,6 +21,7 @@ import (
 	"poe2filter/internal/overlay"
 	"poe2filter/internal/session"
 	"poe2filter/internal/trade"
+	"poe2filter/internal/uitheme"
 )
 
 // LanguageOption is one entry of the language picker.
@@ -56,10 +57,12 @@ type Meta struct {
 // AppService is the API the panel calls. Its methods are exposed to the
 // frontend through generated bindings.
 type AppService struct {
-	eng     *engine.Engine
-	updater *appupdate.Manager
-	app     *application.App
-	tray    *application.SystemTray
+	uiThemes  *uitheme.Store
+	uiThemeMu sync.Mutex // serializes persisted changes and window broadcasts
+	eng       *engine.Engine
+	updater   *appupdate.Manager
+	app       *application.App
+	tray      *application.SystemTray
 	// panel is the tray window; file dialogs attach to it so the panel does not
 	// disappear behind them when it loses focus.
 	panel   application.Window
@@ -131,6 +134,7 @@ func newAppService(meta Meta) *AppService {
 	settingsPath := filepath.Join(meta.DataDir, "overlay.json")
 	sessions := session.New(meta.DataDir)
 	svc := &AppService{
+		uiThemes:            uitheme.New(filepath.Join(meta.DataDir, "ui_themes.json")),
 		meta:                meta,
 		signal:              make(chan struct{}, 1),
 		overlaySettingsPath: settingsPath,
