@@ -118,7 +118,7 @@ For example, with the waystone slider at T14+, only T14 and above are highlighte
 
 **I want different settings for different content.** Settings → Profiles. Name the current one with "Save as", change the settings, then switch from the list with one click. A profile carries every setting, including the league and the filter name in the game; if the filter name changes, the app tells you, and you need to pick that filter in the game.
 
-**I don't want to wait for the scan from scratch.** The [`paylasim/`](paylasim/) folder has a completed exceptional scan (1203 keys, Forbidden Rites) and a sample profile. Import the scan under Settings → Trade scan → Share scan results → Import; your own fresh records are not overwritten, only missing or older ones are updated.
+**I don't want to wait for the scan from scratch.** The [`samples/`](samples/) folder has a completed exceptional scan (1203 keys, Forbidden Rites) and a sample profile. Import the scan under Settings → Trade scan → Share scan results → Import; your own fresh records are not overwritten, only missing or older ones are updated.
 
 **I want to give my settings to a friend.** Profiles → Export writes a file; your friend takes it in with Import and plays with that profile. If you only want to hand over the generated filter, General → "Export filter file" is enough; the other person doesn't even need the app.
 
@@ -171,7 +171,7 @@ To uninstall the GitHub version: quit the app, delete the exe, delete the `%APPD
 
 ## Building
 
-To build it yourself: download the repository with the green **Code → Download ZIP** button above (or `git clone`) and double-click **`derle.bat`** in the folder. The script checks that Go and Node are installed, installs the Wails CLI if it is missing, and produces `bin\poe2filter.exe`. The first build takes a few minutes.
+To build it yourself: download the repository with the green **Code → Download ZIP** button above (or `git clone`) and double-click **`build.bat`** in the folder. The script checks that Go and Node are installed, installs the Wails CLI if it is missing, and produces `bin\poe2filter.exe`. The first build takes a few minutes.
 
 You need [Go](https://go.dev/dl/) 1.25+ and [Node.js](https://nodejs.org/) 20+. To install the Wails CLI by hand: `go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.23`.
 
@@ -182,7 +182,7 @@ To build by hand:
 ```
 wails3 build          # bin/poe2filter.exe
 wails3 dev            # live development
-go test ./internal/...
+go test ./...
 python build/art/make_icons.py  # regenerate the icons from the logo (needs Pillow)
 ```
 
@@ -200,8 +200,10 @@ python build/art/make_icons.py  # regenerate the icons from the logo (needs Pill
 
 | Folder | Purpose |
 |---|---|
-| `main.go`, `service.go` | Tray, panel and settings windows, the API exposed to the interface |
-| `frontend/` | Svelte interface (panel, settings, overlay, market) |
+| `main.go` | Command-line options, version and the embedded interface; starts `internal/app` |
+| `internal/app` | Tray, windows (panel, settings, overlay, market, craft) and the API exposed to the interface |
+| `internal/platform` | Windows-specific pieces: sounds, start with Windows, package identity, Store build |
+| `frontend/` | Svelte interface (panel, settings, overlay, market, craft) |
 | `internal/engine` | Update flow, scheduler, scanner management (independent of the interface) |
 | `internal/appupdate` | GitHub release check, SHA-256 verification and reversible Windows exe replacement |
 | `internal/prices` | The `prices.json` schema: the shared contract between the app and the future server |
@@ -210,6 +212,10 @@ python build/art/make_icons.py  # regenerate the icons from the logo (needs Pill
 | `internal/provider` | Price source chain: server (later) → local → cache |
 | `internal/neversink` | Downloads the NeverSink filter and extracts its base lists |
 | `internal/filter` | Rule generation and injection |
+| `internal/overlay` | Item text parser, stat catalogue, tier data, game window |
+| `browser-extension/` | The pathofexile.com session bridge (Chrome, Edge, Firefox) |
+| `cmd/` | `storepack` (MSIX package), `packext` (extension zips), `scanner` (shared scan server and its systemd unit) |
+| `samples/` | Exported scan results and a sample profile to import |
 
 ## License
 
