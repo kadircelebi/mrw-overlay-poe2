@@ -221,11 +221,29 @@ func pickLeague(ctx context.Context, want string) (string, error) {
 	if want != "auto" {
 		return want, nil
 	}
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	leagues, err := collector.FetchLeagues(ctx, nil)
-	if err != nil {
-		return "", fmt.Errorf("league list: %w", err)
+	// After a power cut the machine boots before the network really works, and
+	// exit status 1 is not restarted by the unit (it means bad configuration),
+	// so a failed league list is retried here instead of ending the scanner.
+	wait := 30 * time.Second
+	var leagues []string
+	for {
+		attempt, cancel := context.WithTimeout(ctx, 30*time.Second)
+		var err error
+		leagues, err = collector.FetchLeagues(attempt, nil)
+		cancel()
+		if err == nil {
+			break
+		}
+		if ctx.Err() != nil {
+			return "", fmt.Errorf("league list: %w", err)
+		}
+		log.Printf("league list: %v; retrying in %v", err, wait)
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(wait):
+		}
+		wait = min(wait*2, 5*time.Minute)
 	}
 	for _, l := range leagues {
 		low := strings.ToLower(l)
