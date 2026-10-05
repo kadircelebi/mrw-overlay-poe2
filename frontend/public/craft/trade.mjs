@@ -1,6 +1,7 @@
 import { t } from './i18n.mjs';
 import { rolledText, sortedMods, isCrafted } from './engine.mjs';
 import { baseStats, propertyLines } from './stats.mjs';
+import { augmentedMod } from './catalyst.mjs';
 
 // The text the price check parses for a crafted item. With a base picked it
 // names that base and prints the numbers the base would show (quality,
@@ -24,7 +25,7 @@ export function craftText(item, itemClass = 'Gloves', base = null) {
     // desecrated.stat_…); the header makes the price check search the right one.
     const kind = mod.fractured ? 'Fractured ' : isCrafted(mod) ? 'Crafted ' : mod.desecrated || mod.pool === 'desecrated' ? 'Desecrated ' : '';
     lines.push(`{ ${kind}${mod.affix} Modifier (Tier: ${mod.tier}) }`);
-    lines.push(...rolledText(mod).split(/\n|<br\s*\/?\s*>/i));
+    lines.push(...rolledText(augmentedMod(mod, item) || mod).split(/\n|<br\s*\/?\s*>/i));
   }
   if (item.sanctified) lines.push('--------','Sanctified');
   else if (item.corrupted) lines.push('--------','Corrupted');

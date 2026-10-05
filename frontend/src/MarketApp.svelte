@@ -8,6 +8,7 @@
   import LiveSearch from './lib/LiveSearch.svelte'
   import QuotaBadge from './lib/QuotaBadge.svelte'
   import MarketRegexCopy from './lib/MarketRegexCopy.svelte'
+  import { marketItemFromDraft, editMarketIdentity } from './lib/marketIdentity'
   import { buildMarketRegex } from './lib/marketRegex'
   import { t } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
@@ -343,9 +344,7 @@
 
   function accept(snap: Snapshot, draft?: EvaluateRequest) {
     if (!snap.item) return
-    const selectedItem = draft?.baseType === snap.item.baseType
-      ? { ...snap.item, name: draft.name || snap.item.name, baseType: draft.baseType, rarity: draft.rarity || snap.item.rarity }
-      : snap.item
+    const selectedItem = marketItemFromDraft(snap.item, draft)
     item = selectedItem
     sort = { ...defaultSort }
     pickedStat = null
@@ -367,7 +366,7 @@
     }
     result = null
     error = ''
-    if (draft?.baseType === snap.item.baseType) {
+    if (draft?.status) {
       applyDraft(draft)
       setTimeout(() => search(false), 0)
     }
@@ -411,7 +410,7 @@
   }
 
   function applyDraft(draft: EvaluateRequest) {
-    if (!item || draft.baseType !== item.baseType) return
+    if (!item) return
     status = draft.status || 'securable'
     filters = {}
     for (const filter of draft.filters ?? []) {
@@ -469,6 +468,13 @@
     filters = { ...filters, [rarityKey]: { option: rarity || undefined } }
     result = null
     showItemSuggestions = false
+  }
+
+  function editItemQuery(value: string) {
+    itemQuery = value
+    showItemSuggestions = true
+    if (item) item = editMarketIdentity(item, value)
+    markDirty()
   }
 
   // The same stat may be added again: once in an And group and once in a
@@ -921,7 +927,7 @@
       </div>
       <button class="new-search" title={t('mk.newSearchTitle')} onclick={newSearch}>{t('mk.newSearch')}</button>
       <div class="item-search">
-        <input bind:value={itemQuery} onfocus={() => (showItemSuggestions = true)} oninput={() => (showItemSuggestions = true)} placeholder={t('mk.searchItems')} spellcheck="false" />
+        <input value={itemQuery} onfocus={() => (showItemSuggestions = true)} oninput={(event) => editItemQuery(event.currentTarget.value)} placeholder={t('mk.searchItems')} spellcheck="false" />
         <button disabled={!canSearch || !!searchingTab} onclick={() => search(true)}>{loading ? '…' : '⌕'}</button>
         {#if showItemSuggestions && itemSuggestions.length}
           <div class="suggestions">

@@ -74,6 +74,18 @@ export function augmentedValues(mod, item) {
   return mod.values.map(v => Number.isInteger(v) ? Math.floor(v * k) : Math.round(v * k * 100) / 100);
 }
 
+// Skill levels are fixed in the text ("+3 ..."), not variable roll ranges.
+// Derive their displayed value without changing the saved tier or base text.
+export function augmentedMod(mod, item) {
+  const values = augmentedValues(mod, item);
+  if (!values) return null;
+  if (values.length) return { ...mod, values };
+  const level = /^\+(\d+)( to Level of all(?: [^\n]+)? Skills)$/.exec(mod.text || '');
+  if (!level) return null;
+  const raised = Math.floor(Number(level[1]) * (1 + item.catalyst.quality / 100));
+  return { ...mod, values, text: `+${raised}${level[2]}` };
+}
+
 // "Quality (Life Modifiers): +20%" back to the catalyst, for copied items.
 export function catalystFromCopy(raw) {
   const m = /^Quality \(([^)]+) Modifiers\): \+(\d+)%/m.exec(raw || '');

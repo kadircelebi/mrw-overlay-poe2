@@ -35,6 +35,14 @@ export function scaleValues(mod, factor, up = false) {
     if (whole) return up ? Math.ceil(scaled - 1e-9) : Math.round(scaled);
     return Number((up ? Math.ceil(scaled * 100 - 1e-9) / 100 : scaled).toFixed(2));
   });
+  // Fixed skill levels have no roll range; their magnitude lives in the text.
+  // Store the scaled base level so Catalyst quality can then augment it.
+  const level = !mod.ranges?.length && /^\+(\d+)( to Level of all(?: [^\n]+)? Skills)$/.exec(mod.text || '');
+  if (level) {
+    const scaled = Number(level[1]) * factor;
+    const value = up ? Math.ceil(scaled - 1e-9) : Math.round(scaled);
+    return { ...mod, values, text: `+${value}${level[2]}` };
+  }
   return { ...mod, values };
 }
 

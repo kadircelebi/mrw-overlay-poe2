@@ -5,10 +5,13 @@ import { createItem, setRarity, manualAdd, currencyReason } from '../public/craf
 import { omenDefinitions, omenEffects, applyOrbOmens, orbOmenReason, relevantOmens } from '../public/craft/omens.mjs';
 import { multiplier, scaleValues, corruptOutcomes, corrupt, sanctify, sanctifyReason, enchantRows } from '../public/craft/corrupt.mjs';
 import { craftText } from '../public/craft/trade.mjs';
+import { augmentedMod } from '../public/craft/catalyst.mjs';
+import { rolledText } from '../public/craft/engine.mjs';
 import { setLang } from '../public/craft/i18n.mjs';
 setLang('en');
 const json = async name => JSON.parse(await readFile(new URL('../public/craft/data/' + name, import.meta.url)));
 const wands = await json('Wands.mods.json'), gloves = await json('Gloves_str.mods.json'), rings = await json('Rings.mods.json');
+const amulets = await json('Amulets.mods.json');
 const rules = await json('currency-rules.source.json'), omens = omenDefinitions(rules);
 const row = (data, text) => data.mods.find(m => m.pool === 'normal' && m.text === text);
 const rare = (data, texts) => texts.reduce((item, text) => manualAdd(item, row(data, text), () => 0), setRarity({ ...createItem(data.page || 'Wands'), ilvl: 82 }, 'Rare'));
@@ -27,6 +30,43 @@ test('scaled values round to the nearest (corruption) or up (Sanctify), decimals
   assert.deepEqual(scaleValues(mod, 1.22).values, [122, 1.83]);
   assert.deepEqual(scaleValues({ values: [33], ranges: [{ min: 30, max: 40 }] }, 0.79).values, [26]);       // 26.07 → 26
   assert.deepEqual(scaleValues({ values: [33], ranges: [{ min: 30, max: 40 }] }, 0.79, true).values, [27]); // up
+});
+
+test('fixed skill levels use Sanctify and corruption rounding without scaling reference numbers', () => {
+  const item = rare(amulets, ['+3 to Level of all Spell Skills']);
+  const spell = item.mods[0];
+  assert.equal(rolledText(scaleValues(spell, 1.22, true)), '+4 to Level of all Spell Skills');
+  assert.equal(rolledText(scaleValues(spell, 0.78, true)), '+3 to Level of all Spell Skills');
+  assert.equal(rolledText(scaleValues(spell, 1, true)), '+3 to Level of all Spell Skills');
+  assert.equal(rolledText(scaleValues(spell, 1.01, true)), '+4 to Level of all Spell Skills');
+  assert.equal(rolledText(scaleValues(spell, 0.78)), '+2 to Level of all Spell Skills');
+  assert.equal(rolledText(scaleValues(spell, 1.22)), '+4 to Level of all Spell Skills');
+  assert.equal(rolledText(spell), '+3 to Level of all Spell Skills');
+  const reference = { text: '20% chance for Skills to retain 40% of Glory on use', ranges: [], values: [] };
+  assert.equal(scaleValues(reference, 1.22, true).text, reference.text);
+});
+
+test('Sanctification and 40% caster quality can produce +5 Spell Skills in the display and price query', () => {
+  const item = { ...rare(amulets, ['+3 to Level of all Spell Skills']), catalyst: { id: 'sibilant-catalyst', quality: 40 } };
+  const original = structuredClone(item);
+  const effects = omenEffects(omens, ['omen-of-sanctification'], 'divine', rules.divine, amulets);
+  const good = applyOrbOmens(item, amulets, 'divine', rules.divine, effects, () => 0.99999);
+  assert.equal(good.sanctified, true);
+  assert.equal(rolledText(good.mods[0]), '+4 to Level of all Spell Skills');
+  assert.equal(rolledText(augmentedMod(good.mods[0], good)), '+5 to Level of all Spell Skills');
+  assert.match(craftText(good, 'Amulets'), /\+5 to Level of all Spell Skills/);
+  const poor = sanctify(item, () => 0);
+  assert.equal(rolledText(augmentedMod(poor.mods[0], poor)), '+4 to Level of all Spell Skills');
+  assert.deepEqual(item, original);
+  assert.equal(rolledText(augmentedMod(item.mods[0], item)), '+4 to Level of all Spell Skills');
+});
+
+test('Sanctification leaves fractured fixed skill levels intact', () => {
+  const item = rare(amulets, ['+3 to Level of all Spell Skills', '(25—28)% increased Cast Speed']);
+  item.mods[0] = { ...item.mods[0], fractured: true };
+  const next = sanctify(item, () => 0.99999);
+  assert.deepEqual(next.mods[0], item.mods[0]);
+  assert.notDeepEqual(next.mods[1].values, item.mods[1].values);
 });
 
 test('Vaal outcomes depend on the item class', () => {

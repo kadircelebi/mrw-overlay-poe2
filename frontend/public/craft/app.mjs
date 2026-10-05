@@ -5,7 +5,7 @@ import { usageEntry, summarize } from './ledger.mjs';
 import { craftText } from './trade.mjs';
 import { iconIndex, iconFor } from './icons.mjs';
 import { applyThemePalette } from '../ui-theme.mjs';
-import { catalystRules, catalystBoost, augmentedValues, catalystFromCopy, catalystTypes, catalystClasses } from './catalyst.mjs';
+import { catalystRules, catalystBoost, augmentedMod, catalystFromCopy, catalystTypes, catalystClasses } from './catalyst.mjs';
 import { infuserRules, maxQuality, infuserBeyond, currentQuality, corruptChance } from './infuser.mjs';
 import { omenDefinitions, relevantOmens, omenEffects, filterOmenRows, orbOmenReason, applyOrbOmens } from './omens.mjs';
 import { t, setLang, locale, num, variantName } from './i18n.mjs';
@@ -241,10 +241,10 @@ function renderItem() {
     row.append(element('span', mod.affix !== lastSide ? mod.affix : '', 'mod-side'));
     lastSide = mod.affix;
     // Catalyst quality raises matching values, shown as the game does.
-    const raised = mod.unrevealed ? null : augmentedValues(mod, item);
+    const raised = mod.unrevealed ? null : augmentedMod(mod, item);
     // Like the game's tooltip, the raised value stands alone; the roll and
     // its range go to the hover text.
-    const text = element('p', mod.unrevealed ? t('mod.unrevealed') : raised ? rolledText({ ...mod, values: raised }) : rolledWithRange(mod), `mod-value${raised ? ' augmented' : ''}`);
+    const text = element('p', mod.unrevealed ? t('mod.unrevealed') : raised ? rolledText(raised) : rolledWithRange(mod), `mod-value${raised ? ' augmented' : ''}`);
     text.title = `${mod.name} · ${mod.desecrated ? 'Desecrated' : mod.pool}${mod.fractured ? ' · Fractured' : ''}${raised ? ` · ${rolledWithRange(mod)} + ${item.catalyst.quality}%` : ''}`;
     row.append(text, element('span', isCrafted(mod) ? 'C' : `T${mod.tier}`, 'mod-tier'));
     row.onclick = event => {

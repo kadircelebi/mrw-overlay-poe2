@@ -330,8 +330,7 @@
 
   function openMarket() {
     if (!item || needsUniqueSelection(item)) return
-    // The market edits the full item, so it always receives the name and base.
-    AppService.ShowMarketWithQuery(buildRequest(item, choices, status, selectedFilters(), [], { ...allOn, rarity: toggles.rarity }))
+    AppService.ShowMarketWithQuery(buildRequest(item, choices, status, selectedFilters(), [], toggles))
   }
 </script>
 

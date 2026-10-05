@@ -105,6 +105,9 @@ var (
 	numberRE = regexp.MustCompile(`[+-]?\d+(?:\.\d+)?`)
 	spaceRE  = regexp.MustCompile(`\s+`)
 	signedRE = regexp.MustCompile(`[+-]#`)
+	// Advanced copy prints base rolls; this annotation gives the modifier's
+	// effective magnitude, without needing to infer its tags from item quality.
+	modifierIncreaseRE = regexp.MustCompile(`—\s*(\d+(?:\.\d+)?)% Increased\s*\}$`)
 	// A gem with level bonuses breaks its level down under the Level line.
 	gemFromGemRE        = regexp.MustCompile(`^\d+ Levels? from Gem\b`)
 	gemFromCorruptionRE = regexp.MustCompile(`^[+-]?\d+ Levels? from Corruption\b`)
@@ -290,6 +293,7 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 	}
 
 	var current *ItemMod
+	var currentIncrease float64
 	sawHeader := false
 	prefixes, suffixes := 0, 0
 	commit := func() {
@@ -313,6 +317,7 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 			item.Mods = append(item.Mods, mod)
 		}
 		current = nil
+		currentIncrease = 0
 	}
 	for _, source := range lines {
 		line := strings.TrimSpace(source)
@@ -325,6 +330,11 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 			commit()
 			sawHeader = true
 			current = &ItemMod{Name: m[3]}
+			if strings.Contains(line, "% Increased") {
+				if increase := modifierIncreaseRE.FindStringSubmatch(line); increase != nil {
+					currentIncrease, _ = strconv.ParseFloat(increase[1], 64)
+				}
+			}
 			if m[4] != "" {
 				current.Tier, _ = strconv.Atoi(m[4])
 			}
@@ -377,7 +387,11 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 		if strings.HasPrefix(line, "{") || strings.HasPrefix(line, "##") {
 			continue
 		}
-		line = strings.TrimSpace(strings.SplitN(line, " — Unscalable Value", 2)[0])
+		text, _, unscalable := strings.Cut(line, " — Unscalable Value")
+		line = strings.TrimSpace(text)
+		if currentIncrease != 0 && !unscalable {
+			line = scaleClipboardModifier(line, currentIncrease)
+		}
 		if current.Text != "" {
 			current.Text += "\n"
 		}
@@ -399,6 +413,31 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 	}
 	item.Exchange = catalog.exchangeID(item)
 	return item, nil
+}
+
+// scaleClipboardModifier converts the advanced copy's base rolls (including
+// roll ranges) to displayed values. Round toward zero at the printed precision,
+// as for +3 * 1.4 -> +4. Unannotated/already augmented lines never call this.
+func scaleClipboardModifier(text string, increase float64) string {
+	factor := (100 + increase) / 100
+	return numberRE.ReplaceAllStringFunc(text, func(number string) string {
+		value, err := strconv.ParseFloat(number, 64)
+		if err != nil {
+			return number
+		}
+		precision := 1.0
+		if dot := strings.IndexByte(number, '.'); dot >= 0 {
+			precision = math.Pow10(len(number) - dot - 1)
+		}
+		// Tolerance keeps an exact integer boundary from losing one to binary
+		// floating point (e.g. 50 * 1.4).
+		value = math.Copysign(math.Trunc(math.Abs(value)*factor*precision+1e-9)/precision, value)
+		result := strconv.FormatFloat(value, 'f', -1, 64)
+		if strings.HasPrefix(number, "+") && value >= 0 {
+			result = "+" + result
+		}
+		return result
+	})
 }
 
 // itemSearchGroups are exchange sections whose items are still priced by the

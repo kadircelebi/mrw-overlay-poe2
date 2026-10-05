@@ -28,3 +28,13 @@ test('crafted and fractured affixes carry their header for the trade search', ()
   assert.match(text, /\{ Crafted Suffix Modifier \(Tier: 1\) \}\n11% increased Cast Speed/);
   assert.match(text, /\{ Fractured Prefix Modifier \(Tier: 1\) \}\n99% increased Energy Shield/);
 });
+
+test('price search receives the displayed skill level after caster quality', () => {
+  const item = { rarity: 'Rare', ilvl: 82, catalyst: { id: 'sibilant-catalyst', quality: 34 }, mods: [
+    { affix: 'Suffix', tier: 1, pool: 'normal', text: '+3 to Level of all Spell Skills', tags: ['caster', 'gem'], values: [] },
+  ] };
+  assert.match(craftText(item, 'Amulets'), /\+4 to Level of all Spell Skills/);
+  assert.equal(item.mods[0].text, '+3 to Level of all Spell Skills');
+  assert.match(craftText({ ...item, catalyst: { ...item.catalyst, quality: 33 } }, 'Amulets'), /\+3 to Level of all Spell Skills/);
+  assert.match(craftText({ ...item, catalyst: { ...item.catalyst, quality: 0 } }, 'Amulets'), /\+3 to Level of all Spell Skills/);
+});
