@@ -7,6 +7,8 @@
   import TradeResults from './lib/TradeResults.svelte'
   import LiveSearch from './lib/LiveSearch.svelte'
   import QuotaBadge from './lib/QuotaBadge.svelte'
+  import MarketRegexCopy from './lib/MarketRegexCopy.svelte'
+  import { buildMarketRegex } from './lib/marketRegex'
   import { t } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
   import { allOn, buildRequest, categoryFor, choicesFor, classForCategory, isGem, nextSort, searchLabel, searchedStats, statSortKey, type ModChoice, type SortOption, type SortState } from './lib/overlayQuery'
@@ -82,6 +84,12 @@
   }
 
   function currentLabel() { return (item && searchLabel(item)) || itemQuery.trim() }
+
+  function statLabel(mod: ItemMod) {
+    // The copied count belongs in the bounds, not in the filter's name.
+    if (/^(?:#|\d+(?:\([^)]*\))?)\s+uses remaining(?:\s+\((?:Tablets|implicit)\))?$/i.test(mod.text.trim())) return 'Uses remaining'
+    return mod.text
+  }
 
   function tabLabel(tab: SearchTab) {
     return (tab.id === activeTab ? currentLabel() : tab.label) || t('mk.blankTab')
@@ -580,6 +588,26 @@
     return buildRequest(item!, choices, status, activeFilters(), requestGroups(), { ...allOn, rarity: stateFor('type_filters', 'rarity').option ?? '' })
   }
 
+  const regexCatalogue = $derived((catalog?.stats ?? []).flatMap((group) => (group.entries ?? []).map((stat) => stat.text)))
+  const regexFilters = $derived(activeFilters().map((filter) => ({
+    ...filter, min: filter.min ?? undefined, max: filter.max ?? undefined,
+    option: filter.option ?? undefined, input: filter.input ?? undefined,
+    label: catalog?.filters?.find((group) => group.id === filter.group)?.filters?.find((entry) => entry.id === filter.id)?.text ?? filter.id,
+  })))
+  const regexInput = $derived({
+    // Read nested fields here so edits invalidate the input even when the
+    // choices array itself is unchanged. The generator receives plain values.
+    choices: choices.map((choice) => ({
+      selected: choice.selected, min: choice.min, max: choice.max,
+      mod: { key: choice.mod.key, statId: choice.mod.statId, text: choice.mod.text, type: choice.mod.type },
+    })),
+    groups: statGroups.map((group) => ({ type: group.type, choiceKeys: [...group.choiceKeys] })),
+    filters: regexFilters, catalogue: regexCatalogue,
+    baseType: item?.baseType, name: item?.rarity === 'unique' ? item.name : undefined,
+  })
+  const regexAll = $derived(buildMarketRegex({ ...regexInput, mode: 'all' }))
+  const regexAny = $derived(buildMarketRegex({ ...regexInput, mode: 'any' }))
+
   // Every change to the saved list comes back as the whole library.
   async function libraryCall(call: Promise<SearchLibrary>): Promise<boolean> {
     saveError = ''
@@ -901,7 +929,10 @@
           </div>
         {/if}
       </div>
-      <button class="search-button" disabled={!canSearch || !!searchingTab} onclick={() => search(true)}>{loading ? t('ov.searching') : t('ov.search')}</button>
+      <div class="search-actions">
+        <button class="search-button" disabled={!canSearch || !!searchingTab} onclick={() => search(true)}>{loading ? t('ov.searching') : t('ov.search')}</button>
+        <MarketRegexCopy all={regexAll} any={regexAny} />
+      </div>
       <TradeResults {result} {loading} {error} {searched} expanded {sort} {sortOptions} onsort={setSort} onfilter={filterByListing} />
     </section>
 
@@ -930,7 +961,7 @@
                   {@const choice = choiceForKey(choiceKey)}
                   {#if choice}
                     <div class="stat-choice" class:off={!choice.selected} class:cannot={cannotRoll(choice)}>
-                      <label><input type="checkbox" bind:checked={choice.selected} onchange={markDirty} /><i></i><span>{choice.mod.text}</span></label>
+                      <label><input type="checkbox" bind:checked={choice.selected} onchange={markDirty} /><i></i><span>{statLabel(choice.mod)}</span></label>
                       {#if statGroup.type === 'weight' || statGroup.type === 'weight2'}
                         <span></span>
                         <span class="weight"><input type="number" value={statGroup.weights[choiceKey] ?? 1} oninput={(event) => setWeight(statGroup.key, choiceKey, event.currentTarget.value)} placeholder="weight" /></span>
@@ -1015,6 +1046,8 @@
 </main>
 
 <style>
+  .search-actions{display:flex;gap:5px;position:sticky;bottom:0;margin-top:7px;z-index:25}
+  .search-actions .search-button{position:static;margin-top:0;flex:1;min-width:0}
   .market-shell{height:100%;display:flex;flex-direction:column;border:1px solid var(--line-strong);background:var(--grain),#101210}
   header{height:36px;flex:0 0 36px;display:flex;align-items:center;gap:7px;padding:0 8px;border-bottom:1px solid #4b4a3e;background:#151715;--wails-draggable:drag;font-size:11px}header .mark{width:20px;height:20px}header strong{font-family:var(--serif);color:var(--gold-bright)}header .league{flex:1;overflow:hidden;text-overflow:ellipsis;color:var(--muted);white-space:nowrap}header button{--wails-draggable:no-drag;border:0;background:none;color:#aaa;font-size:17px}
   .workspace{min-height:0;flex:1;display:grid;grid-template-columns:176px minmax(245px,.9fr) minmax(280px,1.1fr);overflow:hidden}.workspace.saved-collapsed{grid-template-columns:28px minmax(245px,.9fr) minmax(280px,1.1fr)}.workspace.no-advanced{grid-template-columns:176px 1fr}.workspace.no-advanced.saved-collapsed{grid-template-columns:28px 1fr}

@@ -88,6 +88,17 @@ export interface ExoticCandidate {
      * Present is set when the group already shows it.
      */
     "present": boolean;
+
+    /**
+     * Tiers are a modifier's tiers (best first) when the tier data knows
+     * it, Tier the copied item's; Entry then keeps that tier and better.
+     * Covered are the tier names the group already shows for the class;
+     * Text is the modifier's text with "#" for the value.
+     */
+    "text"?: string;
+    "tiers"?: ExoticTier[] | null;
+    "tier"?: number;
+    "covered"?: string[] | null;
 }
 
 /**

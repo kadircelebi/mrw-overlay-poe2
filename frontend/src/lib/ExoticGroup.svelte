@@ -5,6 +5,7 @@
   import type { ExoticModOption } from '../../bindings/poe2filter/models'
   import Segmented from './Segmented.svelte'
   import Toggle from './Toggle.svelte'
+  import { modLabel, range, tierOption, tiersUpTo, userKey } from './exoticTiers'
   import { t } from './i18n.svelte'
 
   // The Exotic group: NeverSink's exotic bases and modifiers with the
@@ -128,7 +129,7 @@
     if (q.length < 2) return []
     return options.filter((o) => o.text.toLowerCase().includes(q)).slice(0, 30)
   })
-  const kept = $derived(chosen ? (chosen.tiers ?? []).filter((x) => x.tier <= minTier) : [])
+  const kept = $derived(chosen ? tiersUpTo(chosen.tiers, minTier) : [])
   const clashes = $derived([...new Set(kept.flatMap((x) => (x.also ?? []).map((a) => `${x.name} → ${a}`)))])
 
   function choose(o: ExoticModOption) {
@@ -137,22 +138,43 @@
     newLevel = 'normal'
   }
 
-  function range(x: { min: number; max: number }): string {
-    return x.min === x.max ? `${x.min}` : `${x.min}–${x.max}`
-  }
-
   function addMod() {
     if (!chosen || !kept.length) return
     const x = settings()
-    // As the game prints it, with the lowest value kept: "19+% increased Cast Speed".
-    const low = kept[kept.length - 1]
-    const label = chosen.text.includes('#') ? chosen.text.replace('#', `${low.min}+`) : chosen.text
     x.added = [...x.added!, {
       key: '', kind: 'mod', classes: [pick], names: kept.map((k) => k.name), stat: chosen.stat,
-      min_tier: minTier, label, level: newLevel, source: 'user',
+      min_tier: minTier, label: modLabel(chosen.text, kept), level: newLevel, source: 'user',
     }]
     chosen = null
     query = ''
+    onchange()
+  }
+
+  // ---- changing the tiers of the player's modifier entry ----
+  // The option an entry was made from: its stat, or (added from Alt+E
+  // before entries kept the stat) a tier name it uses.
+  function optionOf(r: Row): ExoticModOption | undefined {
+    const names = new Set((r.names ?? []).map((n) => n.toLowerCase()))
+    const uses = (o: ExoticModOption) => (o.tiers ?? []).some((x) => names.has(x.name.toLowerCase()))
+    return options.find((o) => o.stat === r.stat && uses(o)) ?? options.find(uses)
+  }
+
+  // tierOf is the lowest tier the entry keeps.
+  function tierOf(r: Row, o: ExoticModOption): number {
+    if (r.min_tier) return r.min_tier
+    const names = new Set((r.names ?? []).map((n) => n.toLowerCase()))
+    return Math.max(...(o.tiers ?? []).filter((x) => names.has(x.name.toLowerCase())).map((x) => x.tier))
+  }
+
+  function setTier(r: Row, o: ExoticModOption, tier: number) {
+    const e = settings().added!.find((a) => a.key === r.key)
+    if (!e) return
+    const keep = tiersUpTo(o.tiers, tier)
+    e.names = keep.map((k) => k.name)
+    e.stat = o.stat
+    e.min_tier = tier
+    e.label = modLabel(o.text, keep)
+    e.key = userKey(e)
     onchange()
   }
 
@@ -225,7 +247,7 @@
                 <span>{t('exotic.minTier')}</span>
                 <select bind:value={minTier}>
                   {#each chosen.tiers ?? [] as x (x.tier)}
-                    <option value={x.tier}>T{x.tier} · {range(x)} · ilvl {x.level} · "{x.name}"</option>
+                    <option value={x.tier}>{tierOption(x)}</option>
                   {/each}
                 </select>
               </label>
@@ -250,6 +272,16 @@
     <span class="badge" class:user={r.source === 'user'} class:offb={r.off}>
       {r.off ? t('exotic.srcOff') : r.source === 'user' ? t('exotic.srcUser') : 'NeverSink'}
     </span>
+    {#if r.source === 'user' && r.kind === 'mod'}
+      {@const o = optionOf(r)}
+      {#if o}
+        <select class="tier" value={tierOf(r, o)} title={t('exotic.names', (r.names ?? []).join(', '))} onchange={(e) => setTier(r, o, Number(e.currentTarget.value))}>
+          {#each o.tiers ?? [] as x (x.tier)}
+            <option value={x.tier}>{t('exotic.tierUp', `T${x.tier}`)} · {range(x)} · "{x.name}"</option>
+          {/each}
+        </select>
+      {/if}
+    {/if}
     {#if !r.off}
       <Segmented small value={r.level} onchange={(v) => setLevel(r, v)} options={[{ value: 'high', label: t('exotic.high') }, { value: 'normal', label: t('exotic.normal') }]} />
     {/if}
@@ -284,5 +316,9 @@
   .matches small { color: var(--muted); font-size: 10.5px; }
   .matches .pool { color: #b48cf0; font-weight: normal; }
   .chosen { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line-strong); }
+  .row:has(.tier) { flex-wrap: wrap; }
+  .row:has(.tier) .name { flex-basis: 100%; }
+  .row:has(.tier) .badge { margin-left: auto; }
+  .row .tier { flex: 0 1 auto; min-width: 0; max-width: 260px; padding: 3px 6px; border: 1px solid var(--line-strong); background: var(--bg-2, #191b18); color: var(--text-2); font-size: 11px; }
   .chosen strong { color: var(--gold-bright); font-weight: normal; }
 </style>

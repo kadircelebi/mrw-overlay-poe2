@@ -4,6 +4,7 @@ import (
 	"context"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"poe2filter/internal/filter"
@@ -51,6 +52,10 @@ func (s *AppService) ExoticModOptions(class string) ([]ExoticModOption, error) {
 		return nil, err
 	}
 	catalog, _ := s.overlayCatalog.Load(context.Background())
+	return exoticModOptions(data, catalog, class), nil
+}
+
+func exoticModOptions(data *overlay.TierData, catalog overlay.Catalog, class string) []ExoticModOption {
 	texts := map[string]string{}
 	for _, g := range catalog.Stats {
 		for _, e := range g.Entries {
@@ -97,7 +102,58 @@ func (s *AppService) ExoticModOptions(class string) ([]ExoticModOption, error) {
 		out = append(out, opt)
 	}
 	sort.Slice(out, func(i, j int) bool { return strings.ToLower(out[i].Text) < strings.ToLower(out[j].Text) })
-	return out, nil
+	return out
+}
+
+// modifierOption finds the option a copied modifier belongs to: the one
+// with a tier of that name, and when several share the name, the one whose
+// text reads like the modifier's stat line. ok is false when none has it.
+func modifierOption(options []ExoticModOption, name, line string) (ExoticModOption, int, bool) {
+	var found []ExoticModOption
+	var tiers []int
+	for _, o := range options {
+		for _, t := range o.Tiers {
+			if strings.EqualFold(t.Name, name) {
+				found = append(found, o)
+				tiers = append(tiers, t.Tier)
+				break
+			}
+		}
+	}
+	if len(found) == 0 {
+		return ExoticModOption{}, 0, false
+	}
+	for i, o := range found {
+		if statTextMatches(o.Text, line) {
+			return o, tiers[i], true
+		}
+	}
+	return found[0], tiers[0], true
+}
+
+var statNumberRE = `[+-]?\d+(?:\.\d+)?`
+
+// statTextMatches says whether a stat line ("19% increased Cast Speed")
+// reads as the option's text ("#% increased Cast Speed"); for a hybrid
+// option only its first stat is compared.
+func statTextMatches(text, line string) bool {
+	text, _, _ = strings.Cut(text, " + ")
+	if text == "" || line == "" {
+		return false
+	}
+	pattern := strings.ReplaceAll(regexp.QuoteMeta(text), "#", statNumberRE)
+	re, err := regexp.Compile(`(?i)^` + pattern + `$`)
+	return err == nil && re.MatchString(strings.TrimSpace(line))
+}
+
+// exoticModLabel is a modifier entry's label as the game prints it, with
+// the lowest value kept: "19+% increased Cast Speed".
+func exoticModLabel(text string, low ExoticTier) string {
+	if !strings.Contains(text, "#") {
+		return text
+	}
+	v := strconv.FormatFloat(low.Min, 'f', -1, 64)
+	return strings.Replace(text, "#", v+"+", 1)
 }
 
 func appendUnique(list []string, v string) []string {
@@ -115,6 +171,14 @@ type ExoticCandidate struct {
 	Entry filter.ExoticEntry `json:"entry"`
 	// Present is set when the group already shows it.
 	Present bool `json:"present"`
+	// Tiers are a modifier's tiers (best first) when the tier data knows
+	// it, Tier the copied item's; Entry then keeps that tier and better.
+	// Covered are the tier names the group already shows for the class;
+	// Text is the modifier's text with "#" for the value.
+	Text    string       `json:"text,omitempty"`
+	Tiers   []ExoticTier `json:"tiers,omitempty"`
+	Tier    int          `json:"tier,omitempty"`
+	Covered []string     `json:"covered,omitempty"`
 }
 
 // ExoticCandidates lists the copied item's base and named explicit
@@ -157,24 +221,93 @@ func (s *AppService) ExoticCandidates(raw string) ([]ExoticCandidate, error) {
 		Entry:   filter.ExoticEntry{Kind: filter.ExoticBase, Base: item.BaseType, Level: filter.ExoticNormal, Source: "user"},
 		Present: present["base|"+strings.ToLower(item.BaseType)],
 	}}
+	// Without tier data a modifier is offered by its own name only.
+	var options []ExoticModOption
+	if data, err := s.overlayTiers.Load(context.Background()); err == nil {
+		options = exoticModOptions(data, catalog, item.Class)
+	}
 	for _, m := range namedModifiers(raw) {
 		e := filter.ExoticEntry{Kind: filter.ExoticMod, Classes: []string{item.Class}, Names: []string{m.name},
 			Label: m.text + ` ("` + m.name + `")`, Level: filter.ExoticNormal, Source: "user"}
-		out = append(out, ExoticCandidate{Entry: e, Present: present["mod|"+item.Class+"|"+strings.ToLower(m.name)]})
+		c := ExoticCandidate{Entry: e, Present: present["mod|"+item.Class+"|"+strings.ToLower(m.name)]}
+		if o, tier, ok := modifierOption(options, m.name, m.text); ok {
+			var kept []ExoticTier
+			for _, t := range o.Tiers {
+				if t.Tier <= tier {
+					kept = append(kept, t)
+				}
+				if present["mod|"+item.Class+"|"+strings.ToLower(t.Name)] {
+					c.Covered = append(c.Covered, t.Name)
+				}
+			}
+			c.Entry.Names = nil
+			for _, t := range kept {
+				c.Entry.Names = append(c.Entry.Names, t.Name)
+			}
+			c.Entry.Stat, c.Entry.MinTier = o.Stat, tier
+			c.Entry.Label = exoticModLabel(o.Text, kept[len(kept)-1])
+			c.Text, c.Tiers, c.Tier = o.Text, o.Tiers, tier
+			c.Present = len(c.Covered) > 0 && coversAll(c.Covered, c.Entry.Names)
+		}
+		out = append(out, c)
 	}
 	return out, nil
+}
+
+// coversAll says whether every name is among have.
+func coversAll(have, names []string) bool {
+	set := map[string]bool{}
+	for _, h := range have {
+		set[strings.ToLower(h)] = true
+	}
+	for _, n := range names {
+		if !set[strings.ToLower(n)] {
+			return false
+		}
+	}
+	return true
 }
 
 // AddExotic adds an entry to the Exotic group and rewrites the filter.
 func (s *AppService) AddExotic(entry filter.ExoticEntry) (HideResult, error) {
 	cfg := s.eng.Config()
-	cfg.Exotic.Added = append(cfg.Exotic.Added, entry)
+	cfg.Exotic.Added = append(replacedExotic(cfg.Exotic.Added, entry), entry)
 	cfg.ShowExotics = true
 	saved, err := s.SaveConfig(cfg)
 	if err != nil {
 		return HideResult{}, err
 	}
 	return HideResult{Hidden: saved.HiddenItems, Updating: s.eng.UpdateNow() == nil}, nil
+}
+
+// replacedExotic drops the player's entries a modifier added again (from
+// Alt+E with other tiers) replaces: same class and stat, and a tier name in
+// common. The name matters: a prefix and a suffix can share the stat
+// ("Hoarder's" and "of Archaeology", both item rarity).
+func replacedExotic(added []filter.ExoticEntry, entry filter.ExoticEntry) []filter.ExoticEntry {
+	if entry.Kind != filter.ExoticMod || entry.Stat == "" {
+		return added
+	}
+	kept := added[:0:0]
+	for _, e := range added {
+		if e.Kind == filter.ExoticMod && e.Stat == entry.Stat &&
+			strings.Join(e.Classes, ",") == strings.Join(entry.Classes, ",") && sharesName(e.Names, entry.Names) {
+			continue
+		}
+		kept = append(kept, e)
+	}
+	return kept
+}
+
+func sharesName(a, b []string) bool {
+	for _, x := range a {
+		for _, y := range b {
+			if strings.EqualFold(x, y) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 type namedModifier struct{ name, text string }
