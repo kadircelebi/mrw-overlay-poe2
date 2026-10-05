@@ -79,6 +79,9 @@ LIMIT_RUNES = [
     ('serles-triumph', "Serle's Triumph", 'suffix', '+1 Suffix Modifier allowed', 'GameWarpRune2', True),
 ]
 SPECIAL_WEIGHTS = pathlib.Path(__file__).resolve().parent / 'special-weights.json'
+# Normal modifiers PoE2DB gives weight 1 because it does not know theirs (Cast
+# Speed on rings and amulets, ...); the weights come from Craft of Exile.
+WEIGHT_OVERRIDES = pathlib.Path(__file__).resolve().parent / 'weight-overrides.json'
 FIELDS = ['source_id', 'pool', 'affix', 'name', 'families', 'tier', 'required_ilvl',
           'weight', 'text', 'ranges', 'tags', 'spawn_tags']
 
@@ -172,6 +175,8 @@ def main():
 
     weights_file = read(SPECIAL_WEIGHTS)
     special_weights = weights_file['pages']
+    overrides_file = read(WEIGHT_OVERRIDES)
+    overrides = overrides_file['pages']
     classes, pages_used, essences, bases, page_bases, rune_pages = [], [], {}, {}, {}, {}
     for cid, item_class, category, repoe_class, (stem, attrs) in CLASSES:
         common = class_tags(base_items, repoe_class)
@@ -187,9 +192,16 @@ def main():
             # essence variant through.
             tags = sorted((common | set(page_tags)) - {'default'})
             rows = [{k: m[k] for k in FIELDS} for m in mods['mods'] if m['pool'] in POOLS]
+            fixed = overrides.get(page, {})
             for r in rows:
                 if r['pool'] == 'corrupted':
                     r['affix'] = 'Enchant'
+                if r['pool'] == 'normal' and r['source_id'] in fixed:
+                    r['weight'] = fixed[r['source_id']]
+            unknown = [r['text'] for r in rows
+                       if r['pool'] == 'normal' and r['affix'] in ('Prefix', 'Suffix') and r['weight'] <= 1]
+            if unknown:
+                raise SystemExit(f'{page}: no weight for {unknown}; add them to {WEIGHT_OVERRIDES.name}')
             measured = special_weights.get(page, {})
             for m in mods['mods']:
                 if m['pool'] in RUNE_POOLS and measured.get(m['source_id']):
@@ -293,6 +305,7 @@ def main():
                     if s['url'] in wanted or 'ModsView' in s['url']],
         'license': 'CC BY-NC-SA 3.0, data from https://poe2db.tw (see LICENSE.txt)',
         'rune_weights': {'source': weights_file['source'], 'data_file': weights_file['data_file']},
+        'weight_overrides': {'source': overrides_file['source'], 'data_file': overrides_file['data_file']},
     })
     (args.out / 'LICENSE.txt').write_text(LICENSE, encoding='utf-8')
     print(f'{len(classes)} classes, {len(pages_used)} pages, {len(bases)} bases, {len(essences)} essences, '
@@ -310,6 +323,8 @@ The spawn weights of the rune modifier pools (Marksman, Decay, Berserking,
 Chronomancy, Soul, Destruction) are not in PoE2DB's data. They were measured
 by Krakenbul and the Prohibited Library Discord and taken from Craft of Exile
 (https://www.craftofexile.com); credit for them belongs to those authors.
+A few normal modifiers PoE2DB lists without a known weight (for example Cast
+Speed on rings and amulets) also take their weights from Craft of Exile.
 
 The game data itself originates from Path of Exile 2 by Grinding Gear Games.
 This project is not affiliated with or endorsed by Grinding Gear Games or

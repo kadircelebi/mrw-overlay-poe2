@@ -14,6 +14,7 @@ import { baseStats, requirementLine } from './stats.mjs';
 import { lineKey, targetOf, hasTarget, targetReason, fastRunner, stats, histogram } from './simulate.mjs';
 import { corrupt, corruptReason, corruptOutcomes } from './corrupt.mjs';
 import { parseLibrary, entryFor, sameCraft, addEntry, removeEntry } from './library.mjs';
+import { orbOdds, desecrateOdds, revealOdds } from './odds.mjs';
 
 const $ = id => document.getElementById(id);
 const clone = object => structuredClone(object);
@@ -682,8 +683,38 @@ function renderPools() {
   if (rune) $('pool-hint').textContent = rollPools(item).includes(pool) ? t('pool.runeActive', rune.name) : t('pool.runeInactive', rune.name);
 }
 
+// What the list's percentages say: with an orb or bone that adds a modifier
+// selected, the chance one use puts each row on this item (odds.mjs);
+// otherwise, or when it cannot be used now, each row's share of its side.
+function listOdds() {
+  try {
+    if (mode === 'basic') {
+      const rule = rules[selected];
+      if (!rule || !['add', 'del_add'].includes(rule.afterTrigger)) return null;
+      const effects = effectsFor('basic', selected, rule), reason = orbOmenReason(item, data(), selected, rule, effects);
+      if (reason) return { name: rule.name, reason };
+      const two = selected.includes('exalted') && effects.quantity === 2;
+      return { name: rule.name, odds: orbOdds(item, data(), selected, rule, effects),
+        kind: two ? 'two' : rule.afterTrigger, minimum: rule.beforeMin_mod_lv };
+    }
+    if (mode === 'desecrate') {
+      if (unrevealedIndex(item) >= 0) return { odds: revealOdds(item, data()), kind: 'reveal' };
+      const rule = specials[specialSelected];
+      if (!rule) return null;
+      const effects = effectsFor('desecrate', specialSelected, rule), reason = specialReason(item, data(), rule, effects);
+      if (reason) return { name: rule.name, reason };
+      return { name: rule.name, odds: desecrateOdds(item, data(), rule, effects), kind: 'offer', minimum: rule.minimum };
+    }
+  } catch { /* conflicting omens: the plain shares */ }
+  return null;
+}
+const pct = p => `${num(p * 100, p < 0.001 ? 4 : 3)}%`;
+
 function renderMods() {
   renderPools();
+  const chance = listOdds();
+  $('odds-note').textContent = !chance ? t('odds.share') : chance.reason ? t('odds.cannot', chance.name, chance.reason)
+    : t(`odds.${chance.kind}`, chance.name) + (chance.minimum > 1 ? t('odds.minimum', chance.minimum) : '');
   const open = new Set([...document.querySelectorAll('details[open]')].map(n => n.dataset.family));
   const search = $('search').value.trim().toLowerCase();
   let listEffects = {side:null,tags:[],quantity:1};
@@ -709,7 +740,9 @@ function renderMods() {
     }
     const sidePool = potential.filter(m => m.affix === side);
     const total = sidePool.reduce((sum, m) => sum + m.weight, 0);
-    $(side.toLowerCase() + '-total').textContent = t('weight', num(total));
+    const sideChance = chance?.odds && data().mods.filter(m => m.affix === side).reduce((sum, m) => sum + (chance.odds.get(m.source_id) || 0), 0);
+    $(side.toLowerCase() + '-total').textContent = !chance?.odds ? t('weight', num(total))
+      : ['add', 'del_add'].includes(chance.kind) ? t('odds.side', pct(sideChance)) : '';
     for (const [family, mods] of groups) {
       if (search && !mods.some(m => `${m.text} ${m.name} ${m.tags.join(' ')} ${family}`.toLowerCase().includes(search))) continue;
       const details = element('details', undefined, 'family');
@@ -720,8 +753,10 @@ function renderMods() {
       const summary = element('summary');
       const title = mods.at(-1).text.replace(/\((-?\d+(?:\.\d+)?)[—–](-?\d+(?:\.\d+)?)\)/g, '#');
       const visibleTier = existing && mods.find(m => m.source_id === existing.source_id || m.text === existing.text)?.tier;
-      summary.append(element('span', title, 'family-name'), element('span', existing ?
-        t('family.onItem', visibleTier ? `T${visibleTier}` : existing.name) : t('family.tiers', mods.length), 'family-count'));
+      const familyChance = chance?.odds && mods.reduce((sum, m) => sum + (chance.odds.get(m.source_id) || 0), 0);
+      summary.append(element('span', title, 'family-name'), element('span', (existing ?
+        t('family.onItem', visibleTier ? `T${visibleTier}` : existing.name) : t('family.tiers', mods.length)) +
+        (familyChance ? ` · ${pct(familyChance)}` : ''), 'family-count'));
       if (existing) details.classList.add('has-selected');
       const familyList = element('div', undefined, 'family-list');
       for (const row of mods.sort((a, b) => a.tier - b.tier)) {
@@ -731,7 +766,8 @@ function renderMods() {
         description.append(element('p', row.text));
         const eligible = potential.some(m => m.source_id === row.source_id);
         const weight = potential.find(m => m.source_id === row.source_id)?.weight ?? row.weight;
-        const share = eligible && total ? `${num(weight / total * 100, 3)}%` : '—';
+        const share = chance?.odds ? (chance.odds.get(row.source_id) ? pct(chance.odds.get(row.source_id)) : '—')
+          : eligible && total ? `${num(weight / total * 100, 3)}%` : '—';
         description.append(element('small', `${row.name} · ilvl ${row.required_ilvl} · w ${row.weight} · ${share}`));
         const button = element('button', active ? '✓' : existing ? '↔' : '+');
         const reason = manualReason(existing ? removeMod(item, existingIndex) : item, row);

@@ -9,6 +9,8 @@ The spawn weights of the rune modifier pools (Marksman, Decay, Berserking,
 Chronomancy, Soul, Destruction) are not in PoE2DB's data. They were measured
 by Krakenbul and the Prohibited Library Discord and taken from Craft of Exile
 (https://www.craftofexile.com); credit for them belongs to those authors.
+A few normal modifiers PoE2DB lists without a known weight (for example Cast
+Speed on rings and amulets) also take their weights from Craft of Exile.
 
 The game data itself originates from Path of Exile 2 by Grinding Gear Games.
 This project is not affiliated with or endorsed by Grinding Gear Games or

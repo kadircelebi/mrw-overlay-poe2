@@ -57,7 +57,7 @@ export function specialReason(item, data, rule, effects=noOmens) {
   return availableEssences(item,data,rule).length ? '' : t('err.essenceNoRoom');
 }
 
-function boneRows(item,data,rule,effects=noOmens) {
+export function boneRows(item,data,rule,effects=noOmens) {
   return filterOmenRows((effects.tags.length ? ['desecrated'] : ['normal','desecrated'])
     .flatMap(pool => candidates(item,data,{pool,minimum:rule.minimum || 1})),effects);
 }
