@@ -60,7 +60,7 @@ Clicking the tray icon opens a small panel: status, **Update now**, the value th
 | **Automatic updates** | Interval (4 hours by default) and notifications. If you turn it off, run it by hand with "Update now". |
 | **App updates** | Checks GitHub Releases once a day. Downloads the new exe, verifies it with SHA-256 and, after you confirm, replaces it safely by restarting. |
 | **Trade scan** | Turn the exceptional base scan on or off and choose how much of the trade quota it may use (10–80%, 40% by default). |
-| **Profiles** | Separate sets of settings for different kinds of farming. Switch with one click, rename them; the filter is rewritten at once, and profiles can be shared as files. |
+| **Profiles** | Separate sets of settings for different kinds of farming. Switch with one click, rename them; the filter is rewritten at once, and profiles can be shared as files. **Public profiles:** publish a profile with a short description and tags (Expedition, Leveling, Strict…) so others can follow it, or browse and search what other players published, most followed first. A followed profile updates itself when its author changes it; only the filter settings come from the author, your league, language and filter name stay yours. Publishing needs a connected PoE account (shown as the author). |
 | **Overlay** | Optional price checker, **off by default**. When on, hover an item in the game and press the shortcut (Alt+E by default): a small window reads the item, lets you click affixes, DPS, rarity and properties in or out of the search, and searches the official trade site. The ▣ button opens the full market with advanced filters (also Alt+M). In the market each search has its own tab, and tabs stay until the app quits; a listing's ⊞ button opens a new search built from that item's base and affixes; saved searches can be sorted into folders (drag and drop). Buttons follow the app's language; stat and filter names are in English, as on the trade site. The windows stay inside the game window and hide when you switch to another app. |
 | **Account** | Optional. Brings your pathofexile.com session and account name into the app with a small browser extension (Chrome, Edge, Firefox; see [Browser extension](#browser-extension)). Overlay searches are then made signed in (more complex queries such as Weighted Sum work), and a listing's button takes you to the seller's hideout. Both fields are stored encrypted on this computer. The session is used for the trade actions you request; the account name appears in the main window with a copy button. |
 | **Theoretical Craft** | A separate craft window (Alt+F, ⚒ in the overlay header, or the main panel). All equipment classes, real bases and values, sockets and runes, all orbs, omens, essences, Desecrate and Fracturing are simulated with real mod weights; pick up an orb and click the item to use it, as in the game. The cost is tracked at current prices (Exalted and Divine), and the crafted item's market price is searched right in the window. An item copied in the game is sent to the craft window with ⚒. |
@@ -161,6 +161,8 @@ To do its job it reads publicly available data: prices from [poe.ninja](https://
 
 If you connect the browser extension, it sends your session cookie and account name only to the desktop app on the same computer. Both are stored encrypted with Windows DPAPI. The session cookie is sent only to `www.pathofexile.com` for the signed-in trade actions you request. The account name is used to display the connected account and let you copy it. **Settings → Account → Disconnect** deletes both stored fields. See [Browser extension](#browser-extension) for the handoff and source-code details.
 
+Public profiles are optional. Only when you publish or follow one does the app talk to the profile server (`profiles.mrwproject.com`). Publishing sends the profile's filter settings, the name, description and tags you enter, and your Path of Exile account name as the author; all of that becomes public. League, language, filter name, file paths, your own sound files, the session cookie and price/scan settings are never sent. Following records that a random install key follows that profile, so followers can be counted; the server keeps only a hash of that key, and a salted hash (not the address) of the IP that created it, to limit abuse. Unpublishing deletes the profile and its followers from the server.
+
 The price-check overlay is off by default. When the user turns it on and presses its shortcut over an item in the game, the application copies that item's text through the game's own copy command and sends a search built from its base type and modifiers to the official trade API. Market searches and live searches also send the requested search criteria directly to the official trade site.
 
 ## Updating and uninstalling
@@ -215,12 +217,15 @@ python build/art/make_icons.py  # regenerate the icons from the logo (needs Pill
 | `internal/prices` | The `prices.json` schema: the shared contract between the app and the future server |
 | `internal/collector` | poe.ninja + poe2scout → snapshot |
 | `internal/trade` | Rate-limit aware trade client and the exceptional scanner |
-| `internal/provider` | Price source chain: server (later) → local → cache |
+| `internal/provider` | Price source chain: shared server prices → local collection → cache |
+| `internal/publicprofile` | The shared public profile format and its strict validation (used by both the app and the server) |
+| `internal/profileclient` | The app's client for the public profile server |
+| `internal/profilesrv` | The public profile server: SQLite store, HTTP API, rate limits |
 | `internal/neversink` | Downloads the NeverSink filter and extracts its base lists |
 | `internal/filter` | Rule generation and injection |
 | `internal/overlay` | Item text parser, stat catalogue, tier data, game window |
 | `browser-extension/` | The pathofexile.com session bridge (Chrome, Edge, Firefox) |
-| `cmd/` | `storepack` (MSIX package), `packext` (extension zips), `scanner` (shared scan server and its systemd unit) |
+| `cmd/` | `storepack` (MSIX package), `packext` (extension zips), `scanner` (shared scan server), `profilesrv` (public profile server); each server with its systemd unit |
 | `samples/` | Exported scan results and a sample profile to import |
 
 ## Support

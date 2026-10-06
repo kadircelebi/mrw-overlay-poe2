@@ -339,7 +339,7 @@ func validSound(v string) bool {
 		return true
 	}
 	if name, ok := strings.CutPrefix(v, SoundFilePrefix); ok {
-		return name != "" && !strings.ContainsAny(name, `"/\:`)
+		return name != "" && name == CleanText(name) && !strings.ContainsAny(name, `"/\:`)
 	}
 	for _, s := range GameSounds {
 		if v == s {

@@ -19,6 +19,7 @@ import (
 	"poe2filter/internal/i18n"
 	"poe2filter/internal/insights"
 	"poe2filter/internal/overlay"
+	"poe2filter/internal/profileclient"
 	"poe2filter/internal/session"
 	"poe2filter/internal/trade"
 	"poe2filter/internal/uitheme"
@@ -127,6 +128,9 @@ type AppService struct {
 	// disk) and the state of an ongoing "connect browser" request.
 	session *session.Store
 	link    browserLink
+
+	// profiles talks to the public profile server.
+	profiles *profileclient.Client
 }
 
 func newAppService(meta Meta) *AppService {
@@ -145,12 +149,17 @@ func newAppService(meta Meta) *AppService {
 		overlayEvalCache:    make(map[string]overlayEvaluationCacheEntry),
 		overlayEvalFlights:  make(map[string]*overlayEvaluationFlight),
 		session:             sessions,
+		profiles:            profileclient.New(meta.DataDir),
 	}
 	// Only the overlay's user-started searches go out signed in; the
 	// background exceptional scanner stays anonymous.
 	svc.overlayClient.SetSession(sessions.Load())
 	svc.overlayTiers = overlay.NewTierStore(meta.DataDir, svc.overlayCatalog.Load)
 	svc.live = newLiveManager(svc)
+	// Testing points the app at a local profile server instead of the real one.
+	if base := os.Getenv("MRW_PROFILE_SERVER"); base != "" {
+		svc.profiles.Base = base
+	}
 	return svc
 }
 
@@ -181,6 +190,7 @@ func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOp
 		}()
 		go s.refreshBrowserExtension()
 		go s.restoreLiveSearches(ctx)
+		go s.followLoop(ctx)
 		if s.updater != nil {
 			var updateCtx context.Context
 			updateCtx, s.updateCancel = context.WithCancel(ctx)
@@ -340,11 +350,25 @@ func (s *AppService) SwitchProfile(name string) (filter.Config, error) {
 	return saved, nil
 }
 
-// DeleteProfile removes a profile and switches away from it when it was active.
+// DeleteProfile removes a profile and switches away from it when it was
+// active. A followed profile stops being followed; a published one is taken
+// off the server (its followers keep their last copy).
 func (s *AppService) DeleteProfile(name string) (filter.Config, error) {
-	active, err := s.eng.DeleteProfile(name)
+	active, removed, err := s.eng.DeleteProfile(name)
 	if err != nil {
 		return s.eng.Config(), err
+	}
+	if removed.Follow != nil || removed.PublicID != "" {
+		go func() {
+			ctx, cancel := s.profileCtx()
+			defer cancel()
+			if removed.Follow != nil {
+				_, _ = s.profiles.Follow(ctx, removed.Follow.ID, false)
+			}
+			if removed.PublicID != "" {
+				_ = s.profiles.Unpublish(ctx, removed.PublicID)
+			}
+		}()
 	}
 	return s.SwitchProfile(active)
 }

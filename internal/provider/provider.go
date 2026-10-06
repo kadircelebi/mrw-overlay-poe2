@@ -1,15 +1,11 @@
 // Package provider decides where the price snapshot comes from. The filter
-// generator only ever sees a *prices.Snapshot; switching from local collection
-// to a collector server means putting a Remote provider first in the chain.
+// generator only ever sees a *prices.Snapshot.
 package provider
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
@@ -17,7 +13,6 @@ import (
 	"poe2filter/internal/prices"
 
 	"poe2filter/internal/i18n"
-	"poe2filter/internal/useragent"
 )
 
 // Provider returns a price snapshot.
@@ -113,47 +108,4 @@ func (p SharedPrices) Get(ctx context.Context) (*prices.Snapshot, error) {
 	}
 	prev, _ := prices.Load(p.CachePath)
 	return attachAndSave(snap, prev, p.Exceptional, p.CachePath)
-}
-
-// Remote downloads a snapshot published by a collector server.
-type Remote struct {
-	URL    string
-	League string
-	// CachePath, when set, stores the downloaded snapshot for offline use.
-	CachePath string
-}
-
-func (r Remote) Name() string { return "sunucu" }
-
-func (r Remote) Get(ctx context.Context) (*prices.Snapshot, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.URL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", useragent.Value())
-	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-	var s prices.Snapshot
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<20)).Decode(&s); err != nil {
-		return nil, err
-	}
-	if err := s.Validate(); err != nil {
-		return nil, err
-	}
-	if r.League != "" && s.League != r.League {
-		return nil, fmt.Errorf("the server publishes a different league (%s)", s.League)
-	}
-	if time.Since(s.GeneratedAt) > 24*time.Hour {
-		return nil, fmt.Errorf("the data on the server is older than 24 hours")
-	}
-	if r.CachePath != "" {
-		_ = prices.Save(r.CachePath, &s)
-	}
-	return &s, nil
 }

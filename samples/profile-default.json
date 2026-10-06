@@ -44,7 +44,6 @@
       "unique": "4",
       "user:g2": "2"
     },
-    "custom_sound_path": "",
     "hide_exalt": false,
     "hide_gold": true,
     "filter_name": "auto_updated",
@@ -98,7 +97,6 @@
     "custom_base_filter": "",
     "exceptional_scan": true,
     "scan_budget_pct": 40,
-    "price_source_url": "",
     "config_version": 2,
     "language": "auto",
     "auto_update_enabled": true,

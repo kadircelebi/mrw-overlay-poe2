@@ -18,6 +18,7 @@ export type {
     HideResult,
     LanguageOption,
     Meta,
+    PublishInfo,
     StartupStatus,
     StyleOptions
 } from "./models.js";

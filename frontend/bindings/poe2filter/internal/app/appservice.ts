@@ -28,6 +28,9 @@ import * as insights$0 from "../insights/models.js";
 import * as overlay$0 from "../overlay/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as publicprofile$0 from "../publicprofile/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as trade$0 from "../trade/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -129,7 +132,9 @@ export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.S
 }
 
 /**
- * DeleteProfile removes a profile and switches away from it when it was active.
+ * DeleteProfile removes a profile and switches away from it when it was
+ * active. A followed profile stops being followed; a published one is taken
+ * off the server (its followers keep their last copy).
  */
 export function DeleteProfile(name: string): $CancellablePromise<filter$0.Config> {
     return $Call.ByID(2240805447, name);
@@ -241,6 +246,14 @@ export function FetchOverlayListings(searchID: string, ids: string[] | null): $C
  */
 export function FitOverlay(height: number): $CancellablePromise<void> {
     return $Call.ByID(1569686900, height);
+}
+
+/**
+ * FollowProfile downloads a published profile, adds it as a followed
+ * profile and switches to it.
+ */
+export function FollowProfile(id: string): $CancellablePromise<filter$0.Config> {
+    return $Call.ByID(3014892149, id);
 }
 
 /**
@@ -531,10 +544,47 @@ export function PreviewSound(name: string, volume: number): $CancellablePromise<
 }
 
 /**
+ * ProfilePublishInfo describes a profile for the publish form.
+ */
+export function ProfilePublishInfo(name: string): $CancellablePromise<$models.PublishInfo> {
+    return $Call.ByID(3775769357, name);
+}
+
+/**
  * Profiles lists the saved settings sets for the picker.
  */
 export function Profiles(): $CancellablePromise<engine$0.ProfileInfo[] | null> {
     return $Call.ByID(1685047943);
+}
+
+/**
+ * PublicProfileReasons are the reasons a report may give.
+ */
+export function PublicProfileReasons(): $CancellablePromise<string[] | null> {
+    return $Call.ByID(3372140574);
+}
+
+/**
+ * PublicProfileTags are the labels an author may choose from.
+ */
+export function PublicProfileTags(): $CancellablePromise<string[] | null> {
+    return $Call.ByID(2324903904);
+}
+
+/**
+ * PublicProfiles lists one page of published profiles (most followed first),
+ * optionally searched by name/author and narrowed to a tag.
+ */
+export function PublicProfiles(query: string, tag: string, page: number): $CancellablePromise<publicprofile$0.Listing[] | null> {
+    return $Call.ByID(221097826, query, tag, page);
+}
+
+/**
+ * PublishProfile publishes a profile, or updates the published copy. Only
+ * the filter settings go; sound files fall back to built-in sounds.
+ */
+export function PublishProfile(name: string, meta: publicprofile$0.Meta): $CancellablePromise<publicprofile$0.Listing> {
+    return $Call.ByID(4062430093, name, meta);
 }
 
 /**
@@ -564,6 +614,13 @@ export function RenameProfile(oldName: string, newName: string): $CancellablePro
 
 export function RenameSearchFolder(id: string, name: string): $CancellablePromise<overlay$0.SearchLibrary> {
     return $Call.ByID(1207155631, id, name);
+}
+
+/**
+ * ReportProfile flags a published profile for moderation.
+ */
+export function ReportProfile(id: string, reason: string, note: string): $CancellablePromise<void> {
+    return $Call.ByID(1581234324, id, reason, note);
 }
 
 /**
@@ -751,6 +808,14 @@ export function UnhideItem(entry: filter$0.HiddenItem): $CancellablePromise<$mod
  */
 export function UniqueIcons(): $CancellablePromise<{ [_ in string]?: string } | null> {
     return $Call.ByID(1751108448);
+}
+
+/**
+ * UnpublishProfile removes a profile from the server; followers keep their
+ * last copy.
+ */
+export function UnpublishProfile(name: string): $CancellablePromise<void> {
+    return $Call.ByID(2496674306, name);
 }
 
 /**

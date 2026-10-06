@@ -162,6 +162,9 @@ func (e *Engine) changed() {
 	}
 }
 
+// Logf writes a line to the activity log (shown in the panel).
+func (e *Engine) Logf(format string, args ...any) { e.logf(format, args...) }
+
 func (e *Engine) logf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	e.stMu.Lock()
@@ -256,6 +259,7 @@ func (e *Engine) Leagues() []string {
 }
 
 func (e *Engine) SetConfig(c filter.Config) (filter.Config, error) {
+	c = e.lockFollowed(c)
 	c.Normalize()
 	if err := c.Save(e.configPath()); err != nil {
 		return e.Config(), fmt.Errorf(i18n.T("err.settingsSave"), err)
@@ -384,7 +388,7 @@ func (e *Engine) ensureScanner(run bool) {
 		e.scanner.SetBudget(float64(cfg.ScanBudgetPct) / 100)
 	}
 
-	covered := cfg.SharedScan && cfg.PriceSourceURL == "" && e.shared.Covers(cfg.LeagueName)
+	covered := cfg.SharedScan && e.shared.Covers(cfg.LeagueName)
 	want := cfg.ExceptionalScan && !covered
 	switch {
 	case !want && e.scanCancel != nil:
@@ -468,7 +472,7 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	if scanner != nil {
 		exceptional = scanner
 	}
-	if cfg.SharedScan && cfg.PriceSourceURL == "" {
+	if cfg.SharedScan {
 		sctx, cancel := context.WithTimeout(ctx, time.Minute)
 		if err := e.shared.Refresh(sctx, cfg.LeagueName); err != nil {
 			e.logf("%s", i18n.T("log.sharedFailed", err))
@@ -481,9 +485,7 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	}
 
 	var chain provider.Chain
-	if cfg.PriceSourceURL != "" {
-		chain = append(chain, provider.Remote{URL: cfg.PriceSourceURL, League: cfg.LeagueName, CachePath: e.snapshotPath()})
-	} else if cfg.SharedScan {
+	if cfg.SharedScan {
 		// Published hourly; older than three hours means the server is
 		// behind, and the prices are collected here instead.
 		chain = append(chain, provider.SharedPrices{Store: e.shared, League: cfg.LeagueName, MaxAge: 3 * time.Hour,
@@ -493,7 +495,7 @@ func (e *Engine) run(ctx context.Context) (err error) {
 		Options:   collector.Options{League: cfg.LeagueName, Log: func(s string) { e.logf("%s", strings.TrimSpace(s)) }},
 		CachePath: e.snapshotPath(),
 	}
-	if exceptional != nil && cfg.PriceSourceURL == "" {
+	if exceptional != nil {
 		local.Exceptional = exceptional
 	}
 	chain = append(chain, local, provider.Cache{Path: e.snapshotPath()})
@@ -592,7 +594,7 @@ func (e *Engine) State() State {
 	s.ConfigPending = e.writtenKey != "" && e.writtenKey != cfg.FilterKey()
 	e.cfgMu.Unlock()
 	s.Shared = e.shared.Status()
-	s.SharedUsed = cfg.SharedScan && cfg.PriceSourceURL == "" && e.shared.Covers(cfg.LeagueName)
+	s.SharedUsed = cfg.SharedScan && e.shared.Covers(cfg.LeagueName)
 	if scanner != nil {
 		ss := scanner.Status()
 		s.Scan = ScanState{Enabled: scanning, Candidates: ss.Candidates, Keys: ss.Keys,

@@ -1178,3 +1178,46 @@ func TestExoticRulesPrecedeGearHides(t *testing.T) {
 		t.Error("exotic rules written while switched off")
 	}
 }
+
+// Text the player typed, or that came in with a shared profile, can never
+// start a filter line of its own.
+func TestTypedTextCannotAddFilterLines(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ItemGroups = []ItemGroup{
+		{ID: "g1", Name: "Loot\nHide\r\nINJECTED", Items: []string{"Expedition Logbook"}},
+		{ID: "g2", Name: "Gone INJECTED", Items: []string{"Expedition Logbook"}, Mode: ItemGroupModeHide},
+	}
+	// Names that are no item are dropped before they reach the filter.
+	cfg.Whitelist = []string{"Divine Orb\nINJECTED"}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+
+	if !strings.Contains(out, "INJECTED") {
+		t.Fatal("test text missing from the filter")
+	}
+	for _, line := range strings.Split(out, "\n") {
+		if !strings.Contains(line, "INJECTED") {
+			continue
+		}
+		trimmed := strings.TrimSpace(line)
+		quoted := strings.Index(line, `"`) >= 0 && strings.Index(line, `"`) < strings.Index(line, "INJECTED")
+		if !strings.HasPrefix(trimmed, "#") && !quoted {
+			t.Fatalf("typed text started its own line: %q", line)
+		}
+	}
+	if strings.Contains(out, "\r") || strings.Contains(out, " ") {
+		t.Fatal("control characters reached the filter")
+	}
+}
+
+func TestNormalizeCleansTypedText(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ItemGroups = []ItemGroup{{ID: "g1", Name: " A\nB ", Items: []string{"X\tY", "\n"}}}
+	cfg.HiddenItems = []HiddenItem{{Base: "Gold\nRing"}}
+	cfg.Normalize()
+	if g := cfg.ItemGroups[0]; g.Name != "A B" || len(g.Items) != 1 || g.Items[0] != "X Y" {
+		t.Fatalf("group not cleaned: %+v", g)
+	}
+	if cfg.HiddenItems[0].Base != "Gold Ring" {
+		t.Fatalf("hidden item not cleaned: %q", cfg.HiddenItems[0].Base)
+	}
+}

@@ -7,6 +7,7 @@
   import Toggle from './lib/Toggle.svelte'
   import HotkeyInput from './lib/HotkeyInput.svelte'
   import AccountLink from './lib/AccountLink.svelte'
+  import PublicProfiles from './lib/PublicProfiles.svelte'
   import AccountBadge from './lib/AccountBadge.svelte'
   import Segmented from './lib/Segmented.svelte'
   import ListEditor from './lib/ListEditor.svelte'
@@ -212,6 +213,7 @@
     })
     const offAppUpdate = Events.On('app-update', (ev) => (appUpdate = ev.data))
     const offConfig = Events.On('config', (ev) => adoptConfig(ev.data as Config))
+    const offProfiles = Events.On('profiles', (ev) => (profiles = (ev.data as ProfileInfo[]) ?? profiles))
     const offSection = Events.On('settings-section', (ev) => {
       if (win === 'settings') section = ev.data as Section
     })
@@ -221,6 +223,7 @@
       off()
       offAppUpdate()
       offConfig()
+      offProfiles()
       offSection()
       clearInterval(tick)
       window.removeEventListener('focus', refresh)
@@ -303,6 +306,9 @@
   }
 
   const activeProfile = $derived(profiles.find((p) => p.active)?.name ?? '')
+  // A followed profile's filter settings come from its author.
+  const followedActive = $derived(profiles.find((p) => p.active)?.follow ?? null)
+  const filterSections: Section[] = ['rules', 'groups', 'look', 'lists']
 
   // Applying a profile can change the league and the filter name, so say what
   // moved instead of letting the user discover it in game.
@@ -1128,6 +1134,9 @@
           <div class="page-head">
             <h2 class="page-title">{sectionLabel}</h2>
             <p>{t(sectionDesc[section])}</p>
+            {#if followedActive && filterSections.includes(section)}
+              <p class="locked">{t('pub.lockedBanner', followedActive.name)}</p>
+            {/if}
           </div>
 
           {#if section === 'groups'}
@@ -1658,6 +1667,12 @@
                     {#if profileMsg}<p class="desc warn">{profileMsg}</p>{/if}
                     {#if profileErr}<p class="error">{profileErr}</p>{/if}
                   </section>
+                  <PublicProfiles
+                    {profiles}
+                    {groups}
+                    onChanged={(saved, msg) => afterProfileChange(saved, cfg, msg)}
+                    onProfiles={(list) => (profiles = list)}
+                  />
                 </div>
               {:else if section === 'updates'}
                 <div class="cols">
@@ -1820,10 +1835,6 @@
                     <label class="field stack">
                       <span>{t('general.customBase')}</span>
                       <input bind:value={cfg.custom_base_filter} onchange={() => queueSave()} placeholder={t('general.customBasePlaceholder')} spellcheck="false" />
-                    </label>
-                    <label class="field stack">
-                      <span>{t('general.priceServer')}</span>
-                      <input bind:value={cfg.price_source_url} onchange={() => queueSave(false)} placeholder="https://…/prices.json" spellcheck="false" />
                     </label>
                   </section>
                   <section class="actions">
@@ -2663,6 +2674,12 @@
     background: none;
     font-size: 16px;
     letter-spacing: 0.08em;
+  }
+  .page-head p.locked {
+    margin-top: 8px;
+    padding: 6px 9px;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-bright);
   }
   .page-head p {
     margin: 3px 0 0;

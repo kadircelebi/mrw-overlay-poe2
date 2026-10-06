@@ -28,12 +28,19 @@ const MaxProfiles = 20
 type Profile struct {
 	Name   string        `json:"name"`
 	Config filter.Config `json:"config"`
+	// PublicID is the server id when this install published the profile.
+	PublicID string `json:"public_id,omitempty"`
+	// Follow is set when the profile follows someone else's published one;
+	// its filter settings then always come from Follow.Document.
+	Follow *Followed `json:"follow,omitempty"`
 }
 
 // ProfileInfo is what the panel needs to draw the picker.
 type ProfileInfo struct {
-	Name   string `json:"name"`
-	Active bool   `json:"active"`
+	Name     string      `json:"name"`
+	Active   bool        `json:"active"`
+	PublicID string      `json:"publicId,omitempty"`
+	Follow   *FollowInfo `json:"follow,omitempty"`
 }
 
 // ProfileShare is an exported profile.
@@ -107,7 +114,11 @@ func (e *Engine) Profiles() []ProfileInfo {
 	st := e.loadProfiles()
 	out := make([]ProfileInfo, 0, len(st.Profiles))
 	for _, p := range st.Profiles {
-		out = append(out, ProfileInfo{Name: p.Name, Active: strings.EqualFold(p.Name, st.Active)})
+		info := ProfileInfo{Name: p.Name, Active: strings.EqualFold(p.Name, st.Active), PublicID: p.PublicID}
+		if f := p.Follow; f != nil {
+			info.Follow = &FollowInfo{ID: f.ID, Name: f.Name, Author: f.Author, Version: f.Version, Gone: f.Gone}
+		}
+		out = append(out, info)
 	}
 	return out
 }
@@ -186,25 +197,28 @@ func (e *Engine) SwitchProfile(name string) (filter.Config, error) {
 	return cfg, nil
 }
 
-// DeleteProfile removes a profile. The active one can only go when another
-// profile is there to take over, which the caller then switches to.
-func (e *Engine) DeleteProfile(name string) (string, error) {
+// DeleteProfile removes a profile and returns the new active name with the
+// removed profile (whose server links the caller may undo). The active one
+// can only go when another profile is there to take over, which the caller
+// then switches to.
+func (e *Engine) DeleteProfile(name string) (string, Profile, error) {
 	e.profileMu.Lock()
 	defer e.profileMu.Unlock()
 	st := e.loadProfiles()
 	i := st.indexOf(name)
 	if i < 0 {
-		return st.Active, fmt.Errorf(i18n.T("err.profileMissing"), name)
+		return st.Active, Profile{}, fmt.Errorf(i18n.T("err.profileMissing"), name)
 	}
 	if len(st.Profiles) == 1 {
-		return st.Active, errors.New(i18n.T("err.profileLast"))
+		return st.Active, Profile{}, errors.New(i18n.T("err.profileLast"))
 	}
+	removed := st.Profiles[i]
 	wasActive := strings.EqualFold(st.Profiles[i].Name, st.Active)
 	st.Profiles = append(st.Profiles[:i], st.Profiles[i+1:]...)
 	if wasActive {
 		st.Active = st.Profiles[0].Name
 	}
-	return st.Active, e.saveProfiles(st)
+	return st.Active, removed, e.saveProfiles(st)
 }
 
 // ExportProfile returns a profile as a file another player can import.

@@ -88,7 +88,6 @@ export interface Config {
      * (MinSoundVolume..MaxSoundVolume-1); a missing group plays at the maximum.
      */
     "volumes": { [_ in string]?: number } | null;
-    "custom_sound_path": string;
     "hide_exalt": boolean;
     "hide_gold": boolean;
     "filter_name": string;
@@ -140,11 +139,6 @@ export interface Config {
      * share of the IP rate limit, 10..80
      */
     "scan_budget_pct": number;
-
-    /**
-     * When set, prices come from this collector server URL first.
-     */
-    "price_source_url": string;
 
     /**
      * ConfigVersion is the format of this file, used to migrate meanings that

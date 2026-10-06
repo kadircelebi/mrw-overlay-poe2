@@ -118,7 +118,7 @@ func TestProfileGuards(t *testing.T) {
 	if _, err := e.SwitchProfile("nope"); err == nil {
 		t.Error("switching to a missing profile should fail")
 	}
-	if _, err := e.DeleteProfile(e.Profiles()[0].Name); err == nil {
+	if _, _, err := e.DeleteProfile(e.Profiles()[0].Name); err == nil {
 		t.Error("the last profile must not be deletable")
 	}
 	if _, err := e.ImportProfile([]byte("not json")); err == nil {
@@ -132,7 +132,7 @@ func TestProfileGuards(t *testing.T) {
 	if err := e.SaveProfileAs("Second"); err != nil {
 		t.Fatal(err)
 	}
-	active, err := e.DeleteProfile("Second")
+	active, _, err := e.DeleteProfile("Second")
 	if err != nil {
 		t.Fatal(err)
 	}

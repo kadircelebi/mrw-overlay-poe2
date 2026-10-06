@@ -13,6 +13,9 @@ import * as platform$0 from "../platform/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as prices$0 from "../prices/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as publicprofile$0 from "../publicprofile/models.js";
 
 export interface BrowserLinkStatus {
     "state": string;
@@ -232,6 +235,31 @@ export interface Meta {
      * MaxItemGroups is how many of their own groups a user may keep.
      */
     "maxItemGroups": number;
+}
+
+/**
+ * PublishInfo is what the publish form needs about one profile.
+ */
+export interface PublishInfo {
+    /**
+     * Account is the PoE account shown as the author ("" = not connected).
+     */
+    "account": string;
+
+    /**
+     * Listing is the published state, when the profile is published.
+     */
+    "listing": publicprofile$0.Listing | null;
+
+    /**
+     * Sounds are the groups whose own sound file is not shared.
+     */
+    "sounds": publicprofile$0.SoundSwap[] | null;
+
+    /**
+     * Followed is true for a followed profile, which cannot be published.
+     */
+    "followed": boolean;
 }
 
 /**

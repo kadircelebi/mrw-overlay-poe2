@@ -167,7 +167,12 @@ func normalizeExotic(x *ExoticSettings) {
 	seen := map[string]bool{}
 	for _, e := range x.Added {
 		e.Source = "user"
-		e.Base = strings.TrimSpace(e.Base)
+		e.Base = CleanText(e.Base)
+		e.Stat, e.Label = CleanText(e.Stat), CleanText(e.Label)
+		e.Names, e.Classes = cleanTexts(e.Names), cleanTexts(e.Classes)
+		// A player's entry is written with fixed conditions (userExoticConds);
+		// only NeverSink's own entries carry theirs.
+		e.Conds, e.Tier = nil, ""
 		if e.Kind != ExoticMod {
 			e.Kind = ExoticBase
 		}
@@ -274,6 +279,16 @@ func userExoticConds(e ExoticEntry) []string {
 		return []string{"Rarity Normal Magic Rare"}
 	}
 	return []string{"Mirrored False", "Corrupted False", "Identified True", "Rarity Normal Magic Rare"}
+}
+
+func cleanTexts(in []string) []string {
+	var out []string
+	for _, s := range in {
+		if s = CleanText(s); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 func appendNew(list []string, values ...string) []string {

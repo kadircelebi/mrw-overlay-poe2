@@ -134,12 +134,11 @@ type Config struct {
 	FontSizes map[string]int `json:"font_sizes"`
 	// Volumes maps a style group id to the volume its sound plays at
 	// (MinSoundVolume..MaxSoundVolume-1); a missing group plays at the maximum.
-	Volumes         map[string]int `json:"volumes"`
-	CustomSoundPath string         `json:"custom_sound_path"`
-	HideExalt       bool           `json:"hide_exalt"`
-	HideGold        bool           `json:"hide_gold"`
-	FilterName      string         `json:"filter_name"`
-	Whitelist       []string       `json:"whitelist"`
+	Volumes    map[string]int `json:"volumes"`
+	HideExalt  bool           `json:"hide_exalt"`
+	HideGold   bool           `json:"hide_gold"`
+	FilterName string         `json:"filter_name"`
+	Whitelist  []string       `json:"whitelist"`
 	// ItemGroups are the user's own lists. Each one shows or hides its items
 	// and carries its own colours and sound, keyed by ItemGroup.StyleKey().
 	ItemGroups  []ItemGroup `json:"item_groups"`
@@ -167,9 +166,6 @@ type Config struct {
 	// their trade quota free); otherwise ExceptionalScan decides.
 	SharedScan    bool `json:"shared_scan"`
 	ScanBudgetPct int  `json:"scan_budget_pct"` // share of the IP rate limit, 10..80
-
-	// When set, prices come from this collector server URL first.
-	PriceSourceURL string `json:"price_source_url"`
 
 	// ConfigVersion is the format of this file, used to migrate meanings that
 	// changed without the field itself changing.
@@ -339,7 +335,7 @@ func (c Config) Save(path string) error {
 // matching what the panel treats as not needing a rewrite.
 func (c Config) FilterKey() string {
 	c.Language, c.AutoUpdateEnabled, c.AutoUpdateHours, c.NotifyEnabled = "", false, 0, false
-	c.ScanBudgetPct, c.PriceSourceURL, c.ExceptionalScan = 0, "", false
+	c.ScanBudgetPct, c.ExceptionalScan = 0, false
 	raw, err := json.Marshal(c)
 	if err != nil {
 		return ""
@@ -415,6 +411,19 @@ func (c *Config) migrateLists() {
 	c.LegacyWhitelistMid, c.LegacyBlacklist = nil, nil
 }
 
+// CleanText trims s and turns control characters (line breaks included) into
+// spaces, so text the player typed or imported stays on one filter line.
+func CleanText(s string) string {
+	return strings.TrimSpace(strings.Map(lineRune, s))
+}
+
+func lineRune(r rune) rune {
+	if r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0) || r == '\u2028' || r == '\u2029' {
+		return ' '
+	}
+	return r
+}
+
 // freeGroupID returns an id no current group uses.
 func (c *Config) freeGroupID() string {
 	for i := 1; ; i++ {
@@ -438,7 +447,7 @@ func (c *Config) normalizeGroups() {
 	seen := map[string]bool{}
 	out := c.ItemGroups[:0]
 	for _, g := range c.ItemGroups {
-		g.Name = strings.TrimSpace(g.Name)
+		g.Name = CleanText(g.Name)
 		g.Mode = g.GroupMode()
 		g.Hide = g.Mode == ItemGroupModeHide
 		if g.Mode != ItemGroupModeShow {
@@ -454,7 +463,7 @@ func (c *Config) normalizeGroups() {
 		}
 		items := g.Items[:0]
 		for _, it := range g.Items {
-			if it = strings.TrimSpace(it); it != "" {
+			if it = CleanText(it); it != "" {
 				items = append(items, it)
 			}
 		}

@@ -6,11 +6,24 @@
 import * as shared$0 from "../shared/models.js";
 
 /**
+ * FollowInfo is Followed without the document, for the panel.
+ */
+export interface FollowInfo {
+    "id": string;
+    "name": string;
+    "author": string;
+    "version": number;
+    "gone": boolean;
+}
+
+/**
  * ProfileInfo is what the panel needs to draw the picker.
  */
 export interface ProfileInfo {
     "name": string;
     "active": boolean;
+    "publicId"?: string;
+    "follow"?: FollowInfo | null;
 }
 
 /**

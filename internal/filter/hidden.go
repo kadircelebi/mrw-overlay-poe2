@@ -43,7 +43,7 @@ func normalizeHidden(in []HiddenItem) []HiddenItem {
 	var out []HiddenItem
 	index := map[string]int{}
 	for _, h := range in {
-		h.Base = strings.TrimSpace(h.Base)
+		h.Base = CleanText(h.Base)
 		if h.Base == "" {
 			continue
 		}

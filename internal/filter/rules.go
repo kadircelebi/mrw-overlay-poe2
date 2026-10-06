@@ -54,7 +54,14 @@ type builder struct {
 	lines []string
 }
 
-func (b *builder) add(l ...string) { b.lines = append(b.lines, l...) }
+// add appends lines. Text the player typed (group names, list entries) ends
+// up in some of them, so a line break that slipped through can never start a
+// line of its own.
+func (b *builder) add(l ...string) {
+	for _, s := range l {
+		b.lines = append(b.lines, strings.Map(lineRune, s))
+	}
+}
 
 func (b *builder) section(title string) {
 	b.add("#==============================================================================",
@@ -1007,7 +1014,7 @@ func chunkSlice(items []string, size int) [][]string {
 func quoteItems(items []string) []string {
 	res := make([]string, len(items))
 	for i, it := range items {
-		res[i] = `"` + strings.ReplaceAll(strings.TrimSpace(it), `"`, "") + `"`
+		res[i] = `"` + strings.ReplaceAll(CleanText(it), `"`, "") + `"`
 	}
 	return res
 }
