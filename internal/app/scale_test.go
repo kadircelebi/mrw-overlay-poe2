@@ -84,3 +84,40 @@ func TestWindowScaleFitsTheGame(t *testing.T) {
 		t.Errorf("market ignores the personal scale: %.2f, want %.2f", got, want)
 	}
 }
+
+// The market window grows with the UI size so its columns keep their room:
+// the page width (window width / zoom) never drops below what it has at the
+// default size, and never under the narrowest layout, unless the screen or
+// the game is too small for it.
+func TestMarketWidthGrowsWithUISize(t *testing.T) {
+	screen := screenOf(3840, 2160, 1.5, 48)
+	a := areaOf(screen, 3840, 2160, true)
+	work := screen.WorkArea.Width
+	normal := overlay.Settings{AutoScale: true, UIScale: 100}
+	if got := marketWidthFor(normal, a, work); got != work/3 {
+		t.Fatalf("default market width %d, want a third (%d)", got, work/3)
+	}
+	page100 := float64(marketWidthFor(normal, a, work)) / marketScaleFor(normal, a)
+	prev := 0
+	for _, pct := range []int{75, 100, 125, 150, 175} {
+		st := overlay.Settings{AutoScale: true, UIScale: pct}
+		w := marketWidthFor(st, a, work)
+		if w < prev {
+			t.Errorf("%d%%: window narrowed to %d", pct, w)
+		}
+		prev = w
+		if w > work {
+			t.Errorf("%d%%: window %d wider than the screen %d", pct, w, work)
+		}
+		page := float64(w) / marketScaleFor(st, a)
+		if w < work && (page < page100-1 || page < marketMinWidth-1) {
+			t.Errorf("%d%%: page only %.0f wide (default %.0f)", pct, page, page100)
+		}
+	}
+
+	// A small game caps the window at the game's width.
+	small := areaOf(screenOf(3840, 2160, 1.5, 48), 1280, 720, true)
+	if got := marketWidthFor(overlay.Settings{AutoScale: true, UIScale: 175}, small, work); float64(got) > small.width {
+		t.Errorf("market %d wider than the game %.0f", got, small.width)
+	}
+}

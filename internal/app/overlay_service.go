@@ -664,13 +664,11 @@ func (s *AppService) showMarketWindow() {
 		s.overlayMu.RUnlock()
 		s.marketWindow.UnMaximise()
 		s.marketWindow.SetScreen(screen)
+		area := s.windowArea()
 		bounds := screen.WorkArea
-		bounds.Width = max(560, bounds.Width/3)
-		if bounds.Width > screen.WorkArea.Width {
-			bounds.Width = screen.WorkArea.Width
-		}
+		bounds.Width = marketWidthFor(settings, area, screen.WorkArea.Width)
 		s.marketWindow.SetBounds(bounds)
-		s.setWindowZoom(s.marketWindow, marketScaleFor(settings, s.windowArea()))
+		s.setWindowZoom(s.marketWindow, marketScaleFor(settings, area))
 		overlay.PlaceInGame(uintptr(s.marketWindow.NativeWindow()), false)
 	} else {
 		s.marketWindow.Maximise()
@@ -784,6 +782,28 @@ func marketScaleFor(settings overlay.Settings, a windowArea) float64 {
 	return clampScale(scale, 0.5, 1.45)
 }
 
+// marketMinWidth is the narrowest page (in page pixels) on which the
+// market's three columns still fit: saved searches, search, filters.
+const marketMinWidth = 720
+
+// marketWidthFor is the market window's width. At the default UI size it
+// takes a third of the screen; a larger UI size widens it by the same
+// factor as its contents grow, so the page keeps the room it was laid out
+// for instead of squeezing its columns into one another. It never gets
+// wider than the screen or the game.
+func marketWidthFor(settings overlay.Settings, a windowArea, workWidth int) int {
+	third := float64(max(560, workWidth/3))
+	normal := settings
+	normal.UIScale = 100
+	scale := marketScaleFor(settings, a)
+	width := max(third*scale/marketScaleFor(normal, a), marketMinWidth*scale)
+	limit := float64(workWidth)
+	if a.width > 0 {
+		limit = min(limit, a.width)
+	}
+	return int(min(width, limit))
+}
+
 // craftScaleFor keeps the craft page at its full two-column width: a window
 // squeezed into a small game would otherwise stack the columns. Its height
 // may run past the game; the columns scroll.
@@ -844,6 +864,14 @@ func (s *AppService) applyOverlayScale() {
 		s.setWindowZoom(s.overlayWindow, scale)
 	}
 	if s.marketWindow != nil {
+		// A larger UI size widens the window with its contents.
+		if screen := s.anchorScreen(); screen != nil && s.marketWindow.IsVisible() {
+			b := s.marketWindow.Bounds()
+			if w := marketWidthFor(settings, area, screen.WorkArea.Width); w != b.Width {
+				b.Width = w
+				s.marketWindow.SetBounds(b)
+			}
+		}
 		s.setWindowZoom(s.marketWindow, marketScaleFor(settings, area))
 	}
 	if s.craftWindow != nil {
