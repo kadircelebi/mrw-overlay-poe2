@@ -555,7 +555,6 @@ export const zh: Record<string, string> = {
   'ov.shown': '顯示 {0} 筆',
   'ov.col.account': '帳號',
   'ov.col.listed': '刊登',
-  'ov.listing': '刊登',
   'ov.showItem': '顯示物品',
   'ov.filterByItem': '依物品屬性篩選：以此物品的基底與詞綴開啟新搜尋',
   'ov.hideout.sent': '已送出請求；遊戲正帶你前往賣家的藏身處',

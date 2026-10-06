@@ -586,7 +586,6 @@ export const en: Record<string, string> = {
   'ov.shown': '{0} shown',
   'ov.col.account': 'Account',
   'ov.col.listed': 'Listed',
-  'ov.listing': 'Listing',
   'ov.showItem': 'Show the item',
   'ov.filterByItem': 'Filter by item stats: a new search with this item\'s base and affixes',
   'ov.hideout.sent': "Request sent; the game is taking you to the seller's hideout",

@@ -181,6 +181,18 @@
 
 </script>
 
+{#snippet priceCell(row: EvaluatedListing, coin: ReturnType<typeof currencyInfo>, sortable: boolean)}
+  {#if sortable}
+    <button type="button" class="price sortable" class:on={sort?.key === 'price'} title={t('ov.sortByPrice', `${row.amount} × ${coin?.text || currencyLabel(row.currency)}`)} onclick={() => onsort?.('price')}>{row.amount}{#if coin?.image}<i>×</i><img src={coin.image} alt={coin.text} />{:else} <small>{currencyLabel(row.currency)}</small>{/if}<em>{arrow('price') || '⇅'}</em></button>
+  {:else}
+    <strong class="price" title={`${row.amount} × ${coin?.text || currencyLabel(row.currency)}`}>{row.amount}{#if coin?.image}<i>×</i><img src={coin.image} alt={coin.text} />{:else} <small>{currencyLabel(row.currency)}</small>{/if}</strong>
+  {/if}
+{/snippet}
+
+{#snippet hideoutButton(row: EvaluatedListing)}
+  <button type="button" class="hideout" class:sent={travel[row.id] === 'ok'} class:failed={travel[row.id]?.startsWith('!')} disabled={!row.hideoutToken || !result?.signedIn || travel[row.id] === 'busy'} title={hideoutTitle(row)} onclick={() => goToHideout(row)}>{travel[row.id] === 'busy' ? '…' : travel[row.id] === 'ok' ? '✓' : '↪'}</button>
+{/snippet}
+
 {#snippet itemPreview(row: EvaluatedListing)}
   {@const rarity = (row.item.rarity ?? '').toLowerCase()}
   {@const options = optionStats(row.item.mods ?? [])}
@@ -275,11 +287,22 @@
     {#each rows as row (row.id)}
       {@const coin = currencyInfo(row.currency)}
       <article class="listing-card" class:full={expanded}>
-        {#if expanded}{@render itemPreview(row)}{/if}
-        <div class="listing" class:on={!expanded && preview?.id === row.id}>
-          <button type="button" class="eye" title={expanded ? t('ov.listing') : t('ov.showItem')} onclick={(event) => { event.stopPropagation(); if (!expanded) toggle(row) }}>{expanded ? '●' : '◉'}</button>
+        {#if expanded}
+          {@render itemPreview(row)}
+          <!-- A full card already shows level, quality, sockets and states;
+               its footer is only what the card lacks: price, seller, age. -->
+          <div class="listing footer">
+            {@render priceCell(row, coin, !!onsort)}
+            {#if hasDps && !gemList && row.item.dps}<span class="dps" title={`pDPS ${row.item.physicalDps} · eDPS ${row.item.elementalDps}`}>{Math.round(row.item.dps)} DPS</span>{/if}
+            <span class="account" title={row.account}>{row.account}</span>
+            <span class="age">{listedAgo(row.listed)}</span>
+            {@render hideoutButton(row)}
+          </div>
+        {:else}
+          <div class="listing" class:on={preview?.id === row.id}>
+          <button type="button" class="eye" title={t('ov.showItem')} onclick={(event) => { event.stopPropagation(); toggle(row) }}>◉</button>
           {#if onsort}
-            <button type="button" class="price sortable" class:on={sort?.key === 'price'} title={t('ov.sortByPrice', `${row.amount} × ${coin?.text || currencyLabel(row.currency)}`)} onclick={() => onsort?.('price')}>{row.amount}{#if coin?.image}<i>×</i><img src={coin.image} alt={coin.text} />{:else} <small>{currencyLabel(row.currency)}</small>{/if}<em>{arrow('price') || '⇅'}</em></button>
+            {@render priceCell(row, coin, true)}
             {#if gemList}
               <button type="button" class="sortable" class:on={sort?.key === 'gem_level'} title="Gem Level" onclick={() => onsort?.('gem_level')}>{row.item.gemLevel}<em>{arrow('gem_level')}</em></button>
               <button type="button" class="sortable" class:on={sort?.key === 'quality'} title="Quality" onclick={() => onsort?.('quality')}>{row.item.quality ? `${row.item.quality}%` : ''}<em>{arrow('quality')}</em></button>
@@ -288,7 +311,7 @@
               <button type="button" class="sortable" class:on={sort?.key === 'ilvl'} title={t('ov.sortByIlvl')} onclick={() => onsort?.('ilvl')}>{row.item.itemLevel}{#if row.item.corrupted || row.item.twiceCorrupted}<b class="corr" title={row.item.twiceCorrupted ? 'Twice Corrupted' : 'Corrupted'}>C</b>{/if}<em>{arrow('ilvl')}</em></button>
             {/if}
           {:else}
-            <strong class="price" title={`${row.amount} × ${coin?.text || currencyLabel(row.currency)}`}>{row.amount}{#if coin?.image}<i>×</i><img src={coin.image} alt={coin.text} />{:else} <small>{currencyLabel(row.currency)}</small>{/if}</strong>
+            {@render priceCell(row, coin, false)}
             {#if gemList}
               <span>{row.item.gemLevel}</span><span>{row.item.quality ? `${row.item.quality}%` : ''}</span><span>{row.item.gemSockets || ''}</span>
             {:else}
@@ -298,9 +321,10 @@
           {#if hasDps && !gemList}<span class="dps" title={row.item.dps ? `pDPS ${row.item.physicalDps} · eDPS ${row.item.elementalDps}` : ''}>{row.item.dps ? Math.round(row.item.dps) : ''}</span>{/if}
           <span class="account">{row.account}</span>
           <span>{listedAgo(row.listed)}</span>
-          <button type="button" class="hideout" class:sent={travel[row.id] === 'ok'} class:failed={travel[row.id]?.startsWith('!')} disabled={!row.hideoutToken || !result?.signedIn || travel[row.id] === 'busy'} title={hideoutTitle(row)} onclick={() => goToHideout(row)}>{travel[row.id] === 'busy' ? '…' : travel[row.id] === 'ok' ? '✓' : '↪'}</button>
-        </div>
-        {#if !expanded && preview?.id === row.id}{@render itemPreview(row)}{/if}
+          {@render hideoutButton(row)}
+          </div>
+          {#if preview?.id === row.id}{@render itemPreview(row)}{/if}
+        {/if}
       </article>
     {/each}
   </div>
@@ -344,18 +368,26 @@
   .result-table.expanded { display:grid; gap:9px; border:0; background:transparent; }
   .listing-card.full { overflow:hidden; border:1px solid var(--ui-line-strong,#4a4030); background:var(--ui-sunk,#090a0b); box-shadow:inset 0 0 28px var(--ui-shadow,#000); }
   .table-head { display:grid; grid-template-columns:27px 1.1fr 42px 1fr 48px; gap:5px; align-items:center; width:100%; }
-  .listing { display:grid; grid-template-columns:23px minmax(68px,1.1fr) 30px minmax(46px,1fr) 38px 25px; gap:4px; align-items:center; width:100%; }
+  /* The account column may shrink to nothing (it ellipsises) so the hideout
+     button always fits, even in the market's narrow results column. */
+  .listing { display:grid; grid-template-columns:23px minmax(56px,1.1fr) 30px minmax(0,1fr) 38px 25px; gap:4px; align-items:center; width:100%; }
   .dps .table-head { grid-template-columns:27px 1.1fr 42px 42px 1fr 48px; }
-  .dps .listing { grid-template-columns:23px minmax(68px,1.1fr) 30px 36px minmax(46px,1fr) 38px 25px; }
+  .dps .listing { grid-template-columns:23px minmax(56px,1.1fr) 30px 36px minmax(0,1fr) 38px 25px; }
   .listing .dps { color:var(--ui-gold-bright,#e0c98f); }
   .gem .table-head { grid-template-columns:27px 1.1fr 30px 34px 22px 1fr 48px; }
-  .gem .listing { grid-template-columns:23px minmax(68px,1.1fr) 26px 32px 20px minmax(46px,1fr) 38px 25px; }
+  .gem .listing { grid-template-columns:23px minmax(56px,1.1fr) 24px 30px 18px minmax(0,1fr) 34px 25px; }
   .sockets.gem i { border-color:var(--ui-line-strong,#1ba29b); box-shadow:0 0 4px var(--ui-shadow,rgba(27,162,155,.4)); }
   .table-head { padding:7px 6px; color:var(--ui-text-2,#aeb8c2); background:var(--ui-surface-3,#252824); font-size:11px; }
   .listing { border:0; border-top:1px solid var(--ui-line,#20221f); padding:6px 5px; text-align:left; color:var(--ui-text-2,#aeb4b9); background:var(--ui-sunk,#0d0f10); font-size:9px; }
   .listing:hover,.listing.on { background:var(--ui-hover,#171a19); }
   .listing-card.full .listing { border-top:1px solid var(--ui-line-strong,#57472d); background:var(--ui-surface-2,#20221e); }
   .listing-card.full .listing:hover { background:var(--ui-hover,#292b25); }
+  .listing.footer { display:flex; gap:10px; padding:6px 8px; }
+  .listing.footer .price { flex:0 0 auto; font-size:11px; }
+  .listing.footer .dps { flex:0 0 auto; }
+  .listing.footer .account { flex:1 1 auto; min-width:0; font-size:10px; }
+  .listing.footer .age { flex:0 0 auto; color:var(--ui-muted,#8b8f86); }
+  .listing.footer .hideout { flex:0 0 28px; width:28px; }
   .listing strong { color:var(--ui-gold-bright,#e7d8a8); white-space:nowrap; }
   .listing small { color:var(--ui-gold-bright,#b7a575); font-size:9px; }
   .listing .price { display:inline-flex; align-items:center; gap:2px; }
