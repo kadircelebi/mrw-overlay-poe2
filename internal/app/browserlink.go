@@ -58,8 +58,9 @@ const (
 type BrowserLinkStatus struct {
 	State string `json:"state"`
 	// Connected reports a stored session (the overlay searches signed in).
-	Connected   bool  `json:"connected"`
-	ConnectedAt int64 `json:"connectedAt"`
+	Connected   bool   `json:"connected"`
+	ConnectedAt int64  `json:"connectedAt"`
+	AccountName string `json:"accountName,omitempty"`
 	// URL is the link to open by hand in another browser (the code is valid
 	// until the request ends).
 	URL   string `json:"url,omitempty"`
@@ -156,6 +157,7 @@ func (s *AppService) BrowserLinkState() BrowserLinkStatus {
 	}
 	if at := s.session.SavedAt(); st.Connected && !at.IsZero() {
 		st.ConnectedAt = at.UnixMilli()
+		st.AccountName = s.session.AccountName()
 	}
 	if l.code != "" && st.State != LinkLinked {
 		st.URL = linkURL + "#mrw-link=" + l.code
@@ -205,6 +207,7 @@ func (s *AppService) DisconnectBrowser() (BrowserLinkStatus, error) {
 	s.overlayClient.SetSession("")
 	s.live.StopAll()
 	err := s.session.Clear()
+	s.emitBrowserAccount()
 	s.link.mu.Lock()
 	s.link.state = LinkIdle
 	s.link.mu.Unlock()
@@ -296,10 +299,11 @@ func (s *AppService) startLinkServer() error {
 }
 
 type linkMessage struct {
-	Code    string `json:"code"`
-	Version string `json:"version,omitempty"`
-	Session string `json:"session,omitempty"`
-	State   string `json:"state,omitempty"`
+	Code        string `json:"code"`
+	Version     string `json:"version,omitempty"`
+	Session     string `json:"session,omitempty"`
+	State       string `json:"state,omitempty"`
+	AccountName string `json:"accountName,omitempty"`
 }
 
 func (s *AppService) handleLink(rw http.ResponseWriter, req *http.Request) {
@@ -334,7 +338,7 @@ func (s *AppService) handleLink(rw http.ResponseWriter, req *http.Request) {
 		l.mu.Unlock()
 		rw.WriteHeader(http.StatusNoContent)
 	case "/link":
-		if err := s.session.Save(msg.Session); err != nil {
+		if err := s.session.SaveAccount(msg.Session, msg.AccountName); err != nil {
 			http.Error(rw, "invalid session", http.StatusBadRequest)
 			return
 		}
@@ -343,11 +347,18 @@ func (s *AppService) handleLink(rw http.ResponseWriter, req *http.Request) {
 		l.mu.Lock()
 		l.state = LinkLinked
 		l.mu.Unlock()
+		s.emitBrowserAccount()
 		rw.WriteHeader(http.StatusNoContent)
 		// The code is spent; stop listening.
 		go s.endLink(current)
 	default:
 		http.NotFound(rw, req)
+	}
+}
+
+func (s *AppService) emitBrowserAccount() {
+	if s.app != nil {
+		s.app.Event.Emit("browser-account", s.BrowserLinkState())
 	}
 }
 

@@ -70,10 +70,10 @@ func TestLinkSteps(t *testing.T) {
 		t.Fatalf("bad session: %d", code)
 	}
 	// Signed in: the session arrives, is stored encrypted and used.
-	if code := postLink(s, "/link", "moz-extension://1234-5678", `{"code":"code-0123456789abcdef","session":"`+fakeSession+`"}`); code != http.StatusNoContent {
+	if code := postLink(s, "/link", "moz-extension://1234-5678", `{"code":"code-0123456789abcdef","session":"`+fakeSession+`","accountName":"MrW#1234"}`); code != http.StatusNoContent {
 		t.Fatalf("link: %d", code)
 	}
-	if st := s.BrowserLinkState(); st.State != LinkLinked || !st.Connected || st.URL != "" {
+	if st := s.BrowserLinkState(); st.State != LinkLinked || !st.Connected || st.URL != "" || st.AccountName != "MrW#1234" {
 		t.Fatalf("after link: %+v", st)
 	}
 	if s.session.Load() != fakeSession || !s.overlayClient.SignedIn() {
@@ -83,7 +83,7 @@ func TestLinkSteps(t *testing.T) {
 	if code := postLink(s, "/link", chromeOrigin, `{"code":"code-0123456789abcdef","session":"`+fakeSession+`"}`); code != http.StatusConflict {
 		t.Fatalf("reused code: %d", code)
 	}
-	if st, err := s.DisconnectBrowser(); err != nil || st.Connected || s.session.Load() != "" {
+	if st, err := s.DisconnectBrowser(); err != nil || st.Connected || st.AccountName != "" || s.session.Load() != "" {
 		t.Fatalf("disconnect: %+v %v", st, err)
 	}
 }

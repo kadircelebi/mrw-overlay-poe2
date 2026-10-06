@@ -19,11 +19,11 @@ async function signedIn() {
   }
 }
 
-async function report(code) {
+async function report(code, accountName = '') {
   const cookie = await api.cookies.get({ url: SITE, name: 'POESESSID' })
-  const ready = !!cookie && (await signedIn())
+  const ready = !!cookie && !!accountName && (await signedIn())
   const version = api.runtime.getManifest().version
-  const body = ready ? { code, version, session: cookie.value } : { code, version, state: 'no-session' }
+  const body = ready ? { code, version, session: cookie.value, accountName } : { code, version, state: 'no-session' }
   try {
     const res = await fetch(`${APP}/${ready ? 'link' : 'status'}`, {
       method: 'POST',
@@ -45,17 +45,16 @@ async function pendingCode() {
 
 api.runtime.onMessage.addListener((message, sender) => {
   if (sender.id !== api.runtime.id) return
+  try { if (new URL(sender.url).origin !== new URL(SITE).origin) return } catch { return }
+  const accountName = typeof message?.accountName === 'string' ? message.accountName.trim() : ''
+  if (accountName.length > 128 || /[\u0000-\u001f\u007f]/.test(accountName)) return
   if (message?.type === 'mrw-link' && CODE.test(message.code ?? '')) {
-    api.storage.session.set({ code: message.code }).then(() => report(message.code))
+    api.storage.session.set({ code: message.code }).then(() => report(message.code, accountName))
   } else if (message?.type === 'mrw-page') {
     // A page after signing in: finish a connection that is still waiting.
-    pendingCode().then((code) => { if (code) report(code) })
+    pendingCode().then((code) => { if (code) report(code, accountName) })
   }
 })
 
-// Signing in may also replace the session cookie.
-api.cookies.onChanged.addListener(async ({ cookie, removed }) => {
-  if (removed || cookie.name !== 'POESESSID' || !cookie.domain.endsWith('pathofexile.com')) return
-  const code = await pendingCode()
-  if (code) report(code)
-})
+// A cookie change alone cannot tell us the account name. The content script
+// reports the account bar on the page shown after sign-in instead.

@@ -153,6 +153,8 @@ export const tr: Record<string, string> = {
   'account.openIn': '{0} ile aç',
   'account.copyLink': 'Bağlantıyı kopyala',
   'account.copied': 'Kopyalandı',
+  'account.copyName': 'Hesap adını kopyala',
+  'account.copyNameFailed': 'Hesap adı kopyalanamadı',
   'account.cancel': 'Vazgeç',
   'account.copyHint': 'Varsayılan tarayıcın farklıysa bağlantıyı kopyalayıp eklentinin yüklü olduğu tarayıcıya yapıştır.',
   'overlay.size': 'Arayüz boyutu',

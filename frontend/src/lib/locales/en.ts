@@ -154,6 +154,8 @@ export const en: Record<string, string> = {
   'account.openIn': 'Open in {0}',
   'account.copyLink': 'Copy link',
   'account.copied': 'Copied',
+  'account.copyName': 'Copy account name',
+  'account.copyNameFailed': 'Could not copy account name',
   'account.cancel': 'Cancel',
   'account.copyHint': 'If the extension is in a browser other than your default one, copy the link and paste it there.',
   'overlay.size': 'Interface size',

@@ -5,12 +5,16 @@
 package session
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"poe2filter/internal/prices"
 )
@@ -33,10 +37,34 @@ func New(dataDir string) *Store {
 func Valid(value string) bool { return valid.MatchString(value) }
 
 func (s *Store) Save(value string) error {
+	return s.SaveAccount(value, "")
+}
+
+type accountSession struct {
+	Session     string `json:"session"`
+	AccountName string `json:"accountName,omitempty"`
+}
+
+func ValidAccountName(name string) bool {
+	return utf8.ValidString(name) && len(name) <= 512 && utf8.RuneCountInString(name) <= 128 &&
+		!strings.ContainsFunc(name, unicode.IsControl)
+}
+
+// SaveAccount keeps the name and cookie together in the same DPAPI-protected
+// record. Linking another account replaces both; old cookie-only files load.
+func (s *Store) SaveAccount(value, name string) error {
 	if !Valid(value) {
 		return ErrInvalid
 	}
-	sealed, err := protect([]byte(value))
+	name = strings.TrimSpace(name)
+	if !ValidAccountName(name) {
+		return errors.New("invalid account name")
+	}
+	raw, err := json.Marshal(accountSession{Session: value, AccountName: name})
+	if err != nil {
+		return err
+	}
+	sealed, err := protect(raw)
 	if err != nil {
 		return err
 	}
@@ -51,17 +79,32 @@ func (s *Store) Save(value string) error {
 // Load returns the stored session, or "" when there is none (or it can no
 // longer be decrypted, e.g. the file came from another machine).
 func (s *Store) Load() string {
+	return s.load().Session
+}
+
+func (s *Store) AccountName() string {
+	return s.load().AccountName
+}
+
+func (s *Store) load() accountSession {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	sealed, err := os.ReadFile(s.path)
 	if err != nil || len(sealed) == 0 {
-		return ""
+		return accountSession{}
 	}
 	plain, err := unprotect(sealed)
-	if err != nil || !Valid(string(plain)) {
-		return ""
+	if err != nil {
+		return accountSession{}
 	}
-	return string(plain)
+	if Valid(string(plain)) {
+		return accountSession{Session: string(plain)}
+	}
+	var record accountSession
+	if json.Unmarshal(plain, &record) != nil || !Valid(record.Session) || !ValidAccountName(record.AccountName) {
+		return accountSession{}
+	}
+	return record
 }
 
 // SavedAt reports when the session was stored (zero when there is none).

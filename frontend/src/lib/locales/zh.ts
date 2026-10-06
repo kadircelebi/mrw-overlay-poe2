@@ -153,6 +153,8 @@ export const zh: Record<string, string> = {
   'account.openIn': '以 {0} 開啟',
   'account.copyLink': '複製連結',
   'account.copied': '已複製',
+  'account.copyName': '複製帳號名稱',
+  'account.copyNameFailed': '無法複製帳號名稱',
   'account.cancel': '取消',
   'account.copyHint': '若擴充功能不在預設瀏覽器中，請複製連結並貼到該瀏覽器。',
   'overlay.size': '介面大小',

@@ -62,7 +62,7 @@ Clicking the tray icon opens a small panel: status, **Update now**, the value th
 | **Trade scan** | Turn the exceptional base scan on or off and choose how much of the trade quota it may use (10–80%, 40% by default). |
 | **Profiles** | Separate sets of settings for different kinds of farming. Switch with one click, rename them; the filter is rewritten at once, and profiles can be shared as files. |
 | **Overlay** | Optional price checker, **off by default**. When on, hover an item in the game and press the shortcut (Alt+E by default): a small window reads the item, lets you click affixes, DPS, rarity and properties in or out of the search, and searches the official trade site. The ▣ button opens the full market with advanced filters (also Alt+M). In the market each search has its own tab, and tabs stay until the app quits; a listing's ⊞ button opens a new search built from that item's base and affixes; saved searches can be sorted into folders (drag and drop). Buttons follow the app's language; stat and filter names are in English, as on the trade site. The windows stay inside the game window and hide when you switch to another app. |
-| **Account** | Optional. Brings your pathofexile.com session into the app with a small browser extension (Chrome, Edge, Firefox; see [Browser extension](#browser-extension)). Overlay searches are then made signed in (more complex queries such as Weighted Sum work), and a listing's button takes you to the seller's hideout. The session is stored encrypted on this computer and used only for trade searches you start. |
+| **Account** | Optional. Brings your pathofexile.com session and account name into the app with a small browser extension (Chrome, Edge, Firefox; see [Browser extension](#browser-extension)). Overlay searches are then made signed in (more complex queries such as Weighted Sum work), and a listing's button takes you to the seller's hideout. Both fields are stored encrypted on this computer. The session is used for the trade actions you request; the account name appears in the main window with a copy button. |
 | **Theoretical Craft** | A separate craft window (Alt+F, ⚒ in the overlay header, or the main panel). All equipment classes, real bases and values, sockets and runes, all orbs, omens, essences, Desecrate and Fracturing are simulated with real mod weights; pick up an orb and click the item to use it, as in the game. The cost is tracked at current prices (Exalted and Divine), and the crafted item's market price is searched right in the window. An item copied in the game is sent to the craft window with ⚒. |
 | **Game commands** | Editable shortcuts that work while the game is active: F5 /hideout, F6 /dnd, F7 invite the last person who whispered you, F8 a canned reply; F9 opens the main panel. The last whisperer's name is read from the game's Client.txt, on this computer only. |
 | **General** | Language, league, filter name in the game, start with Windows, export the filter file, filter and data folders. |
@@ -74,7 +74,11 @@ When you change a setting, both the panel and the settings window tell you the f
 
 ## Browser extension
 
-A small optional extension that brings your pathofexile.com session into the app, for live search, hideout travel and larger queries. The source code is in this repository: [`browser-extension/`](browser-extension/).
+A small optional extension that brings your pathofexile.com session into the app, for live search, hideout travel and larger queries. Version 1.2.0 also passes the account name, including its discriminator, so the updated desktop app can display the connected account with a copy button. Reconnect once after updating to retrieve the name. The source code is in this repository: [`browser-extension/`](browser-extension/).
+
+Only when you start **Settings → Account → Connect browser**, the extension reads the session cookie and the signed-in name from the official site's top account bar. It transfers both to the app on your own computer (`127.0.0.1:47819`) using the app's one-time connection code. Neither field is sent to our servers. The app stores both using Windows DPAPI; disconnecting deletes both. The extension never asks for your password and does not change page content.
+
+For review: [`content.js`](browser-extension/content.js) reads the account bar, [`background.js`](browser-extension/background.js) sends the local handoff, [`browserlink.go`](internal/app/browserlink.go) validates the connection, [`session.go`](internal/session/session.go) handles encrypted storage and deletion, and [`AccountBadge.svelte`](frontend/src/lib/AccountBadge.svelte) displays and copies the name.
 
 The extension is published in the browser stores:
 
@@ -151,11 +155,13 @@ All releases are built from this repository by [GitHub Actions](.github/workflow
 
 ### Privacy policy
 
-This program will not transfer any information about the user to other networked systems.
+The app has no telemetry or analytics. It does not send your Path of Exile session cookie or account name to our servers.
 
-To do its job it reads publicly available data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout](https://poe2scout.com/), item listings from the official Path of Exile trade API, and NeverSink's filter from GitHub. These requests carry no account name, session or other identifying information, and the application never signs in. Settings stay in `%APPDATA%\PoE2Filtre`.
+To do its job it reads publicly available data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout](https://poe2scout.com/), item listings from the official Path of Exile trade API, and NeverSink's filter from GitHub. Price collection runs without signing in. Settings stay in `%APPDATA%\PoE2Filtre`.
 
-The price-check overlay is off by default. When the user turns it on and presses its shortcut over an item in the game, the application copies that item's text through the game's own copy command and sends a search built from its base type and modifiers to the official trade API. Nothing else the user enters in the app leaves their machine.
+If you connect the browser extension, it sends your session cookie and account name only to the desktop app on the same computer. Both are stored encrypted with Windows DPAPI. The session cookie is sent only to `www.pathofexile.com` for the signed-in trade actions you request. The account name is used to display the connected account and let you copy it. **Settings → Account → Disconnect** deletes both stored fields. See [Browser extension](#browser-extension) for the handoff and source-code details.
+
+The price-check overlay is off by default. When the user turns it on and presses its shortcut over an item in the game, the application copies that item's text through the game's own copy command and sends a search built from its base type and modifiers to the official trade API. Market searches and live searches also send the requested search criteria directly to the official trade site.
 
 ## Updating and uninstalling
 

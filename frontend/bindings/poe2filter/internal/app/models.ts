@@ -22,6 +22,7 @@ export interface BrowserLinkStatus {
      */
     "connected": boolean;
     "connectedAt": number;
+    "accountName"?: string;
 
     /**
      * URL is the link to open by hand in another browser (the code is valid

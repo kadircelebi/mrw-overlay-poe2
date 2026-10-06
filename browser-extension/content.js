@@ -6,8 +6,29 @@
 const api = globalThis.browser ?? globalThis.chrome
 const match = location.hash.match(/mrw-link=([A-Za-z0-9_-]{16,64})/)
 if (match) {
-  api.runtime.sendMessage({ type: 'mrw-link', code: match[1] })
   history.replaceState(null, '', location.pathname + location.search)
-} else {
-  api.runtime.sendMessage({ type: 'mrw-page' })
 }
+
+// Only the signed-in account in the site's top bar is ours. Profile links
+// elsewhere (forum authors, ladders) must never become the connected account.
+function accountName() {
+  const bar = document.getElementById('statusBar')
+  if (!bar || bar.querySelector('.loggedOut')) return ''
+  for (const link of bar.querySelectorAll('a[href]')) {
+    const url = new URL(link.href, location.href)
+    if (url.origin !== location.origin || !(/^\/account\/(?:xbox\/|sony\/)?view-profile\//.test(url.pathname) || /^\/my-account\/?$/.test(url.pathname))) continue
+    const name = link.textContent.trim()
+    if (name && name.length <= 128 && !/[\u0000-\u001f\u007f]/.test(name)) return name
+  }
+  return ''
+}
+
+function reportPage() {
+  api.runtime.sendMessage({ type: match ? 'mrw-link' : 'mrw-page',
+    ...(match ? { code: match[1] } : {}), accountName: accountName() })
+}
+
+// document_start is too early to read the account bar. Read it after the
+// login page has finished navigating and its DOM is available.
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', reportPage, { once: true })
+else reportPage()
