@@ -5,6 +5,8 @@
 //	profilesrv admin stats|reports                     moderation, on the same data directory
 //	profilesrv admin hide|unhide|delete|sources <id>
 //	profilesrv admin drop-follows <id> <address-hash>
+//	profilesrv admin backup <file>                     consistent copy of the live database
+//	profilesrv verify <file>                           integrity check of a copy (read-only)
 package main
 
 import (
@@ -37,6 +39,20 @@ func main() {
 	flag.Parse()
 
 	logger := log.New(os.Stdout, "", log.LstdFlags)
+	// verify reads only the file it is given; it never touches -data.
+	if flag.Arg(0) == "verify" {
+		if flag.NArg() != 2 {
+			fmt.Fprintln(os.Stderr, "verify <file>")
+			os.Exit(2)
+		}
+		stats, err := profilesrv.Verify(context.Background(), flag.Arg(1))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Println("ok:", stats)
+		return
+	}
 	if err := os.MkdirAll(*dataDir, 0o700); err != nil {
 		logger.Fatal(err)
 	}
@@ -158,7 +174,7 @@ func backups(ctx context.Context, store *profilesrv.Store, dir string, keep int,
 func admin(store *profilesrv.Store, args []string) error {
 	ctx := context.Background()
 	if len(args) == 0 {
-		return errors.New("admin: stats | reports | hide <id> | unhide <id> | delete <id> | sources <id> | drop-follows <id> <address-hash>")
+		return errors.New("admin: stats | reports | hide <id> | unhide <id> | delete <id> | sources <id> | drop-follows <id> <address-hash> | backup <file>")
 	}
 	need := func(n int) error {
 		if len(args) != n+1 {
@@ -199,6 +215,21 @@ func admin(store *profilesrv.Store, args []string) error {
 			fmt.Printf("%s  %d\n", ip, n)
 		}
 		return err
+	case "backup":
+		if err := need(1); err != nil {
+			return err
+		}
+		// VACUUM INTO refuses an existing file; replace it whole.
+		tmp := args[1] + ".tmp"
+		_ = os.Remove(tmp)
+		if err := store.Backup(ctx, tmp); err != nil {
+			return err
+		}
+		if _, err := profilesrv.Verify(ctx, tmp); err != nil {
+			_ = os.Remove(tmp)
+			return err
+		}
+		return os.Rename(tmp, args[1])
 	case "drop-follows":
 		if err := need(2); err != nil {
 			return err

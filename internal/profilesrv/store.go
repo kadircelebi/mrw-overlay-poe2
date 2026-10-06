@@ -16,6 +16,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -530,4 +531,25 @@ func (s *Store) Stats(ctx context.Context) (string, error) {
 func (s *Store) Backup(ctx context.Context, path string) error {
 	_, err := s.db.ExecContext(ctx, `VACUUM INTO ?`, path)
 	return err
+}
+
+// Verify opens a backup read-only, runs SQLite's integrity check and
+// returns its counts. Nothing is written to the file.
+func Verify(ctx context.Context, path string) (string, error) {
+	if _, err := os.Stat(path); err != nil {
+		return "", err
+	}
+	db, err := sql.Open("sqlite", "file:"+path+"?mode=ro&_pragma=busy_timeout(5000)")
+	if err != nil {
+		return "", err
+	}
+	defer db.Close()
+	var check string
+	if err := db.QueryRowContext(ctx, `PRAGMA integrity_check`).Scan(&check); err != nil {
+		return "", err
+	}
+	if check != "ok" {
+		return "", fmt.Errorf("integrity check: %s", check)
+	}
+	return (&Store{db: db}).Stats(ctx)
 }

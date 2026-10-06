@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -252,5 +253,25 @@ func TestClientIPTrustsCloudflareOnly(t *testing.T) {
 	r.RemoteAddr = "[2606:4700::1]:443"
 	if got := ClientIP(r); got != "203.0.113.5" {
 		t.Fatalf("Cloudflare IPv6 header ignored: %s", got)
+	}
+}
+
+func TestBackupVerifies(t *testing.T) {
+	ts := newTestServer(t)
+	key := ts.install("")
+	ts.do("POST", "/v1/profiles", key, publishJSON(t, "Backed up", "", 1), "")
+	path := filepath.Join(t.TempDir(), "copy.db")
+	if err := ts.store.Backup(t.Context(), path); err != nil {
+		t.Fatal(err)
+	}
+	stats, err := Verify(t.Context(), path)
+	if err != nil || !strings.Contains(stats, "profiles 1") {
+		t.Fatalf("verify: %q %v", stats, err)
+	}
+	if err := os.WriteFile(path, []byte("not a database at all, just text"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Verify(t.Context(), path); err == nil {
+		t.Fatal("a broken file passed verification")
 	}
 }
