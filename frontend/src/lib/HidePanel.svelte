@@ -19,7 +19,7 @@
 
   let scope = $state<Scope>('all')
   let below = $state(10)
-  let whileCheap = $state(true)
+  let whileCheap = $state(false)
   let busy = $state(false)
   let error = $state('')
   let done = $state<HiddenItem | null>(null)
@@ -29,7 +29,7 @@
   $effect(() => {
     scope = isGear ? 'rarity' : 'all'
     below = Math.max(2, (item.stackSize || 0) + 1, 10)
-    whileCheap = true
+    whileCheap = false
     done = null
     error = ''
   })
@@ -52,7 +52,7 @@
 
   function entry(): HiddenItem {
     const rarities = isUnique ? ['Unique'] : !isGear ? [] : scope === 'rarity' ? [cap(rarity)] : ['Normal', 'Magic', 'Rare']
-    return { base, rarities, below_stack: isStack && scope === 'below' ? below : 0, while_cheap: !isStack || whileCheap, added_at: 0 }
+    return { base, rarities, below_stack: isStack && scope === 'below' ? below : 0, while_cheap: whileCheap, added_at: 0 }
   }
 
   function cap(s: string): string {
@@ -119,14 +119,14 @@
         <label><input type="radio" bind:group={scope} value="all" /> {t('hide.allStacks')}</label>
         <label class="below"><input type="radio" bind:group={scope} value="below" /> {t('hide.below')}
           <input type="number" min="2" max="5000" bind:value={below} onfocus={() => (scope = 'below')} /></label>
-        <label class="check"><input type="checkbox" bind:checked={whileCheap} /> {t('hide.whileCheap')}</label>
-        <p class="hint">{t('hide.whileCheapHint')}</p>
       {:else if isUnique}
         <p class="hint">{t('hide.unique', base)}</p>
         {#if siblings.length}<p class="warn">{t('hide.siblings', siblings.join(', '))}</p>{/if}
       {:else}
         <p class="hint">{t('hide.base', base)}</p>
       {/if}
+      <label class="check"><input type="checkbox" bind:checked={whileCheap} /> {t('hide.whileCheap')}</label>
+      <p class="hint">{t('hide.whileCheapHint')}</p>
       {#if valuable}<p class="warn">{t(whileCheap ? 'hide.valuableCheap' : 'hide.valuable', money(worthEx))}</p>{/if}
     </div>
     <div class="actions">

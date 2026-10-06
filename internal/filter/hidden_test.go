@@ -3,6 +3,9 @@ package filter
 import (
 	"strings"
 	"testing"
+
+	"poe2filter/internal/filtereval"
+	"poe2filter/internal/prices"
 )
 
 // "While cheap" entries sit behind the valuable-item rules (a Mirror on the
@@ -51,5 +54,30 @@ func TestHiddenItems(t *testing.T) {
 	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
 	if blockContaining(t, out, "Hide", `"Prismatic Ring"`) >= 0 {
 		t.Error("hidden list written while switched off")
+	}
+}
+
+func TestHiddenUniqueOverridesShowRulesUnlessWhileCheap(t *testing.T) {
+	for _, cheap := range []bool{false, true} {
+		cfg := DefaultConfig()
+		cfg.MinValue, cfg.MinValueUnit = 100, "exalted"
+		cfg.HiddenItems = []HiddenItem{{Base: "Gold Ring", Rarities: []string{"Unique"}, WhileCheap: cheap}}
+		cfg.ItemGroups = []ItemGroup{
+			{ID: "show", Name: "Always show", Items: []string{"Gold Ring"}, Always: true},
+			{ID: "value", Name: "Value tier", Mode: ItemGroupModeValue, ThresholdValue: 100, ThresholdUnit: "exalted"},
+		}
+		snap := testSnapshot()
+		snap.UniqueBases["Gold Ring"] = prices.UniqueBase{TopName: "Example Ring", MaxEx: 500,
+			Uniques: []prices.Unique{{Name: "Example Ring", ValueEx: 500, Listings: 20}}}
+		cfg.Normalize()
+		out, _ := GenerateDynamicFilterBlock(cfg, snap, map[string]string{"gold ring": "Gold Ring"}, nil)
+		result := filtereval.Evaluate(filtereval.Parse(out), filtereval.Facts{Class: "Rings", BaseType: "Gold Ring", Rarity: "Unique"})
+		want := filtereval.Hide
+		if cheap {
+			want = filtereval.Show
+		}
+		if result.Final == nil || result.Final.Block.Action != want {
+			t.Fatalf("whileCheap=%v: result=%+v, want %s", cheap, result, want)
+		}
 	}
 }

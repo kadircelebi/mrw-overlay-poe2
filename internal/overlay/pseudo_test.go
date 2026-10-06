@@ -136,12 +136,12 @@ Adds 1 to 19(18-20) Lightning damage to Attacks`
 	}
 }
 
-// Headhunter: 56 Life and 36 Strength make 128 total Life (two per
+// A unique belt: 56 Life and 36 Strength make 128 total Life (two per
 // Strength). A unique is priced by its own lines, so totals start unselected.
 func TestPseudoTotalsOfAUniqueStartUnselected(t *testing.T) {
 	raw := `Item Class: Belts
 Rarity: Unique
-Headhunter
+Example Belt
 Heavy Belt
 --------
 Requires: Level 50

@@ -76,7 +76,7 @@ type pseudoStat struct {
 // addPseudoTotals appends the item's pseudo totals. For a magic or rare item
 // they start selected and the lines they add up start unselected, so the
 // search asks for the totals rather than the exact rolls. A unique is priced
-// by its own modifiers, so there they are offered unselected.
+// by its own modifiers, except Headhunter's combined Attributes.
 func addPseudoTotals(item *Item, opts ParseOptions) {
 	addTotals(item)
 	addKindSums(item, opts)
@@ -190,7 +190,7 @@ func addTotals(item *Item) {
 		}
 	}
 	if attributes > 1 {
-		add("pseudo.pseudo_total_attributes", "+# total to Attributes", sum[pStr]+sum[pDex]+sum[pInt])
+		add("pseudo.pseudo_total_attributes", "+# total to Attributes", sum[pStr]+sum[pDex]+sum[pInt], pStr, pDex, pInt)
 	}
 	elements := 0
 	firstElement := len(stats)
@@ -230,12 +230,14 @@ func addTotals(item *Item) {
 		return
 	}
 
-	// A unique is priced by its own lines: its totals are all folded away.
+	// Headhunter is priced by combined Attributes, including corruption
+	// enchants, rather than separate Strength and Dexterity rolls.
+	headHunter := item.Rarity == "unique" && item.Name == "Headhunter"
 	priced := item.Rarity == "magic" || item.Rarity == "rare"
 	covered := map[pseudoPart]bool{}
 	for _, stat := range stats {
 		value := valuesOf(stat.text)
-		selected := priced && !stat.hidden
+		selected := (priced && !stat.hidden) || (headHunter && stat.id == "pseudo.pseudo_total_attributes")
 		item.Mods = append(item.Mods, ItemMod{
 			Key: "mod-" + strconv.Itoa(len(item.Mods)+1), StatID: stat.id, Type: "pseudo",
 			Text: stat.text, Values: value, Selected: selected, Hidden: !selected,
@@ -247,7 +249,7 @@ func addTotals(item *Item) {
 			covered[part] = true
 		}
 	}
-	if !priced {
+	if len(covered) == 0 {
 		return
 	}
 	// A mod leaves the search when a total stands in for every line of it; a

@@ -608,7 +608,7 @@ func matchMod(mod *ItemMod, catalog Catalog, local bool) {
 	}
 	if len(exact) == 0 {
 		if fallback != nil {
-			mod.StatID = fallback.ID
+			setMatchedStat(mod, fallback)
 			return
 		}
 		// Some lines the game prints as implicits are searched as pseudo
@@ -627,11 +627,20 @@ func matchMod(mod *ItemMod, catalog Catalog, local bool) {
 			break
 		}
 	}
-	mod.StatID = exact[primary].ID
+	setMatchedStat(mod, exact[primary])
 	for i, e := range exact {
 		if i != primary {
 			mod.AltStatIDs = append(mod.AltStatIDs, e.ID)
 		}
+	}
+}
+
+// Literal numbers in a presence-only stat (Headhunter's 60 seconds) are
+// description text, not a searchable roll. Option stats remain counts.
+func setMatchedStat(mod *ItemMod, entry *StatEntry) {
+	mod.StatID = entry.ID
+	if !strings.Contains(entry.Text, "#") && !strings.Contains(entry.ID, "|") {
+		mod.Values = nil
 	}
 }
 

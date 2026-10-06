@@ -129,7 +129,7 @@ export const en: Record<string, string> = {
   'overlay.marketHotkey': 'Market window shortcut',
   'overlay.marketHotkeyHint': 'Default is Alt+M. Opens the market as you left it without reading an item; press again to close it.',
   'account.title': 'pathofexile.com account',
-  'account.desc': 'Signed-in searches get GGG\'s higher limits (e.g. Weighted Sum groups). A small extension hands your browser\'s pathofexile.com session to the app on this computer; it is stored encrypted and used only for trade searches you start.',
+  'account.desc': 'Signed-in searches get GGG\'s higher limits (e.g. Weighted Sum groups). When you connect, the extension passes your pathofexile.com session cookie and account name to this app on your computer. Both are stored encrypted with Windows DPAPI; neither is sent to our servers. The session is used for the trade actions you request, and the name is shown in the main window with a copy button. Disconnecting deletes both.',
   'account.connected': 'Connected, searches go out signed in',
   'account.notConnected': 'Not connected, searches go out signed out.',
   'account.connect': 'Connect browser',

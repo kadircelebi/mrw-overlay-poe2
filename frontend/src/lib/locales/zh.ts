@@ -128,7 +128,7 @@ export const zh: Record<string, string> = {
   'overlay.marketHotkey': '市集視窗快捷鍵',
   'overlay.marketHotkeyHint': '預設為 Alt+M。不讀取物品，直接開啟上次的市集畫面；再按一次即關閉。',
   'account.title': 'pathofexile.com 帳號',
-  'account.desc': '登入後的搜尋可使用 GGG 較高的限制（例如 Weighted Sum 群組）。一個小型擴充功能會把瀏覽器中的 pathofexile.com 工作階段交給這台電腦上的程式；它會加密儲存，只用於你發起的交易搜尋。',
+  'account.desc': '登入後的搜尋可使用 GGG 較高的限制（例如 Weighted Sum 群組）。當你開始連線時，擴充功能會將 pathofexile.com 工作階段 Cookie 和帳號名稱傳給這台電腦上的程式。兩者皆使用 Windows DPAPI 加密儲存，不會傳送至我們的伺服器。工作階段用於你要求的交易操作；帳號名稱顯示在主視窗，並附有複製按鈕。中斷連線會刪除兩者。',
   'account.connected': '已連線，搜尋以登入狀態進行',
   'account.notConnected': '未連線，搜尋以未登入狀態進行。',
   'account.connect': '連線瀏覽器',

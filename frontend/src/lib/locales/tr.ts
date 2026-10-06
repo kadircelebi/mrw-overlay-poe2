@@ -128,7 +128,7 @@ export const tr: Record<string, string> = {
   'overlay.marketHotkey': 'Pazar penceresi kısayolu',
   'overlay.marketHotkeyHint': 'Varsayılan Alt+M. Pazarı eşya okumadan, bıraktığın haliyle açar; tekrar basınca kapatır.',
   'account.title': 'pathofexile.com hesabı',
-  'account.desc': 'Girişli aramalar GGG\'nin daha yüksek sınırlarını kullanır (ör. Weighted Sum grupları). Tarayıcındaki pathofexile.com oturumu küçük bir eklentiyle bu bilgisayardaki uygulamaya taşınır, şifreli saklanır ve yalnızca senin başlattığın trade aramalarında kullanılır.',
+  'account.desc': 'Girişli aramalar GGG\'nin daha yüksek sınırlarını kullanır (ör. Weighted Sum grupları). Bağlantıyı başlattığında eklenti, pathofexile.com oturum çerezini ve hesap adını bu bilgisayardaki uygulamaya aktarır. İkisi de Windows DPAPI ile şifreli saklanır; sunucularımıza gönderilmez. Oturum istediğin trade işlemlerinde kullanılır; hesap adı ana pencerede kopyalama düğmesiyle gösterilir. Bağlantıyı kesmek ikisini de siler.',
   'account.connected': 'Bağlı, aramalar girişli yapılıyor',
   'account.notConnected': 'Bağlı değil, aramalar girişsiz yapılıyor.',
   'account.connect': 'Tarayıcıyla bağlan',
