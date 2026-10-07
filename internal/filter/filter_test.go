@@ -1221,3 +1221,34 @@ func TestNormalizeCleansTypedText(t *testing.T) {
 		t.Fatalf("hidden item not cleaned: %q", cfg.HiddenItems[0].Base)
 	}
 }
+
+func TestUncutGemsJoinTheirValueTierByLevel(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ItemGroups = []ItemGroup{
+		{ID: "g2", Name: "One Divine", Mode: ItemGroupModeValue, ThresholdValue: 1, ThresholdUnit: "divine"},
+		{ID: "g3", Name: "Five Divine", Mode: ItemGroupModeValue, ThresholdValue: 5, ThresholdUnit: "divine"},
+	}
+	snap := testSnapshot()
+	div := snap.Rates.DivineEx
+	snap.Currency = append(snap.Currency,
+		prices.CurrencyPrice{Name: "Uncut Spirit Gem (Level 20)", Category: "uncutgems", ValueEx: 7.5 * div},
+		prices.CurrencyPrice{Name: "Uncut Skill Gem (Level 1)", Category: "uncutgems", ValueEx: 1.3 * div},
+		prices.CurrencyPrice{Name: "Uncut Skill Gem (Level 19)", Category: "uncutgems", ValueEx: 1},
+	)
+	out, _ := GenerateDynamicFilterBlock(cfg, snap, testBases, nil)
+	at := func(needle string) int { return strings.Index(out, needle) }
+	five, spirit20 := at("VALUE GROUP: FIVE DIVINE"), at("BaseType \"Uncut Spirit Gem\"\n    GemLevel == 20\n")
+	one, skill1 := at("VALUE GROUP: ONE DIVINE"), at("BaseType \"Uncut Skill Gem\"\n    GemLevel == 1\n")
+	if five < 0 || spirit20 < five || one < spirit20 || skill1 < one {
+		t.Fatalf("uncut gems not in their value tiers by level: five=%d spirit20=%d one=%d skill1=%d", five, spirit20, one, skill1)
+	}
+	// A cheap level is neither tiered nor hidden for its price: the uncut gem
+	// slider decides it, and no rule names the leveled base type.
+	if strings.Contains(out, "GemLevel == 19") || strings.Contains(out, "(Level") {
+		t.Fatalf("cheap or leveled names leaked into the filter:\n%s", out)
+	}
+	// The tier comes before the uncut gem slider's rules.
+	if slider := at(`BaseType "Uncut Skill Gem" "Uncut Spirit Gem"`); slider >= 0 && slider < skill1 {
+		t.Fatalf("slider rules before the value tiers: slider=%d tier=%d", slider, skill1)
+	}
+}

@@ -3,6 +3,7 @@ package filter
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -214,6 +215,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		currency    []string
 		uniques     []string
 		exceptional map[exGroup][]string
+		gems        []uncutGem
 	}
 	var tiers []*valueTier
 	for _, g := range cfg.ItemGroups {
@@ -241,6 +243,18 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 
 	var valuableCur, cheapCur []cur
 	for _, c := range snap.Currency {
+		// An uncut gem is priced per kind and level ("Uncut Spirit Gem
+		// (Level 20)"), a name no rule can match: it goes to its value tier
+		// as a level condition, and is never hidden for its price (the uncut
+		// gem sliders decide below the tiers).
+		if gem, ok := parseUncutGem(c.Name); ok {
+			if c.ValueEx >= thr {
+				if tier := tierFor(c.ValueEx); tier != nil {
+					tier.gems = append(tier.gems, gem)
+				}
+			}
+			continue
+		}
 		name, ok := canon(c.Name)
 		if !ok {
 			continue
@@ -479,7 +493,7 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 	// Tiers are written from highest to lowest. The first matching block wins,
 	// so a 10-divine drop cannot be caught by a 1-divine tier below it.
 	for _, tier := range tiers {
-		if len(tier.currency)+len(tier.uniques)+len(tier.exceptional) == 0 {
+		if len(tier.currency)+len(tier.uniques)+len(tier.exceptional)+len(tier.gems) == 0 {
 			continue
 		}
 		b.section(fmt.Sprintf(i18n.T("filter.sec.valueTier"), strings.ToUpper(tier.group.Name),
@@ -490,6 +504,15 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		sort.Strings(tier.uniques)
 		b.rule("Show", nil, "BaseType", tier.currency, tierStyle)
 		b.rule("Show", []string{"Rarity Unique"}, "BaseType", tier.uniques, tierStyle)
+		sort.Slice(tier.gems, func(i, j int) bool {
+			a, c := tier.gems[i], tier.gems[j]
+			return a.kind < c.kind || a.kind == c.kind && a.level < c.level
+		})
+		for _, g := range tier.gems {
+			// No "==" on the base type: the level is part of it (see the
+			// uncut gem rules below).
+			b.rule("Show", []string{fmt.Sprintf(`BaseType "Uncut %s Gem"`, g.kind), fmt.Sprintf("GemLevel == %d", g.level)}, "", nil, tierStyle)
+		}
 		for _, g := range exGroups(tier.exceptional) {
 			sort.Strings(tier.exceptional[g])
 			b.rule("Show", append([]string{"Corrupted False", "Rarity Normal Magic Rare"}, exCond(g)...),
@@ -1031,4 +1054,26 @@ func uniqueStrings(items []string) []string {
 		res = append(res, it)
 	}
 	return res
+}
+
+// uncutGem is an uncut gem price's kind ("Skill", "Spirit", "Support") and
+// level.
+type uncutGem struct {
+	kind  string
+	level int
+}
+
+var uncutGemPriceRE = regexp.MustCompile(`^Uncut (Skill|Spirit|Support) Gem \(Level (\d+)\)$`)
+
+// parseUncutGem reads an uncut gem price name, "Uncut Spirit Gem (Level 20)".
+func parseUncutGem(name string) (uncutGem, bool) {
+	m := uncutGemPriceRE.FindStringSubmatch(strings.TrimSpace(name))
+	if m == nil {
+		return uncutGem{}, false
+	}
+	level, err := strconv.Atoi(m[2])
+	if err != nil || level < 1 {
+		return uncutGem{}, false
+	}
+	return uncutGem{m[1], level}, true
 }

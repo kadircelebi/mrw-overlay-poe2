@@ -85,3 +85,28 @@ func TestExchangeItemsAreMarked(t *testing.T) {
 		}
 	}
 }
+
+// Uncut skill and spirit gems trade on the currency exchange and are priced
+// by level: they get the worth card and their level (the filter's GemLevel).
+// Support gems, which the price list leaves out, keep the item search.
+func TestUncutGemsAreExchangeItemsWithTheirLevel(t *testing.T) {
+	catalog := Catalog{Currencies: []CurrencyEntry{
+		{ID: "uncut-spirit-gem-20", Text: "Uncut Spirit Gem (Level 20)", Group: "UncutGems"},
+		{ID: "uncut-support-gem-4", Text: "Uncut Support Gem (Level 4)", Group: "UncutGems"},
+	}}
+	for raw, want := range map[string]struct {
+		exchange string
+		level    int
+	}{
+		"Item Class: Uncut Spirit Gems\nRarity: Currency\nUncut Spirit Gem (Level 20)\n--------\nStack Size: 1/1\n":  {"uncut-spirit-gem-20", 20},
+		"Item Class: Uncut Support Gems\nRarity: Currency\nUncut Support Gem (Level 4)\n--------\nStack Size: 1/1\n": {"", 4},
+	} {
+		item, err := ParseItem(raw, catalog)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if item.Exchange != want.exchange || item.GemLevel != want.level {
+			t.Errorf("%q: exchange %q level %d, want %+v", item.BaseType, item.Exchange, item.GemLevel, want)
+		}
+	}
+}

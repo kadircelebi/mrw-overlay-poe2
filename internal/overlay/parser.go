@@ -411,9 +411,16 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 	for i := range item.Mods {
 		item.Mods[i].Key = "mod-" + strconv.Itoa(i+1)
 	}
+	// An uncut gem names its level in its base type ("Uncut Spirit Gem
+	// (Level 20)"); the loot filter's rules test it as GemLevel.
+	if m := uncutGemLevelRE.FindStringSubmatch(item.BaseType); m != nil && item.GemLevel == 0 {
+		item.GemLevel, _ = strconv.Atoi(m[1])
+	}
 	item.Exchange = catalog.exchangeID(item)
 	return item, nil
 }
+
+var uncutGemLevelRE = regexp.MustCompile(`^Uncut (?:Skill|Spirit|Support) Gem \(Level (\d+)\)$`)
 
 // scaleClipboardModifier converts the advanced copy's base rolls (including
 // roll ranges) to displayed values. Round toward zero at the printed precision,
@@ -441,8 +448,8 @@ func scaleClipboardModifier(text string, increase float64) string {
 }
 
 // itemSearchGroups are exchange sections whose items are still priced by the
-// item search: waystones by tier, uncut gems by level.
-var itemSearchGroups = map[string]bool{"Waystones": true, "UncutGems": true}
+// item search: waystones by tier.
+var itemSearchGroups = map[string]bool{"Waystones": true}
 
 // exchangeID is the trade id of an item that trades only on the in-game
 // currency exchange (boss keys, splinters, omens, currency...), or "".
@@ -457,6 +464,12 @@ func (c Catalog) exchangeID(item Item) string {
 	}
 	// Logbooks are on the exchange too, but their modifiers set the price.
 	if name == "" || strings.EqualFold(name, "Expedition Logbook") {
+		return ""
+	}
+	// Uncut skill and spirit gems trade on the currency exchange and the price
+	// list has them by level; support gems are not priced there, so they keep
+	// the item search.
+	if strings.HasPrefix(name, "Uncut Support Gem") {
 		return ""
 	}
 	for _, e := range c.Currencies {
