@@ -106,7 +106,7 @@ Sonra:
 Windows 10/11 ve WebView2 gerekir (Windows 11'de hazır gelir). Ayarlar `%APPDATA%\PoE2Filtre` altında durur, iki sürüm de aynı klasörü kullanır.
 
 ### Tarayıcı eklentisi (isteğe bağlı)
-Canlı arama, hideout'a gitme ve daha büyük aramalar için uygulamanın pathofexile.com oturumuna ihtiyacı var. Bunu küçük bir eklenti aktarır: [Chrome](https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn) · [Edge](https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc) · [Firefox](https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/). Eklenti yalnız sen **Ayarlar → Hesap → Tarayıcıyı bağla**'ya bastığında devreye girer. Oturum çerezini ve hesap adını okuyup kendi bilgisayarındaki uygulamaya (`127.0.0.1`) verir. Asla şifre istemez ve sayfayı değiştirmez. Kaynak kodu: [`browser-extension/`](browser-extension/).
+Canlı arama, hideout'a gitme ve daha büyük aramalar için uygulamanın pathofexile.com oturumuna ihtiyacı var. Bunu küçük bir eklenti aktarır: [Chrome](https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn) · [Edge](https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc) · [Firefox](https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/). Eklenti yalnız sen **Ayarlar → Hesap → Tarayıcıyla bağlan**'ya bastığında devreye girer. Oturum çerezini ve hesap adını okuyup kendi bilgisayarındaki uygulamaya (`127.0.0.1`) verir. Asla şifre istemez ve sayfayı değiştirmez. Kaynak kodu: [`browser-extension/`](browser-extension/).
 
 ## SSS
 
