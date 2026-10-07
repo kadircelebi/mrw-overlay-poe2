@@ -1,8 +1,0 @@
-{
-  "_comment": "Values from Partner Center: the app's page > Product management > Product identity. They are public (every installed package shows them). Store ID 9PM376D3LFBG, https://apps.microsoft.com/detail/9PM376D3LFBG, package family MrWProject.MrWOverlayforPOE2_1jmj08nda0ave.",
-  "identityName": "MrWProject.MrWOverlayforPOE2",
-  "publisher": "CN=BE7956F6-3D06-4F0C-B8B9-FAA5D1653D9F",
-  "publisherDisplayName": "MrWProject",
-  "displayName": "MrW Overlay for POE 2",
-  "description": "Loot filter with live prices and an in-game price check for Path of Exile 2."
-}

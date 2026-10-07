@@ -122,8 +122,6 @@ For example, with the waystone slider at T14+, only T14 and above are highlighte
 
 **I want different settings for different content.** Settings → Profiles. Name the current one with "Save as", change the settings, then switch from the list with one click. A profile carries every setting, including the league and the filter name in the game; if the filter name changes, the app tells you, and you need to pick that filter in the game.
 
-**I don't want to wait for the scan from scratch.** The [`samples/`](samples/) folder has a completed exceptional scan (1203 keys, Forbidden Rites) and a sample profile. Import the scan under Settings → Trade scan → Share scan results → Import; your own fresh records are not overwritten, only missing or older ones are updated.
-
 **I want to give my settings to a friend.** Profiles → Export writes a file; your friend takes it in with Import and plays with that profile. If you only want to hand over the generated filter, General → "Export filter file" is enough; the other person doesn't even need the app.
 
 **What if a price source goes down?** If a source does not respond, its previous data is kept and the filter is still written; nothing is ever hidden on weak data (a unique with a single listing, an exceptional with very few listings).
@@ -225,8 +223,7 @@ python build/art/make_icons.py  # regenerate the icons from the logo (needs Pill
 | `internal/filter` | Rule generation and injection |
 | `internal/overlay` | Item text parser, stat catalogue, tier data, game window |
 | `browser-extension/` | The pathofexile.com session bridge (Chrome, Edge, Firefox) |
-| `cmd/` | `storepack` (MSIX package), `packext` (extension zips), `scanner` (shared scan server), `profilesrv` (public profile server); each server with its systemd unit |
-| `samples/` | Exported scan results and a sample profile to import |
+| `cmd/` | `scanner` (shared scan server), `profilesrv` (public profile server); each with its systemd unit |
 
 ## Support
 
