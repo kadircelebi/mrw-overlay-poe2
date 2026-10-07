@@ -5,7 +5,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
 
 <p align="center">
   <a href="https://apps.microsoft.com/detail/9PM376D3LFBG"><img src="https://get.microsoft.com/images/tr%20dark.svg" alt="Microsoft'tan edinin" height="48"></a>
-  <a href="https://buymeacoffee.com/mrworth"><img src="docs/bmc-button.svg" alt="Buy me a coffee" height="48"></a>
+  <a href="https://buymeacoffee.com/mrworth"><img src="docs/bmc-button.svg" alt="Buy me a coffee" height="44"></a>
 </p>
 <p align="center">
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/kadircelebi/mrw-overlay-poe2?label=s%C3%BCr%C3%BCm&color=c8aa6e" alt="Son sürüm"></a>
@@ -15,7 +15,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
   <img src="https://img.shields.io/badge/diller-EN%20%7C%20TR%20%7C%20%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-555" alt="İngilizce, Türkçe, Geleneksel Çince">
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="https://poe2.mrwproject.com/tr/">Web sitesi</a> · <a href="https://buymeacoffee.com/mrworth">♥ Destek ol</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="https://poe2.mrwproject.com/tr/">Web sitesi</a></p>
 
 <p align="center"><img src="docs/hero.jpg" alt="MrW Overlay for POE 2" width="900"></p>
 

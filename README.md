@@ -5,7 +5,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
 
 <p align="center">
   <a href="https://apps.microsoft.com/detail/9PM376D3LFBG"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" height="48"></a>
-  <a href="https://buymeacoffee.com/mrworth"><img src="docs/bmc-button.svg" alt="Buy me a coffee" height="48"></a>
+  <a href="https://buymeacoffee.com/mrworth"><img src="docs/bmc-button.svg" alt="Buy me a coffee" height="44"></a>
 </p>
 <p align="center">
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/kadircelebi/mrw-overlay-poe2?label=release&color=c8aa6e" alt="Latest release"></a>
@@ -15,7 +15,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20TR%20%7C%20%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-555" alt="English, Turkish, Traditional Chinese">
 </p>
 
-<p align="center"><a href="README.tr.md">Türkçe</a> · <a href="https://poe2.mrwproject.com">Website</a> · <a href="https://buymeacoffee.com/mrworth">♥ Support</a></p>
+<p align="center"><a href="README.tr.md">Türkçe</a> · <a href="https://poe2.mrwproject.com">Website</a></p>
 
 <p align="center"><img src="docs/hero.jpg" alt="MrW Overlay for POE 2" width="900"></p>
 
