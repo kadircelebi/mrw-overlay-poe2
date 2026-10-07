@@ -5,6 +5,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
 
 <p align="center">
   <a href="https://apps.microsoft.com/detail/9PM376D3LFBG"><img src="https://get.microsoft.com/images/tr%20dark.svg" alt="Microsoft'tan edinin" height="48"></a>
+  <a href="https://buymeacoffee.com/mrworth"><img src="docs/bmc-button.svg" alt="Buy me a coffee" height="48"></a>
 </p>
 <p align="center">
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/kadircelebi/mrw-overlay-poe2?label=s%C3%BCr%C3%BCm&color=c8aa6e" alt="Son sürüm"></a>

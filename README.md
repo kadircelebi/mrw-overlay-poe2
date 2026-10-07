@@ -5,6 +5,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
 
 <p align="center">
   <a href="https://apps.microsoft.com/detail/9PM376D3LFBG"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" height="48"></a>
+  <a href="https://buymeacoffee.com/mrworth"><img src="docs/bmc-button.svg" alt="Buy me a coffee" height="48"></a>
 </p>
 <p align="center">
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/kadircelebi/mrw-overlay-poe2?label=release&color=c8aa6e" alt="Latest release"></a>
