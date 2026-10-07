@@ -14,7 +14,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
   <img src="https://img.shields.io/badge/diller-EN%20%7C%20TR%20%7C%20%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-555" alt="İngilizce, Türkçe, Geleneksel Çince">
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="https://poe2.mrwproject.com/tr/">Web sitesi</a> · <a href="https://github.com/sponsors/kadircelebi">♥ Destek ol</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="https://poe2.mrwproject.com/tr/">Web sitesi</a> · <a href="https://buymeacoffee.com/mrworth">♥ Destek ol</a></p>
 
 <p align="center"><img src="docs/hero.jpg" alt="MrW Overlay for POE 2" width="900"></p>
 
@@ -128,7 +128,9 @@ Canlı arama, hideout'a gitme ve daha büyük aramalar için uygulamanın pathof
 
 ## Projeye destek
 
-MrW Overlay ücretsizdir ve öyle kalacak. Her yamaya ve her lige yetiştirmek çok akşam alıyor. İşine yarıyorsa [GitHub Sponsors](https://github.com/sponsors/kadircelebi) üzerinden destek olabilir ya da bu sayfaya bir ⭐ bırakabilirsin. Destek uygulamada hiçbir şeyin kilidini açmaz; herkes her özelliği kullanır.
+MrW Overlay ücretsizdir ve öyle kalacak. Her yamaya ve her lige yetiştirmek çok akşam alıyor. İşine yarıyorsa bir [kahve ısmarlayabilir](https://buymeacoffee.com/mrworth) (hesap gerekmez; kart, Apple Pay ya da Google Pay), [GitHub Sponsors](https://github.com/sponsors/kadircelebi) üzerinden aylık destek olabilir ya da bu sayfaya bir ⭐ bırakabilirsin. Destek uygulamada hiçbir şeyin kilidini açmaz; herkes her özelliği kullanır.
+
+<p><a href="https://buymeacoffee.com/mrworth"><img src="https://img.shields.io/badge/Buy_me_a_coffee-mrworth-FFDD00?logo=buymeacoffee&logoColor=black" alt="Buy me a coffee"></a> <a href="https://github.com/sponsors/kadircelebi"><img src="https://img.shields.io/badge/GitHub_Sponsors-kadircelebi-EA4AAA?logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a></p>
 
 Hata mı buldun, aklına bir fikir mi geldi? [Issue aç](../../issues/new/choose).
 

@@ -14,7 +14,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20TR%20%7C%20%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-555" alt="English, Turkish, Traditional Chinese">
 </p>
 
-<p align="center"><a href="README.tr.md">Türkçe</a> · <a href="https://poe2.mrwproject.com">Website</a> · <a href="https://github.com/sponsors/kadircelebi">♥ Support</a></p>
+<p align="center"><a href="README.tr.md">Türkçe</a> · <a href="https://poe2.mrwproject.com">Website</a> · <a href="https://buymeacoffee.com/mrworth">♥ Support</a></p>
 
 <p align="center"><img src="docs/hero.jpg" alt="MrW Overlay for POE 2" width="900"></p>
 
@@ -128,7 +128,9 @@ For live search, hideout travel and bigger searches, the app needs your pathofex
 
 ## Support the project
 
-MrW Overlay is free and will stay free. It takes a lot of evenings to keep it in line with every patch and league. If it saves you time, you can chip in through [GitHub Sponsors](https://github.com/sponsors/kadircelebi), or just leave a ⭐ on this page. Sponsoring unlocks nothing in the app; everyone gets every feature.
+MrW Overlay is free and will stay free. It takes a lot of evenings to keep it in line with every patch and league. If it saves you time, you can [buy me a coffee](https://buymeacoffee.com/mrworth) (no account needed, card, Apple Pay or Google Pay), sponsor it monthly on [GitHub Sponsors](https://github.com/sponsors/kadircelebi), or just leave a ⭐ on this page. Support unlocks nothing in the app; everyone gets every feature.
+
+<p><a href="https://buymeacoffee.com/mrworth"><img src="https://img.shields.io/badge/Buy_me_a_coffee-mrworth-FFDD00?logo=buymeacoffee&logoColor=black" alt="Buy me a coffee"></a> <a href="https://github.com/sponsors/kadircelebi"><img src="https://img.shields.io/badge/GitHub_Sponsors-kadircelebi-EA4AAA?logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a></p>
 
 Found a bug or have an idea? [Open an issue](../../issues/new/choose).
 

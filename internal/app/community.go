@@ -7,11 +7,12 @@ import (
 )
 
 // Links in the main panel's community row. An empty URL hides its button, so
-// a link goes live by filling it in here.
+// a link goes live by filling it in here. Support goes to Buy Me a Coffee:
+// players can give without any account (GitHub Sponsors needs a GitHub one).
 const (
-	discordURL  = ""
-	sponsorsURL = "https://github.com/sponsors/kadircelebi"
-	siteURL     = "https://poe2.mrwproject.com/"
+	discordURL = ""
+	supportURL = "https://buymeacoffee.com/mrworth"
+	siteURL    = "https://poe2.mrwproject.com/"
 )
 
 // communityURL returns the fixed address behind a community button, or "" when
@@ -21,7 +22,7 @@ func communityURL(kind string) string {
 	case "discord":
 		return discordURL
 	case "support":
-		return sponsorsURL
+		return supportURL
 	case "contact":
 		if i18n.Current() == i18n.TR {
 			return siteURL + "tr/contact/"
