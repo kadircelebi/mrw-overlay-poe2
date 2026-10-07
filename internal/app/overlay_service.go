@@ -493,11 +493,11 @@ func (s *AppService) captureItem(mode string) {
 	}
 	catalog, err := s.overlayCatalog.Load(context.Background())
 	if raw == "" || raw == sentinel {
-		// The game copies nothing for a gem socketed in the Skills panel; its
-		// tooltip is read off the screen instead, only then.
+		// The game copies nothing for a gem socketed in the Skills panel or an
+		// Expedition reward; its text is read off the screen instead, only then.
 		text, ok := "", false
 		if err == nil {
-			text, ok = gemFromScreen(catalog)
+			text, ok = itemFromScreen(catalog)
 		}
 		if !ok {
 			s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.noCopy"), Mode: mode})
@@ -518,19 +518,22 @@ func (s *AppService) captureItem(mode string) {
 	s.showOverlaySnapshot(overlay.Snapshot{Item: &item, Mode: mode})
 }
 
-// gemFromScreen reads the gem tooltip under the cursor with Windows' text
-// recognizer and returns it as copied item text.
-func gemFromScreen(catalog overlay.Catalog) (string, bool) {
-	var names []string
+// itemFromScreen reads the item under the cursor with Windows' text
+// recognizer, a gem tooltip or an Expedition reward row, and returns it as
+// copied item text.
+func itemFromScreen(catalog overlay.Catalog) (string, bool) {
+	var gems, currencies []string
 	for _, group := range catalog.Items {
-		if group.ID != "gem" {
-			continue
-		}
 		for _, entry := range group.Entries {
-			names = append(names, entry.Type)
+			switch group.ID {
+			case "gem":
+				gems = append(gems, entry.Type)
+			case "currency":
+				currencies = append(currencies, entry.Type)
+			}
 		}
 	}
-	if len(names) == 0 {
+	if len(gems) == 0 && len(currencies) == 0 {
 		return "", false
 	}
 	lines, x, y, err := overlay.ReadGameText()
@@ -538,7 +541,7 @@ func gemFromScreen(catalog overlay.Catalog) (string, bool) {
 		log.Printf("overlay: screen text: %v", err)
 		return "", false
 	}
-	return overlay.GemFromText(lines, float64(x), float64(y), names)
+	return overlay.ScreenItemText(lines, float64(x), float64(y), gems, currencies)
 }
 
 func (s *AppService) setOverlaySnapshot(snap overlay.Snapshot) {

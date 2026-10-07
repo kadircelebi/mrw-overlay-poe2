@@ -5,14 +5,15 @@ package overlay
 import (
 	"image"
 	"image/draw"
-	"image/png"
+	_ "image/jpeg"
+	_ "image/png"
 	"os"
 	"testing"
 	"time"
 )
 
 // TestRecognizeScreenshot runs Windows' recognizer on a saved screenshot:
-// POE2_OCR_SAMPLE=<png> names it (none is kept in the repository).
+// POE2_OCR_SAMPLE=<png or jpg> names it (none is kept in the repository).
 func TestRecognizeScreenshot(t *testing.T) {
 	path := os.Getenv("POE2_OCR_SAMPLE")
 	if path == "" {
@@ -23,7 +24,7 @@ func TestRecognizeScreenshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	img, err := png.Decode(f)
+	img, _, err := image.Decode(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +43,7 @@ func TestRecognizeScreenshot(t *testing.T) {
 	for _, line := range lines {
 		t.Logf("%5.0f %5.0f %4.0f %3.0f  %s", line.X, line.Y, line.W, line.H, line.Text)
 	}
-	if raw, ok := GemFromText(lines, 380, 480, []string{"Archmage", "Virtuous Barrier", "Rakiata's Flow"}); ok {
-		t.Logf("gem:\n%s", raw)
+	if raw, ok := ScreenItemText(lines, 380, 480, []string{"Archmage", "Virtuous Barrier", "Rakiata's Flow"}, nil); ok {
+		t.Logf("item:\n%s", raw)
 	}
 }
