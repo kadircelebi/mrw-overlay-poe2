@@ -130,7 +130,7 @@ Canlı arama, hideout'a gitme ve daha büyük aramalar için uygulamanın pathof
 
 MrW Overlay ücretsizdir ve öyle kalacak. Her yamaya ve her lige yetiştirmek çok akşam alıyor. İşine yarıyorsa bir [kahve ısmarlayabilir](https://buymeacoffee.com/mrworth) (hesap gerekmez; kart, Apple Pay ya da Google Pay), [GitHub Sponsors](https://github.com/sponsors/kadircelebi) üzerinden aylık destek olabilir ya da bu sayfaya bir ⭐ bırakabilirsin. Destek uygulamada hiçbir şeyin kilidini açmaz; herkes her özelliği kullanır.
 
-<p><a href="https://buymeacoffee.com/mrworth"><img src="https://img.shields.io/badge/Buy_me_a_coffee-mrworth-FFDD00?logo=buymeacoffee&logoColor=black" alt="Buy me a coffee"></a> <a href="https://github.com/sponsors/kadircelebi"><img src="https://img.shields.io/badge/GitHub_Sponsors-kadircelebi-EA4AAA?logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a></p>
+<p><a href="https://buymeacoffee.com/mrworth"><img src="docs/bmc-button.svg" alt="Buy me a coffee" height="40"></a> <a href="https://github.com/sponsors/kadircelebi"><img src="https://img.shields.io/badge/GitHub_Sponsors-kadircelebi-EA4AAA?logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a></p>
 
 Hata mı buldun, aklına bir fikir mi geldi? [Issue aç](../../issues/new/choose).
 

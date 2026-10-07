@@ -130,7 +130,7 @@ For live search, hideout travel and bigger searches, the app needs your pathofex
 
 MrW Overlay is free and will stay free. It takes a lot of evenings to keep it in line with every patch and league. If it saves you time, you can [buy me a coffee](https://buymeacoffee.com/mrworth) (no account needed, card, Apple Pay or Google Pay), sponsor it monthly on [GitHub Sponsors](https://github.com/sponsors/kadircelebi), or just leave a ⭐ on this page. Support unlocks nothing in the app; everyone gets every feature.
 
-<p><a href="https://buymeacoffee.com/mrworth"><img src="https://img.shields.io/badge/Buy_me_a_coffee-mrworth-FFDD00?logo=buymeacoffee&logoColor=black" alt="Buy me a coffee"></a> <a href="https://github.com/sponsors/kadircelebi"><img src="https://img.shields.io/badge/GitHub_Sponsors-kadircelebi-EA4AAA?logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a></p>
+<p><a href="https://buymeacoffee.com/mrworth"><img src="docs/bmc-button.svg" alt="Buy me a coffee" height="40"></a> <a href="https://github.com/sponsors/kadircelebi"><img src="https://img.shields.io/badge/GitHub_Sponsors-kadircelebi-EA4AAA?logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a></p>
 
 Found a bug or have an idea? [Open an issue](../../issues/new/choose).
 
