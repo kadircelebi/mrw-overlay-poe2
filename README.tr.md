@@ -85,6 +85,7 @@ Bir özellik oyunda gerçekten çalışana ve kurallara uyana kadar onu yayınla
 - **Ekran yalnız sen isteyince okunur.** Expedition ve gem okuma, her tuşa basışta ekranı bir kez yakalar ve Windows'un kendi OCR'ıyla senin bilgisayarında okur. Hiçbir şey yüklenmez.
 - **Oturumun bilgisayarında kalır.** pathofexile.com hesabını bağlarsan oturum Windows DPAPI ile şifrelenir ve yalnız pathofexile.com'a gider.
 - **Zayıf veriyle drop gizlenmez.** Tek ilanı olan bir unique ya da birkaç ilanlı bir exceptional asla gizlenmez.
+- **Açıkta derlenir.** GitHub'daki her sürümün exe'si bu depodan [GitHub Actions](.github/workflows/release.yml) ile derlenir, hiçbir geliştiricinin bilgisayarında değil; indirdiğin şey burada okuyabildiğin koddur.
 - **Güvenli güncelleme.** GitHub sürümü her güncellemeyi SHA-256 ile doğrular, yeni sürüm açılmazsa eskisine döner. Store sürümünü Store günceller.
 - **Tepside hafif.** Boşta ölçüldü: tek CPU çekirdeğinin yaklaşık %0,2'si.
 - **Gerçek oyuncular sürekli test ediyor.** Belirli bir aktif oyuncu grubu uygulamayı her gün kullanıyor ve her yeni özelliği kendi map'lerinde deniyor.
@@ -94,7 +95,7 @@ Bir özellik oyunda gerçekten çalışana ve kurallara uyana kadar onu yayınla
 ## Kurulum
 
 - **Microsoft Store (önerilen):** [MrW Overlay for POE 2](https://apps.microsoft.com/detail/9PM376D3LFBG). Her Store uygulaması gibi kurulur ve güncellenir, SmartScreen uyarısı çıkmaz.
-- **GitHub:** [Releases](../../releases/latest) sayfasından `poe2filtre-windows-amd64.exe`'yi indir. Kurulum yok, tek dosya. Exe henüz imzalı olmadığı için SmartScreen "Windows bilgisayarınızı korudu" diyebilir: **Ek bilgi → Yine de çalıştır**. SHA-256 sürüm notlarında.
+- **GitHub:** [Releases](../../releases/latest) sayfasından `poe2filtre-windows-amd64.exe`'yi indir. Kurulum yok, tek dosya. Exe kod imzalı olmadığı için SmartScreen "Windows bilgisayarınızı korudu" diyebilir: **Ek bilgi → Yine de çalıştır**. SHA-256 sürüm notlarında.
 
 Sonra:
 
@@ -116,6 +117,8 @@ Canlı arama, hideout'a gitme ve daha büyük aramalar için uygulamanın pathof
 **Çok fazla / çok az şey gizleniyor.** Önce değer eşiğini, sonra NeverSink sıkılığını ayarla. Sıkılık temeli belirler, eşik ise senin kurallarını.
 
 **Bir eşyayı hep görmek istiyorum.** "Her zaman göster"e ekle ya da kendi grubunu yap. Yalnız unique halini istiyorsan `Taban adı|unique` yaz.
+
+**Ucuz bir unique neden hâlâ parlıyor?** Unique'ler tanımlanmamış (unidentified) düşer ve loot filtresi yalnız tabanlarını (Sapphire Ring, Heavy Belt…) görebilir, hangi unique olduğunu göremez. Bu yüzden uygulama o tabanda düşebilecek bütün unique'lere bakar ve en değerlisine göre karar verir. Diyelim Sapphire Ring'in üç unique'i ucuz, biri pahalı: bütün unique Sapphire Ring'ler parlar, çünkü yerdeki pahalı olan da olabilir. Hangisinin düştüğünü görmek için identify et. O taban için durmaya değmiyorsa **Alt+H** onun unique'lerini gizler: tamamen ya da yalnız ucuz kaldıkları sürece. Tek ilanla gelen bir fiyat, bir tabanı gizlemek için asla sebep sayılmaz.
 
 **Farklı içerikler için farklı ayarlar istiyorum.** Ayarlar → Profiller: kaydet, geçiş yap, dışa aktar ya da herkese açık bir profili takip et.
 
@@ -140,19 +143,6 @@ Herkese açık veriyi okur: fiyatları [poe.ninja](https://poe.ninja/) ve [poe2s
 - **Fiyat sorgulama:** varsayılan olarak kapalıdır. Kısayola bastığında uygulama eşyanın metnini oyunun kopyalama komutuyla alır ve resmi trade API'sine bir arama gönderir.
 
 Gizlilik politikasının tamamı: [poe2.mrwproject.com](https://poe2.mrwproject.com/tr/).
-
-## Kod imzalama politikası
-
-[SignPath Foundation](https://signpath.org/) başvurusu bu bölümü şart koşar. **Başvuru onaylanana kadar yayınlanan exe'ler imzasızdır**; SmartScreen uyarısı bu yüzden çıkar.
-
-Ücretsiz kod imzalama [SignPath.io](https://signpath.io/), sertifika [SignPath Foundation](https://signpath.org/) tarafından sağlanır.
-
-Ekip rolleri:
-
-- Commit ve inceleme: [kadircelebi](https://github.com/kadircelebi)
-- Onay: [kadircelebi](https://github.com/kadircelebi)
-
-Bütün sürümler bu depodan [GitHub Actions](.github/workflows/release.yml) ile derlenir; geliştirici bilgisayarında exe üretilmez.
 
 ## Geliştiriciler için
 

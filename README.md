@@ -85,6 +85,7 @@ We don't ship a feature until it really works in game and plays by the rules.
 - **Screen reading only when you ask.** Expedition and gem reading capture the screen once per key press and read it on your PC with Windows' built-in OCR. Nothing is uploaded.
 - **Your session stays on your PC.** If you connect your pathofexile.com account, the session is encrypted with Windows DPAPI and only ever sent to pathofexile.com.
 - **Weak data never hides loot.** A unique with a single listing, or an exceptional with only a few, is never a reason to hide it.
+- **Built in the open.** Every GitHub release exe is built from this repository by [GitHub Actions](.github/workflows/release.yml), never on a developer's machine, so what you download is the code you can read here.
 - **Safe updates.** The GitHub build checks every update against its SHA-256 and rolls back if the new version won't start. The Store build is updated by the Store.
 - **Light in the tray.** Measured idle: about 0.2% of one CPU core.
 - **Tested by real players, all the time.** A group of active players uses the app every day and tries each new feature in their own maps.
@@ -94,7 +95,7 @@ We don't ship a feature until it really works in game and plays by the rules.
 ## Install
 
 - **Microsoft Store (recommended):** [MrW Overlay for POE 2](https://apps.microsoft.com/detail/9PM376D3LFBG). Installs and updates like any Store app, no SmartScreen warning.
-- **GitHub:** grab `poe2filtre-windows-amd64.exe` from [Releases](../../releases/latest). It is a single file with no installer. The exe is not signed yet, so SmartScreen may say "Windows protected your PC": click **More info → Run anyway**. The SHA-256 is in the release notes.
+- **GitHub:** grab `poe2filtre-windows-amd64.exe` from [Releases](../../releases/latest). It is a single file with no installer. The exe is not code-signed, so SmartScreen may say "Windows protected your PC": click **More info → Run anyway**. The SHA-256 is in the release notes.
 
 Then:
 
@@ -116,6 +117,8 @@ For live search, hideout travel and bigger searches, the app needs your pathofex
 **Too much / too little is hidden.** Change the value threshold first, then NeverSink's strictness. The strictness sets the base and the threshold sets your rules.
 
 **I always want to see one item.** Add it to "Always show", or make your own group. For only its unique version, write `Base name|unique`.
+
+**Why does a cheap unique still get the big highlight?** Uniques drop unidentified, and a loot filter can only see their base (Sapphire Ring, Heavy Belt…), not which unique it is. So the app looks at every unique that can drop on that base and goes by the most valuable one. Say three Sapphire Ring uniques are cheap and one is worth a lot: every unique Sapphire Ring gets highlighted, because the one on the ground might be the expensive one. Identify it to see which one you got. If that base isn't worth stopping for, **Alt+H** hides its uniques, for good or only while they stay cheap. A price backed by a single listing is never a reason to hide a base.
 
 **I want different setups for different content.** Settings → Profiles: save, switch, export, or follow a public profile.
 
@@ -140,19 +143,6 @@ It reads public data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout
 - **Price check:** this is off by default. When you press the hotkey, the app copies that item's text with the game's copy command and sends a search to the official trade API.
 
 Full policy: [poe2.mrwproject.com](https://poe2.mrwproject.com).
-
-## Code signing policy
-
-This section is required for the [SignPath Foundation](https://signpath.org/) application. **Until the application is approved, released exes are unsigned**; that is why the SmartScreen warning appears.
-
-Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
-
-Team roles:
-
-- Committers and reviewers: [kadircelebi](https://github.com/kadircelebi)
-- Approvers: [kadircelebi](https://github.com/kadircelebi)
-
-All releases are built from this repository by [GitHub Actions](.github/workflows/release.yml); no binary is produced on a developer machine.
 
 ## For developers
 
