@@ -31,8 +31,12 @@ export function locale(): string {
 /**
  * Text for a key, with {0}, {1}… replaced by args. A missing key falls back to
  * English and then to the key itself, so a gap shows up as readable text.
+ * When the first argument is 1, a "<key>.one" text of the current language is
+ * used if there is one ("1 follower"); languages without a singular form
+ * (Turkish, Chinese) simply don't define it.
  */
 export function t(key: string, ...args: (string | number)[]): string {
-  const s = tables[lang][key] ?? en[key] ?? key
+  const one = args[0] === 1 ? tables[lang][key + '.one'] : undefined
+  const s = one ?? tables[lang][key] ?? en[key] ?? key
   return args.length ? s.replace(/\{(\d+)\}/g, (m, i) => String(args[Number(i)] ?? m)) : s
 }

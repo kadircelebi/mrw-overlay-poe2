@@ -14,7 +14,8 @@ let bad = false
 
 for (const file of ['tr.ts', 'zh.ts']) {
   const own = new Set(keys(file))
-  const missing = en.filter((k) => !own.has(k))
+  // "<key>.one" is the English singular; languages without one leave it out.
+  const missing = en.filter((k) => !own.has(k) && !k.endsWith('.one'))
   const unknown = [...own].filter((k) => !enSet.has(k))
   if (missing.length) {
     console.error(`${file}: missing ${missing.length} key(s): ${missing.join(', ')}`)
