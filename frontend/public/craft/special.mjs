@@ -1,22 +1,34 @@
 import { t } from './i18n.mjs';
-import { candidates, chooseWeighted, roll, overlaps, count, removeMod, removable, sideLimit, isFull, isCrafted, craftedLimit } from './engine.mjs';
+import { candidates, chooseWeighted, roll, overlaps, count, removeMod, removable, sideLimit, isFull, isCrafted, craftedLimit, overfull } from './engine.mjs';
 import { filterOmenRows } from './omens.mjs';
 const noOmens = {side:null,tags:[],quantity:1};
 
 // The essences the craft offers. Greater: a Magic item becomes Rare with the
 // guaranteed modifier, its affixes stay. Perfect (and the corrupted ones like
 // Hysteria, which work the same way): on a Rare, a random affix is removed and
-// the guaranteed modifier added. Lesser and plain essences are left out.
+// the guaranteed modifier added. Alloys (Runes of Aldur) work like Perfect
+// with one fixed modifier per item class. Lesser and plain essences are left out.
 export function essenceTier(id, rule) {
   if (rule.operation !== 'essence') return null;
+  if (rule.alloy) return 'alloy';
   if (id.startsWith('greater-')) return 'greater';
   if (id.startsWith('perfect-')) return 'perfect';
   return rule.pool === 'perfect_essence' ? 'special' : null;
 }
 
 export function applicable(rule, data) {
-  return !rule.beforeClassIds || rule.beforeClassIds.includes(data.options.ItemClassesCode);
+  return (!rule.beforeClassIds || rule.beforeClassIds.includes(data.options.ItemClassesCode)) &&
+    (!rule.pages || rule.pages.includes(data.page));
 }
+
+// A Potent liquid emotion's outcomes on this jewel, equally likely (Potent
+// on basic jewels, Ancient Potent on Time-Lost ones): Contempt and Ferocity
+// have two, Melancholy one.
+export const liquidRows = (data, rule) => data.mods.filter(m => m.pool === 'liquid' && m.name === rule.name);
+// A liquid removes an affix on its crafted modifier's side, and like a Chaos
+// Orb it cannot remove from a side over its limit (three suffixes locked in):
+// only the outcomes on the other side remain (Ferocity: Effect of Suffixes).
+const liquidOutcomes = (item, data, rule) => liquidRows(data, rule).filter(m => !overfull(item, m.affix));
 
 // data.tags are the tags every base of the class carries (from the data
 // build), so an essence row fits jewellery and weapons as well as armour.
@@ -39,6 +51,12 @@ export function specialReason(item, data, rule, effects=noOmens) {
   if (item.corrupted) return t('err.corrupted');
   if (!applicable(rule, data)) return t('err.notForClass');
   if (!rule.beforeRarity.includes(item.rarity)) return t('err.needRarity', rule.beforeRarity.join(' / '));
+  if (rule.operation === 'liquid') {
+    if (!liquidRows(data, rule).length) return t('err.notForClass');
+    if (!liquidOutcomes(item, data, rule).length) return t('err.liquidLocked');
+    if (item.mods.filter(isCrafted).length >= craftedLimit(item)) return t('err.craftedLimit', craftedLimit(item));
+    return '';
+  }
   if (rule.operation === 'desecrate') {
     if (item.mods.some(m => m.desecrated || m.pool === 'desecrated')) return t('err.hasDesecrated');
     if (rule.maxItemLevel && item.ilvl > rule.maxItemLevel) return t('err.maxIlvl', rule.maxItemLevel);
@@ -65,6 +83,16 @@ export function boneRows(item,data,rule,effects=noOmens) {
 export function applySpecial(item, data, rule, random = Math.random, effects=noOmens) {
   const reason = specialReason(item,data,rule,effects); if (reason) throw new Error(reason);
   let next = structuredClone(item);
+  if (rule.operation === 'liquid') {
+    // Contempt: half the time +1 Suffix (a crafted prefix), half the time +1
+    // Prefix (a crafted suffix). A random affix on the crafted modifier's side
+    // makes way.
+    const rows = liquidOutcomes(next, data, rule), row = rows[Math.floor(random() * rows.length)];
+    const options = removable(next, { side: row.affix }).filter(i => !isCrafted(next.mods[i]));
+    if (options.length) next = removeMod(next, options[Math.floor(random() * options.length)]);
+    next.mods.push(roll(row, random));
+    return next;
+  }
   if (rule.operation === 'essence') {
     if (rule.removes) { const options = removable(next,effects.removal || {}); next = removeMod(next,options[Math.floor(random()*options.length)]); }
     const rows = availableEssences(next,data,rule);

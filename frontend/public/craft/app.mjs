@@ -1,6 +1,6 @@
 import { createItem, count, sideLimit, isCrafted, isDesecrated, craftedLimit, manualAdd, manualReason, removeMod, clearMods,
   setRarity, candidates, currencyReason, applyCurrency, supported, rolledText, replaceTier, sortedMods, rollPools, fracturable, removable } from './engine.mjs';
-import { applicable, essenceRows, essenceTier, specialReason, applySpecial, revealChoice, startReveal, rerollReveal, unrevealedIndex } from './special.mjs';
+import { applicable, liquidRows, essenceRows, essenceTier, specialReason, applySpecial, revealChoice, startReveal, rerollReveal, unrevealedIndex } from './special.mjs';
 import { usageEntry, summarize } from './ledger.mjs';
 import { craftText } from './trade.mjs';
 import { iconIndex, iconFor } from './icons.mjs';
@@ -26,11 +26,11 @@ let history = [], undo = [], ready = false;
 let runes = {}, specials = {}, specialSelected = 'preserved-rib', prices = {currency:[]}, priceOverrides = {}, archives = [], sessionStart = new Date().toISOString();
 // Legacy archives remain in saved/exported data, but are no longer created or displayed.
 const storageKey = 'mrw-craft-v1';
-let mode = 'basic', omens = {}, activeOmens = {basic:[],desecrate:[],essence:[]};
+let mode = 'basic', omens = {}, activeOmens = {basic:[],desecrate:[],essence:[],liquid:[]};
 // In the game an omen is used up with the currency; keepOmens leaves it
 // ticked for the next press (each press still pays for one).
 let keepOmens = false;
-const specialRemember = {desecrate:'preserved-rib',essence:'greater-essence-of-the-mind'};
+const specialRemember = {desecrate:'preserved-rib',essence:'greater-essence-of-the-mind',liquid:'potent-liquid-contempt'};
 // Item classes and their defence variants; item.base is the data page
 // ("Gloves_str", "Rings"), so drafts saved before other classes still load.
 let classes = [], pages = {}, bases = {}, manifest = null;
@@ -52,7 +52,7 @@ const snapshot = state => ({base:state.base,baseName:currentBase(state)?.name ||
 const twoHanded = new Set(['body', 'bow', 'crossbow', 'twomace', 'warstaff', 'staff', 'talisman']);
 const maxSockets = page => {
   const id = pages[page]?.cls.id;
-  return !id || ['amulet', 'ring', 'belt', 'quiver'].includes(id) ? 0 : twoHanded.has(id) ? 3 : 2;
+  return !id || ['amulet', 'ring', 'belt', 'quiver', 'jewel'].includes(id) ? 0 : twoHanded.has(id) ? 3 : 2;
 };
 // A Vaal Orb adds a socket past that limit (an exceptional bow with three
 // becomes four), so a Corrupted item may hold one more.
@@ -422,21 +422,21 @@ function renderOmens(context,id,rule) {
 // The ticked omens that fit this currency (kept ones may not).
 const usableOmens = (context,id,rule) => {
   const fits = new Set(relevantOmens(omens,id,rule,data()).map(([key]) => key));
-  return activeOmens[context].filter(key => fits.has(key));
+  return (activeOmens[context] || []).filter(key => fits.has(key));
 };
 const effectsFor = (context,id,rule) => omenEffects(omens,usableOmens(context,id,rule),id,rule,data());
 const operationPayments = (context,id,rule) => [payment(id,rule),...usableOmens(context,id,rule).map(id => payment(id,omens[id]))];
 function renderSpecials() {
-  const context = mode === 'essence' ? 'essence' : 'desecrate';
+  const context = mode === 'essence' || mode === 'liquid' ? mode : 'desecrate';
   const visible = Object.entries(specials).filter(([id,r]) => applicable(r,data()) &&
-    r.operation === context && (r.operation === 'desecrate' || (essenceTier(id,r) && essenceRows(data(),r).length)));
+    r.operation === context && (r.operation !== 'essence' || (essenceTier(id,r) && essenceRows(data(),r).length)));
   if (!visible.some(([id]) => id === specialSelected)) specialSelected = visible[0]?.[0] || '';
   // Essences and bones are picked from cards that say what each one does.
   $('special-field').hidden = true;
-  $('essence-grid').hidden = false;
-  if (context === 'essence') renderEssences(visible); else renderBones(visible);
+  $('essence-grid').hidden = context === 'liquid';
+  if (context === 'essence') renderEssences(visible); else if (context === 'desecrate') renderBones(visible);
   $('special').replaceChildren();
-  for (const op of ['desecrate','essence']) {
+  for (const op of ['desecrate','essence','liquid']) {
     const group = element('optgroup'); group.label = t(`special.group.${op}`);
     for (const [id,r] of visible.filter(([,r]) => r.operation === op)) group.append(new Option(r.name,id));
     $('special').append(group);
@@ -448,7 +448,7 @@ function renderSpecials() {
     $('special-apply').disabled = true; $('special-omens').replaceChildren();
     return;
   }
-  renderOmens(context,specialSelected,rule);
+  if (context === 'liquid') $('special-omens').replaceChildren(); else renderOmens(context,specialSelected,rule);
   $('special').disabled = Boolean(item.reveal);
   const usage = payment(specialSelected,rule);
   $('special-price').disabled = Boolean(item.reveal);
@@ -459,7 +459,9 @@ function renderSpecials() {
   setIcon($('special-icon'), rule.icon);
   const effects = effectsFor(context,specialSelected,rule);
   const reason = specialReason(item,data(),rule,effects);
-  $('special-detail').textContent = reason || (rule.operation === 'desecrate'
+  $('special-detail').textContent = reason || (rule.operation === 'liquid'
+    ? (rule.name.endsWith('Contempt') ? t('special.contempt') : `${t('special.essenceRemoves')} ${liquidRows(data(),rule).map(m => m.text).join(' / ')}`)
+    : rule.operation === 'desecrate'
     ? t('special.desecrate') + (item.mods.length === 6 ? t('special.desecrateFull') : '')
     : `${rule.removes ? t('special.essenceRemoves') : t('special.essenceAdds')} ${essenceRows(data(),rule).map(m => m.text).join(' / ')}`);
   $('special-apply').disabled = Boolean(reason);
@@ -471,7 +473,7 @@ function renderSpecials() {
 const essenceText = text => text.replace(/[—]/g, '–').replace(/<br\s*\/?\s*>/gi, '\n');
 function renderEssences(visible) {
   const grid = $('essence-grid'); grid.replaceChildren();
-  for (const tierName of ['greater', 'perfect', 'special']) {
+  for (const tierName of ['greater', 'perfect', 'special', 'alloy']) {
     const entries = visible.filter(([id, r]) => essenceTier(id, r) === tierName);
     if (!entries.length) continue;
     const head = element('div', undefined, 'essence-head');
@@ -626,6 +628,20 @@ function renderCurrencies() {
     button.onclick = () => {
       if (held?.id === id) { drop(); return; }
       selectMode('desecrate',id); hold(id, rule.icon); status(reason || t('currency.holdHint'));
+    };
+    other.append(button);
+  }
+  // Jewels: the Potent liquid emotions (Contempt, Ferocity, Melancholy).
+  for (const [id,rule] of Object.entries(specials).filter(([,r]) => r.operation === 'liquid' && applicable(r,data()))) {
+    const reason = specialReason(item,data(),rule);
+    const button = element('button',undefined,`currency${reason ? ' unavailable' : ''}`);
+    button.setAttribute('aria-label',rule.name);
+    button.setAttribute('aria-pressed',String(mode === 'liquid' && specialSelected === id));
+    button.title = reason ? `${rule.name}: ${reason}` : rule.name;
+    button.append(iconElement(rule.icon, true),element('span',rule.name.replace(/^(Ancient )?Potent Liquid /,'')));
+    button.onclick = () => {
+      if (held?.id === id) { drop(); return; }
+      selectMode('liquid',id); hold(id, rule.icon); status(reason || t('currency.holdHint'));
     };
     other.append(button);
   }

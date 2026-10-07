@@ -15,7 +15,8 @@ Pages whose weights PoE2DB does not know (every modifier weighs 1) are left
 out: rolling them would show made-up odds.
 
     python build/craft/build_data.py --scraped D:/projects/poe2_craft_lab/data_all \
-        --base-items D:/projects/poe2_craft_lab/repoe/base_items.min.json
+        --base-items D:/projects/poe2_craft_lab/repoe/base_items.min.json \
+        --jewels D:/projects/poe2_craft_lab/data_jewels
 """
 import argparse
 import datetime
@@ -156,6 +157,71 @@ def base_entry(b):
     return out
 
 
+# Jewels: one page per base. Their modifiers really are equally likely (every
+# weight is 1 in the game data, not unknown), so the placeholder check does
+# not apply. A Rare jewel has two prefixes and two suffixes.
+JEWEL_PAGES = ['Ruby', 'Emerald', 'Sapphire', 'Diamond',
+               'Time-Lost_Ruby', 'Time-Lost_Emerald', 'Time-Lost_Sapphire', 'Time-Lost_Diamond']
+# The Potent liquid emotions remove a random affix from a Rare jewel and add a
+# guaranteed crafted modifier: Potent on basic jewels, Ancient Potent on
+# Time-Lost ones (PoE2DB names each page's rows after the one that applies
+# there). Contempt's two outcomes: the crafted modifier sits on one side and lets the other
+# side hold a third affix.
+CONTEMPT = {'CraftedJewelAdditionalSuffixAllowed': 'Suffix', 'CraftedJewelAdditionalPrefixAllowed': 'Prefix'}
+JEWEL_POOLS = {'normal', 'desecrated', 'corrupted'}
+# PoE2DB keeps some internal stat lines in a modifier's text.
+INTERNAL_LINE = re.compile(r'[a-z_ ]+\[[^\]]*\]')
+
+
+def potent(name):
+    return name.startswith(('Potent Liquid ', 'Ancient Potent Liquid '))
+
+
+def jewel_class(scraped, base_items, out, bases, page_bases, pages_used):
+    """The jewel class, its pages and bases, and the Contempt rule."""
+    by_name = {b['name']: b for b in base_items.values()
+               if b.get('item_class') == 'Jewel' and b.get('release_state') == 'released'}
+    variants, contempt = [], {}
+    for page in JEWEL_PAGES:
+        source = read(scraped / f'{page}.source.json')
+        mods = read(scraped / f'{page}.mods.json')
+        rows = [{k: m[k] for k in FIELDS} for m in mods['mods'] if m['pool'] in JEWEL_POOLS]
+        for r in rows:
+            if r['pool'] == 'corrupted':
+                r['affix'] = 'Enchant'
+            r['weight'] = max(r['weight'], 1)
+        for m in mods['mods']:
+            if m['pool'] == 'liquid' and potent(m['name']):
+                row = {k: m[k] for k in FIELDS}
+                row['text'] = '\n'.join(line for line in row['text'].split('\n')
+                                        if not INTERNAL_LINE.fullmatch(line.strip()))
+                if m['source_id'] in CONTEMPT:
+                    row['allows'] = CONTEMPT[m['source_id']]
+                rows.append(row)
+        for row in source.get('liquid', []):
+            name = re.sub('<[^>]+>', '', row.get('Name', ''))
+            if potent(name):
+                image = re.search(r'src="([^"]+)"', row.get('Name', ''))
+                rule = contempt.setdefault(name, {
+                    'name': name, 'operation': 'liquid', 'beforeRarity': ['Rare'], 'pages': [],
+                    'icon': image[1].split('/image/')[-1] if image else '', 'beforeClassIds': ['Jewel']})
+                if page not in rule['pages']:
+                    rule['pages'].append(page)
+        write(out / f'{page}.mods.json', {'page': page, 'base': mods['base'], 'options': mods['options'],
+                                          'tags': ['jewel'], 'equalWeights': True, 'mods': rows})
+        name = page.replace('_', ' ')
+        base = by_name.get(name)
+        if not base:
+            raise SystemExit(f'{page}: no released jewel base named {name}')
+        bases[name] = page
+        page_bases.setdefault(page, []).append({**base_entry(base), 'slots': [-1, -1]})
+        pages_used.append(page)
+        variants.append({'page': page, 'attr': name})
+    rules = {name.lower().replace(' ', '-'): rule for name, rule in contempt.items()}
+    return {'id': 'jewel', 'itemClass': 'Jewels', 'category': 'jewel', 'classCode': 'Jewel',
+            'variants': variants}, rules
+
+
 def placeholder_weights(mods):
     normal = [m for m in mods if m['pool'] == 'normal' and m['affix'] in ('Prefix', 'Suffix')]
     return bool(normal) and all(m['weight'] <= 1 for m in normal)
@@ -166,6 +232,8 @@ def main():
     parser.add_argument('--scraped', type=pathlib.Path, required=True)
     parser.add_argument('--base-items', type=pathlib.Path, required=True)
     parser.add_argument('--out', type=pathlib.Path, default=OUT)
+    parser.add_argument('--jewels', type=pathlib.Path,
+                        help='scraper output for the jewel pages (JEWEL_PAGES)')
     args = parser.parse_args()
     base_items = read(args.base_items)
     scraped_manifest = read(args.scraped / 'manifest.json')
@@ -238,7 +306,9 @@ def main():
                     if m['pool'] in ('essence', 'perfect_essence') and spawns_on(m, tags)}
             for pool in ('essence', 'perfect_essence'):
                 for row in source.get(pool, []):
-                    if row.get('IsAlloy') or 'Abyss' in row.get('Code', ''):
+                    # Alloys (Runes of Aldur) work like Perfect essences: a
+                    # random affix goes, the class's fixed modifier comes.
+                    if 'Abyss' in row.get('Code', ''):
                         continue
                     href = re.search(r'href="([^"]+)"', row['Name'])
                     if not href or (pool, re.sub('<[^>]+>', '', row['Name'])) not in fits:
@@ -253,6 +323,7 @@ def main():
                         'pool': pool,
                         'icon': image[1].split('/image/')[-1] if image else '',
                         'beforeClassIds': [],
+                        **({'alloy': True} if row.get('IsAlloy') else {}),
                     })
                     if code not in rule['beforeClassIds']:
                         rule['beforeClassIds'].append(code)
@@ -277,6 +348,14 @@ def main():
             rule['minimum'] = 40
         special[key] = rule
     special.update(essences)
+    # Augment runes go in sockets, which jewels do not have.
+    equipment_pages = list(pages_used)
+    jewel_manifest = None
+    if args.jewels:
+        jewel_manifest = read(args.jewels / 'manifest.json')
+        cls, contempt_rules = jewel_class(args.jewels, base_items, args.out, bases, page_bases, pages_used)
+        classes.append(cls)
+        special.update(contempt_rules)
 
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     write(args.out / 'classes.json', {'generated_at': now, 'classes': classes, 'bases': dict(sorted(bases.items()))})
@@ -289,7 +368,7 @@ def main():
              for key, name, pool, label, art in RUNES if rune_pages.get(pool)}
     for key, name, kind, text, art, bound in LIMIT_RUNES:
         runes[key] = {'name': name, 'kind': kind, 'text': text, 'bound': bound,
-                      'icon': f'Art/2DItems/Currency/Expedition2/{art}.webp', 'pages': pages_used}
+                      'icon': f'Art/2DItems/Currency/Expedition2/{art}.webp', 'pages': equipment_pages}
     write(args.out / 'special-currencies.json', {
         'source': 'https://poe2db.tw/us/Essence',
         'bone_source': 'https://poe2db.tw/us/Rise_of_the_Abyssal_items',
@@ -301,8 +380,9 @@ def main():
         'fetched_at_utc': scraped_manifest['fetched_at_utc'],
         'built_at_utc': now,
         'scope': pages_used,
-        'sources': [s for s in scraped_manifest['sources']
+        'sources': [s for m in [scraped_manifest, jewel_manifest] if m for s in m['sources']
                     if s['url'] in wanted or 'ModsView' in s['url']],
+        **({'jewels_fetched_at_utc': jewel_manifest['fetched_at_utc']} if jewel_manifest else {}),
         'license': 'CC BY-NC-SA 3.0, data from https://poe2db.tw (see LICENSE.txt)',
         'rune_weights': {'source': weights_file['source'], 'data_file': weights_file['data_file']},
         'weight_overrides': {'source': overrides_file['source'], 'data_file': overrides_file['data_file']},

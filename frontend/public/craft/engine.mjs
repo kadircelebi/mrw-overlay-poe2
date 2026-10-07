@@ -18,18 +18,25 @@ export const rollPools = item => ['normal', ...(item.runePools || (item.runePool
 // suffix]: Dusk Ring +1/-1, Absent Amulet -1/-1).
 export const sideLimit = (item, side, rarity = item.rarity) => Math.max(0,
   limits[rarity] + (side === 'Suffix' && rarity !== 'Normal' ? item.suffixBonus || 0 : 0) +
-  (rarity === 'Rare' ? item.baseSlots?.[side === 'Prefix' ? 0 : 1] || 0 : 0));
+  (rarity === 'Rare' ? (item.baseSlots?.[side === 'Prefix' ? 0 : 1] || 0) + item.mods.filter(m => m.allows === side).length : 0));
 export const isFull = (item, rarity = 'Rare') => ['Prefix', 'Suffix'].every(side => count(item, side) >= sideLimit(item, side, rarity));
-export const isCrafted = mod => mod.crafted || mod.pool === 'essence' || mod.pool === 'perfect_essence';
+export const isCrafted = mod => mod.crafted || mod.pool === 'essence' || mod.pool === 'perfect_essence' || mod.pool === 'liquid';
+
+// Jewels: Potent Liquid Contempt's crafted modifier ("+1 Suffix Modifier
+// allowed", itself a prefix) lets one side hold a third affix. Remove the
+// crafted modifier once that side is full and the side is over its limit: a
+// Chaos Orb never removes from such a side, since nothing could go back there.
+export const contemptSide = item => item.mods.find(m => m.allows)?.allows || null;
+export const overfull = (item, side) => count(item, side) > sideLimit(item, side);
 export const craftedLimit = item => item.craftedLimit || 1;
 export const isDesecrated = mod => Boolean(mod.desecrated || mod.pool === 'desecrated');
 
 // removable lists the indexes a random removal may hit: never a fractured
 // modifier, and only what the omens allow (one side, only Desecrated, only
 // the lowest modifier level).
-export function removable(item, { side = null, desecrated = false, lowest = false } = {}) {
+export function removable(item, { side = null, desecrated = false, lowest = false, skipOverfull = false } = {}) {
   let list = item.mods.map((mod, index) => ({ mod, index })).filter(({ mod }) => !mod.fractured &&
-    (!side || mod.affix === side) && (!desecrated || isDesecrated(mod)));
+    (!side || mod.affix === side) && (!desecrated || isDesecrated(mod)) && (!skipOverfull || !overfull(item, mod.affix)));
   // An unrevealed Desecrated modifier has no level yet, so it is never "the
   // lowest".
   if (lowest) list = list.filter(({ mod }) => !mod.unrevealed);
@@ -164,15 +171,16 @@ export function currencyReason(item, data, id, rule, removal = {}) {
     return '';
   }
   if (rule.afterTrigger === 'divine' && !item.mods.some(m => !m.fractured)) return item.mods.length ? t('err.onlyFractured') : t('err.noMods');
+  const lock = { removal: rule.afterTrigger === 'del_add' ? { ...removal, skipOverfull: true } : removal };
   if (['del', 'del_add'].includes(rule.afterTrigger)) {
-    const reason = removalReason(item, removal);
+    const reason = removalReason(item, lock.removal);
     if (reason) return reason;
   }
   if (rule.afterTrigger === 'add' && !candidates(item, data, {
     minimum: rule.beforeMin_mod_lv || 1, rarity: rule.afterRarity || item.rarity,
   }).length) return t('err.noPool');
   if (rule.afterTrigger === 'del_add') {
-    const viable = removable(item, removal).some(index => candidates(removeMod(item, index), data, {
+    const viable = removable(item, lock.removal).some(index => candidates(removeMod(item, index), data, {
       minimum: rule.beforeMin_mod_lv || 1,
     }).length);
     if (!viable) return t('err.noPoolAfterRemove');
@@ -195,8 +203,9 @@ export function applyCurrency(item, data, id, rule, random = Math.random, remova
   }
   // A fractured affix keeps its values as well as its place.
   if (rule.afterTrigger === 'divine') return { ...next, mods: next.mods.map(m => m.fractured ? m : roll(m, random)) };
+  const lock = { removal: rule.afterTrigger === 'del_add' ? { ...removal, skipOverfull: true } : removal };
   if (['del', 'del_add'].includes(rule.afterTrigger)) {
-    next = removeRandom(next, removal, random);
+    next = removeRandom(next, lock.removal, random);
     if (rule.afterTrigger === 'del') return next;
   }
   const rows = candidates(next, data, { minimum: rule.beforeMin_mod_lv || 1, rarity: rule.afterRarity || next.rarity });

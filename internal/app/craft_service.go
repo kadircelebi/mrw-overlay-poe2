@@ -47,7 +47,7 @@ var craftClasses = map[string]bool{
 	"Amulets": true, "Rings": true, "Belts": true,
 	"Bows": true, "Crossbows": true, "One Hand Maces": true, "Two Hand Maces": true,
 	"Quarterstaves": true, "Spears": true, "Talismans": true, "Sceptres": true,
-	"Staves": true, "Wands": true,
+	"Staves": true, "Wands": true, "Jewels": true,
 }
 
 // ParseCraftText parses a synthetic item without replacing the captured item.

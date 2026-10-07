@@ -17,6 +17,11 @@ import { candidates, chooseWeighted, roll } from './engine.mjs';
 //               so each of the class's enchantments is equally likely
 // Omen of Corruption no longer exists. A fractured affix keeps its place
 // and values, as with a Divine Orb.
+//
+// Jewels (tested in game, 2026-10-07), again equal odds: nothing, reroll
+// (each replaced affix comes back on its own side, even a third suffix
+// past the limit), scale, enchant, extra (one more affix on a random
+// side, past the limits: the "sixth affix") and remove (one affix goes).
 
 export const isLocked = item => Boolean(item.corrupted || item.sanctified);
 export const lockReason = item => item.sanctified ? t('err.sanctified') : item.corrupted ? t('err.corrupted') : '';
@@ -52,12 +57,21 @@ const scaleAll = (item, random, up) => ({ ...item,
 export const enchantRows = data => data.mods.filter(m => m.pool === 'corrupted' && m.affix === 'Enchant');
 export const quality = { wandsStaves: new Set(['wand', 'staff']), max: 23 };
 
+// Rows that could still be added ignoring the side limits (corruption on
+// jewels goes past them); other rules (families, item level) still apply.
+const pastLimits = (item, data) => candidates({ ...item, baseSlots: [9, 9] }, data, { rarity: 'Rare' });
+const loose = item => item.mods.map((m, index) => ({ m, index })).filter(({ m }) => !m.fractured && !m.unrevealed);
+
 // corruptOutcomes lists what a Vaal Orb can do to this item. classId is the
 // item class ('gloves', 'wand' …), sockets/maxSockets its augment sockets.
 export function corruptOutcomes(item, data, { classId, sockets = 0, maxSockets = 0, quality: current = 20 } = {}) {
   const out = ['nothing'];
-  const loose = item.mods.filter(m => !m.fractured && !m.unrevealed);
-  if (loose.length) out.push('reroll', 'scale');
+  const free = loose(item);
+  if (free.length) out.push('reroll', 'scale');
+  if (classId === 'jewel') {
+    if (free.length) out.push('remove');
+    if (pastLimits(item, data).length) out.push('extra');
+  }
   if (quality.wandsStaves.has(classId)) { if (current < quality.max) out.push('quality'); }
   // Corruption ignores the socket limit: an item that already has its most
   // (an exceptional bow's three) still gains one.
@@ -86,17 +100,26 @@ export function corrupt(item, data, context = {}, random = Math.random) {
     // on which side; fractured and unrevealed affixes stay.
     const want = 1 + Math.floor(random() * 3);
     for (let i = 0; i < want; i++) {
-      const options = next.mods.map((m, index) => ({ m, index })).filter(({ m }) => !m.fractured && !m.unrevealed);
+      const options = loose(next);
       if (!options.length) break;
-      const { index } = options[Math.floor(random() * options.length)];
+      const { m: gone, index } = options[Math.floor(random() * options.length)];
       const without = { ...next, mods: next.mods.filter((_, j) => j !== index) };
-      const rows = candidates(without, data, { rarity: next.rarity });
+      // On a jewel the new affix takes the old one's side, whatever the limit.
+      const rows = context.classId === 'jewel'
+        ? pastLimits(without, data).filter(r => r.affix === gone.affix)
+        : candidates(without, data, { rarity: next.rarity });
       if (!rows.length) break;
       next = { ...without, mods: [...without.mods, roll(chooseWeighted(rows, random), random)] };
       detail++;
     }
   } else if (outcome === 'scale') {
     next = scaleAll(next, random, false);
+  } else if (outcome === 'remove') {
+    const options = loose(next), { index } = options[Math.floor(random() * options.length)];
+    next.mods = next.mods.filter((_, j) => j !== index);
+  } else if (outcome === 'extra') {
+    next.mods.push(roll(chooseWeighted(pastLimits(next, data), random), random));
+    detail = next.mods.length;
   } else if (outcome === 'socket') {
     next.sockets = (context.sockets || 0) + 1;
     detail = next.sockets;

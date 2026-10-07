@@ -122,7 +122,10 @@ func TestCraftTextAcceptsCraftClassesOnly(t *testing.T) {
 	if snap.Item.Class != "Rings" || snap.Item.BaseType != "" {
 		t.Fatalf("ring craft: %+v", snap.Item)
 	}
-	if _, err := s.ParseCraftText(text("Jewels")); err == nil {
-		t.Fatal("a jewel craft was accepted")
+	if snap, err := s.ParseCraftText(text("Jewels")); err != nil || snap.Item.Class != "Jewels" {
+		t.Fatalf("jewel craft: %+v %v", snap.Item, err)
+	}
+	if _, err := s.ParseCraftText(text("Life Flasks")); err == nil {
+		t.Fatal("a flask craft was accepted")
 	}
 }
