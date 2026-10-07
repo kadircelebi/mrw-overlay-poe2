@@ -218,12 +218,10 @@ python build/art/make_icons.py  # regenerate the icons from the logo (needs Pill
 | `internal/provider` | Price source chain: shared server prices → local collection → cache |
 | `internal/publicprofile` | The shared public profile format and its strict validation (used by both the app and the server) |
 | `internal/profileclient` | The app's client for the public profile server |
-| `internal/profilesrv` | The public profile server: SQLite store, HTTP API, rate limits |
 | `internal/neversink` | Downloads the NeverSink filter and extracts its base lists |
 | `internal/filter` | Rule generation and injection |
 | `internal/overlay` | Item text parser, stat catalogue, tier data, game window |
 | `browser-extension/` | The pathofexile.com session bridge (Chrome, Edge, Firefox) |
-| `cmd/` | `scanner` (shared scan server), `profilesrv` (public profile server); each with its systemd unit |
 
 ## Support
 

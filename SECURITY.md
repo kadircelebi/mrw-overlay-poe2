@@ -24,7 +24,7 @@ In scope:
 
 - the desktop app (this repository),
 - the browser extension "MrW Overlay for POE 2 Bridge" (`browser-extension/`),
-- the public profile server, `profiles.mrwproject.com` (`cmd/profilesrv`),
+- the public profile server, `profiles.mrwproject.com`,
 - the website, `poe2.mrwproject.com`.
 
 Out of scope: pathofexile.com and its trade site, Cloudflare, the price sources (poe.ninja, poe2scout), NeverSink's filter, denial-of-service and volume testing, and social engineering. Problems in those belong to their owners.
