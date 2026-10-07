@@ -275,6 +275,14 @@ export function GetCraftPrices(): $CancellablePromise<$models.CraftPrices> {
     return $Call.ByID(673939037);
 }
 
+/**
+ * GetExpeditionView returns the labels last read, for a window that opens
+ * after the read.
+ */
+export function GetExpeditionView(): $CancellablePromise<$models.ExpeditionView> {
+    return $Call.ByID(325550741);
+}
+
 export function GetMarketSnapshot(): $CancellablePromise<overlay$0.Snapshot> {
     return $Call.ByID(202049859);
 }

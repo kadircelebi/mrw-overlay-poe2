@@ -131,6 +131,11 @@ type AppService struct {
 
 	// profiles talks to the public profile server.
 	profiles *profileclient.Client
+
+	// expeditionWindow lays price labels over the game beside Expedition's
+	// Runeshape Combinations panel (Alt+Q); expedition holds what it shows.
+	expeditionWindow application.Window
+	expedition       expeditionState
 }
 
 func newAppService(meta Meta) *AppService {

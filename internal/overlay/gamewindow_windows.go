@@ -3,6 +3,7 @@
 package overlay
 
 import (
+	"image"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -372,4 +373,18 @@ func clip(r *rect, b rect, edge uintptr) {
 	case wmszBottom, wmszBottomLeft, wmszBottomRight:
 		r.Bottom = min(r.Bottom, b.Bottom)
 	}
+}
+
+const (
+	swpShowWindow = 0x0040
+	hwndTopmost   = ^uintptr(0) // (HWND)-1
+)
+
+// ShowOver lays hwnd over the screen rectangle r (physical pixels), above
+// other windows, and shows it without taking keyboard focus from the game.
+func ShowOver(hwnd uintptr, r image.Rectangle) {
+	if hwnd == 0 || r.Empty() {
+		return
+	}
+	procSetWindowPos.Call(hwnd, hwndTopmost, uintptr(r.Min.X), uintptr(r.Min.Y), uintptr(r.Dx()), uintptr(r.Dy()), swpNoActivate|swpShowWindow)
 }

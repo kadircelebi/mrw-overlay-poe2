@@ -118,3 +118,10 @@ func CursorPosition() (int, int, bool) {
 	r, _, _ := procGetCursorPos.Call(uintptr(unsafe.Pointer(&p)))
 	return int(p.X), int(p.Y), r != 0
 }
+
+// ClickOrEscape reports whether a mouse button or Escape is held down now,
+// anywhere: the price labels lay over the game let clicks through, so they
+// cannot see a click themselves.
+func ClickOrEscape() bool {
+	return keyDown(0x01) || keyDown(0x02) || keyDown(0x04) || keyDown(0x1B) // left, right, middle, Escape
+}

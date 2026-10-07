@@ -5,6 +5,7 @@ package overlay
 import (
 	"errors"
 	"fmt"
+	"image"
 	"runtime"
 	"syscall"
 	"time"
@@ -71,9 +72,12 @@ const (
 	vtableStaticsUserProfile  = 10
 	vtableEngineRecognize     = 6
 	vtableResultLines         = 6
+	vtableResultTextAngle     = 7
+	vtableReferenceValue      = 6
 	vtableLineWords           = 6
 	vtableLineText            = 7
 	vtableWordRect            = 6
+	vtableWordText            = 7
 	vtableBitmapFromBuffer    = 9
 	vtableBufferFromByteArray = 9
 	vtableLanguageCreate      = 6
@@ -271,7 +275,29 @@ func recognize(pixels []byte, w, h int) ([]OcrLine, error) {
 		return nil, err
 	}
 	defer result.release()
-	return resultLines(result)
+	lines, err := resultLines(result)
+	if err != nil {
+		return nil, err
+	}
+	if angle := textAngle(result); angle != 0 {
+		unrotate(lines, angle, float64(w)/2, float64(h)/2)
+	}
+	return lines, nil
+}
+
+// textAngle is the slant the recognizer found in the text and straightened
+// before reading, in degrees clockwise; 0 when none.
+func textAngle(result *comObject) float64 {
+	var ref *comObject
+	if result.call(vtableResultTextAngle, uintptr(unsafe.Pointer(&ref))) != nil || ref == nil {
+		return 0
+	}
+	defer ref.release()
+	var v float64
+	if ref.call(vtableReferenceValue, uintptr(unsafe.Pointer(&v))) != nil {
+		return 0
+	}
+	return v
 }
 
 func ocrEngine() (*comObject, error) {
@@ -346,7 +372,7 @@ func resultLines(result *comObject) ([]OcrLine, error) {
 		_ = line.call(vtableLineText, uintptr(unsafe.Pointer(&text)))
 		entry := OcrLine{Text: text.String()}
 		text.free()
-		entry.X, entry.Y, entry.W, entry.H = lineBox(line)
+		entry.X, entry.Y, entry.W, entry.H, entry.TextRight = lineBox(line)
 		line.release()
 		out = append(out, entry)
 	}
@@ -354,7 +380,10 @@ func resultLines(result *comObject) ([]OcrLine, error) {
 }
 
 // lineBox is the union of the line's word boxes.
-func lineBox(line *comObject) (x, y, w, h float64) {
+// lineBox is the box around a line's words, and the right edge of its last
+// word of two letters or digits (a scrollbar's edge can come out as a
+// trailing ")" or "I").
+func lineBox(line *comObject) (x, y, w, h, textRight float64) {
 	var words *comObject
 	if line.call(vtableLineWords, uintptr(unsafe.Pointer(&words))) != nil || words == nil {
 		return
@@ -371,6 +400,13 @@ func lineBox(line *comObject) (x, y, w, h float64) {
 		}
 		var r winrtRect
 		err := word.call(vtableWordRect, uintptr(unsafe.Pointer(&r)))
+		var text hstring
+		if err == nil && word.call(vtableWordText, uintptr(unsafe.Pointer(&text))) == nil {
+			if isRealWord(text.String()) {
+				textRight = max(textRight, float64(r.x+r.w))
+			}
+			text.free()
+		}
 		word.release()
 		if err != nil {
 			continue
@@ -383,5 +419,88 @@ func lineBox(line *comObject) (x, y, w, h float64) {
 		x, y = min(x, left), min(y, top)
 		x2, y2 = max(x2, right), max(y2, bottom)
 	}
-	return x, y, x2 - x, y2 - y
+	if textRight == 0 {
+		textRight = x2
+	}
+	return x, y, x2 - x, y2 - y, textRight
+}
+
+// runePanelWidths are the shares of the game's width read for the Runeshape
+// panel, which keeps to the left (at 4K its rows end at 28%). The recognizer
+// is not steady: it now and then returns nothing at all for an image it
+// reads at a slightly different size, or drops a row, so both widths are
+// read and their rows merged.
+var runePanelWidths = []float64{0.5, 0.7}
+
+// ReadRunePanel captures the left of the game window once and returns the
+// rows of Expedition's Runeshape Combinations panel, in pixels of the game's
+// client area, with that area's place on the screen. No panel on screen is
+// no error: the rows come back empty.
+func ReadRunePanel(currencyNames []string) ([]RuneRow, image.Rectangle, error) {
+	hwnd := gameWindow()
+	if hwnd == 0 {
+		return nil, image.Rectangle{}, errors.New("game window not found")
+	}
+	area, ok := clientRect(hwnd)
+	if !ok || area.width() <= 0 || area.height() <= 0 {
+		return nil, image.Rectangle{}, errors.New("game window has no area")
+	}
+	client := image.Rect(int(area.Left), int(area.Top), int(area.Right), int(area.Bottom))
+	w, h := int(area.width()), int(area.height())
+	captured := int(float64(w) * runePanelWidths[len(runePanelWidths)-1])
+	shot := area
+	shot.Right = shot.Left + int32(captured)
+	pixels, err := captureScreen(shot)
+	if err != nil {
+		return nil, client, err
+	}
+	rows, err := readRunePanel(pixels, captured, w, h, currencyNames)
+	return rows, client, err
+}
+
+// readRunePanel reads the panel off the captured left part of the game
+// (captured pixels wide; w×h is the whole client area).
+func readRunePanel(pixels []byte, captured, w, h int, currencyNames []string) ([]RuneRow, error) {
+	names := nameKeys(currencyNames)
+	var rows []RuneRow
+	for _, share := range runePanelWidths {
+		width := min(captured, int(float64(w)*share))
+		lines, err := recognize(cropPixels(pixels, captured, 0, 0, width, h), width, h)
+		if err != nil {
+			return nil, err
+		}
+		if found, ok := FindRunePanel(lines, currencyNames); ok {
+			rows = mergeRunePanels(rows, found)
+		}
+	}
+	for i := range rows {
+		if rows[i].CountRead && rows[i].Name != "" {
+			continue
+		}
+		for _, b := range recountBoxes(rows[i], rows) {
+			x0, y0, x1, y1 := b[0], b[1], min(b[2], captured), min(b[3], h)
+			if x1-x0 < 8 || y1-y0 < 8 {
+				continue
+			}
+			if lines, err := recognize(cropPixels(pixels, captured, x0, y0, x1, y1), x1-x0, y1-y0); err == nil {
+				if recountFrom(&rows[i], lines, names); rows[i].CountRead && rows[i].Name != "" {
+					break
+				}
+			}
+		}
+	}
+	return rows, nil
+}
+
+// cropPixels copies a rectangle out of top-down BGRA pixels of the given
+// width.
+func cropPixels(pixels []byte, width, x0, y0, x1, y1 int) []byte {
+	if x0 == 0 && y0 == 0 && x1 == width && y1*width*4 == len(pixels) {
+		return pixels
+	}
+	out := make([]byte, 0, (x1-x0)*(y1-y0)*4)
+	for y := y0; y < y1; y++ {
+		out = append(out, pixels[(y*width+x0)*4:(y*width+x1)*4]...)
+	}
+	return out
 }

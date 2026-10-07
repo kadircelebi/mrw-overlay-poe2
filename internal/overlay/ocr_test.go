@@ -1,6 +1,7 @@
 package overlay
 
 import (
+	"math"
 	"slices"
 	"strings"
 	"testing"
@@ -137,7 +138,7 @@ func TestScreenItemTextRuneshapeFarFromTheCursor(t *testing.T) {
 }
 
 func TestSplitCountReadsTheMisreadDigits(t *testing.T) {
-	for text, want := range map[string]int{"IX Chaos Orb": 1, "IOX Chaos Orb": 10, "3x Chaos Orb": 3, "3)' Chaos Orb": 3, "12x Chaos Orb": 12, "Chaos Orb": 1} {
+	for text, want := range map[string]int{"IX Chaos Orb": 1, "IOX Chaos Orb": 10, "3x Chaos Orb": 3, "3)' Chaos Orb": 3, "Ş 3x Chaos Orb": 3, "12x Chaos Orb": 12, "Chaos Orb": 1} {
 		if got, rest := splitCount(text); got != want || rest != "Chaos Orb" {
 			t.Errorf("%q: %d %q, want %d", text, got, rest, want)
 		}
@@ -190,5 +191,16 @@ func TestScreenItemTextRuneshapeMisreadCounts(t *testing.T) {
 	// A reward that is no currency prices nothing, not the row beside it.
 	if raw, ok := ScreenItemText(rows, 300, 297, someGemNames, names); ok {
 		t.Fatalf("Rare Unique Item row: got %q", raw)
+	}
+}
+
+// A row the recognizer boxed in a copy it straightened by 4.6° (measured on
+// a 1080p capture) ends where the panel's other rows end once turned back.
+func TestUnrotatePutsBoxesBack(t *testing.T) {
+	lines := []OcrLine{{Text: "IX Greater Adept Rune", X: 344, Y: 640, W: 200, H: 20, TextRight: 544}}
+	unrotate(lines, 4.6, 672, 540)
+	// (544, 650) turned by 4.6° around (672, 540): x = 672 - 128·cos - 110·sin.
+	if got := lines[0].Right(); math.Abs(got-534.6) > 1 {
+		t.Fatalf("right %v, want about 534.6", got)
 	}
 }

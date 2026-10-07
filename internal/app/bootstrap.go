@@ -224,6 +224,24 @@ func Run(opt Options) {
 		e.Cancel()
 	})
 
+	// Expedition's price labels: a transparent window laid over the game that
+	// lets clicks through and never takes focus (WS_EX_NOACTIVATE on top of
+	// what Wails sets for a click-through window), so the game keeps the keys.
+	const expeditionExStyle = 0x08000000 | 0x00080000 | 0x00010000 | 0x80 | 0x20 | 0x8 // NOACTIVATE, LAYERED, CONTROLPARENT, TOOLWINDOW, TRANSPARENT, TOPMOST
+	expeditionWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name: "expedition", Title: "MrW Overlay · Expedition", Width: 800, Height: 600,
+		Frameless: true, AlwaysOnTop: true, Hidden: true, DisableResize: true,
+		BackgroundType:    application.BackgroundTypeTransparent,
+		BackgroundColour:  application.NewRGBA(0, 0, 0, 0),
+		IgnoreMouseEvents: true,
+		Windows:           application.WindowsWindow{HiddenOnTaskbar: true, ExStyle: expeditionExStyle},
+		URL:               "/?view=expedition",
+	})
+	expeditionWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		expeditionWindow.Hide()
+		e.Cancel()
+	})
+
 	// Settings live in a window of their own: an ordinary one that stays open
 	// beside the game, so a colour can be changed and tried with Reload
 	// without the panel vanishing on every click in between.
@@ -273,6 +291,7 @@ func Run(opt Options) {
 	svc.app, svc.tray, svc.panel = app, tray, panel
 	svc.overlayWindow, svc.marketWindow, svc.settingsWindow = overlayWindow, marketWindow, settingsWindow
 	svc.craftWindow = craftWindow
+	svc.expeditionWindow = expeditionWindow
 	// Price check (Alt+E), market (Alt+M) and craft (Alt+F) shortcuts
 	// exist only while the overlay is switched on.
 	shortcuts := func(s overlay.Settings) [][2]any {
@@ -282,6 +301,9 @@ func Run(opt Options) {
 		list := [][2]any{{s.Hotkey, svc.captureOverlay}, {s.MarketHotkey, svc.toggleMarketFromHotkey}, {s.CraftHotkey, svc.toggleCraftFromHotkey}}
 		if s.HideHotkey != "" {
 			list = append(list, [2]any{s.HideHotkey, svc.captureHide})
+		}
+		if s.ExpeditionHotkey != "" {
+			list = append(list, [2]any{s.ExpeditionHotkey, svc.captureExpedition})
 		}
 		return list
 	}

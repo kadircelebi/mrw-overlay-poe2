@@ -32,6 +32,17 @@ frontend/public/craft/data/*
     Exile (https://www.craftofexile.com). Those weights were measured by
     Krakenbul and the Prohibited Library Discord; the credit is theirs.
 
+internal/overlay/data/runeshape.json
+    Expedition's Runeshape Combinations recipes (each reward, its count and
+    the runes that make it), taken from
+    https://poe2db.tw/us/Runeshape_Combinations and reduced by
+    build/expedition/build_recipes.py; the file records when it was built.
+    poe2db.tw publishes this data under CC BY-NC-SA 3.0
+    (https://creativecommons.org/licenses/by-nc-sa/3.0/); the file is shared
+    under the same licence, not under the MIT licence of the code. The
+    underlying game data belongs to Grinding Gear Games; the compilation is
+    poe2db.tw's.
+
 frontend/public/craft/assets/fonts/*
     Cinzel, under the SIL Open Font License; see Cinzel-LICENSE.txt beside
     the font files.

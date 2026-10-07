@@ -70,3 +70,29 @@ func TestChatCommandShortcuts(t *testing.T) {
 		t.Fatal("a shortcut used twice was accepted")
 	}
 }
+
+func TestExpeditionHotkeyDefault(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "overlay.json")
+	// A file from before the shortcut existed gets Alt+Q…
+	if err := os.WriteFile(path, []byte(`{"enabled":true,"hotkey":"Alt+E"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if s := LoadSettings(path); s.ExpeditionHotkey != "Alt+Q" {
+		t.Fatalf("got %q", s.ExpeditionHotkey)
+	}
+	// …unless Alt+Q already does something else.
+	if err := os.WriteFile(path, []byte(`{"enabled":true,"chat_commands":[{"hotkey":"Alt+Q","text":"/hideout"}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if s := LoadSettings(path); s.ExpeditionHotkey != "" || s.DistinctHotkeys() != nil {
+		t.Fatalf("got %q, %v", s.ExpeditionHotkey, s.DistinctHotkeys())
+	}
+	// A cleared shortcut stays cleared.
+	if err := os.WriteFile(path, []byte(`{"enabled":true,"expedition_hotkey":""}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if s := LoadSettings(path); s.ExpeditionHotkey != "" {
+		t.Fatalf("got %q", s.ExpeditionHotkey)
+	}
+}

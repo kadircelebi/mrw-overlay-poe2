@@ -1586,6 +1586,8 @@
                         <label class="field stack"><span>{t('craft.hotkey')}</span><HotkeyInput label={t('craft.hotkey')} bind:value={overlaySettings.craft_hotkey} onchange={queueOverlaySave} /></label>
                         <label class="field stack"><span>{t('hidden.hotkey')}</span><HotkeyInput label={t('hidden.hotkey')} bind:value={overlaySettings.hide_hotkey} onchange={queueOverlaySave} /></label>
                         <p class="desc hint">{t('hidden.hotkeyHint')}</p>
+                        <label class="field stack"><span>{t('expedition.hotkey')}</span><HotkeyInput label={t('expedition.hotkey')} bind:value={overlaySettings.expedition_hotkey} onchange={queueOverlaySave} /></label>
+                        <p class="desc hint">{t('expedition.hotkeyHint')}</p>
                         <p class="desc hint">{t('craft.hotkeyHint')}</p>
                       </section>
                     </div>

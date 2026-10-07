@@ -242,6 +242,12 @@ export interface Settings {
     "hide_hotkey": string;
 
     /**
+     * ExpeditionHotkey reads Expedition's Runeshape Combinations panel off
+     * the screen once and writes each reward's price beside it.
+     */
+    "expedition_hotkey": string;
+
+    /**
      * ChatEnabled turns on Commands: shortcuts that type a line into the
      * game's chat. Like the overlay it sends keys to the game, so it starts
      * off. The keys are taken only while the game is the active window, so

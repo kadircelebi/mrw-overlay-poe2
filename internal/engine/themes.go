@@ -99,3 +99,12 @@ func (e *Engine) NeverSinkExotics() []string {
 	}
 	return neversink.ExoticBlocks(string(content))
 }
+
+// NeverSinkStyles maps the current base filter's style tags to their colours,
+// as Config.Palette takes them. It only reads files already on disk.
+func (e *Engine) NeverSinkStyles() map[string]filter.Theme {
+	e.NeverSinkThemes()
+	e.ns.mu.Lock()
+	defer e.ns.mu.Unlock()
+	return e.ns.byTag
+}

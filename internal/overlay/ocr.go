@@ -12,9 +12,31 @@ import (
 )
 
 // OcrLine is one line of text read off the screen, boxed in screen pixels.
+// TextRight is the right edge of its last real word (see isRealWord); 0 when
+// unknown.
 type OcrLine struct {
 	Text       string
 	X, Y, W, H float64
+	TextRight  float64
+}
+
+// Right is where the line's text ends, a stray mark after it left out.
+func (l OcrLine) Right() float64 {
+	if l.TextRight > 0 {
+		return l.TextRight
+	}
+	return l.X + l.W
+}
+
+// isRealWord tells a word from a stray mark: two letters or digits.
+func isRealWord(text string) bool {
+	n := 0
+	for _, r := range text {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			n++
+		}
+	}
+	return n >= 2
 }
 
 var ocrLevelRE = regexp.MustCompile(`^LEVEL\s*:?\s*(\d+)`)
@@ -119,7 +141,7 @@ func gemText(lines []OcrLine, title int, name string) string {
 // ocrCountRE is a reward row's count, "3x Artificer's Orb". The recognizer
 // reads the 1 and 0 of the game's font as letters ("1x" comes out "IX",
 // "10x" "IOX") and the x now and then as ")'" ("3)'").
-var ocrCountRE = regexp.MustCompile(`^\s*([0-9IiLl|Oo]{1,3})\s*[xX)'’]+\s+`)
+var ocrCountRE = regexp.MustCompile(`^\s*(?:\S{1,2}\s+)?([0-9IiLl|Oo]{1,3})\s*[xX)'’]+\s+`)
 
 var ocrDigits = strings.NewReplacer("I", "1", "i", "1", "L", "1", "l", "1", "|", "1", "O", "0", "o", "0")
 
@@ -140,9 +162,12 @@ func splitCount(text string) (int, string) {
 // matchRowName names the item a row ends with. The row's icons sometimes come
 // out as a short token in front of the name ("M Greater Orb of
 // Augmentation"); up to two such tokens are dropped when the whole does not
-// match.
+// match. A stray mark after the name ("Masterwork Rune )") goes first.
 func matchRowName(text string, names map[string]string) (string, bool) {
 	tokens := strings.Fields(text)
+	for len(tokens) > 1 && !isRealWord(tokens[len(tokens)-1]) {
+		tokens = tokens[:len(tokens)-1]
+	}
 	for drop := 0; drop <= 2 && drop < len(tokens); drop++ {
 		if drop > 0 && len([]rune(tokens[drop-1])) > 3 {
 			break
@@ -351,4 +376,30 @@ func abs(n int) int {
 		return -n
 	}
 	return n
+}
+
+// unrotate maps line boxes back onto the image the recognizer was given.
+// When it finds the text slanted (TextAngle, degrees clockwise) it reads a
+// straightened copy and boxes the words there; on the game's level text it
+// now and then finds a slant of a few degrees that is not there (4.6° on a
+// 1344 px wide 1080p capture), which shifts the boxes' right edges by tens of
+// pixels from row to row. Turning the boxes by the angle around the image's
+// centre (cx, cy) puts them back.
+func unrotate(lines []OcrLine, angle, cx, cy float64) {
+	rad := angle * math.Pi / 180
+	sin, cos := math.Sin(rad), math.Cos(rad)
+	turn := func(x, y float64) (float64, float64) {
+		dx, dy := x-cx, y-cy
+		return cx + dx*cos - dy*sin, cy + dx*sin + dy*cos
+	}
+	for i := range lines {
+		l := &lines[i]
+		x0, y0, x1, y1 := math.Inf(1), math.Inf(1), math.Inf(-1), math.Inf(-1)
+		for _, p := range [][2]float64{{l.X, l.Y}, {l.X + l.W, l.Y}, {l.X, l.Y + l.H}, {l.X + l.W, l.Y + l.H}} {
+			x, y := turn(p[0], p[1])
+			x0, y0, x1, y1 = min(x0, x), min(y0, y), max(x1, x), max(y1, y)
+		}
+		textRight, _ := turn(l.TextRight, l.Y+l.H/2)
+		l.X, l.Y, l.W, l.H, l.TextRight = x0, y0, x1-x0, y1-y0, textRight
+	}
 }

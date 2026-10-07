@@ -604,7 +604,7 @@ func (s *AppService) positionOverlayWindow(window application.Window) {
 func (s *AppService) confineWindows() {
 	s.confineOnce.Do(func() {
 		application.InvokeSync(func() {
-			for _, w := range []application.Window{s.overlayWindow, s.marketWindow, s.craftWindow} {
+			for _, w := range []application.Window{s.overlayWindow, s.marketWindow, s.craftWindow, s.expeditionWindow} {
 				if w != nil {
 					overlay.Confine(uintptr(w.NativeWindow()))
 				}
@@ -630,7 +630,7 @@ func (s *AppService) watchGameFocus() {
 		if game || overlay.WindowPID(fg) == own {
 			continue
 		}
-		for _, w := range []application.Window{s.overlayWindow, s.marketWindow, s.craftWindow} {
+		for _, w := range []application.Window{s.overlayWindow, s.marketWindow, s.craftWindow, s.expeditionWindow} {
 			if w != nil && w.IsVisible() {
 				w.Hide()
 			}

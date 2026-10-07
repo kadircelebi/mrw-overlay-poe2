@@ -144,6 +144,44 @@ export interface ExoticTier {
 }
 
 /**
+ * ExpeditionPrice is one reward of the Runeshape panel as the labels show
+ * it. Y and H are the reward text's line in the game's client area, in
+ * physical pixels. ValueEx is the reward's worth (the unit's when the count
+ * is unknown), 0 when it has no price; Below marks a worth under the loot
+ * filter's threshold. Pending marks an uncut gem whose price is still being
+ * fetched. Bg, Color and Border are the loot filter's colours for an item of
+ * this worth (see valueStyle), as CSS; empty when no value group takes it.
+ */
+export interface ExpeditionPrice {
+    "name": string;
+    "text": string;
+    "count": number;
+    "countKnown": boolean;
+    "valueEx": number;
+    "below": boolean;
+    "pending": boolean;
+    "bg": string;
+    "color": string;
+    "border": string;
+    "y": number;
+    "h": number;
+}
+
+/**
+ * ExpeditionView is what the label window shows: the rows, where the panel
+ * ends on the right (physical pixels of the game's client area) and the
+ * Divine rate for the amounts. Message is "notFound" when no panel was read,
+ * "error" when the screen could not be read. Seq changes with every read.
+ */
+export interface ExpeditionView {
+    "rows": ExpeditionPrice[] | null;
+    "panelRight": number;
+    "divineEx": number;
+    "message": string;
+    "seq": number;
+}
+
+/**
  * FilterExplanation is what the written filter does with an item and why.
  */
 export interface FilterExplanation {

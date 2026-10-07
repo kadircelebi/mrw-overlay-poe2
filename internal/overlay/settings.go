@@ -23,6 +23,9 @@ type Settings struct {
 	// HideHotkey reads the item under the cursor and offers to add it to the
 	// loot filter's "hidden by me" list.
 	HideHotkey string `json:"hide_hotkey"`
+	// ExpeditionHotkey reads Expedition's Runeshape Combinations panel off
+	// the screen once and writes each reward's price beside it.
+	ExpeditionHotkey string `json:"expedition_hotkey"`
 	// ChatEnabled turns on Commands: shortcuts that type a line into the
 	// game's chat. Like the overlay it sends keys to the game, so it starts
 	// off. The keys are taken only while the game is the active window, so
@@ -47,7 +50,7 @@ type Settings struct {
 // DefaultSettings leaves the overlay off: it registers a global shortcut and
 // sends keys to the game, so players opt in from Settings.
 func DefaultSettings() Settings {
-	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", HideHotkey: "Alt+H", Commands: DefaultChatCommands(), PanelHotkey: "F9", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true}
+	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", HideHotkey: "Alt+H", ExpeditionHotkey: "Alt+Q", Commands: DefaultChatCommands(), PanelHotkey: "F9", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true}
 }
 
 // DefaultLiveSound is a short chime distinct from the loot filter's drops.
@@ -58,7 +61,7 @@ var ErrSameHotkey = errors.New("each overlay shortcut must be different")
 
 // uses reports whether another shortcut already takes key.
 func (s Settings) uses(key string) bool {
-	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.PanelHotkey, s.HideoutHotkey}
+	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.HideHotkey, s.PanelHotkey, s.HideoutHotkey}
 	for _, c := range s.Commands {
 		keys = append(keys, c.Hotkey)
 	}
@@ -73,7 +76,7 @@ func (s Settings) uses(key string) bool {
 // DistinctHotkeys reports whether every shortcut differs from the others.
 func (s Settings) DistinctHotkeys() error {
 	seen := map[string]bool{}
-	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.HideHotkey, s.PanelHotkey}
+	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.HideHotkey, s.ExpeditionHotkey, s.PanelHotkey}
 	for _, c := range s.Commands {
 		keys = append(keys, c.Hotkey)
 	}
@@ -145,6 +148,12 @@ func (s *Settings) Normalize() {
 		// A player who already gave Alt+H to something else keeps it; the
 		// hide shortcut then stays off until they pick one.
 		s.HideHotkey = "Alt+H"
+	}
+	s.ExpeditionHotkey = strings.TrimSpace(s.ExpeditionHotkey)
+	if strings.EqualFold(s.ExpeditionHotkey, "Alt+Q") && s.uses("Alt+Q") {
+		// The default arrives with an overlay.json written before it; a
+		// player who already gave Alt+Q to something else keeps it.
+		s.ExpeditionHotkey = ""
 	}
 	if s.Commands == nil {
 		s.Commands = DefaultChatCommands()
