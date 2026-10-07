@@ -316,7 +316,9 @@ export interface Tier {
 /**
  * TierTable is the tiers of one stat line of one modifier family on a base.
  * A hybrid family rolls another stat too (With names it); its tiers are
- * smaller than the plain family's, so the two are offered apart.
+ * smaller than the plain family's, so the two are offered apart. A line
+ * without a value ("Upgrades Radius to Large") has no tiers: the table only
+ * says that the base rolls it.
  */
 export interface TierTable {
     "stat": string;

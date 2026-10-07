@@ -8,6 +8,8 @@
   import LiveSearch from './lib/LiveSearch.svelte'
   import QuotaBadge from './lib/QuotaBadge.svelte'
   import MarketRegexCopy from './lib/MarketRegexCopy.svelte'
+  import SearchSelect from './lib/SearchSelect.svelte'
+  import { wordMatcher } from './lib/wordMatch'
   import { marketItemFromDraft, editMarketIdentity } from './lib/marketIdentity'
   import { buildMarketRegex } from './lib/marketRegex'
   import { t } from './lib/i18n.svelte'
@@ -148,18 +150,21 @@
   const itemEntries = $derived((catalog?.items ?? []).flatMap((group) => group.entries ?? []))
   const statEntries = $derived((catalog?.stats ?? []).flatMap((group) => group.entries ?? []))
   const itemSuggestions = $derived.by(() => {
-    const q = itemQuery.trim().toLocaleLowerCase()
-    if (q.length < 2) return []
-    return itemEntries.filter((entry) => `${entry.name ?? ''} ${entry.type}`.toLocaleLowerCase().includes(q)).slice(0, 18)
+    if (itemQuery.trim().length < 2) return []
+    const matches = wordMatcher(itemQuery)
+    return itemEntries.filter((entry) => matches(`${entry.name ?? ''} ${entry.type}`)).slice(0, 18)
   })
   const statSuggestions = $derived.by(() => {
-    const q = statQuery.trim().toLocaleLowerCase()
-    if (q.length < 2) return []
-    const hits = statEntries.filter((entry) => entry.text.toLocaleLowerCase().includes(q))
+    // "spell critical damage" finds "Critical Spell Damage Bonus".
+    if (statQuery.trim().length < 2) return []
+    const matches = wordMatcher(statQuery)
+    const hits = statEntries.filter((entry) => matches(entry.text))
     // With a known base, the modifiers it rolls come first; ones it cannot
     // roll stay in the list, last and dimmed (the data can lag a new patch).
+    // The list scrolls: a broad word ("critical") must not cut off the line
+    // being looked for.
     if (rollable.size) hits.sort((a, b) => rollRank(b.id) - rollRank(a.id))
-    return hits.slice(0, rollable.size ? 32 : 24)
+    return hits.slice(0, 80)
   })
   const statGroupTypes = [
     ['and', 'And'], ['not', 'Not'], ['if', 'If'], ['count', 'Count'],
@@ -927,10 +932,12 @@
       </div>
       <button class="new-search" title={t('mk.newSearchTitle')} onclick={newSearch}>{t('mk.newSearch')}</button>
       <div class="item-search">
-        <input value={itemQuery} onfocus={() => (showItemSuggestions = true)} oninput={(event) => editItemQuery(event.currentTarget.value)} placeholder={t('mk.searchItems')} spellcheck="false" />
+        <input value={itemQuery} onfocus={() => (showItemSuggestions = true)} onblur={() => (showItemSuggestions = false)} onkeydown={(event) => { if (event.key === 'Escape') showItemSuggestions = false }} oninput={(event) => editItemQuery(event.currentTarget.value)} placeholder={t('mk.searchItems')} spellcheck="false" />
         <button disabled={!canSearch || !!searchingTab} onclick={() => search(true)}>{loading ? '…' : '⌕'}</button>
         {#if showItemSuggestions && itemSuggestions.length}
-          <div class="suggestions">
+          <!-- mousedown keeps the focus in the field (a click on the list or
+               its scrollbar must not close it); leaving the field closes it. -->
+          <div class="suggestions" role="presentation" onmousedown={(event) => event.preventDefault()}>
             {#each itemSuggestions as entry}<button onclick={() => chooseItem(entry)}><b>{entry.name || entry.type}</b>{#if entry.name}<span>{entry.type}</span>{/if}</button>{/each}
           </div>
         {/if}
@@ -949,6 +956,18 @@
           {#snippet groupHead(id: string, title: string)}
             {@const n = activeCount(id)}
             <h2><button type="button" class="group-toggle" aria-expanded={isOpen(id)} onclick={() => toggleGroup(id)}><em>{isOpen(id) ? '▾' : '▸'}</em><span>{title}</span>{#if n}<small>{t('mk.selectedN', n)}</small>{/if}</button></h2>
+          {/snippet}
+          <!-- Long option lists (item category, …) can be typed into like the
+               affix search; short ones stay native selects. -->
+          {#snippet optionPicker(groupId: string, filter: TradeFilter)}
+            {@const options = filterOptions(filter)}
+            {#if options.length > 8}
+              <SearchSelect options={options.map((option) => ({ id: option.id, text: option.text ?? '' }))} value={stateFor(groupId, filter.id).option ?? ''} onchange={(value) => setOption(groupId, filter.id, value)} label={filter.text ?? ''} />
+            {:else}
+              <select value={stateFor(groupId, filter.id).option ?? ''} onchange={(e) => setOption(groupId, filter.id, e.currentTarget.value)}>
+                {#each options as option}<option value={option.id ?? ''}>{option.text}</option>{/each}
+              </select>
+            {/if}
           {/snippet}
           <section class="filter-group" class:closed={!isOpen('stats')}>
             {@render groupHead('stats', t('mk.statFilters'))}
@@ -999,9 +1018,9 @@
                   {/if}
                 {/each}
                 <div class="stat-add">
-                  <input value={statTargetGroup === statGroup.key ? statQuery : ''} onfocus={() => focusStatGroup(statGroup.key)} oninput={(event) => { focusStatGroup(statGroup.key); statQuery = event.currentTarget.value }} placeholder={t('mk.addStat')} aria-label={`${t('mk.filterN', statGroups.indexOf(statGroup) + 1)}: ${t('mk.addStat')}`} spellcheck="false" />
+                  <input value={statTargetGroup === statGroup.key ? statQuery : ''} onfocus={() => focusStatGroup(statGroup.key)} onblur={() => (showStatSuggestions = false)} onkeydown={(event) => { if (event.key === 'Escape') showStatSuggestions = false }} oninput={(event) => { focusStatGroup(statGroup.key); statQuery = event.currentTarget.value }} placeholder={t('mk.addStat')} aria-label={`${t('mk.filterN', statGroups.indexOf(statGroup) + 1)}: ${t('mk.addStat')}`} spellcheck="false" />
                   {#if statTargetGroup === statGroup.key && showStatSuggestions && statSuggestions.length}
-                    <div class="stat-suggestions">
+                    <div class="stat-suggestions" role="presentation" onmousedown={(event) => event.preventDefault()}>
                       {#each statSuggestions as stat}<button class:unlikely={rollRank(stat.id) < 0} title={rollRank(stat.id) < 0 ? t('mk.notOnBaseHint') : undefined} onclick={() => addStat(stat, statGroup.key)}><small>{stat.type}</small><span>{stat.text}</span></button>{/each}
                     </div>
                   {/if}
@@ -1025,16 +1044,12 @@
                     {#if filter.minMax}
                       <span class="filter-controls">
                         {#if filterOptions(filter).length}
-                          <select value={stateFor(group.id, filter.id).option ?? ''} onchange={(e) => setOption(group.id, filter.id, e.currentTarget.value)}>
-                            {#each filterOptions(filter) as option}<option value={option.id ?? ''}>{option.text}</option>{/each}
-                          </select>
+                          {@render optionPicker(group.id, filter)}
                         {/if}
                         <span class="minmax"><input type="number" value={stateFor(group.id, filter.id).min ?? ''} oninput={(e) => setNumber(group.id, filter.id, 'min', e.currentTarget.value)} placeholder="min" /><input type="number" value={stateFor(group.id, filter.id).max ?? ''} oninput={(e) => setNumber(group.id, filter.id, 'max', e.currentTarget.value)} placeholder="max" /></span>
                       </span>
                     {:else if filterOptions(filter).length}
-                      <select value={stateFor(group.id, filter.id).option ?? ''} onchange={(e) => setOption(group.id, filter.id, e.currentTarget.value)}>
-                        {#each filterOptions(filter) as option}<option value={option.id ?? ''}>{option.text}</option>{/each}
-                      </select>
+                      {@render optionPicker(group.id, filter)}
                     {:else}
                       <input value={stateFor(group.id, filter.id).input ?? ''} oninput={(e) => setInput(group.id, filter.id, e.currentTarget.value)} placeholder={filter.input?.placeholder || '…'} spellcheck="false" />
                     {/if}

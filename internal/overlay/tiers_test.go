@@ -39,6 +39,26 @@ const tierModsByBase = `{
    "bases": ["Metadata/Mace1"],
    "mods": {"prefix": {"AddedPhys": {"Phys1": 1, "Phys2": 20}}}
   }
+ },
+ "Jewels": {
+  "jewel,intjewel,default": {
+   "bases": ["Metadata/Sapphire"],
+   "mods": {"suffix": {"CriticalStrikeMultiplier": {"JewelCritDamage": 1}}}
+  },
+  "jewel,int_radius_jewel,radius_jewel,default": {
+   "bases": ["Metadata/TimeLostSapphire"],
+   "mods": {
+    "prefix": {
+     "WeaponSpellDamage": {"JewelRadiusSpellDamage": 1},
+     "JewelRadiusLargerRadius": {"JewelRadiusMediumSize": 1, "JewelRadiusLargeSize": 1},
+     "IncisionChance": {"JewelRadiusIncisionChance": 1}
+    },
+    "suffix": {
+     "CriticalStrikeMultiplier": {"JewelRadiusCriticalDamage": 1},
+     "JewelRadiusSmallNodeEffect": {"JewelRadiusSmallNodeEffect": 1}
+    }
+   }
+  }
  }
 }`
 
@@ -53,14 +73,23 @@ const tierMods = `{
  "Strength2": {"name": "of the Wrestler", "text": "+(9-12) to [Strength|Strength]", "stats": [{"id": "additional_strength"}]},
  "TabletRares1": {"name": "Brimming", "text": "Map has (25-35)% increased number of Rare Monsters", "stats": [{"id": "map_rare_monster_num_+%"}]},
  "Phys1": {"name": "Glinting", "text": "Adds (1-2) to (4-5) [Physical|Physical] Damage", "stats": [{"id": "local_minimum_added_physical_damage"}, {"id": "local_maximum_added_physical_damage"}]},
- "Phys2": {"name": "Burnished", "text": "Adds (4-6) to (7-11) [Physical|Physical] Damage", "stats": [{"id": "local_minimum_added_physical_damage"}, {"id": "local_maximum_added_physical_damage"}]}
+ "Phys2": {"name": "Burnished", "text": "Adds (4-6) to (7-11) [Physical|Physical] Damage", "stats": [{"id": "local_minimum_added_physical_damage"}, {"id": "local_maximum_added_physical_damage"}]},
+ "JewelCritDamage": {"name": "of Potency", "text": "(10-15)% increased [CriticalDamageBonus|Critical Damage Bonus]", "stats": [{"id": "base_critical_strike_multiplier_+"}], "spawn_weights": [{"tag": "intjewel", "weight": 1}]},
+ "JewelRadiusCriticalDamage": {"name": "of Potency", "text": "(5-10)% increased [CriticalDamageBonus|Critical Damage Bonus]", "stats": [{"id": "base_critical_strike_multiplier_+"}], "spawn_weights": [{"tag": "int_radius_jewel", "weight": 1}, {"tag": "default", "weight": 0}]},
+ "JewelRadiusSpellDamage": {"name": "Mystic", "text": "(1-2)% increased [Spell] Damage", "stats": [{"id": "spell_damage_+%"}], "spawn_weights": [{"tag": "int_radius_jewel", "weight": 1}, {"tag": "default", "weight": 0}]},
+ "JewelRadiusMediumSize": {"name": "Greater", "text": "Upgrades Radius to Medium", "stats": [{"id": "local_jewel_effect_base_radius"}], "spawn_weights": [{"tag": "radius_jewel", "weight": 1}]},
+ "JewelRadiusLargeSize": {"name": "Grand", "text": "Upgrades Radius to Large", "stats": [{"id": "local_jewel_effect_base_radius"}], "spawn_weights": [{"tag": "radius_jewel", "weight": 1}]},
+ "JewelRadiusIncisionChance": {"name": "Cutting", "text": "(3-5)% chance for [Attack] [Hit|Hits] to apply [Incision]", "stats": [{"id": "chance_to_inflict_incision_on_attack_hit_%"}], "spawn_weights": [{"tag": "int_radius_jewel", "weight": 1}]},
+ "JewelRadiusSmallNodeEffect": {"name": "of Influence", "text": "(15-25)% increased Effect of [SmallPassive|Small Passive] Skills in Radius", "stats": [{"id": "local_jewel_small_passive_in_radius_effect_+%"}], "spawn_weights": [{"tag": "radius_jewel", "weight": 1}, {"tag": "default", "weight": 0}]}
 }`
 
 const tierBases = `{
  "Metadata/Vest1": {"name": "Slipstrike Vest", "release_state": "released"},
  "Metadata/UniqueVest": {"name": "Golden Mantle", "release_state": "unique_only"},
  "Metadata/Tablet1": {"name": "Irradiated Tablet", "release_state": "released"},
- "Metadata/Mace1": {"name": "Wooden Club", "release_state": "released"}
+ "Metadata/Mace1": {"name": "Wooden Club", "release_state": "released"},
+ "Metadata/Sapphire": {"name": "Sapphire", "release_state": "released"},
+ "Metadata/TimeLostSapphire": {"name": "Time-Lost Sapphire", "release_state": "released"}
 }`
 
 func tierCatalog() Catalog {
@@ -73,6 +102,14 @@ func tierCatalog() Catalog {
 		{ID: "explicit.stat_rares", Text: "Map has #% increased number of Rare Monsters", Type: "explicit"},
 		{ID: "explicit.stat_phys", Text: "Adds # to # Physical Damage (Local)", Type: "explicit"},
 		{ID: "implicit.stat_str", Text: "# to Strength", Type: "implicit"},
+		{ID: "explicit.stat_crit_damage", Text: "#% increased Critical Damage Bonus", Type: "explicit"},
+		{ID: "explicit.stat_spell_damage", Text: "#% increased Spell Damage", Type: "explicit"},
+		{ID: "explicit.stat_notable_crit_damage", Text: "Notable Passive Skills in Radius also grant #% increased Critical Damage Bonus", Type: "explicit"},
+		{ID: "explicit.stat_small_spell_damage", Text: "Small Passive Skills in Radius also grant #% increased Spell Damage", Type: "explicit"},
+		{ID: "explicit.stat_small_effect", Text: "#% increased Effect of Small Passive Skills in Radius", Type: "explicit"},
+		{ID: "explicit.stat_radius|1", Text: "Upgrades Radius to Medium", Type: "explicit"},
+		{ID: "explicit.stat_radius|2", Text: "Upgrades Radius to Large", Type: "explicit"},
+		{ID: "explicit.stat_small_incision", Text: "Small Passive Skills in Radius also grant Attack Hits apply Incision", Type: "explicit"},
 	}}}}
 }
 
@@ -147,6 +184,39 @@ func TestTiersByClassAndUnreleasedBases(t *testing.T) {
 	}
 	if len(data.For("", "Body Armours")) == 0 || len(data.For("No Such Base", "")) != 0 {
 		t.Fatal("class lookup")
+	}
+}
+
+// A Time-Lost jewel's mods are granted to the passives in its radius: the
+// export prints the plain stat, the trade site the granted one.
+func TestTimeLostJewelModsAreTheRadiusGrantedStats(t *testing.T) {
+	data := buildTestTiers(t)
+	timeLost := data.For("Time-Lost Sapphire", "")
+	notable := tableOf(timeLost, "explicit.stat_notable_crit_damage", false)
+	if notable == nil || notable.Affix != "suffix" || notable.Tiers[0].Min != 5 || notable.Tiers[0].Max != 10 {
+		t.Fatalf("notable crit damage table = %+v", notable)
+	}
+	if small := tableOf(timeLost, "explicit.stat_small_spell_damage", false); small == nil || small.Affix != "prefix" {
+		t.Fatalf("small spell damage table = %+v", small)
+	}
+	// The jewel's own line keeps its plain stat.
+	if tableOf(timeLost, "explicit.stat_small_effect", false) == nil {
+		t.Fatal("effect of small passives in radius missing")
+	}
+	for _, plain := range []string{"explicit.stat_crit_damage", "explicit.stat_spell_damage"} {
+		if tableOf(timeLost, plain, false) != nil {
+			t.Fatalf("Time-Lost Sapphire offers the plain stat %s", plain)
+		}
+	}
+	// Lines the trade site lists without a value are rolled, with no tiers.
+	for _, stat := range []string{"explicit.stat_radius|1", "explicit.stat_radius|2", "explicit.stat_small_incision"} {
+		if table := tableOf(timeLost, stat, false); table == nil || len(table.Tiers) != 0 {
+			t.Fatalf("%s table = %+v", stat, table)
+		}
+	}
+	// A plain Sapphire still rolls the plain stat.
+	if crit := tableOf(data.For("Sapphire", ""), "explicit.stat_crit_damage", false); crit == nil || crit.Tiers[0].Min != 10 {
+		t.Fatalf("sapphire crit damage table = %+v", crit)
 	}
 }
 
@@ -242,6 +312,31 @@ func TestTiersFromRealExport(t *testing.T) {
 			if strings.Contains(text, check.stat) {
 				t.Logf("%s | %s | %s hybrid=%v %v", check.base, text, table.Affix, table.Hybrid, table.Tiers)
 			}
+		}
+	}
+	// Every Time-Lost jewel line is a radius-granted stat or the jewel's own.
+	texts := map[string]string{}
+	for _, g := range stats.Result {
+		for _, e := range g.Entries {
+			texts[e.ID] = e.Text
+		}
+	}
+	for _, base := range []string{"Time-Lost Ruby", "Time-Lost Emerald", "Time-Lost Sapphire", "Time-Lost Diamond"} {
+		tables := data.For(base, "")
+		granted := 0
+		for _, table := range tables {
+			text := texts[table.Stat]
+			switch {
+			case strings.Contains(text, "Passive Skills in Radius also grant"):
+				granted++
+			case strings.Contains(text, "in Radius"), strings.HasPrefix(text, "Upgrades Radius"):
+			default:
+				t.Errorf("%s offers the plain stat %q", base, text)
+			}
+		}
+		t.Logf("%s: %d tables, %d radius-granted", base, len(tables), granted)
+		if granted == 0 {
+			t.Errorf("%s has no radius-granted stats", base)
 		}
 	}
 }

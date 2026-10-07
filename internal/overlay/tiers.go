@@ -32,7 +32,7 @@ const repoeBaseURL = "https://repoe-fork.github.io/poe2/"
 
 // tierFormat is bumped when the built file changes shape or the build rules
 // change, so an old cache is rebuilt instead of read.
-const tierFormat = 3
+const tierFormat = 5
 
 // Tier is one tier of a modifier family: T1 is the best, the one needing the
 // highest item level. Min and Max are what the trade site compares ("Adds X to
@@ -47,7 +47,9 @@ type Tier struct {
 
 // TierTable is the tiers of one stat line of one modifier family on a base.
 // A hybrid family rolls another stat too (With names it); its tiers are
-// smaller than the plain family's, so the two are offered apart.
+// smaller than the plain family's, so the two are offered apart. A line
+// without a value ("Upgrades Radius to Large") has no tiers: the table only
+// says that the base rolls it.
 type TierTable struct {
 	Stat   string `json:"stat"`
 	Affix  string `json:"affix"`
@@ -126,6 +128,19 @@ func (m repoeMod) specialPool() string {
 		}
 	}
 	return ""
+}
+
+// radiusJewel tells a Time-Lost jewel's modifier ("int_radius_jewel"...). The
+// export prints its plain stat ("(5-10)% increased Critical Damage Bonus"),
+// but on the item, and on the trade site, it is granted to the passives in
+// the jewel's radius: "Notable Passive Skills in Radius also grant ...".
+func (m repoeMod) radiusJewel() bool {
+	for _, w := range m.SpawnWeights {
+		if w.Weight > 0 && strings.HasSuffix(w.Tag, "radius_jewel") {
+			return true
+		}
+	}
+	return false
 }
 
 type repoeBase struct {
@@ -227,6 +242,34 @@ func (idx statIndex) find(line string, local bool) (string, bool) {
 		}
 	}
 	return entries[0].ID, negate
+}
+
+// findGranted finds the radius-granted form of a Time-Lost jewel's mod line.
+// The game grants each such stat either to the small or to the notable
+// passives, and the trade site lists only that one form (checked against the
+// whole export: no line has both).
+// valueless is true when the trade site words the stat without a value.
+func (idx statIndex) findGranted(line string) (stat string, negate, valueless bool) {
+	wording, reworded := grantedWording[repoeKey(line)]
+	for _, to := range []string{"Small", "Notable"} {
+		if stat, negate := idx.find(to+" Passive Skills in Radius also grant "+line, false); stat != "" {
+			return stat, negate, false
+		}
+		if reworded {
+			if stat, _ := idx.find(to+" Passive Skills in Radius also grant "+wording, false); stat != "" {
+				return stat, false, true
+			}
+		}
+	}
+	return "", false, false
+}
+
+// grantedWording is how the trade site words radius-granted chances that it
+// lists without a value (PoE2DB and the item: "3% chance for Attack Hits to
+// apply Incision").
+var grantedWording = map[string]string{
+	repoeKey("1% chance for Attack Hits to apply Incision"): "Attack Hits apply Incision",
+	repoeKey("1% chance to Daze on Hit"):                    "Dazes on Hit",
 }
 
 // BuildTiers turns RePoE's mods_by_base, mods and base_items files into the
@@ -398,9 +441,20 @@ func familyTables(family map[string]int, modList map[string]repoeMod, affix stri
 	}) bool {
 		return strings.HasPrefix(s.ID, "local_")
 	})
+	// A Time-Lost jewel's own lines (its radius, the effect of passives in
+	// it) are local and searched as written; the rest are granted to the
+	// passives in its radius and never match the plain stat.
+	granted := !local && entries[0].mod.radiusJewel()
+	lookup := func(line string) (string, bool, bool) {
+		if granted {
+			return stats.findGranted(line)
+		}
+		stat, negate := stats.find(line, local)
+		return stat, negate, false
+	}
 	var out []TierTable
 	for li, line := range best {
-		stat, negate := stats.find(line, local)
+		stat, negate, valueless := lookup(line)
 		if stat == "" {
 			continue
 		}
@@ -416,7 +470,7 @@ func familyTables(family map[string]int, modList map[string]repoeMod, affix stri
 		}
 		for n, e := range entries {
 			lines := strings.Split(unlinkRepoe(e.mod.Text), "\n")
-			if li >= len(lines) {
+			if li >= len(lines) || valueless {
 				continue
 			}
 			lo, hi, ok := lineRange(lines[li])
@@ -430,6 +484,23 @@ func familyTables(family map[string]int, modList map[string]repoeMod, affix stri
 		}
 		if len(table.Tiers) > 0 {
 			out = append(out, table)
+			continue
+		}
+		// A line without a value ("Upgrades Radius to Large") has no tiers to
+		// pick, but the base still rolls it; each mod of the family may be a
+		// stat of its own (Medium, Large).
+		seen := map[string]bool{}
+		for _, e := range entries {
+			lines := strings.Split(unlinkRepoe(e.mod.Text), "\n")
+			if li >= len(lines) {
+				continue
+			}
+			if own, _, _ := lookup(lines[li]); own != "" && !seen[own] {
+				seen[own] = true
+				plain := table
+				plain.Stat = own
+				out = append(out, plain)
+			}
 		}
 	}
 	return out

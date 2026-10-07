@@ -88,6 +88,9 @@ func exoticModOptions(data *overlay.TierData, catalog overlay.Catalog, class str
 	}
 	out := make([]ExoticModOption, 0, len(tables))
 	for ti, t := range tables {
+		if len(t.Tiers) == 0 {
+			continue // Exotic rules name tiers; a line without a value has none
+		}
 		opt := ExoticModOption{Stat: t.Stat, Text: label(t), Affix: t.Affix, Pool: pools[ti]}
 		for _, tier := range t.Tiers {
 			et := ExoticTier{Tier: tier.Tier, Name: tier.Name, Level: tier.Level, Min: tier.Min, Max: tier.Max}
