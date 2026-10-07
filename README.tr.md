@@ -28,7 +28,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
 ## Özellikler
 
 ### Canlı fiyatlı loot filtresi
-[NeverSink'in filtresinin](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2) üstüne kurulur: NeverSink'in bütün emeği yerinde kalır, senin fiyat kuralların en üste eklenir. Unique fiyatları poe.ninja'dan, currency ve yığınlanan eşyalar poe2scout'tan, exceptional tabanlar (fazla soketli ya da %21+ kaliteli) resmi trade sitesinden gelir. Bu tabanları bizim sunucularımız günün her saati tarar; fiyatlar sana hazır gelir. Filtre varsayılan olarak 4 saatte bir kendini günceller.
+[NeverSink'in filtresinin](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2) üstüne kurulur: NeverSink'in bütün emeği yerinde kalır, senin fiyat kuralların en üste eklenir. Unique fiyatları poe.ninja'dan, currency ve yığınlanan eşyalar poe2scout'tan, exceptional tabanlar (fazla soketli ya da %21+ kaliteli) resmi trade sitesinden gelir. Bu tabanları MrW Overlay'in kendi sunucuları günün her saati tarar; fiyatlar sana hazır gelir. Filtre varsayılan olarak 4 saatte bir kendini günceller.
 
 <p align="center"><img src="docs/filter-ground.jpg" alt="Yerde filtrelenmiş drop'lar" width="800"></p>
 
@@ -78,10 +78,10 @@ Uygulamanın görünümü de sana kalmış: MrW Default, Dark ya da Light'tan bi
 
 ## İşi doğru yapmak için
 
-Bir özellik oyunda gerçekten çalışana ve kurallara uyana kadar onu yayınlamıyoruz.
+Bir özellik, oyunda gerçekten çalışana ve kurallara uyana kadar yayınlanmaz.
 
 - **Bellek okuma yok, otomatik tuş basma yok.** Uygulama oyunun belleğine dokunmaz, senin yerine tuşa basmaz. Bir kısayol bir işlem demektir.
-- **Trade sitesine nazik.** Her istek, trade sitesinin bildirdiği hız sınırlarına uyar. Exceptional tabanlar bizim sunucularımızda taranır; senin trade kotan sana kalır.
+- **Trade sitesine nazik.** Her istek, trade sitesinin bildirdiği hız sınırlarına uyar. Exceptional tabanlar MrW Overlay'in kendi sunucularında taranır; senin trade kotan sana kalır.
 - **Ekran yalnız sen isteyince okunur.** Expedition ve gem okuma, her tuşa basışta ekranı bir kez yakalar ve Windows'un kendi OCR'ıyla senin bilgisayarında okur. Hiçbir şey yüklenmez.
 - **Oturumun bilgisayarında kalır.** pathofexile.com hesabını bağlarsan oturum Windows DPAPI ile şifrelenir ve yalnız pathofexile.com'a gider.
 - **Zayıf veriyle drop gizlenmez.** Tek ilanı olan bir unique ya da birkaç ilanlı bir exceptional asla gizlenmez.
@@ -128,18 +128,18 @@ Canlı arama, hideout'a gitme ve daha büyük aramalar için uygulamanın pathof
 
 ## Projeye destek
 
-MrW Overlay ücretsizdir ve öyle kalacak. Her yamaya ve her lige yetiştirmek çok akşamımızı alıyor. İşine yarıyorsa [GitHub Sponsors](https://github.com/sponsors/kadircelebi) üzerinden destek olabilir ya da bu sayfaya bir ⭐ bırakabilirsin. Destek uygulamada hiçbir şeyin kilidini açmaz; herkes her özelliği kullanır.
+MrW Overlay ücretsizdir ve öyle kalacak. Her yamaya ve her lige yetiştirmek çok akşam alıyor. İşine yarıyorsa [GitHub Sponsors](https://github.com/sponsors/kadircelebi) üzerinden destek olabilir ya da bu sayfaya bir ⭐ bırakabilirsin. Destek uygulamada hiçbir şeyin kilidini açmaz; herkes her özelliği kullanır.
 
 Hata mı buldun, aklına bir fikir mi geldi? [Issue aç](../../issues/new/choose).
 
 ## Gizlilik
 
-Uygulamada telemetri ya da analiz yok; oturum çerezini ve hesap adını asla bizim sunucularımıza göndermez.
+Uygulamada telemetri ya da analiz yok; oturum çerezini ve hesap adını asla MrW Overlay sunucularına göndermez.
 
 Herkese açık veriyi okur: fiyatları [poe.ninja](https://poe.ninja/) ve [poe2scout](https://poe2scout.com/)'tan, ilanları resmi trade API'sinden, NeverSink'in filtresini GitHub'dan.
 
 - **Tarayıcı eklentisi:** bağlarsan oturumu ve hesap adını yalnız aynı bilgisayardaki uygulamaya verir. İkisi de Windows DPAPI ile saklanır. Oturum yalnız senin istediğin trade işlemleri için `www.pathofexile.com`'a gider. **Ayarlar → Hesap → Bağlantıyı kes** ikisini de siler.
-- **Herkese açık profiller:** isteğe bağlıdır. Yalnız yayınlarken ya da takip ederken profil sunucumuzla (`profiles.mrwproject.com`) konuşulur. Yayınlarsan profilin filtre ayarları, adı, açıklaması ve etiketleri herkese açık olur; hesap adın da yazar olarak görünür. Lig, dil, dosya yolları, ses dosyaları, oturumun ve fiyat ayarların asla gönderilmez. Takip ettiğinde rastgele bir kurulum anahtarının özeti saklanır. Kötüye kullanımı sınırlamak için IP'nin kendisi değil, tuzlanmış özeti tutulur. Yayından kaldırınca profil ve takipçileri silinir.
+- **Herkese açık profiller:** isteğe bağlıdır. Yalnız yayınlarken ya da takip ederken MrW Overlay profil sunucusuyla (`profiles.mrwproject.com`) konuşulur. Yayınlarsan profilin filtre ayarları, adı, açıklaması ve etiketleri herkese açık olur; hesap adın da yazar olarak görünür. Lig, dil, dosya yolları, ses dosyaları, oturumun ve fiyat ayarların asla gönderilmez. Takip ettiğinde rastgele bir kurulum anahtarının özeti saklanır. Kötüye kullanımı sınırlamak için IP'nin kendisi değil, tuzlanmış özeti tutulur. Yayından kaldırınca profil ve takipçileri silinir.
 - **Fiyat sorgulama:** varsayılan olarak kapalıdır. Kısayola bastığında uygulama eşyanın metnini oyunun kopyalama komutuyla alır ve resmi trade API'sine bir arama gönderir.
 
 Gizlilik politikasının tamamı: [poe2.mrwproject.com](https://poe2.mrwproject.com/tr/).
@@ -158,4 +158,6 @@ Yeni bir dil eklemek için `frontend/src/lib/locales/en.ts` ve `internal/i18n/en
 
 ## Lisans
 
-MIT, bkz. [LICENSE](LICENSE). İstisnalar [NOTICE](NOTICE) dosyasında. `internal/gamesounds/files/` altındaki 26 uyarı sesi Grinding Gear Games'e aittir. poe2db.tw'den gelen craft verisi CC BY-NC-SA 3.0 lisanslıdır. NeverSink'in filtresi de MIT lisanslıdır; uygulama onu çalışırken indirir. Bu proje Grinding Gear Games ile bağlantılı değildir ve onlar tarafından onaylanmamıştır.
+MIT, bkz. [LICENSE](LICENSE). İstisnalar [NOTICE](NOTICE) dosyasında. `internal/gamesounds/files/` altındaki 26 uyarı sesi Grinding Gear Games'e aittir. poe2db.tw'den gelen craft verisi CC BY-NC-SA 3.0 lisanslıdır. NeverSink'in filtresi de MIT lisanslıdır; uygulama onu çalışırken indirir.
+
+MrW Overlay bir oyuncunun oyuncular için yaptığı bir araçtır. Grinding Gear Games'in resmî bir ürünü değildir ve onlar tarafından desteklenmez. Path of Exile 2 ve içindeki her şey onlara aittir.

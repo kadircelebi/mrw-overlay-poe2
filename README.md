@@ -28,7 +28,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
 ## Features
 
 ### Live-price loot filter
-Built on top of [NeverSink's filter](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2): all of NeverSink's work stays, and your price rules go on top. Uniques are priced from poe.ninja, currency and stackables from poe2scout, and exceptional bases (extra sockets, 21%+ quality) from the official trade site. Our servers scan those bases around the clock, so you get the prices ready-made. The filter updates itself every 4 hours by default.
+Built on top of [NeverSink's filter](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2): all of NeverSink's work stays, and your price rules go on top. Uniques are priced from poe.ninja, currency and stackables from poe2scout, and exceptional bases (extra sockets, 21%+ quality) from the official trade site. MrW Overlay's own servers scan those bases around the clock, so you get the prices ready-made. The filter updates itself every 4 hours by default.
 
 <p align="center"><img src="docs/filter-ground.jpg" alt="Filtered drops on the ground" width="800"></p>
 
@@ -78,10 +78,10 @@ The app's own look is up to you: pick MrW Default, Dark or Light, or copy one an
 
 ## Built to do it right
 
-We don't ship a feature until it really works in game and plays by the rules.
+A feature doesn't ship until it really works in game and plays by the rules.
 
 - **No memory reading, no input automation.** The app never touches the game's memory and never presses keys for you. One hotkey is one action.
-- **Gentle with the trade site.** Every request follows the rate limits the trade site announces. Exceptional bases are scanned on our own servers, so your trade quota stays yours.
+- **Gentle with the trade site.** Every request follows the rate limits the trade site announces. Exceptional bases are scanned on MrW Overlay's own servers, so your trade quota stays yours.
 - **Screen reading only when you ask.** Expedition and gem reading capture the screen once per key press and read it on your PC with Windows' built-in OCR. Nothing is uploaded.
 - **Your session stays on your PC.** If you connect your pathofexile.com account, the session is encrypted with Windows DPAPI and only ever sent to pathofexile.com.
 - **Weak data never hides loot.** A unique with a single listing, or an exceptional with only a few, is never a reason to hide it.
@@ -134,12 +134,12 @@ Found a bug or have an idea? [Open an issue](../../issues/new/choose).
 
 ## Privacy
 
-The app has no telemetry or analytics, and it never sends your session cookie or account name to our servers.
+The app has no telemetry or analytics, and it never sends your session cookie or account name to MrW Overlay's servers.
 
 It reads public data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout](https://poe2scout.com/), listings from the official trade API, and NeverSink's filter from GitHub.
 
 - **Browser extension:** if you connect it, it sends your session and account name only to the app on the same PC. They are stored with Windows DPAPI, the session is sent only to `www.pathofexile.com` for trade actions you ask for, and **Settings → Account → Disconnect** deletes both.
-- **Public profiles:** these are optional. Only publishing or following talks to our profile server (`profiles.mrwproject.com`). Publishing makes the profile's filter settings, its name, description and tags, and your account name (as the author) public. League, language, file paths, sound files, your session and price settings are never sent. Following stores a hash of a random install key, plus a salted hash of the IP (not the IP itself) to limit abuse. Unpublishing deletes the profile and its followers.
+- **Public profiles:** these are optional. Only publishing or following talks to the MrW Overlay profile server (`profiles.mrwproject.com`). Publishing makes the profile's filter settings, its name, description and tags, and your account name (as the author) public. League, language, file paths, sound files, your session and price settings are never sent. Following stores a hash of a random install key, plus a salted hash of the IP (not the IP itself) to limit abuse. Unpublishing deletes the profile and its followers.
 - **Price check:** this is off by default. When you press the hotkey, the app copies that item's text with the game's copy command and sends a search to the official trade API.
 
 Full policy: [poe2.mrwproject.com](https://poe2.mrwproject.com).
@@ -158,4 +158,6 @@ To add a language, copy `frontend/src/lib/locales/en.ts` and `internal/i18n/en.g
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Exceptions are listed in [NOTICE](NOTICE). The 26 alert sounds in `internal/gamesounds/files/` belong to Grinding Gear Games. The crafting data from poe2db.tw is under CC BY-NC-SA 3.0. NeverSink's filter is MIT licensed too, and the app downloads it at runtime. This project is not affiliated with or endorsed by Grinding Gear Games.
+MIT, see [LICENSE](LICENSE). Exceptions are listed in [NOTICE](NOTICE). The 26 alert sounds in `internal/gamesounds/files/` belong to Grinding Gear Games. The crafting data from poe2db.tw is under CC BY-NC-SA 3.0. NeverSink's filter is MIT licensed too, and the app downloads it at runtime.
+
+MrW Overlay is built by a player, for players. It is not an official Grinding Gear Games product, and they don't back it. Path of Exile 2 and everything in it belong to them.
