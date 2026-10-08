@@ -116,6 +116,49 @@ func BaseTypes(content string) map[string]string {
 	return out
 }
 
+// LooseBaseTypes returns the values of the filter's loose BaseType lists
+// (`BaseType "Uncut Skill Gem"`, a part of a name), lowercase. They are not
+// item names, but the game accepts them, so a loose value of ours that is one
+// of them (or part of one) is known.
+func LooseBaseTypes(content string) []string {
+	seen := map[string]bool{}
+	var out []string
+	sc := bufio.NewScanner(strings.NewReader(content))
+	sc.Buffer(make([]byte, 1<<20), 1<<20)
+	for sc.Scan() {
+		line := uncomment(sc.Text())
+		if !strings.HasPrefix(line, "BaseType ") || strings.HasPrefix(line, "BaseType ==") {
+			continue
+		}
+		for _, m := range quoted.FindAllStringSubmatch(line, -1) {
+			if v := strings.ToLower(m[1]); !seen[v] {
+				seen[v] = true
+				out = append(out, v)
+			}
+		}
+	}
+	return out
+}
+
+// Classes returns the item classes the filter names (Class conditions, active
+// or switched off): the classes the game knows, for checking that a rule of
+// ours names no class a patch removed.
+func Classes(content string) map[string]bool {
+	out := map[string]bool{}
+	sc := bufio.NewScanner(strings.NewReader(content))
+	sc.Buffer(make([]byte, 1<<20), 1<<20)
+	for sc.Scan() {
+		line := uncomment(sc.Text())
+		if !strings.HasPrefix(line, "Class ") {
+			continue
+		}
+		for _, m := range quoted.FindAllStringSubmatch(line, -1) {
+			out[strings.ToLower(m[1])] = true
+		}
+	}
+	return out
+}
+
 // StackedBases returns the BaseTypes NeverSink ranks by stack size (rules
 // with a StackSize condition: splinters, Verisium, Gold). These are the items
 // that really drop in stacks; others drop one at a time.

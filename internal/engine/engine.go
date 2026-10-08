@@ -651,6 +651,19 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	cfg.Stacked = filter.StackedBases(neversink.StackedBases(string(baseContent)))
 	cfg.Exotics = neversink.ExoticBlocks(string(baseContent))
 	block, st := filter.GenerateDynamicFilterBlock(cfg, snap, validBases, ns)
+	// A value the game does not know makes it refuse the whole filter; one a
+	// patch removed is taken out here instead (see filter.SelfCheck).
+	block, check := filter.SelfCheck(block, neversink.Classes(string(baseContent)), validBases,
+		neversink.LooseBaseTypes(string(baseContent)))
+	if len(check.Unknown) > 0 {
+		names := check.Unknown
+		if len(names) > 8 {
+			names = append(names[:8:8], "…")
+		}
+		msg := i18n.T("warn.filterUnknown", strings.Join(names, ", "), check.Dropped)
+		st.Warnings = append(st.Warnings, msg)
+		e.logf("%s", msg)
+	}
 
 	e.setStep(0.85, i18n.T("step.writing"))
 	if err := filter.WriteFilter(basePath, block, dest); err != nil {

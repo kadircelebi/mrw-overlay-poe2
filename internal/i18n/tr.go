@@ -57,6 +57,7 @@ var tr = map[string]string{
 	"warn.blacklistSkipped": "Kara liste: %q atlandı, aynı taban (%s) üzerinde değerli %s var",
 	"warn.hideHidesUnique":  "%s: %s her nadirlikte gizleniyor, değerli %s de dahil. Yalnız sıradanları gizlemek için \"Unique hariç\" seç",
 	"warn.blacklistUnknown": "Kara liste: %q tanınmadı",
+	"warn.filterUnknown":    "Filtre: oyunda artık %s yok; filtre yüklenebilsin diye kurallardan çıkarıldı (%d kural düşürüldü).",
 	"warn.valueTierBelow":   "Değer grubu %q kullanılmadı: %.1f Exalted, ana eşik %.1f değerinden yüksek değil",
 
 	"insights.crafting":       "Crafting tabanı",

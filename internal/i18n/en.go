@@ -68,6 +68,7 @@ var en = map[string]string{
 	"warn.blacklistSkipped": "Blacklist: %q skipped, the same base (%s) carries a valuable %s",
 	"warn.hideHidesUnique":  "%s: %s is hidden in every rarity, the valuable %s included. Pick \"Non-unique\" to hide only the ordinary ones",
 	"warn.blacklistUnknown": "Blacklist: %q not recognised",
+	"warn.filterUnknown":    "Filter: the game no longer has %s; left out of the rules (%d rules dropped) so the filter still loads.",
 	"warn.valueTierBelow":   "Value group %q ignored: %.1f Exalted is not above the base threshold %.1f",
 
 	// Insights categories

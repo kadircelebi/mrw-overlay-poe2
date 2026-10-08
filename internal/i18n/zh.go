@@ -60,6 +60,7 @@ var zh = map[string]string{
 	"warn.blacklistSkipped": "黑名單：已略過 %q，同一基底（%s）上有高價的 %s",
 	"warn.hideHidesUnique":  "%s：%s 的所有稀有度都會被隱藏，包括高價的 %s。若只想隱藏一般物品，請選「非 Unique」",
 	"warn.blacklistUnknown": "黑名單：無法辨識 %q",
+	"warn.filterUnknown":    "過濾器：遊戲中已沒有 %s；為讓過濾器能載入，已從規則中移除（略過 %d 條規則）。",
 	"warn.valueTierBelow":   "已忽略價值群組 %q：%.1f Exalted 不高於基本門檻 %.1f",
 
 	"insights.crafting":       "Crafting 基底",
