@@ -130,6 +130,24 @@ export function manualAdd(item, row, random = Math.random) {
   return next;
 }
 
+// A modifier the current data no longer has: a patch took its family or its
+// stat out. Saved crafts keep it, like an old item in the game keeps a legacy
+// modifier, but nothing rolls or adds it again, because every candidate comes
+// from the data. Matching is lenient on purpose, so a slip in our data does
+// not mark a live modifier: the id, or the same side and family with either
+// the same stat (any numbers, level or affix name) or the same affix name and
+// level (PoE2DB's stand-in id is a hash of the whole row and changes with any
+// field). build/refresh_data.py uses the same rule.
+export const statShape = text => String(text || '').replace(/\((-?\d+(?:\.\d+)?)[—–](-?\d+(?:\.\d+)?)\)/g, '#')
+  .replace(/-?\d+(?:\.\d+)?/g, '#');
+export function isRetired(mod, data) {
+  if (!mod || mod.unrevealed) return false;
+  const shape = statShape(mod.text);
+  return !data.mods.some(r => r.source_id === mod.source_id || (r.pool === mod.pool && r.affix === mod.affix &&
+    r.families?.[0] === mod.families?.[0] && (statShape(r.text) === shape ||
+      (r.name === mod.name && r.required_ilvl === mod.required_ilvl))));
+}
+
 export const removeMod = (item, index) => ({ ...item, mods: item.mods.filter((_, i) => i !== index) });
 export const clearMods = item => ({ ...item, mods: [] });
 

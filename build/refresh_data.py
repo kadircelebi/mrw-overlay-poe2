@@ -277,6 +277,52 @@ def compare_pages(old_dir, new_dir):
     return lines, totals
 
 
+# Removals beyond this share of a page's modifiers look like a broken scrape
+# rather than a patch: the run stops before --apply unless --accept-removals.
+REMOVAL_LIMIT = 0.03
+
+
+def stat_shape(text):
+    """The stat with every number made '#': engine.mjs statShape."""
+    text = re.sub(r'\((-?\d+(?:\.\d+)?)[—–](-?\d+(?:\.\d+)?)\)', '#', str(text or ''))
+    return re.sub(r'-?\d+(?:\.\d+)?', '#', text)
+
+
+def legacy_rows(old_rows, new_rows):
+    """Old rows the new data no longer has, by the craft window's rule
+    (engine.mjs isRetired): a saved craft would show them with (!)."""
+    ids = {r['source_id'] for r in new_rows}
+    by_family = {}
+    for r in new_rows:
+        by_family.setdefault((r['pool'], r['affix'], r['families'][0] if r['families'] else ''), []).append(r)
+    out = []
+    for m in old_rows:
+        if m['source_id'] in ids:
+            continue
+        same = by_family.get((m['pool'], m['affix'], m['families'][0] if m['families'] else ''), [])
+        shape = stat_shape(m['text'])
+        if not any(stat_shape(r['text']) == shape or (r['name'] == m['name'] and r['required_ilvl'] == m['required_ilvl'])
+                   for r in same):
+            out.append(m)
+    return out
+
+
+def removals(old_dir, new_dir):
+    """Per page: (legacy rows, share of the old page) and whether any page
+    looks broken (over REMOVAL_LIMIT, or gone)."""
+    pages, suspicious = {}, []
+    for path in sorted(old_dir.glob('*.mods.json')):
+        old = read(path)['mods']
+        new_path = new_dir / path.name
+        gone = legacy_rows(old, read(new_path)['mods']) if new_path.exists() else old
+        if gone:
+            share = len(gone) / max(len(old), 1)
+            pages[path.name[:-10]] = (gone, share)
+            if share > REMOVAL_LIMIT or not new_path.exists():
+                suspicious.append(path.name[:-10])
+    return pages, suspicious
+
+
 def keyed_diff(label, old, new):
     added, removed = sorted(set(new) - set(old)), sorted(set(old) - set(new))
     out = []
@@ -335,6 +381,18 @@ def report(work, weights, built):
         out += ['## Craft data against the app', '',
                 f"{totals['added']} modifiers added, {totals['removed']} removed, {totals['reweighted']} weights changed.", '']
         out += lines or ['- no modifier changes']
+        legacy, suspicious = removals(APP_CRAFT, staging / 'craft')
+        total = sum(len(g) for g, _ in legacy.values())
+        out += ['', '## Legacy modifiers', '',
+                f'{total} modifiers would show (!) on saved crafts (their family and stat are gone).']
+        for page, (gone, share) in legacy.items():
+            flag = ' **— more than the limit: broken scrape?**' if page in suspicious else ''
+            out.append(f'- {page}: {len(gone)} ({share:.1%}){flag}')
+            out += [f'  - {short(r)}' for r in sorted(gone, key=short)[:8]]
+        if suspicious:
+            out += ['', f'**Stopped before --apply:** {", ".join(suspicious)} lost more than {REMOVAL_LIMIT:.0%} of their '
+                        'modifiers. Check the scrape; if the patch really removed them, run again with --accept-removals.']
+        weights['suspicious'] = suspicious
         old_special, new_special = read(APP_CRAFT / 'special-currencies.json'), read(staging / 'craft' / 'special-currencies.json')
         out += keyed_diff('essences, alloys, bones, liquids', old_special['rules'], new_special['rules'])
         out += keyed_diff('runes', old_special['runes'], new_special['runes'])
@@ -374,6 +432,8 @@ def main():
                         default=ROOT / 'dist' / 'scratch' / f'data-refresh-{now():%Y%m%d-%H%M}')
     parser.add_argument('--skip-fetch', action='store_true', help='rebuild from an earlier --work folder')
     parser.add_argument('--apply', action='store_true', help='put the result in the app and run the tests')
+    parser.add_argument('--accept-removals', action='store_true',
+                        help=f'apply even when a page lost more than {REMOVAL_LIMIT:.0%} of its modifiers')
     args = parser.parse_args()
     sys.stdout.reconfigure(encoding='utf-8')  # the report has arrows and game names
     work = args.work.resolve()
@@ -385,6 +445,8 @@ def main():
     print(f'Report: {work / "report.md"}')
     if not built:
         raise SystemExit('Build stopped: unresolved weights (see the report).')
+    if weights.get('suspicious') and not args.accept_removals:
+        raise SystemExit(f"Stopped: {', '.join(weights['suspicious'])} lost too many modifiers (see the report).")
     if args.apply:
         apply(work)
         print('Applied. Review the diff (git status) before committing.')

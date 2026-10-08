@@ -1,5 +1,5 @@
 import { createItem, count, sideLimit, isCrafted, isDesecrated, craftedLimit, manualAdd, manualReason, removeMod, clearMods,
-  setRarity, candidates, currencyReason, applyCurrency, supported, rolledText, replaceTier, sortedMods, rollPools, fracturable, removable } from './engine.mjs';
+  setRarity, candidates, currencyReason, applyCurrency, supported, rolledText, replaceTier, sortedMods, rollPools, fracturable, removable, isRetired } from './engine.mjs';
 import { applicable, liquidRows, essenceRows, essenceTier, specialReason, applySpecial, revealChoice, startReveal, rerollReveal, unrevealedIndex } from './special.mjs';
 import { usageEntry, summarize } from './ledger.mjs';
 import { craftText } from './trade.mjs';
@@ -235,7 +235,8 @@ function renderItem() {
   let lastSide = '';
   sortedMods(item).forEach(({ mod, index }) => {
     const kind = mod.unrevealed ? 'unrevealed' : mod.fractured ? 'fractured' : isCrafted(mod) ? 'crafted' : isDesecrated(mod) ? 'desecrated' : 'explicit';
-    const row = element('div', undefined, `item-mod ${kind}${isDesecrated(mod) && kind !== 'desecrated' ? ' desecrated-bg' : ''}`);
+    const legacy = isRetired(mod, data());
+    const row = element('div', undefined, `item-mod ${kind}${isDesecrated(mod) && kind !== 'desecrated' ? ' desecrated-bg' : ''}${legacy ? ' retired' : ''}`);
     row.dataset.index = String(index);
     const key = `${mod.affix}:${mod.source_id}`;
     row.append(element('span', mod.affix !== lastSide ? mod.affix : '', 'mod-side'));
@@ -245,8 +246,16 @@ function renderItem() {
     // Like the game's tooltip, the raised value stands alone; the roll and
     // its range go to the hover text.
     const text = element('p', mod.unrevealed ? t('mod.unrevealed') : raised ? rolledText(raised) : rolledWithRange(mod), `mod-value${raised ? ' augmented' : ''}`);
-    text.title = `${mod.name} · ${mod.desecrated ? 'Desecrated' : mod.pool}${mod.fractured ? ' · Fractured' : ''}${raised ? ` · ${rolledWithRange(mod)} + ${item.catalyst.quality}%` : ''}`;
-    row.append(text, element('span', isCrafted(mod) ? 'C' : `T${mod.tier}`, 'mod-tier'));
+    text.title = `${mod.name} · ${mod.desecrated ? 'Desecrated' : mod.pool}${mod.fractured ? ' · Fractured' : ''}${raised ? ` · ${rolledWithRange(mod)} + ${item.catalyst.quality}%` : ''}` +
+      (legacy ? `
+${t('mod.retired')}` : '');
+    const tier = element('span', isCrafted(mod) ? 'C' : `T${mod.tier}`, 'mod-tier');
+    if (legacy) {
+      const mark = element('span', '!', 'retired-tag');
+      mark.title = t('mod.retired');
+      tier.prepend(mark);
+    }
+    row.append(text, tier);
     row.onclick = event => {
       if (held || event.target.closest('.mod-editor')) return;
       openMod = openMod === key ? '' : key; renderItem();
@@ -1349,7 +1358,9 @@ async function openSaved(entry) {
   undo.push({ item: clone(item), history: clone(history), sessionStart, activeOmens: clone(activeOmens) });
   item = { ...saved.item, baseSlots: currentBase(saved.item)?.slots || null };
   history = saved.history; sessionStart = saved.sessionStart || new Date().toISOString();
-  render(); persist(); status(t('lib.opened', entry.name), 'success');
+  render(); persist();
+  const legacy = item.mods.filter(m => isRetired(m, data())).length;
+  status(legacy ? t('lib.openedRetired', entry.name, legacy) : t('lib.opened', entry.name), legacy ? 'warning' : 'success');
 }
 $('lib-save').onclick = () => {
   if (!libraryLoaded) return;

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createItem, setRarity, sideLimit, candidates, manualAdd } from '../public/craft/engine.mjs';
+import { createItem, setRarity, sideLimit, candidates, manualAdd, isRetired } from '../public/craft/engine.mjs';
 import { parseLibrary, entryFor, sameCraft, addEntry, removeEntry, autoLimit, libraryLimit } from '../public/craft/library.mjs';
 import { setLang } from '../public/craft/i18n.mjs';
 setLang('en');
@@ -56,4 +56,31 @@ test('bases that move the affix limits change a Rare\'s room', async () => {
   assert.ok(!candidates(full, rings).some(m => m.affix === 'Suffix'));
   assert.ok(candidates(full, rings).some(m => m.affix === 'Prefix'));
   assert.ok(amulets.mods.length > 0);
+});
+
+test('a modifier the data no longer has stays on a saved craft, marked, and never rolls again', async () => {
+  const data = await json('Wands.mods.json');
+  const row = data.mods.find(m => m.pool === 'normal' && m.affix === 'Prefix');
+  const kept = { ...row, values: row.ranges.map(r => r.min) };
+  assert.equal(isRetired(kept, data), false);
+  // The same row under a new stand-in id (PoE2DB hashes rows without an id) is still the same modifier.
+  assert.equal(isRetired({ ...kept, source_id: 'local:changed' }, data), false);
+  const gone = { ...kept, source_id: 'RemovedByPatch1', name: 'of the Removed', families: ['RemovedFamily'] };
+  assert.equal(isRetired(gone, data), true);
+  assert.equal(isRetired({ ...gone, unrevealed: true }, data), false);
+  const item = { ...setRarity(createItem('Wands'), 'Rare'), mods: [gone] };
+  const entry = entryFor({ item, history: [], sessionStart: '' }, { name: 'old' });
+  assert.equal(parseLibrary(JSON.stringify([entry]))[0].state.item.mods[0].source_id, 'RemovedByPatch1');
+  assert.ok(!candidates(item, data).some(m => m.source_id === 'RemovedByPatch1'));
+});
+
+test('a modifier is legacy only when its family and stat are gone, not when a name, level or roll changed', async () => {
+  const data = await json('Wands.mods.json');
+  const row = data.mods.find(m => m.pool === 'normal' && m.affix === 'Prefix' && m.ranges.length);
+  const saved = { ...row, values: row.ranges.map(r => r.min) };
+  // PoE2DB renamed it, a patch moved its level and changed its roll: still the same modifier.
+  assert.equal(isRetired({ ...saved, source_id: 'x', name: 'of Renaming', required_ilvl: row.required_ilvl + 7,
+    text: row.text.replace(/\d+/g, n => String(Number(n) + 3)) }, data), false);
+  // Same family, another stat: the old stat is gone.
+  assert.equal(isRetired({ ...saved, source_id: 'x', name: 'of Renaming', text: '+(1—2) to Something Removed' }, data), true);
 });
