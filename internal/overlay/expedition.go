@@ -123,7 +123,7 @@ func FindRunePanel(lines []OcrLine, currencyNames []string) ([]RuneRow, bool) {
 		if !ok && !isWordy(rest) {
 			continue
 		}
-		cands = append(cands, RuneRow{Text: line.Text, Name: name, Count: count, CountRead: rest != line.Text,
+		cands = append(cands, RuneRow{Text: compactCJK(line.Text), Name: name, Count: count, CountRead: rest != line.Text,
 			X: line.X, Y: line.Y, W: line.W, H: line.H, Right: line.Right()})
 	}
 	var best []RuneRow
@@ -242,7 +242,7 @@ func recountFrom(row *RuneRow, lines []OcrLine, names map[string]string) {
 			continue
 		}
 		if row.Name == "" {
-			row.Name, row.Text, row.Count = name, line.Text, 1
+			row.Name, row.Text, row.Count = name, compactCJK(line.Text), 1
 		}
 		if counted {
 			row.Count, row.CountRead = count, true

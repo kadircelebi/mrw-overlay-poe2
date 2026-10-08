@@ -11,6 +11,8 @@ Sources, all saved with their SHA-256 in <work>/fetch.json:
   RePoE       base_items.min.json (item tags and base numbers)
   Craft of Exile  the current beta data file: rune pool weights, and the
               reference the modifier weights are checked against
+  Exiled Exchange 2  the game-language tables the app already has
+              (build/locale/build_locale.py; item names and fixed words)
 
 Weight rule (PoE2DB is the base source; GGG publishes no weights and the game
 files hold 1 for every modifier):
@@ -46,6 +48,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 CRAFT = ROOT / 'build' / 'craft'
 APP_CRAFT = ROOT / 'frontend' / 'public' / 'craft' / 'data'
 APP_RUNESHAPE = ROOT / 'internal' / 'overlay' / 'data' / 'runeshape.json'
+APP_LOCALE = ROOT / 'internal' / 'overlay' / 'data' / 'locale'
 GENERATED = ['weight-overrides.json', 'weight-notes.json', 'special-weights.json']
 UA = 'MrW-Overlay-CraftData/0.3 (+https://github.com/kadircelebi/mrw-overlay-poe2)'
 REPOE_BASES = 'https://repoe-fork.github.io/poe2/base_items.min.json'
@@ -235,6 +238,10 @@ def build(work):
         '--weight-notes', staging / 'weight-notes.json')
     run(sys.executable, ROOT / 'build' / 'expedition' / 'build_recipes.py', '--page', work / 'runeshape.html',
         '--out', staging / 'runeshape.json')
+    # The game-language tables the app already has, rebuilt from Exiled Exchange 2.
+    langs = sorted(p.stem for p in APP_LOCALE.glob('*.json'))
+    if langs:
+        run(sys.executable, ROOT / 'build' / 'locale' / 'build_locale.py', '--out', staging / 'locale', *langs)
     return weights, True
 
 
@@ -404,7 +411,21 @@ def report(work, weights, built):
         out += ['', '## Runeshape Combinations', '',
                 f"{len(old_r['recipes'])} recipes before, {len(new_r['recipes'])} now."]
         out += keyed_diff('rewards', {r['reward'] for r in old_r['recipes']}, {r['reward'] for r in new_r['recipes']})
-    text = '\n'.join(out) + '\n'
+        langs = sorted((staging / 'locale').glob('*.json')) if (staging / 'locale').exists() else []
+        if langs:
+            out += ['', '## Game languages (Exiled Exchange 2 tables)', '']
+        for path in langs:
+            new = read(path)
+            old_path = APP_LOCALE / path.name
+            old = read(old_path) if old_path.exists() else {'names': {'item': [], 'unique': [], 'gem': []}, 'texts': {}}
+            parts = []
+            for kind in ('item', 'unique', 'gem'):
+                before = {tuple(r) for r in old['names'][kind]}
+                after = {tuple(r) for r in new['names'][kind]}
+                parts.append(f"{kind}s {len(after)} (+{len(after - before)}/-{len(before - after)})")
+            changed = sorted(k for k in new['texts'] if old['texts'].get(k) != new['texts'][k])
+            out.append(f"- {path.stem}: " + ', '.join(parts) + (f"; texts changed: {', '.join(changed)}" if changed else ''))
+    text ='\n'.join(out) + '\n'
     (work / 'report.md').write_text(text, encoding='utf-8')
     return text
 
@@ -419,6 +440,8 @@ def apply(work):
     for new in (staging / 'craft').glob('*'):
         shutil.copy2(new, APP_CRAFT / new.name)
     shutil.copy2(staging / 'runeshape.json', APP_RUNESHAPE)
+    for new in sorted((staging / 'locale').glob('*.json')):
+        shutil.copy2(new, APP_LOCALE / new.name)
     for name in GENERATED:
         shutil.copy2(staging / name, CRAFT / name)
     tests = sorted(str(p.relative_to(ROOT / 'frontend')) for p in (ROOT / 'frontend' / 'scripts').glob('craft-*.test.mjs'))

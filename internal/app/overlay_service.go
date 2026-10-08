@@ -237,6 +237,7 @@ func (s *AppService) evaluateOverlayFresh(in trade.EvaluateRequest) (trade.Evalu
 	defer cancel()
 	result, err := s.overlayClient.Evaluate(ctx, in)
 	if err == nil {
+		s.rememberSearchLang(result.SearchID, in.Lang)
 		s.tagListingStats(result.Listings)
 		result.SignedIn = s.overlayClient.SignedIn()
 		return result, nil
@@ -275,7 +276,7 @@ func (s *AppService) evaluateOverlayFresh(in trade.EvaluateRequest) (trade.Evalu
 func (s *AppService) FetchOverlayListings(searchID string, ids []string) ([]trade.EvaluatedListing, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	listings, err := s.overlayClient.FetchEvaluated(ctx, searchID, ids)
+	listings, err := s.overlayClient.FetchEvaluatedIn(ctx, s.searchLang(searchID), searchID, ids)
 	var apiErr *trade.APIError
 	switch {
 	case err == nil:
@@ -489,15 +490,19 @@ func (s *AppService) captureItem(mode string) {
 			if strings.Contains(text, "Rarity:") && (strings.Contains(text, "Item Class:") || strings.Contains(text, "Rarity: Gem")) {
 				break
 			}
+			if overlay.DetectLocale(text) != nil {
+				break // copied from a game client in another language
+			}
 		}
 	}
 	catalog, err := s.overlayCatalog.Load(context.Background())
+	shown := ""
 	if raw == "" || raw == sentinel {
 		// The game copies nothing for a gem socketed in the Skills panel or an
 		// Expedition reward; its text is read off the screen instead, only then.
 		text, ok := "", false
 		if err == nil {
-			text, ok = itemFromScreen(catalog)
+			text, shown, ok = itemFromScreen(catalog)
 		}
 		if !ok {
 			s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.noCopy"), Mode: mode})
@@ -515,13 +520,23 @@ func (s *AppService) captureItem(mode string) {
 		s.showOverlaySnapshot(overlay.Snapshot{Error: i18n.T("overlay.notAnItem"), Mode: mode})
 		return
 	}
+	if shown != "" {
+		// Read off the screen in the game's language: shown as the game
+		// writes it.
+		if item.Name != "" {
+			item.DisplayName = shown
+		} else {
+			item.DisplayBase = shown
+		}
+	}
 	s.showOverlaySnapshot(overlay.Snapshot{Item: &item, Mode: mode})
 }
 
 // itemFromScreen reads the item under the cursor with Windows' text
 // recognizer, a gem tooltip or an Expedition reward row, and returns it as
-// copied item text.
-func itemFromScreen(catalog overlay.Catalog) (string, bool) {
+// copied item text, with the name as the game showed it when that was
+// not English.
+func itemFromScreen(catalog overlay.Catalog) (text, shown string, ok bool) {
 	var gems, currencies []string
 	for _, group := range catalog.Items {
 		for _, entry := range group.Entries {
@@ -534,14 +549,27 @@ func itemFromScreen(catalog overlay.Catalog) (string, bool) {
 		}
 	}
 	if len(gems) == 0 && len(currencies) == 0 {
-		return "", false
+		return "", "", false
 	}
+	loc := screenLocale()
 	lines, x, y, err := overlay.ReadGameText()
 	if err != nil {
 		log.Printf("overlay: screen text: %v", err)
-		return "", false
+		return "", "", false
 	}
-	return overlay.ScreenItemText(lines, float64(x), float64(y), gems, currencies)
+	if loc != nil {
+		// The game shows its own language's names, or the English ones
+		// while Alt is held (the hotkey's Alt may still be down); the item
+		// text gets the English one, like a copied item after translation.
+		text, ok = overlay.ScreenItemTextIn(lines, float64(x), float64(y), append(loc.GemNames(), gems...),
+			append(loc.NamesFor(currencies), currencies...), loc.ScreenWords())
+		if ok {
+			text, shown = englishScreenItem(loc, text)
+		}
+		return text, shown, ok
+	}
+	text, ok = overlay.ScreenItemText(lines, float64(x), float64(y), gems, currencies)
+	return text, "", ok
 }
 
 func (s *AppService) setOverlaySnapshot(snap overlay.Snapshot) {

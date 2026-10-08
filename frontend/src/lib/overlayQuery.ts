@@ -165,6 +165,8 @@ export function buildRequest(
     stats,
     groups,
     filters,
+    // An item copied in another game language: its listings come in that language.
+    ...(item.lang ? { lang: item.lang } : {}),
   }
 }
 

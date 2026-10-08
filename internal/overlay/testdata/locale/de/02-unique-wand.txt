@@ -1,0 +1,31 @@
+Gegenstandsklasse: Zauberstäbe
+Seltenheit: Einzigartig
+Ruf des Runensuchers
+Runenveredelte Runengabel
+--------
+Erfordert: Stufe 65, 109 (augmented) Int
+--------
+Fassungen: S S S S S S
+--------
+Gegenstandsstufe: 86
+--------
++810 zu maximalem Mana (rune)
++9 zur Stufe aller Zauberfertigkeiten (rune)
+84% erhöhte kritische Trefferchance von Zaubern (rune)
+--------
+{ Impliziter Modifikator — Mana }
+49(30-50)% erhöhte Manaregenerations-Rate
+--------
+Gewährt Fertigkeit: Stufe 20 Antwort der Sterne
+--------
+{ Einzigartiger Modifikator }
+Nur Runen können in diesen Gegenstand eingefasst werden — Nicht skalierbarer Wert
+{ Einzigartiger Modifikator }
+200% erhöhte Wirkung von eingefassten Runen — Nicht skalierbarer Wert
+--------
+Geschmiedet aus uraltem Metall, das aus den Sternen
+selbst gewonnen wurde. Es ist ein Mittel, um sie
+herbeizurufen – für diejenigen,
+die ihn zu führen vermögen.
+--------
+Verderbt

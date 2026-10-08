@@ -15,9 +15,11 @@ type ItemProperty struct {
 }
 
 type ItemMod struct {
-	Key      string    `json:"key"`
-	StatID   string    `json:"statId"`
-	Text     string    `json:"text"`
+	Key    string `json:"key"`
+	StatID string `json:"statId"`
+	Text   string `json:"text"`
+	// Display is the line in the game language the item was copied in.
+	Display  string    `json:"display,omitempty"`
 	Type     string    `json:"type"`
 	Affix    string    `json:"affix"`
 	Name     string    `json:"name"`
@@ -54,14 +56,24 @@ type ParseOptions struct {
 }
 
 type Item struct {
-	Raw           string `json:"raw"`
-	Class         string `json:"class"`
-	Rarity        string `json:"rarity"`
-	Name          string `json:"name"`
-	BaseType      string `json:"baseType"`
-	ItemLevel     int    `json:"itemLevel"`
-	RequiredLevel int    `json:"requiredLevel"`
-	Quality       int    `json:"quality"`
+	Raw string `json:"raw"`
+	// Lang is the game language the item was copied in ("" for English);
+	// Raw is then its English text. Listings are fetched in that language.
+	Lang string `json:"lang,omitempty"`
+	// DisplayName and DisplayBase are the names as that game writes them.
+	DisplayName string `json:"displayName,omitempty"`
+	DisplayBase string `json:"displayBase,omitempty"`
+	// Labels are the game's words in that language, by their English
+	// ("Item Level", "Pack Size", "Rare", "Corrupted"; "class" is the item
+	// class as copied).
+	Labels        map[string]string `json:"labels,omitempty"`
+	Class         string            `json:"class"`
+	Rarity        string            `json:"rarity"`
+	Name          string            `json:"name"`
+	BaseType      string            `json:"baseType"`
+	ItemLevel     int               `json:"itemLevel"`
+	RequiredLevel int               `json:"requiredLevel"`
+	Quality       int               `json:"quality"`
 	// RuneSockets counts the "S" entries of the Sockets line.
 	RuneSockets int `json:"runeSockets"`
 	// A gem's level and support sockets ("Sockets: G G"); zero on other items.
@@ -100,7 +112,7 @@ type Snapshot struct {
 }
 
 var (
-	headerRE = regexp.MustCompile(`^\{\s*(?:(Desecrated|Crafted|Fractured)\s+)?(Prefix|Suffix|Implicit|Unique|Rune|Corruption\s+Enhancement|Enhancement)(?:\s+Modifier)?(?:\s+"([^"]+)")?(?:\s+\(Tier:\s*(\d+)\))?`)
+	headerRE = regexp.MustCompile(`^\{\s*((?:(?:Desecrated|Crafted|Fractured)\s+)*)(Prefix|Suffix|Implicit|Unique|Rune|Corruption\s+Enhancement|Enhancement)(?:\s+Modifier)?(?:\s+"([^"]+)")?(?:\s+\(Tier:\s*(\d+)\))?`)
 	rangeRE  = regexp.MustCompile(`\([^()]*\)`)
 	numberRE = regexp.MustCompile(`[+-]?\d+(?:\.\d+)?`)
 	spaceRE  = regexp.MustCompile(`\s+`)
@@ -141,8 +153,22 @@ func ParseItem(raw string, catalog Catalog) (Item, error) {
 
 func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error) {
 	raw = strings.ReplaceAll(raw, "\r\n", "\n")
+	// An item copied from a client in another language is read as its
+	// English text (see locale.go); Lang remembers the language.
+	lang := ""
+	var local Catalog
+	var kept map[string]string
+	if loc := DetectLocale(raw); loc != nil {
+		if LocaleCatalog != nil {
+			if c, err := LocaleCatalog(loc.Lang); err == nil {
+				local = c
+			}
+		}
+		raw, kept = loc.TranslateKeeping(raw, local, catalog)
+		lang = loc.Lang
+	}
 	lines := strings.Split(raw, "\n")
-	item := Item{Raw: raw, Properties: []ItemProperty{}, Mods: []ItemMod{}}
+	item := Item{Raw: raw, Lang: lang, Properties: []ItemProperty{}, Mods: []ItemMod{}}
 
 	var title []string
 	titleStart := -1
@@ -339,9 +365,15 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 				current.Tier, _ = strconv.Atoi(m[4])
 			}
 			special, kind := strings.ToLower(m[1]), strings.ToLower(spaceRE.ReplaceAllString(m[2], " "))
-			switch special {
-			case "crafted", "desecrated", "fractured":
-				current.Type = special
+			// A fractured crafted modifier ("Fractured Crafted Suffix
+			// Modifier") is searched as fractured.
+			switch {
+			case strings.Contains(special, "fractured"):
+				current.Type = "fractured"
+			case strings.Contains(special, "desecrated"):
+				current.Type = "desecrated"
+			case strings.Contains(special, "crafted"):
+				current.Type = "crafted"
 			default:
 				switch kind {
 				case "implicit":
@@ -417,6 +449,10 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 		item.GemLevel, _ = strconv.Atoi(m[1])
 	}
 	item.Exchange = catalog.exchangeID(item)
+	if lang != "" {
+		showLocal(&item, kept, local)
+		item.Labels = LocaleByLang(lang).labels(kept, item.Class)
+	}
 	return item, nil
 }
 

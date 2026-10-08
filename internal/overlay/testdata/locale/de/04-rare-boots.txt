@@ -1,0 +1,32 @@
+Gegenstandsklasse: Stiefel
+Seltenheit: Selten
+Ghul-Schritt
+Sekhema-Sandalen
+--------
+Qualität: +29% (augmented)
+Energieschild: 362 (augmented)
+--------
+Erfordert: Stufe 80, 104 (augmented) Int
+--------
+Fassungen: S S
+--------
+Gegenstandsstufe: 82
+--------
++100 zu maximalem Mana (rune)
+--------
+{ Präfix-Modifikator "Des Biests" (Level: 1) — Geschwindigkeit }
+35% erhöhte Bewegungsgeschwindigkeit
+{ Präfix-Modifikator "Unangreifbarer" (Level: 1) — Energieschild }
+96(92-100)% erhöhter Energieschild
+{ Entweiht Präfix-Modifikator "Entflammender" (Level: 1) — Energieschild }
++60(48-60) zu maximalem Energieschild
+{ Brüchig Angefertigt Suffix-Modifikator "der Archäologie" (Level: 1) — Beute }
+17(15-18)% erhöhte Seltenheit gefundener Gegenstände
+{ Suffix-Modifikator "des Tzteosh" (Level: 1) — Elementar, Feuer, Widerstand }
++45(41-45)% zu Feuerwiderstand
+{ Suffix-Modifikator "von Haast" (Level: 1) — Elementar, Kälte, Widerstand }
++45(41-45)% zu Kältewiderstand
+--------
+Verderbt
+--------
+Brüchiger Gegenstand

@@ -14,6 +14,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
   <a href="https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/"><img src="https://img.shields.io/badge/Firefox_Add--ons-onayl%C4%B1-FF7139?logo=firefoxbrowser&logoColor=white" alt="Firefox Add-ons"></a>
   <a href="https://discord.gg/835k5r4k8k"><img src="https://img.shields.io/badge/Discord-kat%C4%B1l-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
   <img src="https://img.shields.io/badge/diller-EN%20%7C%20TR%20%7C%20%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-555" alt="İngilizce, Türkçe, Geleneksel Çince">
+  <img src="https://img.shields.io/badge/oyun_dili-9-555" alt="Oyunla 9 dilde çalışır">
 </p>
 
 <p align="center"><a href="README.md">English</a> · <a href="https://poe2.mrwproject.com/tr/">Web sitesi</a></p>
@@ -24,6 +25,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
 
 - **Beş araç yerine tek uygulama.** Loot filtresi, fiyat sorgulama, trade ve canlı arama, craft simülatörü, Expedition fiyatları, oyun kısayolları. Bir sürü araç ve site arasında alt-tab yapmaya son.
 - **Filtren piyasayla birlikte güncellenir.** Bir değer belirlersin, diyelim 50 ex. Üstündeki drop'lar parlar, ucuzlar gizlenir ya da soluklaşır. Fiyatlar değiştikçe filtre de değişir; lig ortasında listeleri elle düzeltmezsin.
+- **Oyunun hangi dildeyse o dilde.** English, Deutsch, Français, Español, Português, Русский, 日本語, 한국어 ya da 繁體中文: fiyat sorgusu, trade ve Expedition fiyatları eşyayı oyunun yazdığı gibi okur, o dilde gösterir, ilanları da o dilde getirir. Oyunun sunduğu dillerin hepsi çalışıyor; yalnız Tayca henüz yok.
 - **Çıktığı her platformda onaylı.** Microsoft Store, Chrome Web Store, Edge Add-ons ve Firefox Add-ons inceleyip onayladı.
 - **Ücretsiz.** Ücretli sürüm ya da "premium" özellik yok, herkes aynı uygulamayı kullanır.
 
@@ -75,7 +77,7 @@ Uygulamanın görünümü de sana kalmış: MrW Default, Dark ya da Light'tan bi
 
 ### Ve küçük ama işe yarayan şeyler
 - **Oyun kısayolları:** F5 /hideout, F6 /dnd, F7 sana son whisper atanı partiye çağırır, F8 hazır bir cevap yollar. Hepsi değiştirilebilir.
-- **Üç dil:** English, Türkçe, 繁體中文. Eşya adları her dilde İngilizce kalır, çünkü filtre eşyaları İngilizce adlarıyla tanır.
+- **Uygulama üç dilde, oyun dokuz dilde:** uygulamanın kendisi English, Türkçe ve 繁體中文 konuşur. Fiyat sorgusu, trade ve Expedition etiketleri ise oyununun dilini izler: İngilizce, Almanca, Fransızca, İspanyolca, Portekizce, Rusça, Japonca, Korece ya da Geleneksel Çince. Loot filtresinin içindeki eşya adları İngilizce kalır, çünkü oyunun filtresi her dilde eşyaları İngilizce adlarıyla tanır.
 - **Dosya olarak profil:** profilini dışa aktarıp arkadaşına ver, ya da yalnız hazır filtre dosyasını paylaş.
 
 ## İşi doğru yapmak için
@@ -84,7 +86,7 @@ Bir özellik, oyunda gerçekten çalışana ve kurallara uyana kadar yayınlanma
 
 - **Bellek okuma yok, otomatik tuş basma yok.** Uygulama oyunun belleğine dokunmaz, senin yerine tuşa basmaz. Bir kısayol bir işlem demektir.
 - **Trade sitesine nazik.** Her istek, trade sitesinin bildirdiği hız sınırlarına uyar. Exceptional tabanlar MrW Overlay'in kendi sunucularında taranır; senin trade kotan sana kalır.
-- **Ekran yalnız sen isteyince okunur.** Expedition ve gem okuma, her tuşa basışta ekranı bir kez yakalar ve Windows'un kendi OCR'ıyla senin bilgisayarında okur. Hiçbir şey yüklenmez.
+- **Ekran yalnız sen isteyince okunur.** Expedition ve gem okuma, her tuşa basışta ekranı bir kez yakalar ve Windows'un kendi OCR'ıyla, oyununun dilinde, senin bilgisayarında okur. Hiçbir şey yüklenmez.
 - **Oturumun bilgisayarında kalır.** pathofexile.com hesabını bağlarsan oturum Windows DPAPI ile şifrelenir ve yalnız pathofexile.com'a gider.
 - **Zayıf veriyle drop gizlenmez.** Tek ilanı olan bir unique ya da birkaç ilanlı bir exceptional asla gizlenmez.
 - **Açıkta derlenir.** GitHub'daki her sürümün exe'si bu depodan [GitHub Actions](.github/workflows/release.yml) ile derlenir, hiçbir geliştiricinin bilgisayarında değil; indirdiğin şey burada okuyabildiğin koddur.
@@ -131,6 +133,8 @@ Canlı arama, hideout'a gitme ve daha büyük aramalar için uygulamanın pathof
 
 **Farklı içerikler için farklı ayarlar istiyorum.** Ayarlar → Profiller: kaydet, geçiş yap, dışa aktar ya da herkese açık bir profili takip et.
 
+**Oyunum İngilizce değil.** Ayarlaman gereken bir şey yok: uygulama dili kopyaladığın eşyadan ve oyunun ayarlarından anlar. Skills panelindeki gem'ler ve Expedition ödülleri için Windows'ta o dilin OCR'ı gerekir (Windows Ayarlar → Zaman ve dil → Dil ve bölge → dili ekle). Yoksa Windows ekran dilinle okur; Latin harflerinde bu yeter, Rusça, Japonca, Korece ve Çince'de yetmez.
+
 **Bir fiyat kaynağı çökerse?** Son bilinen fiyatlar kullanılır ve filtre yine yazılır.
 
 **Sıfırdan başlamak istiyorum.** Uygulamayı kapat ve `%APPDATA%\PoE2Filtre` klasörünü sil.
@@ -147,7 +151,7 @@ Hata mı buldun, aklına bir fikir mi geldi? [Issue aç](../../issues/new/choose
 
 Uygulamada telemetri ya da analiz yok; oturum çerezini ve hesap adını asla MrW Overlay sunucularına göndermez.
 
-Herkese açık veriyi okur: fiyatları [poe.ninja](https://poe.ninja/) ve [poe2scout](https://poe2scout.com/)'tan, ilanları resmi trade API'sinden, NeverSink'in filtresini GitHub'dan.
+Herkese açık veriyi okur: fiyatları [poe.ninja](https://poe.ninja/) ve [poe2scout](https://poe2scout.com/)'tan, ilanları resmi trade API'sinden (başka bir dilde oynuyorsan sitenin o dildeki sürümünden, ör. de.pathofexile.com), NeverSink'in filtresini GitHub'dan.
 
 - **Tarayıcı eklentisi:** bağlarsan oturumu ve hesap adını yalnız aynı bilgisayardaki uygulamaya verir. İkisi de Windows DPAPI ile saklanır. Oturum yalnız senin istediğin trade işlemleri için `www.pathofexile.com`'a gider. **Ayarlar → Hesap → Bağlantıyı kes** ikisini de siler.
 - **Herkese açık profiller:** isteğe bağlıdır. Yalnız yayınlarken ya da takip ederken MrW Overlay profil sunucusuyla (`profiles.mrwproject.com`) konuşulur. Yayınlarsan profilin filtre ayarları, adı, açıklaması ve etiketleri herkese açık olur; hesap adın da yazar olarak görünür. Lig, dil, dosya yolları, ses dosyaları, oturumun ve fiyat ayarların asla gönderilmez. Takip ettiğinde rastgele bir kurulum anahtarının özeti saklanır. Kötüye kullanımı sınırlamak için IP'nin kendisi değil, tuzlanmış özeti tutulur. Yayından kaldırınca profil ve takipçileri silinir.
@@ -174,10 +178,10 @@ go test ./...     # Go testleri
 cd frontend && npm run check   # tipler, çeviriler, kodlama
 ```
 
-Yeni bir dil eklemek için `frontend/src/lib/locales/en.ts` ve `internal/i18n/en.go` dosyalarını kopyalayıp çevir; denetimler eksik anahtarları bildirir.
+Uygulamaya yeni bir dil eklemek için `frontend/src/lib/locales/en.ts` ve `internal/i18n/en.go` dosyalarını kopyalayıp çevir; denetimler eksik anahtarları bildirir. `internal/overlay/data/locale/` altındaki oyun dili tabloları `python build/locale/build_locale.py <dil>` ile yeniden üretilir; her dilden kopyalanan eşyalar `internal/overlay/testdata/locale/` altında test edilir.
 
 ## Lisans
 
-MIT, bkz. [LICENSE](LICENSE). İstisnalar [NOTICE](NOTICE) dosyasında. `internal/gamesounds/files/` altındaki 26 uyarı sesi Grinding Gear Games'e aittir. poe2db.tw'den gelen craft verisi CC BY-NC-SA 3.0 lisanslıdır. NeverSink'in filtresi de MIT lisanslıdır; uygulama onu çalışırken indirir.
+MIT, bkz. [LICENSE](LICENSE). İstisnalar [NOTICE](NOTICE) dosyasında. `internal/gamesounds/files/` altındaki 26 uyarı sesi Grinding Gear Games'e aittir. poe2db.tw'den gelen craft verisi CC BY-NC-SA 3.0 lisanslıdır. NeverSink'in filtresi de MIT lisanslıdır; uygulama onu çalışırken indirir. Oyun dili tabloları [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2)'nin verisinden üretilir (MIT).
 
 MrW Overlay bir oyuncunun oyuncular için yaptığı bir araçtır. Grinding Gear Games'in resmî bir ürünü değildir ve onlar tarafından desteklenmez. Path of Exile 2 ve içindeki her şey onlara aittir.

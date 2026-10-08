@@ -19,3 +19,9 @@ func ReadRunePanel([]string) ([]RuneRow, image.Rectangle, error) {
 	return nil, image.Rectangle{}, errors.New("screen text reading is only supported on Windows")
 }
 func ClickOrEscape() bool { return false }
+
+// SetOCRLanguage has no recognizer to set off Windows.
+func SetOCRLanguage(string) {}
+
+// OCRLanguageInstalled is false: there is no recognizer off Windows.
+func OCRLanguageInstalled(string) bool { return false }

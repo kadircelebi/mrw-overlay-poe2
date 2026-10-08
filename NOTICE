@@ -47,6 +47,14 @@ frontend/public/craft/assets/fonts/*
     Cinzel, under the SIL Open Font License; see Cinzel-LICENSE.txt beside
     the font files.
 
+internal/overlay/data/locale/*.json
+    Game-language tables for reading items copied from a non-English game
+    client (item, unique and gem names with their English names, and the
+    item text's fixed words), reduced by build/locale/build_locale.py from
+    the data of Exiled Exchange 2 (https://github.com/Kvan7/Exiled-Exchange-2),
+    which is under the MIT licence: Copyright (c) 2020 Alexander Drozdov. The
+    underlying game text belongs to Grinding Gear Games.
+
     Path of Exile and Path of Exile 2 are trademarks of Grinding Gear Games.
     This project is not affiliated with, endorsed by, or sponsored by Grinding
     Gear Games. If Grinding Gear Games would rather these files were not

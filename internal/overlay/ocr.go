@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 // OcrLine is one line of text read off the screen, boxed in screen pixels.
@@ -28,15 +30,29 @@ func (l OcrLine) Right() float64 {
 	return l.X + l.W
 }
 
-// isRealWord tells a word from a stray mark: two letters or digits.
+// isRealWord tells a word from a stray mark: two letters or digits, or one
+// Chinese, Japanese or Korean character (the recognizer returns those one
+// per word).
 func isRealWord(text string) bool {
 	n := 0
 	for _, r := range text {
+		if isCJK(r) {
+			return true
+		}
 		if unicode.IsLetter(r) || unicode.IsDigit(r) {
 			n++
 		}
 	}
 	return n >= 2
+}
+
+// isCJK tells a Chinese, Japanese or Korean letter: a syllable or a word in
+// one character.
+func isCJK(r rune) bool {
+	return r >= 0x3040 && r <= 0x30ff || // kana, the long-vowel mark
+		r >= 0x3400 && r <= 0x9fff || r >= 0xf900 && r <= 0xfaff || // Han
+		r >= 0xac00 && r <= 0xd7af || // Hangul syllables
+		r >= 0xff66 && r <= 0xff9f // half-width kana
 }
 
 var ocrLevelRE = regexp.MustCompile(`^LEVEL\s*:?\s*(\d+)`)
@@ -47,15 +63,48 @@ var ocrLevelRE = regexp.MustCompile(`^LEVEL\s*:?\s*(\d+)`)
 var ocrFold = strings.NewReplacer(
 	"İ", "I", "ı", "I", "Ş", "S", "ş", "S", "Ğ", "G", "ğ", "G",
 	"Ü", "U", "ü", "U", "Ö", "O", "ö", "O", "Ç", "C", "ç", "C",
+	"Ä", "A", "ä", "A", "ß", "SS",
 	"/", "I", "|", "I",
 )
 
+// romanTailRE is a word that can only be a misread roman numeral (I to V).
+var romanTailRE = regexp.MustCompile(`^[IiLl1|]{1,3}[Vv]?$|^[Vv][IiLl1|]{0,3}$`)
+
+// ScreenWords are the tooltip words read in a game language: Level the gem
+// level's word ("LEVEL", "STUFE"; as ocrKey writes it) and, for a game
+// language other than English, the gem names that are support gems (the
+// tooltip's tag line is then not read for it).
+type ScreenWords struct {
+	Level       string
+	SupportGems map[string]bool
+}
+
+var englishScreenWords = ScreenWords{Level: "LEVEL"}
+
+// ocrKey is the text as names are matched: capitals and digits only, and
+// the 1 and I the game's font makes alike written the same (a "III" gem
+// often comes out "111").
 func ocrKey(s string) string {
-	s = strings.ToUpper(ocrFold.Replace(s))
+	// A gem's closing roman numeral comes out as "Il", "Ill" too.
+	if fields := strings.Fields(s); len(fields) > 1 && romanTailRE.MatchString(fields[len(fields)-1]) {
+		last := fields[len(fields)-1]
+		fields[len(fields)-1] = strings.NewReplacer("l", "I", "L", "I", "i", "I").Replace(last)
+		s = strings.Join(fields, " ")
+	}
+	// Accents off Latin letters (É -> E; the recognizer drops or misreads
+	// them); other scripts keep theirs.
+	s = norm.NFD.String(strings.ReplaceAll(strings.ToUpper(ocrFold.Replace(s)), "1", "I"))
 	var b strings.Builder
+	var last rune
 	for _, r := range s {
-		if r < unicode.MaxASCII && (unicode.IsLetter(r) || unicode.IsDigit(r)) {
+		switch {
+		case unicode.Is(unicode.Mn, r):
+			if last >= 0x250 {
+				b.WriteRune(r)
+			}
+		case unicode.IsLetter(r) || unicode.IsDigit(r):
 			b.WriteRune(r)
+			last = r
 		}
 	}
 	return b.String()
@@ -69,13 +118,19 @@ func ocrKey(s string) string {
 // the line nearer the cursor wins, so a "Skill Level 20: …" reward row does
 // not beat the rune row under the cursor.
 func ScreenItemText(lines []OcrLine, cursorX, cursorY float64, gemNames, currencyNames []string) (string, bool) {
+	return ScreenItemTextIn(lines, cursorX, cursorY, gemNames, currencyNames, englishScreenWords)
+}
+
+// ScreenItemTextIn is ScreenItemText for a game language: the names are that
+// language's, and the item text keeps them (the caller turns them English).
+func ScreenItemTextIn(lines []OcrLine, cursorX, cursorY float64, gemNames, currencyNames []string, words ScreenWords) (string, bool) {
 	gem, gemName := gemTitle(lines, cursorX, cursorY, nameKeys(gemNames))
 	cur, curName, count := currencyLine(lines, cursorX, cursorY, nameKeys(currencyNames))
 	switch {
 	case cur >= 0 && (gem < 0 || cursorDistance(lines[cur], cursorX, cursorY) < cursorDistance(lines[gem], cursorX, cursorY)):
 		return currencyText(curName, count), true
 	case gem >= 0:
-		return gemText(lines, gem, gemName), true
+		return gemText(lines, gem, gemName, words), true
 	}
 	return "", false
 }
@@ -120,11 +175,15 @@ func gemTitle(lines []OcrLine, cursorX, cursorY float64, names map[string]string
 	return best, bestName
 }
 
-func gemText(lines []OcrLine, title int, name string) string {
+func gemText(lines []OcrLine, title int, name string, words ScreenWords) string {
 	var b strings.Builder
 	b.WriteString("Rarity: Gem\n")
 	b.WriteString(name + "\n--------\n")
-	if below := lineBelow(lines, title); below >= 0 {
+	if words.SupportGems != nil {
+		if words.SupportGems[name] {
+			b.WriteString("Support\n")
+		}
+	} else if below := lineBelow(lines, title); below >= 0 {
 		// The tag line tells a support gem from a skill gem (gemClass).
 		if strings.Contains(ocrKey(lines[below].Text), "SUPPORT") {
 			b.WriteString("Support\n")
@@ -132,7 +191,7 @@ func gemText(lines []OcrLine, title int, name string) string {
 			b.WriteString(lines[below].Text + "\n")
 		}
 	}
-	if level := tooltipLevel(lines, title); level != "" {
+	if level := tooltipLevel(lines, title, words.Level); level != "" {
 		b.WriteString("Level: " + level + "\n")
 	}
 	return b.String()
@@ -141,22 +200,49 @@ func gemText(lines []OcrLine, title int, name string) string {
 // ocrCountRE is a reward row's count, "3x Artificer's Orb". The recognizer
 // reads the 1 and 0 of the game's font as letters ("1x" comes out "IX",
 // "10x" "IOX") and the x now and then as ")'" ("3)'").
-var ocrCountRE = regexp.MustCompile(`^\s*(?:\S{1,2}\s+)?([0-9IiLl|Oo]{1,3})\s*[xX)'’]+\s+`)
+var ocrCountRE = regexp.MustCompile(`^\s*(?:\S{1,2}\s+)?([0-9IiLl|Oo]{1,3})\s*[xX×)'’]+\s+`)
+
+// ocrTrailingCountRE is the count some languages write after the name
+// ("Runa de alcance x1", read "xl"; Russian "Точильный камень (6)").
+var ocrTrailingCountRE = regexp.MustCompile(`\s+(?:[xX×]\s*([0-9IiLl|Oo]{1,3})|\(\s*([0-9IiLl|Oo]{1,3})\s*\)?)\s*$`)
 
 var ocrDigits = strings.NewReplacer("I", "1", "i", "1", "L", "1", "l", "1", "|", "1", "O", "0", "o", "0")
 
-// splitCount takes the count off the front of a reward row: 1 when there is
-// none (a tooltip title, or a count misread past recognition).
+// splitCount takes the count off the front of a reward row, or off its end
+// where the language writes it there: 1 when there is none (a tooltip title,
+// or a count misread past recognition).
 func splitCount(text string) (int, string) {
 	m := ocrCountRE.FindStringSubmatch(text)
-	if m == nil {
+	rest := ""
+	if m != nil {
+		rest = text[len(m[0]):]
+	} else if m = ocrTrailingCountRE.FindStringSubmatch(text); m != nil {
+		rest = text[:len(text)-len(m[0])]
+		if m[1] == "" {
+			m[1] = m[2]
+		}
+	} else {
 		return 1, text
 	}
 	n, err := strconv.Atoi(ocrDigits.Replace(m[1]))
 	if err != nil || n < 1 {
 		n = 1
 	}
-	return n, text[len(m[0]):]
+	return n, rest
+}
+
+// compactCJK takes out the spaces the recognizer puts between Chinese,
+// Japanese and Korean characters ("神 聖 石" -> "神聖石"), for showing.
+func compactCJK(text string) string {
+	runes := []rune(text)
+	var b strings.Builder
+	for i, r := range runes {
+		if r == ' ' && i > 0 && i+1 < len(runes) && isCJK(runes[i-1]) && isCJK(runes[i+1]) {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
 
 // matchRowName names the item a row ends with. The row's icons sometimes come
@@ -261,6 +347,16 @@ func currencyLine(lines []OcrLine, cursorX, cursorY float64, names map[string]st
 // isWordy tells a line of words (a reward row) from the noise the row's
 // icons come out as ("ZŞ89", "mm"): two words of three letters or more.
 func isWordy(text string) bool {
+	// Chinese, Japanese and Korean come one character a word: four of them.
+	cjk := 0
+	for _, r := range text {
+		if isCJK(r) {
+			cjk++
+		}
+	}
+	if cjk >= 4 {
+		return true
+	}
 	words := 0
 	for _, field := range strings.Fields(text) {
 		letters := 0
@@ -337,14 +433,20 @@ func lineBelow(lines []OcrLine, i int) int {
 }
 
 // tooltipLevel is a "Level: N" line in the tooltip under the title.
-func tooltipLevel(lines []OcrLine, title int) string {
+func tooltipLevel(lines []OcrLine, title int, word string) string {
 	t := lines[title]
+	levelRE := ocrLevelRE
+	if word != "" && word != "LEVEL" {
+		levelRE = regexp.MustCompile(`^` + regexp.QuoteMeta(word) + `\s*:?\s*(\d+)`)
+	}
 	for _, line := range lines {
-		if line.Y <= t.Y || line.Y > t.Y+20*t.H || math.Abs(line.X-t.X) > 0.8*t.H {
+		// The level sits at the tooltip's left edge: under the title, or left
+		// of it when the gem's icon pushes the title right.
+		if line.Y <= t.Y || line.Y > t.Y+20*t.H || line.X > t.X+0.8*t.H || line.X < t.X-6*t.H {
 			continue
 		}
 		upper := strings.ToUpper(ocrFold.Replace(line.Text))
-		if m := ocrLevelRE.FindStringSubmatch(upper); m != nil {
+		if m := levelRE.FindStringSubmatch(upper); m != nil {
 			return m[1]
 		}
 	}

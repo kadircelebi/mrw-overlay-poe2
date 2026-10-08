@@ -1,0 +1,32 @@
+Classe d'objet: Bottes
+Rareté: Rare
+ Foulées de la goule
+Sandales de Sekhema
+--------
+Qualité: +29% (augmented)
+Bouclier d'énergie: 362 (augmented)
+--------
+Prérequis : Niveau 80, 104 (augmented) Int
+--------
+Châsses: S S
+--------
+Niveau de l'objet: 82
+--------
++100 de Mana maximal (rune)
+--------
+{ Préfixe : « du Tourmenteur » (Palier : 1) — Vitesse }
+35% d'Augmentation de la Vitesse de déplacement
+{ Préfixe : « Imprenables » (Palier : 1) — Bouclier d'énergie }
+96(92-100)% d'Augmentation du Bouclier d'énergie
+{ Profané Préfixe : « Fulgurantes » (Palier : 1) — Bouclier d'énergie }
++60(48-60) de Bouclier d'énergie maximal
+{ Fissuré Artisanat Suffixe : « de l'Archéologie » (Palier : 1) — Cession }
+17(15-18)% d'Augmentation de la Rareté des Objets cédés
+{ Suffixe : « de Tzteosh » (Palier : 1) — Élémentaire, Feu, Résistance }
++45(41-45)% à la Résistance au feu
+{ Suffixe : « de Haast » (Palier : 1) — Élémentaire, Froid, Résistance }
++45(41-45)% à la Résistance au froid
+--------
+Corrompu
+--------
+Objet fissuré

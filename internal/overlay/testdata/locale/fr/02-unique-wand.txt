@@ -1,0 +1,31 @@
+Classe d'objet: Baguettes
+Rareté: Unique
+Appel du Chercheur de runes
+Rameau runique runomaîtrisé
+--------
+Prérequis : Niveau 65, 109 (augmented) Int
+--------
+Châsses: S S S S S S
+--------
+Niveau de l'objet: 86
+--------
++810 de Mana maximal (rune)
++9 au Niveau de toutes les Aptitudes de Sort (rune)
+84% d'Augmentation des Chances de Touche critique pour les Sorts (rune)
+--------
+{ Modificateur Implicite — Mana }
+49(30-50)% d'Augmentation du Taux de Régénération de Mana
+--------
+Octroie l'Aptitude: Niveau 20 La Réponse des étoiles
+--------
+{ Modificateur d'Objet unique }
+Seules les Runes peuvent être Enchâssées dans cet objet — Valeur fixe
+{ Modificateur d'Objet unique }
+Les Runes Enchâssées 200% ont d'Augmentation d'Effet — Valeur fixe
+--------
+Forgée à partir d'un métal antique
+issu des étoiles elles-mêmes.
+Elle offre un moyen de les invoquer,
+pour quiconque est capable de la manier.
+--------
+Corrompu

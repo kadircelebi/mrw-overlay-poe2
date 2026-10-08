@@ -1,0 +1,42 @@
+lang de | Helmets | rare | "Grimm-Verlies" ("") | "Ancestral Tiara" ("Ahnen-Tiara")
+ilvl 80 | level 80 | quality 25 | rune sockets 2 | fractured true | corrupted false
+labels: class "Helme" | item level "Gegenstandsstufe" | requires "Erfordert" | rare "Selten" | corrupted "Verderbt"
+enchant/ T0 enchant.stat_2954116742|20686
+  Allocates Paragon
+  Weist zu: Vollkommenheit
+rune/ T0 rune.stat_3570773271
+  Increases and Reductions to Life Regeneration Rate also apply to Mana Regeneration Rate
+  Erhöhungen und Verringerungen der Lebensregenerations-Rate gelten auch für die Manaregenerations-Rate
+rune/ T0 rune.stat_3198163869
+  Raven-Touched
+  Rabenberührt
+fractured/prefix T1 fractured.stat_4052037485
+  +71(61-73) to maximum Energy Shield
+  +71(61-73) zu maximalem Energieschild
+explicit/prefix T1 explicit.stat_4015621042
+  41(39-42)% increased Energy Shield
+  41(39-42)% erhöhter Energieschild
+explicit/prefix T1 explicit.stat_1050105434
+  +34(33-39) to maximum Mana
+  +34(33-39) zu maximalem Mana
+desecrated/prefix T1 desecrated.stat_4015621042
+  98(92-100)% increased Energy Shield
+  98(92-100)% erhöhter Energieschild
+explicit/suffix T1 explicit.stat_587431675
+  34(30-34)% increased Critical Hit Chance
+  34(30-34)% erhöhte kritische Trefferchance
+explicit/suffix T2 explicit.stat_328541901
+  +31(31-33) to Intelligence
+  +31(31-33) zu Intelligenz
+crafted/suffix T1 crafted.stat_3917489142
+  18(15-18)% increased Rarity of Items found
+  18(15-18)% erhöhte Seltenheit gefundener Gegenstände
+pseudo/ T0 pseudo.pseudo_total_mana
+  +96 total maximum Mana
+  +96 gesamt zu maximalem Mana
+pseudo/ T0 pseudo.pseudo_total_intelligence
+  +31 total to Intelligence
+  +31 gesamt zu Intelligenz
+pseudo/ T0 sum.stat_3917489142
+  Sum 18: #% increased Rarity of Items found
+  

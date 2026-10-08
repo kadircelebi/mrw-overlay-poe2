@@ -1,0 +1,27 @@
+lang fr | Body Armours | unique | "Morior Invictus" ("") | "Grand Regalia" ("Grand apparat")
+ilvl 84 | level 65 | quality 20 | rune sockets 5 | fractured false | corrupted true
+labels: class "Armures" | item level "Niveau de l'objet" | requires "Prérequis" | rare "Rare" | corrupted "Corrompu"
+rune/ T0 rune.stat_1050105434
+  +200 to maximum Mana
+  +200 de Mana maximal
+rune/ T0 rune.stat_726496846
+  Idols socketed in this item gain the benefits of their Bonded modifiers
+  Idols socketed in this item gain the benefits of their Bonded modifiers
+rune/ T0 rune.stat_1134865274
+  Bonded: +5% to Quality of all Skills
+  Lié : +5% à la Qualité de toutes les Aptitudes
+explicit/ T0 explicit.stat_3523867985
+  368(300-400)% increased Armour, Evasion and Energy Shield
+  368(300-400)% d'Augmentation de l'Armure, de l'Évasion et du Bouclier d'énergie
+explicit/ T0 explicit.stat_4163415912
+  +14(10-14) to Spirit per Socket filled
+  +14(10-14) d'Esprit par Châsse remplie
+explicit/ T0 explicit.stat_2593651571
+  +10(8-10)% to all Elemental Resistances per Socket filled
+  +10(8-10)% à toutes les Résistances élémentaires par Châsse remplie
+explicit/ T0 explicit.stat_1036267537
+  +60(50-60) to maximum Mana per Socket filled
+  +60(50-60) de Mana maximal par Châsse remplie
+pseudo/ T0 pseudo.pseudo_total_mana
+  +200 total maximum Mana
+  +200 au Mana maxi au total

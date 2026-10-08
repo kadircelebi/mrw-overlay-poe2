@@ -35,7 +35,9 @@ const expeditionNoticeFor = 2 * time.Second
 // fetched. Bg, Color and Border are the loot filter's colours for an item of
 // this worth (see valueStyle), as CSS; empty when no value group takes it.
 type ExpeditionPrice struct {
-	Name       string  `json:"name"`
+	Name string `json:"name"`
+	// Display is Name as the game's language writes it ("" in English).
+	Display    string  `json:"display,omitempty"`
 	Text       string  `json:"text"`
 	Count      int     `json:"count"`
 	CountKnown bool    `json:"countKnown"`
@@ -179,7 +181,23 @@ func (s *AppService) readExpedition() (view ExpeditionView, client image.Rectang
 			}
 		}
 	}
+	loc := screenLocale()
+	if loc != nil {
+		// Local names, and the English ones the game shows while Alt is held.
+		names = append(loc.NamesFor(names), names...)
+	}
 	rows, client, err := overlay.ReadRunePanel(names)
+	// Prices and recipes go by the English names; the label keeps the
+	// name the game shows.
+	display := make([]string, len(rows))
+	if loc != nil {
+		for i := range rows {
+			if en, ok := loc.EnglishName(rows[i].Name); ok {
+				display[i] = rows[i].Name
+				rows[i].Name = en
+			}
+		}
+	}
 	if err != nil {
 		log.Printf("expedition: screen text: %v", err)
 		view.Message = "error"
@@ -213,7 +231,7 @@ func (s *AppService) readExpedition() (view ExpeditionView, client image.Rectang
 	s.expedition.mu.Unlock()
 	var rights []float64
 	for i, row := range rows {
-		price := ExpeditionPrice{Name: row.Name, Text: row.Text, Count: row.Count, CountKnown: row.CountRead, Y: row.Y, H: row.H}
+		price := ExpeditionPrice{Name: row.Name, Display: display[i], Text: row.Text, Count: row.Count, CountKnown: row.CountRead, Y: row.Y, H: row.H}
 		if row.Name != "" {
 			if q := overlay.QuoteCurrency(snap, row.Name); q.Found {
 				price.ValueEx = q.ValueEx

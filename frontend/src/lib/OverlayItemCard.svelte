@@ -45,6 +45,10 @@
 
   // Gems have no rarity or item level; their level and sockets are filters.
   const gem = $derived(isGem(item))
+  // The game's words in the item's language (copied from another game client),
+  // English otherwise.
+  const w = (english: string) => item.labels?.[english] ?? english
+  const propertyName = (name: string) => name.startsWith('Quality') ? w('Quality') + name.slice('Quality'.length) : w(name)
   const qualityProperty = $derived(item.properties?.find((property) => property.name.startsWith('Quality')))
   const otherProperties = $derived(item.properties?.filter((property) => !property.name.startsWith('Quality') && !propertyFilters?.some((filter) => filter.name === property.name)) ?? [])
 
@@ -106,58 +110,58 @@
   <div class="item-title" class:unique={item.rarity === 'unique'} class:rare={item.rarity === 'rare'} class:magic={item.rarity === 'magic'} class:normal={item.rarity === 'normal'} class:gem>
     {#if toggles}
       {#if item.name && item.rarity === 'unique'}
-        <button type="button" class="title-toggle" class:off={!toggles.name} title={t('ov.includeToggle')} onclick={() => ontoggle('name')}><strong>{item.name}</strong></button>
-      {:else if item.name}<strong>{item.name}</strong>{/if}
-      <button type="button" class="title-toggle" class:off={!toggles.base} title={t('ov.includeToggle')} onclick={() => ontoggle('base')}><span>{item.baseType}</span></button>
+        <button type="button" class="title-toggle" class:off={!toggles.name} title={t('ov.includeToggle')} onclick={() => ontoggle('name')}><strong>{item.displayName || item.name}</strong></button>
+      {:else if item.name}<strong>{item.displayName || item.name}</strong>{/if}
+      <button type="button" class="title-toggle" class:off={!toggles.base} title={t('ov.includeToggle')} onclick={() => ontoggle('base')}><span>{item.displayBase || item.baseType}</span></button>
     {:else}
-      {#if item.name}<strong>{item.name}</strong>{/if}
-      <span>{item.baseType}</span>
+      {#if item.name}<strong>{item.displayName || item.name}</strong>{/if}
+      <span>{item.displayBase || item.baseType}</span>
     {/if}
   </div>
   <div class="item-meta">
-    <span class="item-class">{item.class}</span>
+    <span class="item-class">{item.labels?.class ?? item.class}</span>
     {#if toggles && !gem}
       <label class="rarity-select" class:off={(toggles.rarity ?? item.rarity) === ''}>
-        <span>Rarity</span>
+        <span>{w('Rarity')}</span>
         <select value={toggles.rarity ?? item.rarity} onchange={(event) => onrarity(event.currentTarget.value)}>
-          {#each rarityOptions as option (option.id)}<option value={option.id}>{option.text}</option>{/each}
+          {#each rarityOptions as option (option.id)}<option value={option.id}>{w(option.text)}</option>{/each}
         </select>
       </label>
     {:else if item.rarity && !gem}
-      <span>{item.rarity}</span>
+      <span>{w(item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1))}</span>
     {/if}
     {#if metaFilters && !gem}
       <div class="meta-filter" class:off={!metaFilters.itemLevel.enabled}>
-        <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.itemLevel.enabled} onchange={(event) => onmetachange('itemLevel', 'enabled', event.currentTarget.checked)} /><i></i><span>Item Level</span></label>
+        <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.itemLevel.enabled} onchange={(event) => onmetachange('itemLevel', 'enabled', event.currentTarget.checked)} /><i></i><span>{w('Item Level')}</span></label>
         <span class="meta-range"><input type="number" value={metaFilters.itemLevel.min ?? ''} oninput={(event) => onmetachange('itemLevel', 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={metaFilters.itemLevel.max ?? ''} oninput={(event) => onmetachange('itemLevel', 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
       </div>
       <div class="meta-filter" class:off={!metaFilters.requiredLevel.enabled}>
-        <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.requiredLevel.enabled} onchange={(event) => onmetachange('requiredLevel', 'enabled', event.currentTarget.checked)} /><i></i><span>Requires</span></label>
+        <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.requiredLevel.enabled} onchange={(event) => onmetachange('requiredLevel', 'enabled', event.currentTarget.checked)} /><i></i><span>{w('Requires')}</span></label>
         <span class="meta-range"><input type="number" value={metaFilters.requiredLevel.min ?? ''} oninput={(event) => onmetachange('requiredLevel', 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={metaFilters.requiredLevel.max ?? ''} oninput={(event) => onmetachange('requiredLevel', 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
       </div>
     {:else if !gem}
-      {#if item.itemLevel}<span>Item Level <b>{item.itemLevel}</b></span>{/if}
-      {#if item.requiredLevel}<span>Requires <b>{item.requiredLevel}</b></span>{/if}
+      {#if item.itemLevel}<span>{w('Item Level')} <b>{item.itemLevel}</b></span>{/if}
+      {#if item.requiredLevel}<span>{w('Requires')} <b>{item.requiredLevel}</b></span>{/if}
     {/if}
   </div>
   {#if metaFilters || item.properties?.length}
     <div class="properties">
       {#if metaFilters}
         <div class="meta-filter quality-filter" class:off={!metaFilters.quality.enabled}>
-          <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.quality.enabled} onchange={(event) => onmetachange('quality', 'enabled', event.currentTarget.checked)} /><i></i><span>{qualityProperty?.name ?? 'Quality'}</span></label>
+          <label title={t('ov.include')}><input type="checkbox" checked={metaFilters.quality.enabled} onchange={(event) => onmetachange('quality', 'enabled', event.currentTarget.checked)} /><i></i><span>{propertyName(qualityProperty?.name ?? 'Quality')}</span></label>
           <span class="meta-range"><input type="number" value={metaFilters.quality.min ?? ''} oninput={(event) => onmetachange('quality', 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={metaFilters.quality.max ?? ''} oninput={(event) => onmetachange('quality', 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
         </div>
       {:else if qualityProperty}
-        <span>{qualityProperty.name}: <b>{qualityProperty.value}</b></span>
+        <span>{propertyName(qualityProperty.name)}: <b>{qualityProperty.value}</b></span>
       {/if}
       {#each propertyFilters ?? [] as prop, index (prop.id)}
         <div class="meta-filter prop-filter" class:off={!prop.enabled}>
-          <label title={t('ov.include')}><input type="checkbox" checked={prop.enabled} onchange={(event) => onpropertychange(index, 'enabled', event.currentTarget.checked)} /><i></i><span>{prop.name}</span>{#if prop.note}<b class="prop-note" title={prop.bonus ? 'Corruption' : undefined}>{prop.note}{#if prop.bonus} <em>{prop.bonus}</em>{/if}</b>{/if}</label>
+          <label title={t('ov.include')}><input type="checkbox" checked={prop.enabled} onchange={(event) => onpropertychange(index, 'enabled', event.currentTarget.checked)} /><i></i><span>{propertyName(prop.name)}</span>{#if prop.note}<b class="prop-note" title={prop.bonus ? 'Corruption' : undefined}>{prop.note}{#if prop.bonus} <em>{prop.bonus}</em>{/if}</b>{/if}</label>
           <span class="meta-range"><input type="number" value={prop.min ?? ''} oninput={(event) => onpropertychange(index, 'min', numeric(event.currentTarget.value))} placeholder="min" /><input type="number" value={prop.max ?? ''} oninput={(event) => onpropertychange(index, 'max', numeric(event.currentTarget.value))} placeholder="max" /></span>
         </div>
       {/each}
       {#each otherProperties as prop}
-        <span>{prop.name}: <b>{prop.value}</b></span>
+        <span>{propertyName(prop.name)}: <b>{prop.value}</b></span>
       {/each}
     </div>
   {/if}
@@ -171,7 +175,7 @@
             <input type="checkbox" bind:checked={choice.selected} disabled={!choice.mod.statId} onchange={onchange} />
             <i></i>
             <b class="tag" class:prefix={tag.startsWith('P')} class:suffix={tag.startsWith('S')}>{tag}</b>
-            <em class="mod-copy">{choice.mod.text}</em>
+            <em class="mod-copy">{choice.mod.display || choice.mod.text}</em>
           </label>
           {#if choice.mod.statId}
             <div class="range">
@@ -191,7 +195,7 @@
       {#each item.mods ?? [] as mod}
         <div class="plain-mod" class:implicit={mod.type === 'implicit'} class:fractured={mod.type === 'fractured'} class:crafted={mod.type === 'crafted'} class:desecrated={mod.type === 'desecrated'}>
           {#if mod.tier || mod.tiers?.length || mod.name}<small>{['fractured', 'crafted', 'desecrated'].includes(mod.type) ? `${mod.type} ` : ''}{mod.affix || mod.type}{tiers(mod)}{mod.name ? ` · ${mod.name}` : ''}</small>{/if}
-          <span>{mod.text}</span>
+          <span>{mod.display || mod.text}</span>
         </div>
       {/each}
     {/if}
@@ -202,22 +206,22 @@
         <button type="button" class="state-control modifiable" class:off={!modifiable} aria-pressed={modifiable} title={t('ov.modifiableHint')} onclick={onmodifiable}><i></i><strong>Modifiable</strong></button>
       {/if}
       {#if item.unidentified}
-        <label class="state-control unidentified"><strong>Unidentified</strong>{#if stateFilters}<select value={stateFilters.unidentified} onchange={(event) => onstatechange('unidentified', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
+        <label class="state-control unidentified"><strong>{w('Unidentified')}</strong>{#if stateFilters}<select value={stateFilters.unidentified} onchange={(event) => onstatechange('unidentified', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
       {#if item.fractured}
-        <label class="state-control fractured"><strong>Fractured Item</strong>{#if stateFilters}<select value={stateFilters.fractured} onchange={(event) => onstatechange('fractured', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
+        <label class="state-control fractured"><strong>{w('Fractured Item')}</strong>{#if stateFilters}<select value={stateFilters.fractured} onchange={(event) => onstatechange('fractured', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
       {#if item.corrupted}
-        <label class="state-control corrupted"><strong>Corrupted</strong>{#if stateFilters}<select value={stateFilters.corrupted} onchange={(event) => onstatechange('corrupted', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
+        <label class="state-control corrupted"><strong>{w('Corrupted')}</strong>{#if stateFilters}<select value={stateFilters.corrupted} onchange={(event) => onstatechange('corrupted', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
       {#if item.twiceCorrupted}
-        <label class="state-control corrupted"><strong>Twice Corrupted</strong>{#if stateFilters}<select value={stateFilters.twiceCorrupted} onchange={(event) => onstatechange('twiceCorrupted', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
+        <label class="state-control corrupted"><strong>{w('Twice Corrupted')}</strong>{#if stateFilters}<select value={stateFilters.twiceCorrupted} onchange={(event) => onstatechange('twiceCorrupted', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
       {#if item.mirrored}
-        <label class="state-control mirrored"><strong>Mirrored</strong>{#if stateFilters}<select value={stateFilters.mirrored} onchange={(event) => onstatechange('mirrored', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
+        <label class="state-control mirrored"><strong>{w('Mirrored')}</strong>{#if stateFilters}<select value={stateFilters.mirrored} onchange={(event) => onstatechange('mirrored', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
       {#if item.sanctified}
-        <label class="state-control sanctified"><strong>Sanctified</strong>{#if stateFilters}<select value={stateFilters.sanctified} onchange={(event) => onstatechange('sanctified', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
+        <label class="state-control sanctified"><strong>{w('Sanctified')}</strong>{#if stateFilters}<select value={stateFilters.sanctified} onchange={(event) => onstatechange('sanctified', event.currentTarget.value)}><option value="">{t('ov.any')}</option><option value="true">{t('ov.yes')}</option><option value="false">{t('ov.no')}</option></select>{/if}</label>
       {/if}
     </div>
   {/if}

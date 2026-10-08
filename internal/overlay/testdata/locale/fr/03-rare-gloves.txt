@@ -1,0 +1,31 @@
+Classe d'objet: Gants
+Rareté: Rare
+ Paumes haineuses
+Gants en écailles de sirène
+--------
+Qualité: +20% (augmented)
+Bouclier d'énergie: 300 (augmented)
+--------
+Prérequis : Niveau 80, 97 (augmented) Int
+--------
+Châsses: S S
+--------
+Niveau de l'objet: 81
+--------
+20% d'Augmentation de l'Armure, de l'Évasion et du Bouclier d'énergie (rune)
+Peut générer des modificateurs de Tireur d'élite (rune)
+--------
+{ Fissuré Préfixe : « Imprenables » (Palier : 1) — Bouclier d'énergie }
+99(92-100)% d'Augmentation du Bouclier d'énergie
+{ Préfixe : « Fulgurants » (Palier : 1) — Bouclier d'énergie }
++60(48-60) de Bouclier d'énergie maximal
+{ Profané Préfixe : « de Kolr » (Palier : 1) — Dégâts }
+36(31-40)% d'Augmentation des Dégâts des Projectiles
+{ Suffixe : « de la Chasse » (Palier : 1) }
++2 au Niveau de toutes les Aptitudes à Projectiles
+{ Artisanat Suffixe : « de la Furie » (Palier : 2) — Dégâts, Critique }
+26(25-29)% d'Augmentation du Bonus de Dégâts Critiques
+{ Artisanat Suffixe : « des Étoiles » — Lanceur de sorts, Vitesse }
+11(9-12)% d'Augmentation de la Vitesse d'incantation
+--------
+Objet fissuré

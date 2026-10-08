@@ -51,11 +51,32 @@ type EvaluateRequest struct {
 	// empty means price. SortDir is "asc" or "desc".
 	Sort    string `json:"sort,omitempty"`
 	SortDir string `json:"sortDir,omitempty"`
+	// Lang is the game language of the item searched for ("" English): the
+	// search runs on the English site, the listings come in that language.
+	Lang string `json:"lang,omitempty"`
+}
+
+// FetchHosts are the trade site editions per game language, and
+// PropertyNames each language's listing property names in English ("Physischer
+// Schaden" -> "Physical Damage"); the app fills both from the language tables.
+var (
+	FetchHosts    = map[string]string{}
+	PropertyNames = map[string]map[string]string{}
+)
+
+// fetchBase is the API a language's listings are fetched from.
+func fetchBase(lang string) string {
+	if host := FetchHosts[lang]; host != "" {
+		return "https://" + host + "/api/trade2"
+	}
+	return apiBase
 }
 
 type EvaluatedProperty struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+	// key is the English name of a property listed in another language.
+	key string
 }
 
 type EvaluatedMod struct {
@@ -305,7 +326,7 @@ func (c *Client) Evaluate(ctx context.Context, in EvaluateRequest) (Evaluation, 
 	if len(ids) > FetchPageSize {
 		ids = ids[:FetchPageSize]
 	}
-	out.Listings, err = c.FetchEvaluated(ctx, search.ID, ids)
+	out.Listings, err = c.FetchEvaluatedIn(ctx, in.Lang, search.ID, ids)
 	if err != nil {
 		return Evaluation{}, err
 	}
@@ -319,6 +340,11 @@ const FetchPageSize = 10
 // fetch quota only, so scrolling further down a result list never costs a
 // search.
 func (c *Client) FetchEvaluated(ctx context.Context, searchID string, ids []string) ([]EvaluatedListing, error) {
+	return c.FetchEvaluatedIn(ctx, "", searchID, ids)
+}
+
+// FetchEvaluatedIn is FetchEvaluated with the listings in a game language.
+func (c *Client) FetchEvaluatedIn(ctx context.Context, lang, searchID string, ids []string) ([]EvaluatedListing, error) {
 	if searchID == "" || len(ids) == 0 {
 		return []EvaluatedListing{}, nil
 	}
@@ -330,7 +356,7 @@ func (c *Client) FetchEvaluated(ctx context.Context, searchID string, ids []stri
 			return nil, fmt.Errorf("invalid listing id %q", id)
 		}
 	}
-	fetchURL := fmt.Sprintf("%s/fetch/%s?query=%s&realm=poe2", apiBase, strings.Join(ids, ","), url.QueryEscape(searchID))
+	fetchURL := fmt.Sprintf("%s/fetch/%s?query=%s&realm=poe2", fetchBase(lang), strings.Join(ids, ","), url.QueryEscape(searchID))
 	fetchReq, err := http.NewRequest(http.MethodGet, fetchURL, nil)
 	if err != nil {
 		return nil, err
@@ -339,7 +365,7 @@ func (c *Client) FetchEvaluated(ctx context.Context, searchID string, ids []stri
 	if err := c.do(ctx, c.Fetch, fetchReq, &fetched); err != nil {
 		return nil, err
 	}
-	return evaluatedListings(fetched), nil
+	return evaluatedListings(fetched, lang), nil
 }
 
 // FetchLiveToken loads the listings a live search pushed. GGG sends a token
@@ -357,10 +383,11 @@ func (c *Client) FetchLiveToken(ctx context.Context, token string) ([]EvaluatedL
 	if err := c.do(ctx, c.Fetch, req, &fetched); err != nil {
 		return nil, err
 	}
-	return evaluatedListings(fetched), nil
+	return evaluatedListings(fetched, ""), nil
 }
 
-func evaluatedListings(fetched evaluatedFetchResponse) []EvaluatedListing {
+func evaluatedListings(fetched evaluatedFetchResponse, lang string) []EvaluatedListing {
+	english := PropertyNames[lang]
 	listings := []EvaluatedListing{}
 	for _, row := range fetched.Result {
 		if row.Listing.Price == nil {
@@ -400,7 +427,11 @@ func evaluatedListings(fetched evaluatedFetchResponse) []EvaluatedListing {
 				// A gem's notes ("19 Levels from Gem") come as values without a name.
 				name, value = value, ""
 			}
-			switch name {
+			key := name
+			if en, ok := english[name]; ok {
+				key = en
+			}
+			switch key {
 			case "Level":
 				if entry.Item.Rarity == "Gem" {
 					entry.Item.GemLevel = firstNumber(value)
@@ -408,7 +439,7 @@ func evaluatedListings(fetched evaluatedFetchResponse) []EvaluatedListing {
 			case "Quality":
 				entry.Item.Quality = firstNumber(value)
 			}
-			entry.Item.Properties = append(entry.Item.Properties, EvaluatedProperty{Name: name, Value: value})
+			entry.Item.Properties = append(entry.Item.Properties, EvaluatedProperty{Name: name, Value: value, key: key})
 		}
 		addWeaponDPS(&entry.Item)
 		for _, hashes := range row.Item.Extended.Hashes {
@@ -499,7 +530,11 @@ func addWeaponDPS(item *EvaluatedItem) {
 			hi, _ := strconv.ParseFloat(m[2], 64)
 			avg += (lo + hi) / 2
 		}
-		switch p.Name {
+		name := p.key
+		if name == "" {
+			name = p.Name
+		}
+		switch name {
 		case "Physical Damage":
 			physical += avg
 		case "Elemental Damage", "Fire Damage", "Cold Damage", "Lightning Damage":

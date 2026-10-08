@@ -154,6 +154,11 @@ export interface ExoticTier {
  */
 export interface ExpeditionPrice {
     "name": string;
+
+    /**
+     * Display is Name as the game's language writes it ("" in English).
+     */
+    "display"?: string;
     "text": string;
     "count": number;
     "countKnown": boolean;

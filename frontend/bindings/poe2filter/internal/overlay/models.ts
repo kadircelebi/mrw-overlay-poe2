@@ -69,6 +69,25 @@ export interface FilterInput {
 
 export interface Item {
     "raw": string;
+
+    /**
+     * Lang is the game language the item was copied in ("" for English);
+     * Raw is then its English text. Listings are fetched in that language.
+     */
+    "lang"?: string;
+
+    /**
+     * DisplayName and DisplayBase are the names as that game writes them.
+     */
+    "displayName"?: string;
+    "displayBase"?: string;
+
+    /**
+     * Labels are the game's words in that language, by their English
+     * ("Item Level", "Pack Size", "Rare", "Corrupted"; "class" is the item
+     * class as copied).
+     */
+    "labels"?: { [_ in string]?: string } | null;
     "class": string;
     "rarity": string;
     "name": string;
@@ -140,6 +159,11 @@ export interface ItemMod {
     "key": string;
     "statId": string;
     "text": string;
+
+    /**
+     * Display is the line in the game language the item was copied in.
+     */
+    "display"?: string;
     "type": string;
     "affix": string;
     "name": string;

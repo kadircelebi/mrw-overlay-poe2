@@ -1,0 +1,35 @@
+Gegenstandsklasse: Helme
+Seltenheit: Selten
+Grimm-Verlies
+Ahnen-Tiara
+--------
+Qualität: +25% (augmented)
+Energieschild: 538 (augmented)
+--------
+Erfordert: Stufe 80, 110 (augmented) Int
+--------
+Fassungen: S S
+--------
+Gegenstandsstufe: 80
+--------
+{ Verstärkung }
+Weist zu: Vollkommenheit — Nicht skalierbarer Wert
+--------
+Erhöhungen und Verringerungen der Lebensregenerations-Rate gelten auch für die Manaregenerations-Rate (rune)
+Rabenberührt (rune)
+--------
+{ Brüchig Präfix-Modifikator "Blendende" (Level: 1) — Energieschild }
++71(61-73) zu maximalem Energieschild
+{ Präfix-Modifikator "Engelhafte" (Level: 1) — Mana, Energieschild }
+41(39-42)% erhöhter Energieschild
++34(33-39) zu maximalem Mana
+{ Entweiht Präfix-Modifikator "Unangreifbare" (Level: 1) — Energieschild }
+98(92-100)% erhöhter Energieschild
+{ Suffix-Modifikator "des Ruins" (Level: 1) — Kritisch }
+34(30-34)% erhöhte kritische Trefferchance
+{ Suffix-Modifikator "des Virtuosen" (Level: 2) — Attribut }
++31(31-33) zu Intelligenz
+{ Angefertigt Suffix-Modifikator "der Archäologie" (Level: 1) — Beute }
+18(15-18)% erhöhte Seltenheit gefundener Gegenstände
+--------
+Brüchiger Gegenstand

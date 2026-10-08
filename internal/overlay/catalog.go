@@ -128,6 +128,12 @@ type response[T any] struct {
 type CatalogStore struct {
 	dir    string
 	client *http.Client
+	// base is the data API, suffix marks the cached files of a language
+	// edition ("trade_stats.de.json").
+	base, suffix string
+	// statsOnly loads the modifier catalog alone (a language edition: the
+	// item reader needs nothing else from it).
+	statsOnly bool
 
 	mu      sync.RWMutex
 	value   Catalog
@@ -139,7 +145,18 @@ func NewCatalogStore(dataDir string) *CatalogStore {
 	return &CatalogStore{
 		dir:    filepath.Join(dataDir, "data"),
 		client: &http.Client{Timeout: 20 * time.Second},
+		base:   catalogBaseURL,
 	}
+}
+
+// NewLocaleCatalogStore is the catalog of a trade site language edition
+// (TradeHosts): its stats share the English ids, in that language's words.
+func NewLocaleCatalogStore(dataDir, lang string) *CatalogStore {
+	s := NewCatalogStore(dataDir)
+	s.base = "https://" + TradeHosts[lang] + "/api/trade2/data"
+	s.suffix = "." + lang
+	s.statsOnly = true
+	return s
 }
 
 // Load returns the in-memory catalog and performs at most one concurrent disk
@@ -214,6 +231,13 @@ func (s *CatalogStore) load(ctx context.Context) (Catalog, error) {
 	if err != nil {
 		return Catalog{}, err
 	}
+	if s.statsOnly {
+		var stats response[StatGroup]
+		if err := json.Unmarshal(statsRaw, &stats); err != nil {
+			return Catalog{}, fmt.Errorf("decode trade stats: %w", err)
+		}
+		return Catalog{Stats: stats.Result, UpdatedAtMs: statsAt.UnixMilli()}, nil
+	}
 	itemsRaw, itemsAt, err := s.readOrFetch(ctx, "items", "trade_items.json")
 	if err != nil {
 		return Catalog{}, err
@@ -254,6 +278,9 @@ func (s *CatalogStore) load(ctx context.Context) (Catalog, error) {
 }
 
 func (s *CatalogStore) readOrFetch(ctx context.Context, endpoint, filename string) ([]byte, time.Time, error) {
+	if s.suffix != "" {
+		filename = strings.TrimSuffix(filename, ".json") + s.suffix + ".json"
+	}
 	path := filepath.Join(s.dir, filename)
 	var cached []byte
 	var cachedAt time.Time
@@ -265,7 +292,7 @@ func (s *CatalogStore) readOrFetch(ctx context.Context, endpoint, filename strin
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, catalogBaseURL+"/"+endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.base+"/"+endpoint, nil)
 	if err == nil {
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("User-Agent", useragent.Value())

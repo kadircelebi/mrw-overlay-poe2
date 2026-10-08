@@ -14,6 +14,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
   <a href="https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/"><img src="https://img.shields.io/badge/Firefox_Add--ons-approved-FF7139?logo=firefoxbrowser&logoColor=white" alt="Firefox Add-ons"></a>
   <a href="https://discord.gg/835k5r4k8k"><img src="https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20TR%20%7C%20%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-555" alt="English, Turkish, Traditional Chinese">
+  <img src="https://img.shields.io/badge/game_languages-9-555" alt="Works with the game in 9 languages">
 </p>
 
 <p align="center"><a href="README.tr.md">Türkçe</a> · <a href="https://poe2.mrwproject.com">Website</a></p>
@@ -24,6 +25,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
 
 - **One app instead of five.** Loot filter, price check, trade and live search, crafting sim, Expedition prices, game hotkeys. No more alt-tabbing between a dozen tools and websites.
 - **Your filter follows the market.** You set a value, say 50 ex. Drops worth more get a strong highlight, cheap ones get hidden or dimmed. As prices move, the filter keeps up, and you never edit a list by hand mid-league.
+- **Plays in your game's language.** English, Deutsch, Français, Español, Português, Русский, 日本語, 한국어 or 繁體中文: the price check, trade and Expedition prices read items the way your game writes them, show them in that language, and bring listings back in it. Every language the game offers works except Thai, which is still to come.
 - **Approved everywhere it ships.** Microsoft Store, Chrome Web Store, Edge Add-ons and Firefox Add-ons have all reviewed and approved it.
 - **Free.** No paywall, no "premium" features. Everyone gets the same app.
 
@@ -75,7 +77,7 @@ The app's own look is up to you: pick MrW Default, Dark or Light, or copy one an
 
 ### And the small things
 - **Game hotkeys:** F5 /hideout, F6 /dnd, F7 invites your last whisperer, F8 sends a canned reply. All editable.
-- **Three languages:** English, Türkçe, 繁體中文. Item names stay in English, because that is what the filter matches.
+- **App in three languages, game in nine:** the app itself speaks English, Türkçe and 繁體中文. The price check, trade and Expedition labels follow your game instead: English, German, French, Spanish, Portuguese, Russian, Japanese, Korean or Traditional Chinese. Item names inside the loot filter stay in English, because that is what the game's filter matches in every language.
 - **Profiles as files:** export a profile and hand it to a friend, or export just the finished filter.
 
 ## Built to do it right
@@ -84,7 +86,7 @@ A feature doesn't ship until it really works in game and plays by the rules.
 
 - **No memory reading, no input automation.** The app never touches the game's memory and never presses keys for you. One hotkey is one action.
 - **Gentle with the trade site.** Every request follows the rate limits the trade site announces. Exceptional bases are scanned on MrW Overlay's own servers, so your trade quota stays yours.
-- **Screen reading only when you ask.** Expedition and gem reading capture the screen once per key press and read it on your PC with Windows' built-in OCR. Nothing is uploaded.
+- **Screen reading only when you ask.** Expedition and gem reading capture the screen once per key press and read it on your PC with Windows' built-in OCR, in your game's language. Nothing is uploaded.
 - **Your session stays on your PC.** If you connect your pathofexile.com account, the session is encrypted with Windows DPAPI and only ever sent to pathofexile.com.
 - **Weak data never hides loot.** A unique with a single listing, or an exceptional with only a few, is never a reason to hide it.
 - **Built in the open.** Every GitHub release exe is built from this repository by [GitHub Actions](.github/workflows/release.yml), never on a developer's machine, so what you download is the code you can read here.
@@ -131,6 +133,8 @@ For live search, hideout travel and bigger searches, the app needs your pathofex
 
 **I want different setups for different content.** Settings → Profiles: save, switch, export, or follow a public profile.
 
+**My game isn't in English.** Nothing to set: the app sees the language in what you copy and in the game's settings. For Skills panel gems and Expedition rewards, Windows needs the OCR for that language (Windows Settings → Time & language → Language & region → add the language). Without it, Windows reads with your display language, which works for Latin letters but not for Russian, Japanese, Korean or Chinese.
+
 **What if a price source goes down?** The last known prices are kept and the filter is still written.
 
 **I want to start over.** Quit the app and delete `%APPDATA%\PoE2Filtre`.
@@ -147,7 +151,7 @@ Found a bug or have an idea? [Open an issue](../../issues/new/choose), or come s
 
 The app has no telemetry or analytics, and it never sends your session cookie or account name to MrW Overlay's servers.
 
-It reads public data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout](https://poe2scout.com/), listings from the official trade API, and NeverSink's filter from GitHub.
+It reads public data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout](https://poe2scout.com/), listings from the official trade API (from its edition in your game's language, such as de.pathofexile.com, when you play in another language), and NeverSink's filter from GitHub.
 
 - **Browser extension:** if you connect it, it sends your session and account name only to the app on the same PC. They are stored with Windows DPAPI, the session is sent only to `www.pathofexile.com` for trade actions you ask for, and **Settings → Account → Disconnect** deletes both.
 - **Public profiles:** these are optional. Only publishing or following talks to the MrW Overlay profile server (`profiles.mrwproject.com`). Publishing makes the profile's filter settings, its name, description and tags, and your account name (as the author) public. League, language, file paths, sound files, your session and price settings are never sent. Following stores a hash of a random install key, plus a salted hash of the IP (not the IP itself) to limit abuse. Unpublishing deletes the profile and its followers.
@@ -174,10 +178,10 @@ go test ./...     # Go tests
 cd frontend && npm run check   # types, translations, encoding
 ```
 
-To add a language, copy `frontend/src/lib/locales/en.ts` and `internal/i18n/en.go` and translate them; the checks report missing keys.
+To add a language to the app, copy `frontend/src/lib/locales/en.ts` and `internal/i18n/en.go` and translate them; the checks report missing keys. The game-language tables in `internal/overlay/data/locale/` are rebuilt with `python build/locale/build_locale.py <lang>`; copied items from each language are tested in `internal/overlay/testdata/locale/`.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Exceptions are listed in [NOTICE](NOTICE). The 26 alert sounds in `internal/gamesounds/files/` belong to Grinding Gear Games. The crafting data from poe2db.tw is under CC BY-NC-SA 3.0. NeverSink's filter is MIT licensed too, and the app downloads it at runtime.
+MIT, see [LICENSE](LICENSE). Exceptions are listed in [NOTICE](NOTICE). The 26 alert sounds in `internal/gamesounds/files/` belong to Grinding Gear Games. The crafting data from poe2db.tw is under CC BY-NC-SA 3.0. NeverSink's filter is MIT licensed too, and the app downloads it at runtime. The game-language tables are built from [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2)'s data (MIT).
 
 MrW Overlay is built by a player, for players. It is not an official Grinding Gear Games product, and they don't back it. Path of Exile 2 and everything in it belong to them.

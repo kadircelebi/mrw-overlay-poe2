@@ -1,0 +1,35 @@
+Classe d'objet: Casques
+Rareté: Rare
+ Forteresse courroucée
+Tiare ancestrale
+--------
+Qualité: +25% (augmented)
+Bouclier d'énergie: 538 (augmented)
+--------
+Prérequis : Niveau 80, 110 (augmented) Int
+--------
+Châsses: S S
+--------
+Niveau de l'objet: 80
+--------
+{ Amélioration }
+Attribue Parangon — Valeur fixe
+--------
+Les Augmentations et Réductions de Taux de Régénération de Vie s'appliquent également au Taux de Régénération de Mana (rune)
+Touché par le Corbeau (rune)
+--------
+{ Fissuré Préfixe : « Éblouissante » (Palier : 1) — Bouclier d'énergie }
++71(61-73) de Bouclier d'énergie maximal
+{ Préfixe : « de l'Ange » (Palier : 1) — Mana, Bouclier d'énergie }
+41(39-42)% d'Augmentation du Bouclier d'énergie
++34(33-39) de Mana maximal
+{ Profané Préfixe : « Imprenable » (Palier : 1) — Bouclier d'énergie }
+98(92-100)% d'Augmentation du Bouclier d'énergie
+{ Suffixe : « de la Ruine » (Palier : 1) — Critique }
+34(30-34)% d'Augmentation des Chances de Touche critique
+{ Suffixe : « du Virtuose » (Palier : 2) — Attribut }
++31(31-33) d'Intelligence
+{ Artisanat Suffixe : « de l'Archéologie » (Palier : 1) — Cession }
+18(15-18)% d'Augmentation de la Rareté des Objets cédés
+--------
+Objet fissuré

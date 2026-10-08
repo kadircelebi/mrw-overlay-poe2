@@ -1,0 +1,33 @@
+Gegenstandsklasse: Körperrüstungen
+Seltenheit: Einzigartig
+Morior Invictus
+Großes Gewand
+--------
+Qualität: +20% (augmented)
+Rüstung: 1022 (augmented)
+Ausweichwert: 927 (augmented)
+Energieschild: 281 (augmented)
+--------
+Erfordert: Stufe 65, 39 (augmented) Str, 39 (augmented) Ges , 39 (augmented) Int
+--------
+Fassungen: S S S S S
+--------
+Gegenstandsstufe: 84
+--------
++200 zu maximalem Mana (rune)
+In diesen Gegenstand eingefasste Götzen erhalten die Vorteile ihrer verbundenen Modifikatoren (rune)
+Verbunden: +5% zur Qualität aller Fertigkeiten (rune)
+--------
+{ Einzigartiger Modifikator — Rüstung, Ausweichen, Energieschild }
+368(300-400)% erhöhte Rüstung, Ausweichen und Energieschild
+{ Einzigartiger Modifikator }
++14(10-14) zu Wille pro belegter Fassung
+{ Einzigartiger Modifikator — Elementar, Feuer, Kälte, Blitz, Widerstand }
++10(8-10)% zu allen Elementarwiderständen pro belegter Fassung
+{ Einzigartiger Modifikator }
++60(50-60) zu maximalem Mana pro belegter Fassung
+--------
+Weder kauerte noch jammerte das immer starrende Auge.
+Sie hielten dem Ende stand.
+--------
+Verderbt

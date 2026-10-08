@@ -1,0 +1,42 @@
+lang fr | Boots | rare | "Foulées de la goule" ("") | "Sekhema Sandals" ("Sandales de Sekhema")
+ilvl 82 | level 80 | quality 29 | rune sockets 2 | fractured true | corrupted true
+labels: class "Bottes" | item level "Niveau de l'objet" | requires "Prérequis" | rare "Rare" | corrupted "Corrompu"
+rune/ T0 rune.stat_1050105434
+  +100 to maximum Mana
+  +100 de Mana maximal
+explicit/prefix T1 explicit.stat_2250533757
+  35% increased Movement Speed
+  35% d'Augmentation de la Vitesse de déplacement
+explicit/prefix T1 explicit.stat_4015621042
+  96(92-100)% increased Energy Shield
+  96(92-100)% d'Augmentation du Bouclier d'énergie
+desecrated/prefix T1 desecrated.stat_4052037485
+  +60(48-60) to maximum Energy Shield
+  +60(48-60) de Bouclier d'énergie maximal
+fractured/suffix T1 fractured.stat_3917489142
+  17(15-18)% increased Rarity of Items found
+  17(15-18)% d'Augmentation de la Rareté des Objets cédés
+explicit/suffix T1 explicit.stat_3372524247
+  +45(41-45)% to Fire Resistance
+  +45(41-45)% à la Résistance au feu
+explicit/suffix T1 explicit.stat_4220027924
+  +45(41-45)% to Cold Resistance
+  +45(41-45)% à la Résistance au froid
+pseudo/ T0 pseudo.pseudo_total_mana
+  +100 total maximum Mana
+  +100 au Mana maxi au total
+pseudo/ T0 pseudo.pseudo_total_fire_resistance
+  +45% total to Fire Resistance
+  +45% Résistance au feu au total
+pseudo/ T0 pseudo.pseudo_total_cold_resistance
+  +45% total to Cold Resistance
+  +45% Résistance au froid au total
+pseudo/ T0 pseudo.pseudo_total_elemental_resistance
+  +90% total Elemental Resistance
+  +90% aux Résistances élémentaires au total
+pseudo/ T0 pseudo.pseudo_increased_movement_speed
+  35% increased Movement Speed
+  35% d'Augmentation de la Vitesse de déplacement
+pseudo/ T0 sum.stat_3917489142
+  Sum 17: #% increased Rarity of Items found
+  

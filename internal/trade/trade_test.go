@@ -112,7 +112,7 @@ func TestFetchListingReadsModDomains(t *testing.T) {
 	if err := json.Unmarshal(raw, &response); err != nil {
 		t.Fatal(err)
 	}
-	mods := evaluatedListings(response)[0].Item.Mods
+	mods := evaluatedListings(response, "")[0].Item.Mods
 	want := []struct{ kind, tier string }{{"fractured", "P5"}, {"desecrated", "S3"}, {"explicit", "P1"}}
 	if len(mods) != len(want) {
 		t.Fatalf("got %d mods: %+v", len(mods), mods)
@@ -136,7 +136,7 @@ func TestFetchListingAcceptsArrayExtended(t *testing.T) {
 	if err := json.Unmarshal(raw, &response); err != nil {
 		t.Fatal(err)
 	}
-	listings := evaluatedListings(response)
+	listings := evaluatedListings(response, "")
 	if len(listings) != 2 {
 		t.Fatalf("got %d listings, want 2", len(listings))
 	}
@@ -251,5 +251,27 @@ func TestAPIErrorRecognisesBotProtectionPage(t *testing.T) {
 	}
 	if (&APIError{Status: 400, Body: `<html>bad request</html>`}).Blocked() || (&APIError{Status: 403, Body: `{"error":{"code":6,"message":"Forbidden"}}`}).Blocked() {
 		t.Error("a plain refusal was taken for a block")
+	}
+}
+
+// Listings fetched in another language keep their names on screen, and the
+// English property names still drive DPS, quality and gem level.
+func TestListingsInAnotherLanguage(t *testing.T) {
+	PropertyNames["de"] = map[string]string{"Physischer Schaden": "Physical Damage", "Angriffe pro Sekunde": "Attacks per Second",
+		"Qualität": "Quality"}
+	FetchHosts["de"] = "de.pathofexile.com"
+	defer func() { delete(PropertyNames, "de"); delete(FetchHosts, "de") }()
+	if got := fetchBase("de"); got != "https://de.pathofexile.com/api/trade2" || fetchBase("") != apiBase {
+		t.Fatalf("fetch base %q", got)
+	}
+	var response evaluatedFetchResponse
+	raw := `{"result":[{"id":"a","listing":{"price":{"amount":1,"currency":"exalted"}},"item":{"name":"","typeLine":"Klinge","baseType":"Klinge","rarity":"Rare",
+		"properties":[{"name":"Qualität","values":[["+20%",1]]},{"name":"Physischer Schaden","values":[["10-20",1]]},{"name":"Angriffe pro Sekunde","values":[["1.50",1]]}]}}]}`
+	if err := json.Unmarshal([]byte(raw), &response); err != nil {
+		t.Fatal(err)
+	}
+	item := evaluatedListings(response, "de")[0].Item
+	if item.Quality != 20 || item.PhysicalDPS != 22.5 || item.Properties[1].Name != "Physischer Schaden" {
+		t.Fatalf("%+v", item)
 	}
 }

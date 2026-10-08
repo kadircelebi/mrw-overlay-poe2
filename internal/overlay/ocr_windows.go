@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"image"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 	"unsafe"
@@ -163,7 +164,7 @@ func ReadGameText() ([]OcrLine, int, int, error) {
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	lines, err := recognize(pixels, int(area.width()), int(area.height()))
+	lines, err := recognizeLines(pixels, int(area.width()), int(area.height()))
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -222,8 +223,24 @@ func captureScreen(area rect) ([]byte, error) {
 	return pixels, nil
 }
 
-// recognize runs the recognizer on a BGRA image. English is preferred, item
-// names being English; without that language pack the user's own is used.
+// recognizeLines reads text off a BGRA image; tests may swap the engine.
+var recognizeLines = recognize
+
+// ocrLanguage is the recognizer tried first: the game's language (item
+// names in English unless the game runs in another language); without that
+// language pack the Windows display language's is used.
+var ocrLanguage = "en-US"
+
+// SetOCRLanguage picks the recognizer for the game's language (a BCP-47 tag
+// such as "de-DE"; "" for English).
+func SetOCRLanguage(tag string) {
+	if tag == "" {
+		tag = "en-US"
+	}
+	ocrLanguage = tag
+}
+
+// recognize runs Windows' recognizer on a BGRA image.
 func recognize(pixels []byte, w, h int) ([]OcrLine, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -300,6 +317,47 @@ func textAngle(result *comObject) float64 {
 	return v
 }
 
+// ocrFallback lets a missing language pack fall back to the Windows display
+// language's (off only to probe which packs exist).
+var ocrFallback = true
+
+func ocrTagForms(tag string) []string {
+	forms := []string{tag}
+	if tag == "zh-TW" {
+		// The Traditional Chinese recognizer takes rows that end alike for
+		// vertical text ("3x 神聖石" over "2x 神聖石" read "聖 聖 聖"); the
+		// Simplified one reads the same rows across, Traditional characters
+		// included, so it goes first when Windows has it.
+		forms = []string{"zh-Hans-CN", "zh-CN", "zh-Hans", tag, "zh-Hant-TW", "zh-Hant"}
+	}
+	if i := strings.IndexByte(tag, '-'); i > 0 {
+		forms = append(forms, tag[:i])
+	}
+	return forms
+}
+
+// OCRLanguageInstalled tells whether Windows has the recognizer of a
+// language (a tag of OCRTags).
+func OCRLanguageInstalled(tag string) bool {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	r, _, _ := procRoInitialize.Call(roInitMultithreaded)
+	if int32(r) >= 0 {
+		defer procRoUninitialize.Call()
+	} else if uint32(r) != rpcEChangedMode {
+		return false
+	}
+	saved, savedFallback := ocrLanguage, ocrFallback
+	ocrLanguage, ocrFallback = tag, false
+	defer func() { ocrLanguage, ocrFallback = saved, savedFallback }()
+	engine, err := ocrEngine()
+	if err != nil {
+		return false
+	}
+	engine.release()
+	return true
+}
+
 func ocrEngine() (*comObject, error) {
 	statics, err := activationFactory("Windows.Media.Ocr.OcrEngine", &iidOcrEngineStatics)
 	if err != nil {
@@ -308,14 +366,24 @@ func ocrEngine() (*comObject, error) {
 	defer statics.release()
 	var engine *comObject
 	if languages, err := activationFactory("Windows.Globalization.Language", &iidLanguageFactory); err == nil {
-		tag, _ := newHString("en-US")
-		var english *comObject
-		if languages.call(vtableLanguageCreate, uintptr(tag), uintptr(unsafe.Pointer(&english))) == nil && english != nil {
-			_ = statics.call(vtableStaticsTryCreate, uintptr(unsafe.Pointer(english)), uintptr(unsafe.Pointer(&engine)))
-			english.release()
+		// Windows lists some packs by the bare language ("ja", "ru") or with
+		// the script ("zh-Hant-TW"): the full tag first, then those.
+		for _, name := range ocrTagForms(ocrLanguage) {
+			tag, _ := newHString(name)
+			var language *comObject
+			if languages.call(vtableLanguageCreate, uintptr(tag), uintptr(unsafe.Pointer(&language))) == nil && language != nil {
+				_ = statics.call(vtableStaticsTryCreate, uintptr(unsafe.Pointer(language)), uintptr(unsafe.Pointer(&engine)))
+				language.release()
+			}
+			tag.free()
+			if engine != nil {
+				break
+			}
 		}
-		tag.free()
 		languages.release()
+	}
+	if engine == nil && !ocrFallback {
+		return nil, errOcrUnavailable
 	}
 	if engine == nil {
 		_ = statics.call(vtableStaticsUserProfile, uintptr(unsafe.Pointer(&engine)))
@@ -428,9 +496,9 @@ func lineBox(line *comObject) (x, y, w, h, textRight float64) {
 // runePanelWidths are the shares of the game's width read for the Runeshape
 // panel, which keeps to the left (at 4K its rows end at 28%). The recognizer
 // is not steady: it now and then returns nothing at all for an image it
-// reads at a slightly different size, or drops a row, so both widths are
-// read and their rows merged.
-var runePanelWidths = []float64{0.5, 0.7}
+// reads at a slightly different size, or drops a row, so several widths are
+// read and their rows merged (two were not always enough for Japanese).
+var runePanelWidths = []float64{0.5, 0.6, 0.7}
 
 // ReadRunePanel captures the left of the game window once and returns the
 // rows of Expedition's Runeshape Combinations panel, in pixels of the game's
@@ -465,7 +533,7 @@ func readRunePanel(pixels []byte, captured, w, h int, currencyNames []string) ([
 	var rows []RuneRow
 	for _, share := range runePanelWidths {
 		width := min(captured, int(float64(w)*share))
-		lines, err := recognize(cropPixels(pixels, captured, 0, 0, width, h), width, h)
+		lines, err := recognizeLines(cropPixels(pixels, captured, 0, 0, width, h), width, h)
 		if err != nil {
 			return nil, err
 		}
@@ -482,7 +550,7 @@ func readRunePanel(pixels []byte, captured, w, h int, currencyNames []string) ([
 			if x1-x0 < 8 || y1-y0 < 8 {
 				continue
 			}
-			if lines, err := recognize(cropPixels(pixels, captured, x0, y0, x1, y1), x1-x0, y1-y0); err == nil {
+			if lines, err := recognizeLines(cropPixels(pixels, captured, x0, y0, x1, y1), x1-x0, y1-y0); err == nil {
 				if recountFrom(&rows[i], lines, names); rows[i].CountRead && rows[i].Name != "" {
 					break
 				}

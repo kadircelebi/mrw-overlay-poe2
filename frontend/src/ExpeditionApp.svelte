@@ -48,7 +48,7 @@
       const amount = money(row.valueEx, view.divineEx)
       text = row.countKnown ? amount : t('expedition.each', amount)
     }
-    if (SHOW_READ_NAME) text += ` · ${row.name && row.countKnown && row.count > 1 ? `${row.count}× ` : ''}${row.name || row.text}`
+    if (SHOW_READ_NAME) text += ` · ${row.name && row.countKnown && row.count > 1 ? `${row.count}× ` : ''}${row.display || row.name || row.text}`
     return text
   }
 </script>

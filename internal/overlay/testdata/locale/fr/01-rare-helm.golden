@@ -1,0 +1,42 @@
+lang fr | Helmets | rare | "Forteresse courroucée" ("") | "Ancestral Tiara" ("Tiare ancestrale")
+ilvl 80 | level 80 | quality 25 | rune sockets 2 | fractured true | corrupted false
+labels: class "Casques" | item level "Niveau de l'objet" | requires "Prérequis" | rare "Rare" | corrupted "Corrompu"
+enchant/ T0 enchant.stat_2954116742|20686
+  Allocates Paragon
+  Attribue Parangon
+rune/ T0 rune.stat_3570773271
+  Increases and Reductions to Life Regeneration Rate also apply to Mana Regeneration Rate
+  Les Augmentations et Réductions de Taux de Régénération de Vie s'appliquent également au Taux de Régénération de Mana
+rune/ T0 rune.stat_3198163869
+  Raven-Touched
+  Touché par le Corbeau
+fractured/prefix T1 fractured.stat_4052037485
+  +71(61-73) to maximum Energy Shield
+  +71(61-73) de Bouclier d'énergie maximal
+explicit/prefix T1 explicit.stat_4015621042
+  41(39-42)% increased Energy Shield
+  41(39-42)% d'Augmentation du Bouclier d'énergie
+explicit/prefix T1 explicit.stat_1050105434
+  +34(33-39) to maximum Mana
+  +34(33-39) de Mana maximal
+desecrated/prefix T1 desecrated.stat_4015621042
+  98(92-100)% increased Energy Shield
+  98(92-100)% d'Augmentation du Bouclier d'énergie
+explicit/suffix T1 explicit.stat_587431675
+  34(30-34)% increased Critical Hit Chance
+  34(30-34)% d'Augmentation des Chances de Touche critique
+explicit/suffix T2 explicit.stat_328541901
+  +31(31-33) to Intelligence
+  +31(31-33) d'Intelligence
+crafted/suffix T1 crafted.stat_3917489142
+  18(15-18)% increased Rarity of Items found
+  18(15-18)% d'Augmentation de la Rareté des Objets cédés
+pseudo/ T0 pseudo.pseudo_total_mana
+  +96 total maximum Mana
+  +96 au Mana maxi au total
+pseudo/ T0 pseudo.pseudo_total_intelligence
+  +31 total to Intelligence
+  +31 à l'Intelligence au total
+pseudo/ T0 sum.stat_3917489142
+  Sum 18: #% increased Rarity of Items found
+  

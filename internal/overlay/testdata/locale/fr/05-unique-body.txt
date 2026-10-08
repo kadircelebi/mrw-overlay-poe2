@@ -1,0 +1,33 @@
+Classe d'objet: Armures
+Rareté: Unique
+Morior Invictus
+Grand apparat
+--------
+Qualité: +20% (augmented)
+Armure: 1022 (augmented)
+Score d'Évasion: 927 (augmented)
+Bouclier d'énergie: 281 (augmented)
+--------
+Prérequis : Niveau 65, 39 (augmented) For, 39 (augmented) Dex, 39 (augmented) Int
+--------
+Châsses: S S S S S
+--------
+Niveau de l'objet: 84
+--------
++200 de Mana maximal (rune)
+Idols socketed in this item gain the benefits of their Bonded modifiers (rune)
+Lié : +5% à la Qualité de toutes les Aptitudes (rune)
+--------
+{ Modificateur d'Objet unique — Armure, Évasion, Bouclier d'énergie }
+368(300-400)% d'Augmentation de l'Armure, de l'Évasion et du Bouclier d'énergie
+{ Modificateur d'Objet unique }
++14(10-14) d'Esprit par Châsse remplie
+{ Modificateur d'Objet unique — Élémentaire, Feu, Froid, Foudre, Résistance }
++10(8-10)% à toutes les Résistances élémentaires par Châsse remplie
+{ Modificateur d'Objet unique }
++60(50-60) de Mana maximal par Châsse remplie
+--------
+L'Œil Immuable n'a pas cédé et ne s'est pas plaint.
+Ils se sont dressés contre la fin.
+--------
+Corrompu

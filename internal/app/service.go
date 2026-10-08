@@ -96,7 +96,9 @@ type AppService struct {
 	overlayEvalMu      sync.Mutex
 	overlayEvalCache   map[string]overlayEvaluationCacheEntry
 	overlayEvalFlights map[string]*overlayEvaluationFlight
-	overlaySnapshot    overlay.Snapshot
+	// searchLangs: search id -> game language of its item (see game_language.go)
+	searchLangs     sync.Map
+	overlaySnapshot overlay.Snapshot
 	// overlayHeight is the compact overlay's height in page pixels (0 = full).
 	overlayHeight int
 	// gameLog is the game's Client.txt, learned when the game comes to the
@@ -156,6 +158,7 @@ func newAppService(meta Meta) *AppService {
 		session:             sessions,
 		profiles:            profileclient.New(meta.DataDir),
 	}
+	svc.setupGameLanguages()
 	// Only the overlay's user-started searches go out signed in; the
 	// background exceptional scanner stays anonymous.
 	svc.overlayClient.SetSession(sessions.Load())

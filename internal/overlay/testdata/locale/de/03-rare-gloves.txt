@@ -1,0 +1,31 @@
+Gegenstandsklasse: Handschuhe
+Seltenheit: Selten
+Hasserfüllte Handfläche
+Sirenenschuppen-Handschuhe
+--------
+Qualität: +20% (augmented)
+Energieschild: 300 (augmented)
+--------
+Erfordert: Stufe 80, 97 (augmented) Int
+--------
+Fassungen: S S
+--------
+Gegenstandsstufe: 81
+--------
+20% erhöhte Rüstung, Ausweichen und Energieschild (rune)
+Kann Scharfschützen-Modifikatoren annehmen (rune)
+--------
+{ Brüchig Präfix-Modifikator "Unangreifbare" (Level: 1) — Energieschild }
+99(92-100)% erhöhter Energieschild
+{ Präfix-Modifikator "Entflammende" (Level: 1) — Energieschild }
++60(48-60) zu maximalem Energieschild
+{ Entweiht Präfix-Modifikator "Kolrs" (Level: 1) — Schaden }
+36(31-40)% erhöhter Projektilschaden
+{ Suffix-Modifikator "der Jagd" (Level: 1) }
++2 zur Stufe aller Projektil-Fertigkeiten
+{ Angefertigt Suffix-Modifikator "der Wildheit" (Level: 2) — Schaden, Kritisch }
+26(25-29)% erhöhter Bonus für kritische Treffer
+{ Angefertigt Suffix-Modifikator "der Sterne" — Zauberer, Geschwindigkeit }
+11(9-12)% erhöhte Zaubergeschwindigkeit
+--------
+Brüchiger Gegenstand

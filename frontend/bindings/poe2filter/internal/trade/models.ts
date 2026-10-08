@@ -17,6 +17,12 @@ export interface EvaluateRequest {
      */
     "sort"?: string;
     "sortDir"?: string;
+
+    /**
+     * Lang is the game language of the item searched for ("" English): the
+     * search runs on the English site, the listings come in that language.
+     */
+    "lang"?: string;
 }
 
 export interface EvaluatedItem {

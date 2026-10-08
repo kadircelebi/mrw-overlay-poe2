@@ -1,0 +1,297 @@
+{
+ "result": [
+  {
+   "id": "pseudo",
+   "label": "Pseudo",
+   "entries": [
+    {
+     "id": "pseudo.pseudo_increased_movement_speed",
+     "text": "#% erhöhte Bewegungsgeschwindigkeit",
+     "type": "pseudo"
+    },
+    {
+     "id": "pseudo.pseudo_total_cold_resistance",
+     "text": "+#% gesamt zu Kältewiderstand",
+     "type": "pseudo"
+    },
+    {
+     "id": "pseudo.pseudo_total_elemental_resistance",
+     "text": "+#% gesamt Elementarwiderstand",
+     "type": "pseudo"
+    },
+    {
+     "id": "pseudo.pseudo_total_fire_resistance",
+     "text": "+#% gesamt zu Feuerwiderstand",
+     "type": "pseudo"
+    },
+    {
+     "id": "pseudo.pseudo_total_intelligence",
+     "text": "+# gesamt zu Intelligenz",
+     "type": "pseudo"
+    },
+    {
+     "id": "pseudo.pseudo_total_mana",
+     "text": "+# gesamt zu maximalem Mana",
+     "type": "pseudo"
+    }
+   ]
+  },
+  {
+   "id": "explicit",
+   "label": "Explizit",
+   "entries": [
+    {
+     "id": "explicit.stat_1036267537",
+     "text": "# zu maximalem Mana pro belegter Fassung",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_1050105434",
+     "text": "# zu maximalem Mana",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_1202301673",
+     "text": "# zur Stufe aller Projektil-Fertigkeiten",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_2250533757",
+     "text": "#% erhöhte Bewegungsgeschwindigkeit",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_2593651571",
+     "text": "+#% zu allen Elementarwiderständen pro belegter Fassung",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_326412910",
+     "text": "Nur Runen können in diesen Gegenstand eingefasst werden",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_328541901",
+     "text": "# zu Intelligenz",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_3372524247",
+     "text": "#% zu Feuerwiderstand",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_3489782002",
+     "text": "# zu maximalem Energieschild",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_3523867985",
+     "text": "#% erhöhte Rüstung, Ausweichen und Energieschild",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_3917489142",
+     "text": "#% erhöhte Seltenheit gefundener Gegenstände",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_4015621042",
+     "text": "#% erhöhter Energieschild",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_4052037485",
+     "text": "# zu maximalem Energieschild (Lokal)",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_4163415912",
+     "text": "+# zu Wille pro belegter Fassung",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_4220027924",
+     "text": "#% zu Kältewiderstand",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_587431675",
+     "text": "#% erhöhte kritische Trefferchance",
+     "type": "explicit"
+    },
+    {
+     "id": "explicit.stat_704409219",
+     "text": "#% erhöhte Wirkung von eingefassten Runen",
+     "type": "explicit"
+    }
+   ]
+  },
+  {
+   "id": "implicit",
+   "label": "Implizit",
+   "entries": [
+    {
+     "id": "implicit.stat_3917489142",
+     "text": "#% erhöhte Seltenheit gefundener Gegenstände",
+     "type": "implicit"
+    },
+    {
+     "id": "implicit.stat_789117908",
+     "text": "#% erhöhte Manaregenerations-Rate",
+     "type": "implicit"
+    }
+   ]
+  },
+  {
+   "id": "fractured",
+   "label": "Brüchig",
+   "entries": [
+    {
+     "id": "fractured.stat_3489782002",
+     "text": "# zu maximalem Energieschild",
+     "type": "fractured"
+    },
+    {
+     "id": "fractured.stat_3917489142",
+     "text": "#% erhöhte Seltenheit gefundener Gegenstände",
+     "type": "fractured"
+    },
+    {
+     "id": "fractured.stat_4015621042",
+     "text": "#% erhöhter Energieschild",
+     "type": "fractured"
+    },
+    {
+     "id": "fractured.stat_4052037485",
+     "text": "# zu maximalem Energieschild (Lokal)",
+     "type": "fractured"
+    }
+   ]
+  },
+  {
+   "id": "crafted",
+   "label": "Angefertigt",
+   "entries": [
+    {
+     "id": "crafted.stat_2891184298",
+     "text": "#% erhöhte Zaubergeschwindigkeit",
+     "type": "crafted"
+    },
+    {
+     "id": "crafted.stat_3556824919",
+     "text": "#% erhöhter Bonus für kritische Treffer",
+     "type": "crafted"
+    },
+    {
+     "id": "crafted.stat_3917489142",
+     "text": "#% erhöhte Seltenheit gefundener Gegenstände",
+     "type": "crafted"
+    }
+   ]
+  },
+  {
+   "id": "enchant",
+   "label": "Verzauberung",
+   "entries": [
+    {
+     "id": "enchant.stat_2954116742|20686",
+     "text": "Weist zu: Vollkommenheit",
+     "type": "enchant"
+    },
+    {
+     "id": "enchant.stat_3917489142",
+     "text": "#% erhöhte Seltenheit gefundener Gegenstände",
+     "type": "enchant"
+    }
+   ]
+  },
+  {
+   "id": "rune",
+   "label": "Aufwerten",
+   "entries": [
+    {
+     "id": "rune.stat_1050105434",
+     "text": "# zu maximalem Mana",
+     "type": "augment"
+    },
+    {
+     "id": "rune.stat_1134865274",
+     "text": "Verbunden: #% zur Qualität aller Fertigkeiten",
+     "type": "augment"
+    },
+    {
+     "id": "rune.stat_124131830",
+     "text": "# zur Stufe aller Zauberfertigkeiten",
+     "type": "augment"
+    },
+    {
+     "id": "rune.stat_201332984",
+     "text": "Kann Scharfschützen-Modifikatoren annehmen",
+     "type": "augment"
+    },
+    {
+     "id": "rune.stat_3198163869",
+     "text": "Rabenberührt",
+     "type": "augment"
+    },
+    {
+     "id": "rune.stat_3523867985",
+     "text": "#% erhöhte Rüstung, Ausweichen und Energieschild",
+     "type": "augment"
+    },
+    {
+     "id": "rune.stat_3570773271",
+     "text": "Erhöhungen und Verringerungen der Lebensregenerations-Rate gelten auch für die Manaregenerations-Rate",
+     "type": "augment"
+    },
+    {
+     "id": "rune.stat_3917489142",
+     "text": "#% erhöhte Seltenheit gefundener Gegenstände",
+     "type": "augment"
+    },
+    {
+     "id": "rune.stat_726496846",
+     "text": "In diesen Gegenstand eingefasste Götzen erhalten die Vorteile ihrer verbundenen Modifikatoren",
+     "type": "augment"
+    },
+    {
+     "id": "rune.stat_737908626",
+     "text": "#% erhöhte kritische Trefferchance von Zaubern",
+     "type": "augment"
+    }
+   ]
+  },
+  {
+   "id": "desecrated",
+   "label": "Entweiht",
+   "entries": [
+    {
+     "id": "desecrated.stat_1839076647",
+     "text": "#% erhöhter Projektilschaden",
+     "type": "desecrated"
+    },
+    {
+     "id": "desecrated.stat_3489782002",
+     "text": "# zu maximalem Energieschild",
+     "type": "desecrated"
+    },
+    {
+     "id": "desecrated.stat_3917489142",
+     "text": "#% erhöhte Seltenheit gefundener Gegenstände",
+     "type": "desecrated"
+    },
+    {
+     "id": "desecrated.stat_4015621042",
+     "text": "#% erhöhter Energieschild",
+     "type": "desecrated"
+    },
+    {
+     "id": "desecrated.stat_4052037485",
+     "text": "# zu maximalem Energieschild (Lokal)",
+     "type": "desecrated"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+lang fr | Wands | unique | "Runeseeker's Call" ("Appel du Chercheur de runes") | "Runemastered Runic Fork" ("Rameau runique runomaîtrisé")
+ilvl 86 | level 65 | quality 0 | rune sockets 6 | fractured false | corrupted true
+labels: class "Baguettes" | item level "Niveau de l'objet" | requires "Prérequis" | rare "Rare" | corrupted "Corrompu"
+rune/ T0 rune.stat_1050105434
+  +810 to maximum Mana
+  +810 de Mana maximal
+rune/ T0 rune.stat_124131830
+  +9 to Level of all Spell Skills
+  +9 au Niveau de toutes les Aptitudes de Sort
+rune/ T0 rune.stat_737908626
+  84% increased Critical Hit Chance for Spells
+  84% d'Augmentation des Chances de Touche critique pour les Sorts
+implicit/ T0 implicit.stat_789117908
+  49(30-50)% increased Mana Regeneration Rate
+  49(30-50)% d'Augmentation du Taux de Régénération de Mana
+skill/ T0 
+  Grants Skill: Level 20 La Réponse des étoiles
+  Octroie l'Aptitude: Niveau 20 La Réponse des étoiles
+explicit/ T0 explicit.stat_326412910
+  Only Runes can be Socketed in this item
+  Seules les Runes peuvent être Enchâssées dans cet objet
+explicit/ T0 explicit.stat_704409219
+  200% increased effect of Socketed Runes
+  Les Runes Enchâssées 200% ont d'Augmentation d'Effet
+pseudo/ T0 pseudo.pseudo_total_mana
+  +810 total maximum Mana
+  +810 au Mana maxi au total
