@@ -1,75 +1,45 @@
-# Announces a new Microsoft Store version on Discord. The Store has no
-# webhooks, so this checks the public product catalog every hour; a version
-# not announced before (remembered in the Actions cache) is posted once.
-# Needs the repository secret DISCORD_STORE_WEBHOOK; without it nothing runs.
+# Announces a Microsoft Store version on Discord, run by hand once the Store
+# has published it: Actions → store-announce → Run workflow, with the version
+# (or `gh workflow run store-announce.yml -f version=2.15.0`).
+# Needs the repository secret DISCORD_STORE_WEBHOOK.
 name: store-announce
 
 on:
-  schedule:
-    - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
-      announce:
-        description: "Post to Discord (false only marks the current version as announced)"
-        type: boolean
-        default: true
+      version:
+        description: "Store version to announce, e.g. 2.15.0"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
-concurrency:
-  group: store-announce
-
 jobs:
-  check:
+  announce:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      WEBHOOK: ${{ secrets.DISCORD_STORE_WEBHOOK }}
     steps:
-      - name: Store version
-        id: store
-        if: env.WEBHOOK != ''
-        run: |
-          json=$(curl -fsS --retry 3 "https://displaycatalog.mp.microsoft.com/v7.0/products?bigIds=9PM376D3LFBG&market=US&languages=en-us")
-          full=$(echo "$json" | grep -oE 'MrWOverlayforPOE2_[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+_x64' | head -1)
-          if [ -z "$full" ]; then echo "no package in the catalog" >&2; exit 1; fi
-          version=$(echo "$full" | sed -E 's/.*_([0-9]+\.[0-9]+\.[0-9]+)\.[0-9]+_x64/\1/')
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          mkdir -p announced && echo "$version" > announced/version
-          echo "Store version: $version"
-
-      - name: Announced before?
-        id: seen
-        if: steps.store.outputs.version != ''
-        uses: actions/cache/restore@v4
-        with:
-          path: announced
-          key: store-announced-${{ steps.store.outputs.version }}
-          lookup-only: true
-
       - name: Post to Discord
-        if: steps.store.outputs.version != '' && steps.seen.outputs.cache-hit != 'true' && inputs.announce != false
         env:
-          VERSION: ${{ steps.store.outputs.version }}
+          WEBHOOK: ${{ secrets.DISCORD_STORE_WEBHOOK }}
+          VERSION: ${{ inputs.version }}
           REPO: ${{ github.repository }}
         run: |
-          jq -n --arg v "$VERSION" --arg repo "$REPO" '{
+          VERSION="${VERSION#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "not a version: $VERSION" >&2; exit 1; fi
+          if [ -z "$WEBHOOK" ]; then echo "DISCORD_STORE_WEBHOOK is not set" >&2; exit 1; fi
+          text="The Store version updates by itself; open the Store to get it now.
+          Store sürümü kendiliğinden güncellenir; hemen almak için Store'u aç."
+          jq -n --arg v "$VERSION" --arg repo "$REPO" --arg text "$text" '{
             username: "MrW Overlay",
             embeds: [{
               title: ("MrW Overlay v" + $v + " is on the Microsoft Store"),
               url: "https://apps.microsoft.com/detail/9PM376D3LFBG",
               color: 13150830,
-              description: ("The Store version updates by itself; open the Store to get it now.\nStore sürümü kendiliğinden güncellenir; hemen almak için Store'u aç.\n\n[Release notes](https://github.com/" + $repo + "/releases/tag/v" + $v + ")"),
+              description: ($text + "\n\n[Release notes](https://github.com/" + $repo + "/releases/tag/v" + $v + ")"),
               thumbnail: { url: ("https://raw.githubusercontent.com/" + $repo + "/main/docs/logo.png") }
             }]
           }' > payload.json
           curl -fsS --retry 3 -H "Content-Type: application/json" -d @payload.json "$WEBHOOK" > /dev/null
           echo "announced v$VERSION"
-
-      - name: Remember
-        if: steps.store.outputs.version != '' && steps.seen.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: announced
-          key: store-announced-${{ steps.store.outputs.version }}
