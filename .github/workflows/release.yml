@@ -21,6 +21,7 @@ jobs:
     # aynen tamamlanır.
     env:
       SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
     steps:
       # Etiketten tetiklendiyse etiketli commit, elle tetiklendiyse workflow'un
       # çalıştığı dal (etiket henüz yoksa release onu bu commit'te oluşturur).
@@ -108,6 +109,7 @@ jobs:
           mv "signed/$EXE" "$EXE"
 
       - name: Release'i yayınla
+        id: publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -119,11 +121,31 @@ jobs:
           # Etiket için elle yazılmış not varsa onu kullan; her hâlükârda
           # dosya özetini ekle (README indirilen exe'nin SHA-256'sını vaat ediyor).
           if [ -f "$NOTES" ]; then cat "$NOTES" > "$BODY"; fi
-          printf '\n## Dosya özeti\n\n```\n%s  %s\n```\n' "$SHA" "$EXE" >> "$BODY"
+          printf '\n## SHA-256\n\n```\n%s  %s\n```\n' "$SHA" "$EXE" >> "$BODY"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$EXE" --clobber
             gh release edit "$TAG" --notes-file "$BODY"
           else
-            gh release create "$TAG" "$EXE" --title "PoE2 Filtre $TAG" \
+            gh release create "$TAG" "$EXE" --title "MrW Overlay for POE 2 $TAG" \
               --target "${{ github.sha }}" --notes-file "$BODY"
+            echo "created=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # Yeni release Discord'daki duyuru kanalına gider (yalnız ilk yayında;
+      # aynı etiketin yeniden derlenmesi tekrar duyurmaz). Not dosyasının
+      # başlığı çıkar, ## başlıklar kalın satıra döner.
+      - name: Discord'a duyur
+        if: steps.publish.outputs.created == 'true' && env.DISCORD_WEBHOOK != ''
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          NOTES=".github/release-notes/$TAG.md"
+          touch "$NOTES"
+          grep -v '^# ' "$NOTES" | sed -E 's/^## (.*)/**\1**/' | head -c 3500 | iconv -c -f utf-8 -t utf-8 > discord-notes.md
+          jq -n --arg tag "$TAG" --rawfile notes discord-notes.md \
+            --arg url "https://github.com/${{ github.repository }}/releases/tag/$TAG" \
+            --arg logo "https://raw.githubusercontent.com/${{ github.repository }}/main/docs/logo.png" '{
+              username: "MrW Overlay",
+              embeds: [{ title: ("MrW Overlay for POE 2 " + $tag), url: $url, color: 13150830,
+                         description: $notes, thumbnail: { url: $logo } }]
+            }' > discord.json
+          curl -fsS --retry 3 -H "Content-Type: application/json" -d @discord.json "$DISCORD_WEBHOOK" > /dev/null
