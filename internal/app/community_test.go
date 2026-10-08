@@ -19,6 +19,9 @@ func TestCommunityLinksOnlyOpenFixedAddresses(t *testing.T) {
 			t.Errorf("%s link %q is not https", kind, url)
 		}
 	}
+	if got := communityURL("discord"); got != "https://discord.gg/835k5r4k8k" {
+		t.Errorf("discord link = %q", got)
+	}
 	if got := communityURL("support"); got != "https://buymeacoffee.com/mrworth" {
 		t.Errorf("support link = %q", got)
 	}

@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Discord
+    url: https://discord.gg/835k5r4k8k
+    about: Chat with other players, ask quick questions and follow updates.
   - name: Questions and ideas
     url: https://github.com/kadircelebi/mrw-overlay-poe2/discussions
     about: Ask how something works or share ideas in Discussions.

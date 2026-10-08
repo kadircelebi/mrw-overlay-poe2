@@ -10,7 +10,7 @@ import (
 // a link goes live by filling it in here. Support goes to Buy Me a Coffee:
 // players can give without any account (GitHub Sponsors needs a GitHub one).
 const (
-	discordURL = ""
+	discordURL = "https://discord.gg/835k5r4k8k"
 	supportURL = "https://buymeacoffee.com/mrworth"
 	siteURL    = "https://poe2.mrwproject.com/"
 )

@@ -12,6 +12,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
   <a href="https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn"><img src="https://img.shields.io/badge/Chrome_Web_Store-approved-4285F4?logo=googlechrome&logoColor=white" alt="Chrome Web Store"></a>
   <a href="https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc"><img src="https://img.shields.io/badge/Edge_Add--ons-approved-0078D7?logo=microsoftedge&logoColor=white" alt="Edge Add-ons"></a>
   <a href="https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/"><img src="https://img.shields.io/badge/Firefox_Add--ons-approved-FF7139?logo=firefoxbrowser&logoColor=white" alt="Firefox Add-ons"></a>
+  <a href="https://discord.gg/835k5r4k8k"><img src="https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20TR%20%7C%20%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-555" alt="English, Turkish, Traditional Chinese">
 </p>
 
@@ -140,7 +141,7 @@ MrW Overlay is free and will stay free. It takes a lot of evenings to keep it in
 
 <p><a href="https://buymeacoffee.com/mrworth"><img src="docs/bmc-button.svg" alt="Buy me a coffee" height="40"></a> <a href="https://github.com/sponsors/kadircelebi"><img src="https://img.shields.io/badge/GitHub_Sponsors-kadircelebi-EA4AAA?logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a></p>
 
-Found a bug or have an idea? [Open an issue](../../issues/new/choose).
+Found a bug or have an idea? [Open an issue](../../issues/new/choose), or come say hi on [Discord](https://discord.gg/835k5r4k8k).
 
 ## Privacy
 

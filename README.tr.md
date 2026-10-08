@@ -12,6 +12,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
   <a href="https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn"><img src="https://img.shields.io/badge/Chrome_Web_Store-onayl%C4%B1-4285F4?logo=googlechrome&logoColor=white" alt="Chrome Web Store"></a>
   <a href="https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc"><img src="https://img.shields.io/badge/Edge_Add--ons-onayl%C4%B1-0078D7?logo=microsoftedge&logoColor=white" alt="Edge Add-ons"></a>
   <a href="https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/"><img src="https://img.shields.io/badge/Firefox_Add--ons-onayl%C4%B1-FF7139?logo=firefoxbrowser&logoColor=white" alt="Firefox Add-ons"></a>
+  <a href="https://discord.gg/835k5r4k8k"><img src="https://img.shields.io/badge/Discord-kat%C4%B1l-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
   <img src="https://img.shields.io/badge/diller-EN%20%7C%20TR%20%7C%20%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-555" alt="İngilizce, Türkçe, Geleneksel Çince">
 </p>
 
@@ -140,7 +141,7 @@ MrW Overlay ücretsizdir ve öyle kalacak. Her yamaya ve her lige yetiştirmek �
 
 <p><a href="https://buymeacoffee.com/mrworth"><img src="docs/bmc-button.svg" alt="Buy me a coffee" height="40"></a> <a href="https://github.com/sponsors/kadircelebi"><img src="https://img.shields.io/badge/GitHub_Sponsors-kadircelebi-EA4AAA?logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a></p>
 
-Hata mı buldun, aklına bir fikir mi geldi? [Issue aç](../../issues/new/choose).
+Hata mı buldun, aklına bir fikir mi geldi? [Issue aç](../../issues/new/choose) ya da [Discord](https://discord.gg/835k5r4k8k)'a uğra.
 
 ## Gizlilik
 
