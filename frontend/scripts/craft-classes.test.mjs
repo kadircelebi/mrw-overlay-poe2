@@ -28,7 +28,8 @@ test('every class page has real weights and takes basic currency', () => {
   for (const { cls, page } of pages) {
     const data = datasets[page];
     const normal = data.mods.filter(m => m.pool === 'normal' && ['Prefix', 'Suffix'].includes(m.affix));
-    assert.ok(normal.some(m => m.weight > 1), `${page}: placeholder weights`);
+    // Jewel modifiers really are equally likely (equalWeights).
+    assert.ok(data.equalWeights || normal.some(m => m.weight > 1), `${page}: placeholder weights`);
     assert.ok(!data.tags.includes('default'), `${page}: 'default' would let every essence variant through`);
     let item = setRarity(createItem(page), 'Rare');
     for (let i = 0; i < 4; i++) item = applyCurrency(item, data, 'exalted', rules.exalted, seq());
@@ -46,9 +47,11 @@ test('bones and essences follow the item class', () => {
     const bones = Object.entries(special).filter(([, r]) => r.operation === 'desecrate' && applicable(r, data)).map(([id]) => id.split('-')[1]);
     assert.deepEqual([...new Set(bones)], [kind], itemClass);
   }
-  // Every class but a few has an essence that fits it, and using one works.
+  // Every equipment class has an essence that fits it, and using one works;
+  // jewels take none.
   for (const { page } of pages) {
     const data = datasets[page];
+    if (data.equalWeights) continue;
     const essences = Object.entries(special).filter(([, r]) => r.operation === 'essence' && !r.removes &&
       applicable(r, data) && essenceRows(data, r).length);
     assert.ok(essences.length, `${page}: no essence`);

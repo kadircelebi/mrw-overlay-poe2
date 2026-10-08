@@ -15,6 +15,8 @@ craft data page ("Helmets (STR/DEX)" → Helmets_str_dex).
     curl -A "MrW-Overlay-CraftData/0.2 (+github)" \
         "https://beta.craftofexile.com/json/poe2/<version>/localization/english.json" -o coe-en.json
     python build/craft/extract_special_weights.py coe.json coe-en.json "<data file URL and date>"
+
+An optional fourth argument writes somewhere else (refresh_data.py stages it).
 """
 import json
 import pathlib
@@ -60,7 +62,8 @@ def main():
                 continue
             pages.setdefault(classes[class_id], {})[key] = weight
             counts[pool].add(key)
-    OUT.write_text(json.dumps({
+    out = pathlib.Path(sys.argv[4]) if len(sys.argv) > 4 else OUT
+    out.write_text(json.dumps({
         'source': 'Craft of Exile (https://www.craftofexile.com), weights measured by Krakenbul '
                   'and the Prohibited Library Discord',
         'data_file': sys.argv[3] if len(sys.argv) > 3 else '',

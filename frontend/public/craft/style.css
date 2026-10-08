@@ -115,6 +115,8 @@ body.holding, body.holding * { cursor: none !important; }
 #status.success { color: var(--ok); }
 .filters { padding: var(--space-md); display: grid; gap: var(--space-sm); }
 .pool-note { padding: 0 var(--space-md) var(--space-sm); }
+.weight-note { font-size: .74rem; opacity: .85; }
+.weight-mark { margin-left: 3px; padding: 0 3px; border: 1px solid currentColor; border-radius: 3px; font-size: .9em; cursor: help; }
 .affix-columns { display: grid; min-width: 0; }
 .affix-columns > section { min-width: 0; }
 .affix-head { border-block: 1px solid var(--steel); padding: var(--space-sm) var(--space-md); display: flex; gap: var(--space-xs); justify-content: space-between; }

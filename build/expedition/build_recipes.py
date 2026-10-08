@@ -69,6 +69,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--page', help='saved Runeshape_Combinations page')
     ap.add_argument('--fetch', action='store_true', help='download the page instead')
+    ap.add_argument('--out', type=pathlib.Path, default=OUT)
     args = ap.parse_args()
     if args.fetch:
         req = urllib.request.Request(URL, headers={'User-Agent': 'MrW-Overlay-POE2 (https://github.com/kadircelebi/mrw-overlay-poe2)'})
@@ -86,9 +87,9 @@ def main():
         'built': datetime.date.today().isoformat(),
         'recipes': recipes,
     }
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
-    print(f'{len(recipes)} recipes, {len({r["reward"] for r in recipes})} rewards -> {OUT}')
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(out, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
+    print(f'{len(recipes)} recipes, {len({r["reward"] for r in recipes})} rewards -> {args.out}')
 
 
 if __name__ == '__main__':

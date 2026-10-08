@@ -726,11 +726,24 @@ function listOdds() {
 }
 const pct = p => `${num(p * 100, p < 0.001 ? 4 : 3)}%`;
 
+// A mark beside a weight no source is sure of: "?" unknown (every source gives
+// 1), "≈" disputed (PoE2DB and Craft of Exile disagree; PoE2DB's is used).
+function weightMark(row) {
+  const note = row.weightNote;
+  if (!note) return null;
+  const mark = element('span', note.kind === 'disputed' ? '≈' : '?', 'weight-mark');
+  mark.title = note.kind === 'disputed' ? t('weight.disputed', row.weight, note.alt) : t('weight.unknown');
+  return mark;
+}
+
 function renderMods() {
   renderPools();
   const chance = listOdds();
   $('odds-note').textContent = !chance ? t('odds.share') : chance.reason ? t('odds.cannot', chance.name, chance.reason)
     : t(`odds.${chance.kind}`, chance.name) + (chance.minimum > 1 ? t('odds.minimum', chance.minimum) : '');
+  const poolRows = data().mods.filter(m => m.pool === pool);
+  $('weight-note').textContent = t('weight.source') +
+    (poolRows.length && poolRows.every(m => m.weightNote?.kind === 'unknown') ? ' ' + t('weight.unknownPool') : '');
   const open = new Set([...document.querySelectorAll('details[open]')].map(n => n.dataset.family));
   const search = $('search').value.trim().toLowerCase();
   let listEffects = {side:null,tags:[],quantity:1};
@@ -784,7 +797,11 @@ function renderMods() {
         const weight = potential.find(m => m.source_id === row.source_id)?.weight ?? row.weight;
         const share = chance?.odds ? (chance.odds.get(row.source_id) ? pct(chance.odds.get(row.source_id)) : '—')
           : eligible && total ? `${num(weight / total * 100, 3)}%` : '—';
-        description.append(element('small', `${row.name} · ilvl ${row.required_ilvl} · w ${row.weight} · ${share}`));
+        const facts = element('small', `${row.name} · ilvl ${row.required_ilvl} · w ${row.weight}`);
+        const note = weightMark(row);
+        if (note) facts.append(note);
+        facts.append(` · ${share}`);
+        description.append(facts);
         const button = element('button', active ? '✓' : existing ? '↔' : '+');
         const reason = manualReason(existing ? removeMod(item, existingIndex) : item, row);
         button.disabled = active || Boolean(reason);

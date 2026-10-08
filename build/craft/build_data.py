@@ -83,6 +83,11 @@ SPECIAL_WEIGHTS = pathlib.Path(__file__).resolve().parent / 'special-weights.jso
 # Normal modifiers PoE2DB gives weight 1 because it does not know theirs (Cast
 # Speed on rings and amulets, ...); the weights come from Craft of Exile.
 WEIGHT_OVERRIDES = pathlib.Path(__file__).resolve().parent / 'weight-overrides.json'
+# Rows whose weight is uncertain, for the craft window's marker: "disputed"
+# (PoE2DB and Craft of Exile both give a real weight and disagree; PoE2DB's is
+# kept, Craft of Exile's goes along as "alt") and "unknown" (no source knows
+# it; desecrated modifiers). Written by refresh_data.py, keyed by source_id.
+WEIGHT_NOTES = pathlib.Path(__file__).resolve().parent / 'weight-notes.json'
 FIELDS = ['source_id', 'pool', 'affix', 'name', 'families', 'tier', 'required_ilvl',
           'weight', 'text', 'ranges', 'tags', 'spawn_tags']
 
@@ -234,6 +239,9 @@ def main():
     parser.add_argument('--out', type=pathlib.Path, default=OUT)
     parser.add_argument('--jewels', type=pathlib.Path,
                         help='scraper output for the jewel pages (JEWEL_PAGES)')
+    parser.add_argument('--overrides', type=pathlib.Path, default=WEIGHT_OVERRIDES)
+    parser.add_argument('--special-weights', type=pathlib.Path, default=SPECIAL_WEIGHTS)
+    parser.add_argument('--weight-notes', type=pathlib.Path, default=WEIGHT_NOTES)
     args = parser.parse_args()
     base_items = read(args.base_items)
     scraped_manifest = read(args.scraped / 'manifest.json')
@@ -241,10 +249,11 @@ def main():
     for old in args.out.glob('*.mods.json'):
         old.unlink()
 
-    weights_file = read(SPECIAL_WEIGHTS)
+    weights_file = read(args.special_weights)
     special_weights = weights_file['pages']
-    overrides_file = read(WEIGHT_OVERRIDES)
+    overrides_file = read(args.overrides)
     overrides = overrides_file['pages']
+    notes = read(args.weight_notes)['pages'] if args.weight_notes.exists() else {}
     classes, pages_used, essences, bases, page_bases, rune_pages = [], [], {}, {}, {}, {}
     for cid, item_class, category, repoe_class, (stem, attrs) in CLASSES:
         common = class_tags(base_items, repoe_class)
@@ -269,7 +278,11 @@ def main():
             unknown = [r['text'] for r in rows
                        if r['pool'] == 'normal' and r['affix'] in ('Prefix', 'Suffix') and r['weight'] <= 1]
             if unknown:
-                raise SystemExit(f'{page}: no weight for {unknown}; add them to {WEIGHT_OVERRIDES.name}')
+                raise SystemExit(f'{page}: no weight for {unknown}; add them to {args.overrides.name}')
+            page_notes = notes.get(page, {})
+            for r in rows:
+                if r['source_id'] in page_notes:
+                    r['weightNote'] = page_notes[r['source_id']]
             measured = special_weights.get(page, {})
             for m in mods['mods']:
                 if m['pool'] in RUNE_POOLS and measured.get(m['source_id']):
@@ -380,8 +393,8 @@ def main():
         'fetched_at_utc': scraped_manifest['fetched_at_utc'],
         'built_at_utc': now,
         'scope': pages_used,
-        'sources': [s for m in [scraped_manifest, jewel_manifest] if m for s in m['sources']
-                    if s['url'] in wanted or 'ModsView' in s['url']],
+        'sources': list({s['url']: s for m in [scraped_manifest, jewel_manifest] if m for s in m['sources']
+                         if s['url'] in wanted or 'ModsView' in s['url']}.values()),
         **({'jewels_fetched_at_utc': jewel_manifest['fetched_at_utc']} if jewel_manifest else {}),
         'license': 'CC BY-NC-SA 3.0, data from https://poe2db.tw (see LICENSE.txt)',
         'rune_weights': {'source': weights_file['source'], 'data_file': weights_file['data_file']},

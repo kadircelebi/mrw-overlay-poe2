@@ -59,7 +59,7 @@ test('desecrated affixes keep their mark; unique and unknown classes are refused
   assert.equal(kurgal.text, '+(3—5)% to Quality of all Skills'); assert.equal(kurgal.desecrated, true);
   assert.deepEqual(kurgal.values, [5], 'a roll above the range is clamped');
   assert.equal(pageFor({ ...amulet, rarity: 'unique' }, classData).error, 'unique');
-  assert.equal(pageFor({ ...amulet, class: 'Jewels' }, classData).error, 'class');
+  assert.equal(pageFor({ ...amulet, class: 'Life Flasks' }, classData).error, 'class');
 });
 
 test('an unknown base still opens the class, flagged as a guess', () => {
