@@ -106,6 +106,13 @@ Then:
 
 Windows 10/11 with WebView2 (built into Windows 11). Settings live in `%APPDATA%\PoE2Filtre`, shared by both builds.
 
+### Uninstall
+
+- **Microsoft Store:** Windows Settings → Apps → Installed apps → MrW Overlay for POE 2 → Uninstall.
+- **GitHub exe:** if you turned on **Run at Windows startup**, turn it off in the app's settings first. Then right-click the tray icon → **Quit** and delete the exe.
+
+To remove your settings too, delete `%APPDATA%\PoE2Filtre`. The generated filter is `auto_updated.filter` in `Documents\My Games\Path of Exile 2`; delete it if you no longer want it in game.
+
 ### Browser extension (optional)
 For live search, hideout travel and bigger searches, the app needs your pathofexile.com session. A small extension hands it over: [Chrome](https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn) · [Edge](https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc) · [Firefox](https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/). It only acts when you press **Settings → Account → Connect browser**. It reads the session cookie and your account name and passes them to the app on your own PC (`127.0.0.1`). It never asks for your password and never changes the page. Source: [`browser-extension/`](browser-extension/).
 
@@ -145,7 +152,16 @@ It reads public data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout
 - **Public profiles:** these are optional. Only publishing or following talks to the MrW Overlay profile server (`profiles.mrwproject.com`). Publishing makes the profile's filter settings, its name, description and tags, and your account name (as the author) public. League, language, file paths, sound files, your session and price settings are never sent. Following stores a hash of a random install key, plus a salted hash of the IP (not the IP itself) to limit abuse. Unpublishing deletes the profile and its followers.
 - **Price check:** this is off by default. When you press the hotkey, the app copies that item's text with the game's copy command and sends a search to the official trade API.
 
-Full policy: [poe2.mrwproject.com](https://poe2.mrwproject.com).
+Full policy: [poe2.mrwproject.com](https://poe2.mrwproject.com/privacy/).
+
+## Code signing policy
+
+The GitHub release exe is built from this repository by GitHub Actions ([release workflow](.github/workflows/release.yml)). No release binary is built or uploaded by hand, and every release is approved before it is published.
+
+- Committers and reviewers: [kadircelebi](https://github.com/kadircelebi)
+- Approvers: [kadircelebi](https://github.com/kadircelebi)
+
+Pull requests from other contributors are reviewed before they are merged. Privacy: see [Privacy](#privacy) above and the [full privacy policy](https://poe2.mrwproject.com/privacy/).
 
 ## For developers
 

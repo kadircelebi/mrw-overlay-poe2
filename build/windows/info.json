@@ -7,10 +7,10 @@
     "0409": {
       "ProductName": "MrW Overlay for POE 2",
       "ProductVersion": "2.14.1",
-      "CompanyName": "kadir",
+      "CompanyName": "kadircelebi",
       "FileDescription": "MrW Overlay for POE 2",
-      "LegalCopyright": "(c) 2026",
-      "Comments": "Canlı piyasa fiyatlarıyla güncellenen PoE2 loot filtresi"
+      "LegalCopyright": "Copyright (c) 2026 kadircelebi",
+      "Comments": "Path of Exile 2 companion: a loot filter that follows live prices"
     }
   }
 }

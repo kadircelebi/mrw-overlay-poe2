@@ -106,6 +106,13 @@ Sonra:
 
 Windows 10/11 ve WebView2 gerekir (Windows 11'de hazır gelir). Ayarlar `%APPDATA%\PoE2Filtre` altında durur, iki sürüm de aynı klasörü kullanır.
 
+### Kaldırma
+
+- **Microsoft Store:** Windows Ayarlar → Uygulamalar → Yüklü uygulamalar → MrW Overlay for POE 2 → Kaldır.
+- **GitHub exe:** **Windows başlangıcında çalıştır**'ı açtıysan önce uygulamanın ayarlarından kapat. Sonra tepsi simgesine sağ tıkla → **Çıkış** ve exe'yi sil.
+
+Ayarlarını da silmek için `%APPDATA%\PoE2Filtre` klasörünü sil. Üretilen filtre `Belgeler\My Games\Path of Exile 2` altındaki `auto_updated.filter`; oyunda artık istemiyorsan onu da sil.
+
 ### Tarayıcı eklentisi (isteğe bağlı)
 Canlı arama, hideout'a gitme ve daha büyük aramalar için uygulamanın pathofexile.com oturumuna ihtiyacı var. Bunu küçük bir eklenti aktarır: [Chrome](https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn) · [Edge](https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc) · [Firefox](https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/). Eklenti yalnız sen **Ayarlar → Hesap → Tarayıcıyla bağlan**'ya bastığında devreye girer. Oturum çerezini ve hesap adını okuyup kendi bilgisayarındaki uygulamaya (`127.0.0.1`) verir. Asla şifre istemez ve sayfayı değiştirmez. Kaynak kodu: [`browser-extension/`](browser-extension/).
 
@@ -146,6 +153,15 @@ Herkese açık veriyi okur: fiyatları [poe.ninja](https://poe.ninja/) ve [poe2s
 - **Fiyat sorgulama:** varsayılan olarak kapalıdır. Kısayola bastığında uygulama eşyanın metnini oyunun kopyalama komutuyla alır ve resmi trade API'sine bir arama gönderir.
 
 Gizlilik politikasının tamamı: [poe2.mrwproject.com](https://poe2.mrwproject.com/tr/).
+
+## Kod imzalama politikası
+
+GitHub sürümündeki exe bu depodan GitHub Actions ile derlenir ([release workflow](.github/workflows/release.yml)). Hiçbir sürüm dosyası elle derlenip yüklenmez ve her sürüm yayınlanmadan önce onaylanır.
+
+- Commit yetkisi ve inceleme: [kadircelebi](https://github.com/kadircelebi)
+- Onay: [kadircelebi](https://github.com/kadircelebi)
+
+Başka katkıcılardan gelen pull request'ler birleştirilmeden önce incelenir. Gizlilik: yukarıdaki [Gizlilik](#gizlilik) bölümü ve [gizlilik politikasının tamamı](https://poe2.mrwproject.com/tr/).
 
 ## Geliştiriciler için
 
