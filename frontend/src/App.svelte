@@ -9,6 +9,7 @@
   import AccountLink from './lib/AccountLink.svelte'
   import PublicProfiles from './lib/PublicProfiles.svelte'
   import AccountBadge from './lib/AccountBadge.svelte'
+  import LeagueMenu from './lib/LeagueMenu.svelte'
   import Segmented from './lib/Segmented.svelte'
   import ListEditor from './lib/ListEditor.svelte'
   import ExoticGroup from './lib/ExoticGroup.svelte'
@@ -545,6 +546,46 @@
     return { tone: 'idle', title: t('status.never'), sub: '' }
   })
 
+  // The picker's value for the automatic league; no real league has this name.
+  const AUTO_LEAGUE = '__auto__'
+
+  // Automatic keeps the engine's pick in league_name, which the reply to the
+  // save fills in; a hand-picked league turns automatic off.
+  function pickLeague(value: string) {
+    if (!cfg) return
+    if (value === AUTO_LEAGUE) cfg.league_auto = true
+    else {
+      cfg.league_auto = false
+      cfg.league_name = value
+    }
+    queueSave()
+  }
+
+  // The header menu saves at once and rewrites the filter for the new league:
+  // switching league there means wanting its prices now.
+  async function switchLeague(value: string) {
+    if (!cfg) return
+    if (value === AUTO_LEAGUE) cfg.league_auto = true
+    else {
+      cfg.league_auto = false
+      cfg.league_name = value
+    }
+    clearTimeout(saveTimer)
+    const seq = ++saveSeq
+    saveState = 'saving'
+    try {
+      const saved = await AppService.SaveConfig($state.snapshot(cfg) as Config)
+      if (seq !== saveSeq) return
+      cfg = saved
+      dirty = false
+      saveState = 'idle'
+      await updateNow()
+    } catch {
+      saveState = 'error'
+    }
+    st = await AppService.GetState()
+  }
+
   // The configured league is always offered, even if the live list lost it.
   const leagueOptions = $derived.by(() => {
     const list = leagues.length ? [...leagues] : []
@@ -554,6 +595,7 @@
   })
   const leagueUnlisted = $derived(
     !!cfg?.league_name &&
+      !cfg.league_auto &&
       leagues.length > 0 &&
       !leagues.some((l) => l.toLowerCase() === cfg!.league_name.toLowerCase()),
   )
@@ -935,7 +977,16 @@
       <img src="/emblem.png" alt="" class="emblem" />
       <div class="brand">
         <h1 lang="en">{t('app.title')}</h1>
-        {#if cfg}<span class="league">{cfg.league_name}</span>{/if}
+        {#if cfg}
+          <LeagueMenu
+            league={cfg.league_name}
+            auto={cfg.league_auto}
+            unlisted={leagueUnlisted}
+            options={leagueOptions}
+            AUTO={AUTO_LEAGUE}
+            onpick={switchLeague}
+          />
+        {/if}
       </div>
       <AccountBadge />
       <button class="icon" title={t('header.settings')} aria-label={t('header.settings')} onclick={() => AppService.ShowSettings('')}>
@@ -1814,7 +1865,13 @@
                     </label>
                     <label class="field">
                       <span>{t('general.league')}</span>
-                      <select bind:value={cfg.league_name} onchange={() => queueSave()}>
+                      <select
+                        value={cfg.league_auto ? AUTO_LEAGUE : cfg.league_name}
+                        onchange={(e) => pickLeague(e.currentTarget.value)}
+                      >
+                        <option value={AUTO_LEAGUE}>
+                          {cfg.league_auto ? t('general.leagueAutoNow', cfg.league_name) : t('general.leagueAuto')}
+                        </option>
                         {#each leagueOptions as l (l)}
                           <option value={l}>{l}</option>
                         {/each}
@@ -1909,13 +1966,6 @@
     text-transform: uppercase;
     white-space: nowrap;
     color: var(--gold-bright);
-  }
-  .league {
-    color: var(--muted);
-    font-size: 11.5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   .save {
     font-size: 11px;

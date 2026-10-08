@@ -40,10 +40,15 @@ var en = map[string]string{
 	"log.written":           "Filter written: %d valuable currency, %d unique bases, %d exceptional",
 
 	// Notification
-	"notify.title":          "Filter updated",
-	"notify.body":           "%s.filter is ready. Use Item Filter → Reload in game.",
-	"notify.appUpdateTitle": "Application update available",
-	"notify.appUpdateBody":  "Version %s is ready to download.",
+	"notify.title":           "Filter updated",
+	"notify.body":            "%s.filter is ready. Use Item Filter → Reload in game.",
+	"notify.leagueTitle":     "Now following %s",
+	"notify.leagueGoneTitle": "League no longer listed",
+	"notify.leagueGoneBody":  "%s is not on the trade site's league list. Pick the current league in Settings → General, or choose Automatic.",
+	"log.leagueSwitched":     "New league: %s → %s (automatic league). The filter is being updated for it.",
+	"log.leagueGone":         "[Warning] %s is no longer on the trade site's league list; prices may be stale. Pick a league in Settings → General.",
+	"notify.appUpdateTitle":  "Application update available",
+	"notify.appUpdateBody":   "Version %s is ready to download.",
 
 	// Errors shown in the panel
 	"err.updateRunning":     "an update is already running",

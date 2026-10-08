@@ -33,6 +33,9 @@ type Options struct {
 	OutPath  string                   // write the filter here instead of the game folder
 	OnChange func()                   // called (possibly often) when State changes
 	Notify   func(title, body string) // desktop notification, may be nil
+	// OnConfig is called when the engine changes the settings by itself (the
+	// automatic league), so open windows can drop their copy. May be nil.
+	OnConfig func(filter.Config)
 }
 
 // RunResult summarises the last successful filter write.
@@ -115,6 +118,16 @@ type Engine struct {
 	leagueMu  sync.Mutex
 	leagues   []string
 	leaguesAt time.Time
+	// leaguesTried is the last fetch attempt; a failed one waits
+	// leagueRetryDelay before the next.
+	leaguesTried time.Time
+	// autoLeague is the last collector.AutoLeague pick, the league an
+	// automatic config follows. goneNotified is the hand-picked league whose
+	// leaving the list was already announced. leagueSwitched names the league
+	// just switched to, for the next "filter updated" notification.
+	autoLeague     string
+	goneNotified   string
+	leagueSwitched string
 
 	profileMu sync.Mutex
 
@@ -145,6 +158,9 @@ func New(opt Options) *Engine {
 	e.shared.LoadCached(e.cfg.LeagueName)
 	_ = e.cfg.Save(e.configPath()) // persist migrated format
 	e.loadLeagues()
+	if e.autoLeague == "" && e.cfg.LeagueAuto {
+		e.autoLeague = e.cfg.LeagueName
+	}
 	if b, err := os.ReadFile(e.filterKeyPath()); err == nil {
 		e.writtenKey = strings.TrimSpace(string(b))
 	}
@@ -192,12 +208,22 @@ func (e *Engine) Config() filter.Config {
 }
 
 // SetConfig validates, saves and applies new settings.
-// leagueListTTL is how long a fetched league list is considered fresh.
-const leagueListTTL = 6 * time.Hour
+// leagueListTTL is how long a fetched league list is considered fresh. The
+// schedule checks it between filter updates too, so a new league is picked up
+// within the hour.
+const leagueListTTL = time.Hour
+
+// fetchLeagues is collector.FetchLeagues; tests replace it.
+var fetchLeagues = collector.FetchLeagues
+
+// leagueRetryDelay spaces out fetches while the league list cannot be had.
+const leagueRetryDelay = 10 * time.Minute
 
 type leagueCache struct {
-	FetchedAt time.Time `json:"fetched_at"`
-	Leagues   []string  `json:"leagues"`
+	FetchedAt    time.Time `json:"fetched_at"`
+	Leagues      []string  `json:"leagues"`
+	Auto         string    `json:"auto,omitempty"`
+	GoneNotified string    `json:"gone_notified,omitempty"`
 }
 
 func (e *Engine) leaguesPath() string { return filepath.Join(e.dataDir, "leagues.json") }
@@ -215,32 +241,90 @@ func (e *Engine) loadLeagues() {
 	}
 	e.leagueMu.Lock()
 	e.leagues, e.leaguesAt = lc.Leagues, lc.FetchedAt
+	e.autoLeague, e.goneNotified = lc.Auto, lc.GoneNotified
 	e.leagueMu.Unlock()
 }
 
-// refreshLeagues fetches the live league list when the cached one is stale.
-// A failure keeps whatever we already have: the list is a convenience, and the
-// user's own league choice is never touched by it.
-func (e *Engine) refreshLeagues(ctx context.Context) {
+// leagueListStale reports whether the league list is due for a refresh.
+func (e *Engine) leagueListStale() bool {
 	e.leagueMu.Lock()
-	fresh := len(e.leagues) > 0 && time.Since(e.leaguesAt) < leagueListTTL
-	e.leagueMu.Unlock()
-	if fresh {
-		return
+	defer e.leagueMu.Unlock()
+	if time.Since(e.leaguesTried) < leagueRetryDelay {
+		return false
 	}
-	list, err := collector.FetchLeagues(ctx, nil)
+	return len(e.leagues) == 0 || time.Since(e.leaguesAt) >= leagueListTTL
+}
+
+// refreshLeagues fetches the live league list when the cached one is stale
+// and moves an automatic config to the current league. A hand-picked league
+// is never changed; when it leaves the list the player is told once. A failed
+// fetch keeps whatever we already have. It reports whether the league changed.
+func (e *Engine) refreshLeagues(ctx context.Context) bool {
+	if !e.leagueListStale() {
+		return false
+	}
+	e.leagueMu.Lock()
+	e.leaguesTried = time.Now()
+	e.leagueMu.Unlock()
+	list, err := fetchLeagues(ctx, nil)
 	if err != nil {
 		e.logf("%s", i18n.T("log.leaguesFailed", err))
-		return
+		return false
 	}
+	cfg := e.Config()
 	now := time.Now()
 	e.leagueMu.Lock()
+	known := e.leagues // nil before the first fetch: nothing counts as new
+	prev := e.autoLeague
+	if prev == "" && cfg.LeagueAuto {
+		prev = cfg.LeagueName
+	}
+	e.autoLeague = collector.AutoLeague(list, known, prev)
 	e.leagues, e.leaguesAt = list, now
+	pick := e.autoLeague
+	gone := !cfg.LeagueAuto && !containsFold(list, cfg.LeagueName) && !strings.EqualFold(e.goneNotified, cfg.LeagueName)
+	if gone {
+		e.goneNotified = cfg.LeagueName
+	}
+	lc := leagueCache{FetchedAt: now, Leagues: list, Auto: e.autoLeague, GoneNotified: e.goneNotified}
 	e.leagueMu.Unlock()
-	if data, err := json.MarshalIndent(leagueCache{FetchedAt: now, Leagues: list}, "", "  "); err == nil {
+	if data, err := json.MarshalIndent(lc, "", "  "); err == nil {
 		_ = prices.WriteFileAtomic(e.leaguesPath(), data)
 	}
+
+	switched := false
+	switch {
+	case cfg.LeagueAuto && pick != "" && !strings.EqualFold(pick, cfg.LeagueName):
+		old := cfg.LeagueName
+		if saved, err := e.SetConfig(cfg); err == nil { // SetConfig puts the pick in
+			switched = true
+			e.leagueMu.Lock()
+			e.leagueSwitched = saved.LeagueName
+			e.leagueMu.Unlock()
+			e.logf("%s", i18n.T("log.leagueSwitched", old, saved.LeagueName))
+			if e.opt.OnConfig != nil {
+				e.opt.OnConfig(saved)
+			}
+		} else {
+			e.logf("[HATA] %v", err)
+		}
+	case gone:
+		e.logf("%s", i18n.T("log.leagueGone", cfg.LeagueName))
+		if cfg.NotifyEnabled && e.opt.Notify != nil {
+			e.opt.Notify(i18n.T("notify.leagueGoneTitle"), i18n.T("notify.leagueGoneBody", cfg.LeagueName))
+		}
+	}
 	e.changed()
+	return switched
+}
+
+func containsFold(list []string, name string) bool {
+	for _, l := range list {
+		if strings.EqualFold(l, name) {
+			return true
+		}
+	}
+	return false
 }
 
 // Leagues returns the leagues on offer: the live list when one was fetched,
@@ -248,6 +332,18 @@ func (e *Engine) refreshLeagues(ctx context.Context) {
 // writes LeagueName, so the user's choice survives an ended league, a renamed
 // one or a failed fetch. Front ends keep the configured league selectable even
 // when this list no longer carries it.
+// currentAutoLeague is the league an automatic config follows: the last pick,
+// or the head of the known list when nothing was picked yet (the player just
+// switched from a hand-picked league). "" when no list was ever fetched.
+func (e *Engine) currentAutoLeague() string {
+	e.leagueMu.Lock()
+	defer e.leagueMu.Unlock()
+	if e.autoLeague == "" {
+		e.autoLeague = collector.AutoLeague(e.leagues, nil, "")
+	}
+	return e.autoLeague
+}
+
 func (e *Engine) Leagues() []string {
 	e.leagueMu.Lock()
 	list := append([]string(nil), e.leagues...)
@@ -260,6 +356,13 @@ func (e *Engine) Leagues() []string {
 
 func (e *Engine) SetConfig(c filter.Config) (filter.Config, error) {
 	c = e.lockFollowed(c)
+	if c.LeagueAuto {
+		// A window or a profile may hold an older league name; an automatic
+		// config always means the current league.
+		if l := e.currentAutoLeague(); l != "" {
+			c.LeagueName = l
+		}
+	}
 	c.Normalize()
 	if err := c.Save(e.configPath()); err != nil {
 		return e.Config(), fmt.Errorf(i18n.T("err.settingsSave"), err)
@@ -348,6 +451,10 @@ func (e *Engine) loop() {
 		last, retryAt, fails := e.lastRunAt, e.retryAt, e.failCount
 		e.stMu.Unlock()
 		switch {
+		case e.leagueListStale() && e.refreshLeagues(context.Background()):
+			if err := e.run(context.Background()); err != nil {
+				e.logf("[HATA] %v", err)
+			}
 		case !retryAt.IsZero() && !time.Now().Before(retryAt):
 			e.logf("%s", i18n.T("log.retry", fails+1))
 			if err := e.run(context.Background()); err != nil {
@@ -448,8 +555,8 @@ func (e *Engine) run(ctx context.Context) (err error) {
 		e.changed()
 	}()
 
+	e.refreshLeagues(ctx) // first: it may move an automatic config to a new league
 	cfg := e.Config()
-	e.refreshLeagues(ctx)
 	e.setStep(0.1, i18n.T("step.neversink"))
 	basePath, err := e.basePath(ctx, cfg)
 	if err != nil {
@@ -568,8 +675,16 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	e.stMu.Unlock()
 	e.logf("%s", i18n.T("log.written", st.ValuableCurrency, st.ValuableUniques, st.ValuableExcept))
 
+	e.leagueMu.Lock()
+	switched := e.leagueSwitched
+	e.leagueSwitched = ""
+	e.leagueMu.Unlock()
 	if cfg.NotifyEnabled && e.opt.Notify != nil {
-		e.opt.Notify(i18n.T("notify.title"), i18n.T("notify.body", cfg.FilterName))
+		if switched != "" {
+			e.opt.Notify(i18n.T("notify.leagueTitle", switched), i18n.T("notify.body", cfg.FilterName))
+		} else {
+			e.opt.Notify(i18n.T("notify.title"), i18n.T("notify.body", cfg.FilterName))
+		}
 	}
 	return nil
 }

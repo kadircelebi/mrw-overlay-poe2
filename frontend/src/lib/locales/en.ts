@@ -93,6 +93,8 @@ export const en: Record<string, string> = {
   // Header
   'app.title': 'MrW Overlay',
   'header.settings': 'Settings',
+  'header.leaguePick': 'Change league',
+  'header.leagueAutoTag': 'auto',
   'header.back': 'Back',
   'header.hide': 'Hide panel',
   'save.saving': 'saving…',
@@ -485,8 +487,10 @@ export const en: Record<string, string> = {
   'general.language': 'Language',
   'general.languageAuto': 'System language ({0})',
   'general.league': 'League',
+  'general.leagueAuto': 'Automatic (current league)',
+  'general.leagueAutoNow': 'Automatic: {0}',
   'general.leagueUnlisted':
-    'This league is not in the current list; your choice is kept, pick a new one if you like.',
+    'This league is no longer on the trade site\'s list, so it has probably ended. Your choice is kept; pick the current league or choose Automatic.',
   'general.filterName': 'Filter name in game',
   'general.filterNameChanged':
     'The filter is now written as {0}.filter, but the game may still have {1} selected. Pick {0} in Options → Item Filter, then Reload.',

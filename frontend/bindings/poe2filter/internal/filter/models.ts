@@ -118,6 +118,12 @@ export interface Config {
     "league_name": string;
 
     /**
+     * LeagueAuto lets the app move LeagueName to the current league
+     * (collector.AutoLeague) whenever the trade league list changes.
+     */
+    "league_auto": boolean;
+
+    /**
      * Base filter: a NeverSink strictness (0..6), or a custom file when set.
      */
     "strictness": number;

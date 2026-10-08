@@ -192,11 +192,11 @@ func (s *Scanner) SetOnChange(f func()) {
 // NewScanner loads (or starts) the persistent scan state.
 func NewScanner(client *Client, statePath string, log func(string)) *Scanner {
 	s := &Scanner{client: client, statePath: statePath, log: log, hotEx: 25, wake: make(chan struct{}, 1), refresh: DefaultRefresh}
-	s.st = scanState{Version: scanStateVersion, League: client.league,
+	s.st = scanState{Version: scanStateVersion, League: client.League(),
 		Classes: map[string]string{}, Keys: map[string]*keyState{}}
 	if data, err := os.ReadFile(statePath); err == nil {
 		var loaded scanState
-		if json.Unmarshal(data, &loaded) == nil && loaded.Version == scanStateVersion && loaded.League == client.league {
+		if json.Unmarshal(data, &loaded) == nil && loaded.Version == scanStateVersion && loaded.League == client.League() {
 			if loaded.Classes == nil {
 				loaded.Classes = map[string]string{}
 			}

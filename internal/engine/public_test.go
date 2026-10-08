@@ -21,7 +21,7 @@ func sharedDoc(t *testing.T, minValue float64, waystone int) publicprofile.Docum
 func TestFollowedProfileIsLockedToTheAuthor(t *testing.T) {
 	e := newTestEngine(t)
 	own := e.Config()
-	own.LeagueName, own.FilterName, own.MinValue = "My League", "mine", 1
+	own.LeagueName, own.LeagueAuto, own.FilterName, own.MinValue = "My League", false, "mine", 1
 	if _, err := e.SetConfig(own); err != nil {
 		t.Fatal(err)
 	}

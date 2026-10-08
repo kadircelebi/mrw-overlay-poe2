@@ -255,7 +255,7 @@ func (c *Client) search(ctx context.Context, in EvaluateRequest) (evaluateSearch
 	}
 	league := strings.TrimSpace(in.League)
 	if league == "" {
-		league = c.league
+		league = c.League()
 	}
 	sortKey, sortDir, err := evaluateSort(in)
 	if err != nil {

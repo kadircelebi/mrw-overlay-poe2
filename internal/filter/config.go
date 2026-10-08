@@ -154,6 +154,9 @@ type Config struct {
 	UncutSupportLevel int    `json:"uncut_support_level"`
 	PinnacleKeys      bool   `json:"boss_keys_and_tablets"`
 	LeagueName        string `json:"league_name"`
+	// LeagueAuto lets the app move LeagueName to the current league
+	// (collector.AutoLeague) whenever the trade league list changes.
+	LeagueAuto bool `json:"league_auto"`
 
 	// Base filter: a NeverSink strictness (0..6), or a custom file when set.
 	Strictness       int    `json:"strictness"`
@@ -216,6 +219,7 @@ func DefaultConfig() Config {
 		UncutSupportLevel: TierHide,
 		PinnacleKeys:      true,
 		LeagueName:        DefaultLeagues[0],
+		LeagueAuto:        true,
 		Strictness:        3,
 		ConfigVersion:     configVersion,
 		Language:          string(i18n.Auto),
@@ -226,6 +230,31 @@ func DefaultConfig() Config {
 		AutoUpdateHours:   4,
 		NotifyEnabled:     true,
 	}
+}
+
+// legacyDefaultLeague is the built-in league of the versions before
+// league_auto existed.
+const legacyDefaultLeague = "Forbidden Rites"
+
+// UnmarshalJSON reads a config and, for one written before league_auto
+// existed (config.json, saved and exported profiles), sets it: such a file
+// held the built-in default league as if picked by hand, so a config still on
+// it follows the current league from now on, while any other league was a
+// real choice and stays.
+func (c *Config) UnmarshalJSON(data []byte) error {
+	type plain Config // no recursion
+	if err := json.Unmarshal(data, (*plain)(c)); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if json.Unmarshal(data, &raw) != nil {
+		return nil
+	}
+	if _, ok := raw["league_auto"]; !ok {
+		name := strings.TrimSpace(c.LeagueName)
+		c.LeagueAuto = name == "" || strings.EqualFold(name, legacyDefaultLeague)
+	}
+	return nil
 }
 
 // LoadConfig reads the config file, migrating old formats. A missing or broken
@@ -335,7 +364,7 @@ func (c Config) Save(path string) error {
 // matching what the panel treats as not needing a rewrite.
 func (c Config) FilterKey() string {
 	c.Language, c.AutoUpdateEnabled, c.AutoUpdateHours, c.NotifyEnabled = "", false, 0, false
-	c.ScanBudgetPct, c.ExceptionalScan = 0, false
+	c.ScanBudgetPct, c.ExceptionalScan, c.LeagueAuto = 0, false, false
 	raw, err := json.Marshal(c)
 	if err != nil {
 		return ""

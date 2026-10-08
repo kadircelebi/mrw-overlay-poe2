@@ -23,16 +23,31 @@ const (
 
 // Client is a rate-limited PoE2 trade API client.
 type Client struct {
-	http   *http.Client
-	league string
-	Search *Limiter
-	Fetch  *Limiter
+	http     *http.Client
+	leagueMu sync.RWMutex
+	league   string
+	Search   *Limiter
+	Fetch    *Limiter
 
 	// session is the player's pathofexile.com session (POESESSID). Only the
 	// interactive client gets one, and it is sent only to pathofexile.com.
 	// Signed-in searches get GGG's higher limits (e.g. Weighted Sum groups).
 	sessionMu sync.RWMutex
 	session   string
+}
+
+// League is the league searches go to when a request names none.
+func (c *Client) League() string {
+	c.leagueMu.RLock()
+	defer c.leagueMu.RUnlock()
+	return c.league
+}
+
+// SetLeague changes that league, e.g. when the automatic league moves on.
+func (c *Client) SetLeague(league string) {
+	c.leagueMu.Lock()
+	c.league = league
+	c.leagueMu.Unlock()
 }
 
 // SetSession sets, or with "" clears, the pathofexile.com session.
@@ -238,7 +253,7 @@ func (c *Client) RunSearch(ctx context.Context, q *Query) (*SearchResult, error)
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("%s/search/poe2/%s", apiBase, url.PathEscape(c.league))
+	u := fmt.Sprintf("%s/search/poe2/%s", apiBase, url.PathEscape(c.League()))
 	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(body))
 	if err != nil {
 		return nil, err

@@ -356,6 +356,7 @@ func Run(opt Options) {
 		Dir:      opt.DataDir,
 		OutPath:  opt.OutPath,
 		OnChange: svc.changed,
+		OnConfig: svc.configChanged,
 		Notify: func(title, body string) {
 			toasts.Push(notifications.NotificationOptions{
 				ID: "filter-updated", Title: title, Body: body,

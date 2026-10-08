@@ -287,6 +287,9 @@ func (s *AppService) SaveConfig(c filter.Config) (filter.Config, error) {
 // panel and the settings window each hold their own copy, and either can be
 // the one that changed it.
 func (s *AppService) configChanged(cfg filter.Config) {
+	if s.overlayClient != nil {
+		s.overlayClient.SetLeague(cfg.LeagueName) // live searches name no league
+	}
 	if s.app != nil {
 		s.app.Event.Emit("config", cfg)
 	}

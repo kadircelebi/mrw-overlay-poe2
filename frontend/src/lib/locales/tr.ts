@@ -90,6 +90,8 @@ export const tr: Record<string, string> = {
   'craft.priceNoneBroad': "%10 aşağısında da ilan yok. Pazarda en nadir affix'i çıkarıp dene.",
   'app.title': 'MrW Overlay',
   'header.settings': 'Ayarlar',
+  'header.leaguePick': 'Ligi değiştir',
+  'header.leagueAutoTag': 'otomatik',
   'header.back': 'Geri',
   'header.hide': 'Paneli gizle',
   'save.saving': 'kaydediliyor…',
@@ -469,8 +471,10 @@ export const tr: Record<string, string> = {
   'general.language': 'Dil',
   'general.languageAuto': 'Sistem dili ({0})',
   'general.league': 'Lig',
+  'general.leagueAuto': 'Otomatik (güncel lig)',
+  'general.leagueAutoNow': 'Otomatik: {0}',
   'general.leagueUnlisted':
-    'Bu lig güncel listede yok; seçimin korunuyor, istersen listeden yenisini seç.',
+    'Bu lig artık trade sitesinin listesinde yok, büyük ihtimalle bitti. Seçimin korunuyor; güncel ligi ya da Otomatik\'i seç.',
   'general.filterName': 'Oyundaki filtre adı',
   'general.filterNameChanged':
     'Filtre artık {0}.filter olarak yazılıyor, ama oyunda hâlâ {1} seçili olabilir. Oyunda Options → Item Filter listesinden {0} filtresini seç, sonra Reload.',

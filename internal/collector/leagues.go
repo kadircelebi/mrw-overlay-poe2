@@ -41,6 +41,68 @@ func (l leagueEntry) name() string {
 	return strings.TrimSpace(l.Text)
 }
 
+// MainLeagueCandidate reports whether a league can be the current trade
+// league: softcore and not Standard, SSF or Ruthless.
+func MainLeagueCandidate(league string) bool {
+	low := strings.ToLower(strings.TrimSpace(league))
+	return low != "" && low != "standard" && !strings.HasPrefix(low, "hc ") &&
+		!strings.Contains(low, "hardcore") && !strings.Contains(low, "ssf") &&
+		!strings.Contains(low, "solo self-found") && !strings.Contains(low, "ruthless")
+}
+
+// AutoLeague picks the current league from the trade API's list, which puts
+// the main league first. The pick sticks: an event league opened mid-league
+// (listed before or after the current one) never takes over, because it was
+// already on the previous list when the next check runs. The pick moves only
+// to a league that is new since the previous list (known) and listed first,
+// which is how a new main league shows up at launch. When the current league
+// has left the list and nothing new has arrived, it is kept: an ended league
+// is not swapped for Standard or an older event league (unless there is no
+// history at all, see below).
+//
+// prev is the league picked last time ("" when none). known is the list seen
+// at that time; nil means there is no history, so no league counts as new.
+// It returns prev when the list offers nothing better, and "" only when prev
+// is "" and the list has no candidate.
+func AutoLeague(list, known []string, prev string) string {
+	has := func(l []string, name string) bool {
+		for _, x := range l {
+			if strings.EqualFold(x, name) {
+				return true
+			}
+		}
+		return false
+	}
+	var first string
+	for _, l := range list {
+		if MainLeagueCandidate(l) {
+			first = l
+			break
+		}
+	}
+	switch {
+	case first == "":
+		return prev
+	case prev == "":
+		return first
+	case strings.EqualFold(first, prev):
+		return prev
+	}
+	if known == nil {
+		// No history: nothing can be told apart as new. An ended league is
+		// still left for the head of the list, the best guess at the current
+		// one; otherwise the pick stays.
+		if !has(list, prev) {
+			return first
+		}
+		return prev
+	}
+	if !has(known, first) {
+		return first // a league launched since the last check
+	}
+	return prev
+}
+
 // FetchLeagues returns the leagues currently offered by the trade API, in the
 // order the API lists them. The response shape is read leniently: an upstream
 // change costs the list, never the app, because the caller keeps its previous
