@@ -47,7 +47,7 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce
-      description: For overlay or market problems, paste the item text (Ctrl+C on the item in game).
+      description: For overlay or market problems, paste the item text (Ctrl+Alt+C on the item in game) and say which language your game runs in.
       placeholder: |
         1. ...
         2. ...

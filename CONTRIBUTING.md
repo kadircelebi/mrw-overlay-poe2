@@ -8,7 +8,8 @@ Open an issue with the **Bug report** form. The most useful details:
 
 - the app version (bottom of the panel, or Settings → Updates) and whether it is the Microsoft Store or the GitHub version,
 - what happened and what you expected,
-- for price check or market problems, the item text (Ctrl+C on the item in game),
+- for price check or market problems, the item text (Ctrl+C on the item in game; Ctrl+Alt+C copies the advanced text with tiers, which helps most),
+- the language your game runs in, if it is not English (Options → Game → Language),
 - screenshots (please blur other players' names),
 - `%APPDATA%\PoE2Filtre\crash.log` if the app closed by itself.
 
@@ -22,7 +23,7 @@ Use the **Feature request** form, or [Discussions](https://github.com/kadirceleb
 
 ## Pull requests
 
-Please open an issue first, so we can agree on the approach before you spend time on it. Then:
+Please open an issue first, so the approach is agreed before you spend time on it. Then:
 
 - keep a pull request to one change,
 - run the tests before you push:
@@ -33,9 +34,10 @@ Please open an issue first, so we can agree on the approach before you spend tim
   ```
 
 - add or update tests for behaviour you change, especially filter rules and price or craft math,
-- interface text lives in `frontend/src/lib/locales/` (English, Turkish, Traditional Chinese); a new string needs all three, `npm run check` verifies it.
+- interface text lives in `frontend/src/lib/locales/` (English, Turkish, Traditional Chinese); a new string needs all three, `npm run check` verifies it,
+- items copied from a game in another language belong in `internal/overlay/testdata/locale/<language>/` as test samples; the test there explains how to add one.
 
-How to build and run the app is in the [README](README.md#building).
+How to build and run the app is in the [README](README.md#for-developers).
 
 Translations are very welcome, as are corrections to the existing ones.
 
