@@ -82,8 +82,8 @@
 </section>
 
 <style>
-  .verdict { margin-top: 6px; border: 1px solid var(--ui-line,#34342e); background: var(--ui-sunk,#111311); }
-  .line { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; border: 0; background: none; color: var(--muted); text-align: left; font-size: 11px; }
+  .verdict { margin-top: 5px; border: 1px solid var(--ui-line,#34342e); background: var(--ui-sunk,#111311); }
+  .line { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 10px; border: 0; background: none; color: var(--muted); text-align: left; font-size: 11px; }
   .line:hover { background: var(--ui-hover,#181a17); }
   .line b { flex: 0 0 auto; font-weight: 600; }
   .show .line b { color: var(--ui-ok,#8fd18a); }

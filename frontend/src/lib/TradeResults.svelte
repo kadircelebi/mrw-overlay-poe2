@@ -377,8 +377,8 @@
   .gem .table-head { grid-template-columns:27px 1.1fr 30px 34px 22px 1fr 48px; }
   .gem .listing { grid-template-columns:23px minmax(56px,1.1fr) 24px 30px 18px minmax(0,1fr) 34px 25px; }
   .sockets.gem i { border-color:var(--ui-line-strong,#1ba29b); box-shadow:0 0 4px var(--ui-shadow,rgba(27,162,155,.4)); }
-  .table-head { padding:7px 6px; color:var(--ui-text-2,#aeb8c2); background:var(--ui-surface-3,#252824); font-size:11px; }
-  .listing { border:0; border-top:1px solid var(--ui-line,#20221f); padding:6px 5px; text-align:left; color:var(--ui-text-2,#aeb4b9); background:var(--ui-sunk,#0d0f10); font-size:9px; }
+  .table-head { padding:5px 6px; color:var(--ui-text-2,#aeb8c2); background:var(--ui-surface-3,#252824); font-size:11px; }
+  .listing { border:0; border-top:1px solid var(--ui-line,#20221f); padding:4px 5px; text-align:left; color:var(--ui-text-2,#aeb4b9); background:var(--ui-sunk,#0d0f10); font-size:9px; }
   .listing:hover,.listing.on { background:var(--ui-hover,#171a19); }
   .listing-card.full .listing { border-top:1px solid var(--ui-line-strong,#57472d); background:var(--ui-surface-2,#20221e); }
   .listing-card.full .listing:hover { background:var(--ui-hover,#292b25); }

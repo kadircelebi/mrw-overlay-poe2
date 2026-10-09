@@ -242,7 +242,9 @@ export function FetchOverlayListings(searchID: string, ids: string[] | null): $C
 
 /**
  * FitOverlay sets the compact overlay's height to the page's content (in page
- * pixels), within the normal height. The window keeps its top edge.
+ * pixels). A worth card or the hide panel fits within the normal height; a
+ * search never gets shorter than it, only taller. The window keeps its top
+ * edge unless it would run past the game's bottom.
  */
 export function FitOverlay(height: number): $CancellablePromise<void> {
     return $Call.ByID(1569686900, height);

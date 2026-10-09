@@ -591,7 +591,7 @@ func (s *AppService) showOverlaySnapshot(snap overlay.Snapshot) {
 	switch {
 	case snap.Mode == "hide":
 		height = overlayHideHeight
-	case snap.Item != nil && snap.Item.Exchange != "":
+	case isExchange(snap):
 		height = overlayExchangeHeight
 	}
 	s.overlayMu.Lock()
@@ -848,13 +848,20 @@ func craftScaleFor(settings overlay.Settings, a windowArea) float64 {
 }
 
 // The compact overlay's size in page pixels (before UI scale). An exchange
-// item's worth card needs far less height than a search.
+// item's worth card needs far less height than a search. A search opens at
+// overlayHeight and grows up to overlaySearchMaxHeight when the item's mods
+// and the first listings need more room; the screen cuts it shorter.
 const (
-	overlayWidth          = 520
-	overlayHeight         = 760
-	overlayExchangeHeight = 230
-	overlayHideHeight     = 360
+	overlayWidth           = 520
+	overlayHeight          = 760
+	overlaySearchMaxHeight = 1600
+	overlayExchangeHeight  = 230
+	overlayHideHeight      = 360
 )
+
+func isExchange(snap overlay.Snapshot) bool {
+	return snap.Item != nil && snap.Item.Exchange != ""
+}
 
 // The craft window's size in page pixels at scale 1.
 const (
@@ -872,10 +879,16 @@ func (s *AppService) currentOverlayHeight() int {
 }
 
 // FitOverlay sets the compact overlay's height to the page's content (in page
-// pixels), within the normal height. The window keeps its top edge.
+// pixels). A worth card or the hide panel fits within the normal height; a
+// search never gets shorter than it, only taller. The window keeps its top
+// edge unless it would run past the game's bottom.
 func (s *AppService) FitOverlay(height int) {
-	height = min(max(height, 120), overlayHeight)
 	s.overlayMu.Lock()
+	if snap := s.overlaySnapshot; snap.Mode != "hide" && !isExchange(snap) {
+		height = min(max(height, overlayHeight), overlaySearchMaxHeight)
+	} else {
+		height = min(max(height, 120), overlayHeight)
+	}
 	changed := s.overlayHeight != height
 	s.overlayHeight = height
 	s.overlayMu.Unlock()
@@ -892,6 +905,7 @@ func (s *AppService) applyOverlayScale() {
 	scale := overlayScaleFor(settings, area)
 	if s.overlayWindow != nil {
 		s.overlayWindow.SetSize(int(overlayWidth*scale), overlayWindowHeight(area, s.currentOverlayHeight(), scale))
+		overlay.PlaceInGame(uintptr(s.overlayWindow.NativeWindow()), false)
 		s.setWindowZoom(s.overlayWindow, scale)
 	}
 	if s.marketWindow != nil {

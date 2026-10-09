@@ -284,7 +284,18 @@
   .plain-mod.fractured { color:#c9aa71; }
   .plain-mod.desecrated { background:linear-gradient(90deg,transparent,rgba(52,128,72,.3) 18%,rgba(52,128,72,.3) 82%,transparent); }
   .plain-mod.desecrated { color:#9aa8d2; }
-  .compact .mods { max-height:300px; overflow:auto; }
+  /* The price check window: tighter rows leave room for the listings below,
+     and the whole card scrolls with the page instead of in a box of its own. */
+  .compact .item-title { padding:6px 12px 5px; }
+  .compact .item-title strong { font-size:15px; }
+  .compact .item-meta { padding:5px 10px 3px; }
+  .compact .properties { padding:2px 10px 5px; }
+  .compact .mods { padding:3px 8px 4px; }
+  .compact .mod-row { padding:1px 0; }
+  .compact .mod-copy { font-size:12px; line-height:1.2; }
+  .compact .range input { padding:2px 4px; }
+  .compact .fold { margin-top:2px; padding:2px; }
+  .compact .item-states { padding:5px 10px; }
   .item-states { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:8px 14px; padding:7px 10px; border-top:1px solid var(--ui-line,#3b3025); font-family:var(--serif); font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
   .state-control{display:flex;align-items:center;gap:7px}.state-control select{width:72px;padding:4px 18px 4px 6px;border:1px solid var(--ui-line-strong,#4b473b);border-radius:2px;background:var(--ui-surface,#191b18);color:var(--ui-gold-bright,#c6c2ad);font-family:var(--sans);font-size:10px;text-transform:none;letter-spacing:0}
   .item-states .unidentified { color:#d54a45; }

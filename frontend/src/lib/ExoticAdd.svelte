@@ -89,8 +89,8 @@
 </section>
 
 <style>
-  .exotic-add { margin-top: 6px; border: 1px solid var(--ui-line,#2e3a34); background: var(--ui-sunk,#0f1311); }
-  .line { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; border: 0; background: none; color: var(--muted); text-align: left; font-size: 11px; }
+  .exotic-add { margin-top: 5px; border: 1px solid var(--ui-line,#2e3a34); background: var(--ui-sunk,#0f1311); }
+  .line { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 10px; border: 0; background: none; color: var(--muted); text-align: left; font-size: 11px; }
   .line:hover { background: var(--ui-hover,#151a17); }
   .line b { color: var(--ui-ok,#6fe0b8); font-weight: 600; }
   .line span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
