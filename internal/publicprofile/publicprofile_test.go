@@ -61,6 +61,33 @@ func TestRoundTripKeepsFollowersOwnSettings(t *testing.T) {
 	}
 }
 
+// A shared document has no settings version, so the waystone slider's old
+// default (which only highlighted) cannot be told apart from a chosen 14. It
+// is read as "NeverSink decides": a follower may see more waystones than the
+// author meant, never fewer. Any other tier is applied as it is.
+func TestApplyReadsLegacyWaystoneDefaultAsNone(t *testing.T) {
+	for _, tc := range []struct{ shared, want int }{
+		{filter.LegacyWaystoneDefault, filter.TierOff},
+		{8, 8},
+		{filter.TierHide, filter.TierHide},
+	} {
+		a := authorConfig()
+		a.WaystoneTier = tc.shared
+		doc, _ := FromConfig(a)
+		data, err := Encode(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := Decode(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c := got.Apply(filter.DefaultConfig()); c.WaystoneTier != tc.want {
+			t.Errorf("shared waystone tier %d applied as %d, want %d", tc.shared, c.WaystoneTier, tc.want)
+		}
+	}
+}
+
 func encodeRaw(t *testing.T, change func(f map[string]any, top map[string]any)) []byte {
 	t.Helper()
 	doc, _ := FromConfig(authorConfig())

@@ -255,11 +255,11 @@ export const en: Record<string, string> = {
   'tier.jewels': 'Rare jewels',
   'tier.jewelsHint': 'Hide all · None: NeverSink decides · a tier: shown from there up',
   'tier.uncut': 'Uncut skill and spirit gems',
-  'tier.uncutHint': 'Hide all · None: NeverSink decides · a level: shown from there up',
+  'tier.uncutHint': 'Hide all · None: NeverSink decides · a level: shown from there up; lower levels only when their price reaches a value group',
   'tier.support': 'Uncut support gems',
   'tier.supportHint': 'They drop constantly, so they have their own stop',
   'tier.waystones': 'Waystones',
-  'tier.waystonesHint': 'Hide all · None: NeverSink decides · a tier: highlighted from there up',
+  'tier.waystonesHint': 'Hide all · None: NeverSink decides · a tier: shown from there up, lower tiers hidden',
 
   'rules.title': 'Custom rules',
   'rules.pinnacle': 'Highlight pinnacle keys',

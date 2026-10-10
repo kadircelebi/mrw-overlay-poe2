@@ -247,11 +247,11 @@ export const tr: Record<string, string> = {
   'tier.jewels': "Rare jewel'lar",
   'tier.jewelsHint': 'Gösterme: hepsi gizlenir · Hiçbiri: NeverSink karar verir · tier: o tier ve üstü',
   'tier.uncut': "Uncut skill ve spirit gem'ler",
-  'tier.uncutHint': 'Gösterme: hepsi gizlenir · Hiçbiri: NeverSink karar verir · seviye: o seviye ve üstü',
+  'tier.uncutHint': 'Gösterme: hepsi gizlenir · Hiçbiri: NeverSink karar verir · seviye: o seviye ve üstü gösterilir; altındakiler yalnız fiyatı bir değer grubuna yetiyorsa',
   'tier.support': "Uncut support gem'ler",
   'tier.supportHint': 'Sürekli düştükleri için kendi ayarları var',
   'tier.waystones': "Waystone'lar",
-  'tier.waystonesHint': 'Gösterme: hepsi gizlenir · Hiçbiri: NeverSink karar verir · tier: o tier ve üstü',
+  'tier.waystonesHint': 'Gösterme: hepsi gizlenir · Hiçbiri: NeverSink karar verir · tier: o tier ve üstü gösterilir, altı gizlenir',
 
   'rules.title': 'Özel kurallar',
   'rules.pinnacle': 'Pinnacle anahtarları vurgusu',

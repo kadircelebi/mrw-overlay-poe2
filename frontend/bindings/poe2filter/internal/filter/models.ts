@@ -101,9 +101,10 @@ export interface Config {
     "chance_bases": string[] | null;
 
     /**
-     * WaystoneTier highlights waystones from this tier up (1..15, TierOff = no
-     * rule) and UncutGemLevel shows uncut skill and spirit gems from this level
-     * up, hiding the rest.
+     * WaystoneTier shows waystones from this tier up and hides the lower ones
+     * (1..15, TierOff = NeverSink decides), and UncutGemLevel does the same for
+     * uncut skill and spirit gems. A drop whose price reaches a value group is
+     * still shown by that group, whatever the slider says.
      */
     "waystone_tier": number;
     "uncut_gem_level": number;

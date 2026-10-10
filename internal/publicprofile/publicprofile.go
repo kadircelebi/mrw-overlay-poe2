@@ -155,6 +155,13 @@ func FromConfig(cfg filter.Config) (Document, []SoundSwap) {
 // league, language, filter name, paths and scanning, and returns the result.
 func (d Document) Apply(local filter.Config) filter.Config {
 	c := applyRaw(clean(d.Filter), local)
+	// A document carries no settings version, and the strict format leaves no
+	// room for one. The waystone slider's old default now hides T1-T13, so a
+	// shared 14 is read as "NeverSink decides": at worst a follower sees a few
+	// more waystones, never fewer.
+	if c.WaystoneTier == filter.LegacyWaystoneDefault {
+		c.WaystoneTier = filter.TierOff
+	}
 	c.Normalize()
 	return c
 }

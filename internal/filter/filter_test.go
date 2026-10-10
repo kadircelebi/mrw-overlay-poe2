@@ -507,11 +507,62 @@ func TestTierSliders(t *testing.T) {
 	if blockContaining(t, out, "Show", "UnidentifiedItemTier") >= 0 {
 		t.Error("no tier rule expected when the sliders are off")
 	}
-	if blockContaining(t, out, "Show", `Class == "Waystones"`) >= 0 {
+	if blockContaining(t, out, "Show", `Class == "Waystones"`) >= 0 || blockContaining(t, out, "Hide", `Class == "Waystones"`) >= 0 {
 		t.Error("no waystone rule expected when the slider is off")
 	}
 	if blockContaining(t, out, "Hide", `Class == "Jewels"`) >= 0 {
 		t.Error(`"none" must leave jewels to the base filter, not hide them`)
+	}
+}
+
+// A tier on the waystone slider is where the player wants waystones to start:
+// that tier and up are shown, everything below is hidden right after, so
+// NeverSink's own waystone rules never get to show a T6 when T8 was asked for.
+func TestWaystoneSliderHidesLowerTiers(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.WaystoneTier = 8
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	show := blockContaining(t, out, "Show", `Class == "Waystones"`, "WaystoneTier >= 8")
+	hide := blockContaining(t, out, "Hide", `Class == "Waystones"`)
+	if show < 0 || hide < 0 {
+		t.Fatalf("expected a show rule from T8 and a hide rule below it (show %d, hide %d)", show, hide)
+	}
+	if hide != show+1 {
+		t.Errorf("the hide rule must follow the show rule directly (show %d, hide %d)", show, hide)
+	}
+	if blockContaining(t, out, "Hide", `Class == "Waystones"`, "WaystoneTier") >= 0 {
+		t.Error("the hide rule takes every waystone the show rule left, no tier condition")
+	}
+}
+
+// The waystone slider's old default (14) only highlighted; under the new
+// meaning it would hide T1-T13 for everyone who never touched it. Files from
+// before version 4 move that value to "none"; a tier chosen on purpose stays,
+// and a version 4 file keeps even 14.
+func TestWaystoneLegacyDefaultMigration(t *testing.T) {
+	if DefaultConfig().WaystoneTier != TierOff {
+		t.Errorf("new installs should leave waystones to NeverSink, got %d", DefaultConfig().WaystoneTier)
+	}
+	load := func(body string) Config {
+		t.Helper()
+		p := filepath.Join(t.TempDir(), "cfg.json")
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return LoadConfig(p)
+	}
+	for _, tc := range []struct {
+		body string
+		want int
+	}{
+		{`{"config_version": 3, "waystone_tier": 14}`, TierOff},
+		{`{"config_version": 3, "waystone_tier": 8}`, 8},
+		{`{"config_version": 3, "waystone_tier": -2}`, TierHide},
+		{`{"config_version": 4, "waystone_tier": 14}`, 14},
+	} {
+		if got := load(tc.body).WaystoneTier; got != tc.want {
+			t.Errorf("%s: waystone tier %d, want %d", tc.body, got, tc.want)
+		}
 	}
 }
 
@@ -588,8 +639,10 @@ func TestTierMigrationFromToggles(t *testing.T) {
 	if c.RareJewelTier != 0 {
 		t.Errorf(`"T5 only" off used to show every rare jewel, got %d`, c.RareJewelTier)
 	}
-	if c.WaystoneTier != 14 {
-		t.Errorf("waystones were T14+, got %d", c.WaystoneTier)
+	// The old toggle only highlighted T14+. Since the slider also hides the
+	// tiers below it, that value is read as "NeverSink decides" (version 4).
+	if c.WaystoneTier != TierOff {
+		t.Errorf("highlight-only waystones should leave the tiers to NeverSink, got %d", c.WaystoneTier)
 	}
 	if c.UncutGemLevel != MaxUncutGemLevel {
 		t.Errorf("uncut gems were level 20, got %d", c.UncutGemLevel)

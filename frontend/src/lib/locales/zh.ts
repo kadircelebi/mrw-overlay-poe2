@@ -244,11 +244,11 @@ export const zh: Record<string, string> = {
   'tier.jewels': 'Rare jewel',
   'tier.jewelsHint': '隱藏：全部隱藏 · 無：交給 NeverSink · tier：該 tier 以上',
   'tier.uncut': 'Uncut skill 與 spirit gem',
-  'tier.uncutHint': '隱藏：全部隱藏 · 無：交給 NeverSink · 等級：該等級以上',
+  'tier.uncutHint': '隱藏：全部隱藏 · 無：交給 NeverSink · 等級：該等級以上顯示；以下的僅在價格達到某個價值群組時顯示',
   'tier.support': 'Uncut support gem',
   'tier.supportHint': '掉落非常頻繁，因此有自己的設定',
   'tier.waystones': 'Waystone',
-  'tier.waystonesHint': '隱藏：全部隱藏 · 無：交給 NeverSink · tier：該 tier 以上',
+  'tier.waystonesHint': '隱藏：全部隱藏 · 無：交給 NeverSink · tier：該 tier 以上顯示，以下隱藏',
 
   'rules.title': '自訂規則',
   'rules.pinnacle': '強調 pinnacle 鑰匙',

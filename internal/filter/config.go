@@ -79,7 +79,14 @@ const (
 
 // configVersion marks the meaning of the stored fields, not the app version.
 // Version 2 split the old "off" into TierHide and TierOff.
-const configVersion = 3
+const configVersion = 4
+
+// LegacyWaystoneDefault was the waystone slider's default while it only
+// highlighted the tiers above it. Since version 4 the slider also hides the
+// tiers below, and that default would hide T1-T13 for everyone who never
+// touched it, so it is read as TierOff (see migrateTierMeaning and the
+// public profiles' Apply).
+const LegacyWaystoneDefault = 14
 
 // Slider ranges, mirroring what the game can produce.
 const (
@@ -143,9 +150,10 @@ type Config struct {
 	// and carries its own colours and sound, keyed by ItemGroup.StyleKey().
 	ItemGroups  []ItemGroup `json:"item_groups"`
 	ChanceBases []string    `json:"chance_bases"`
-	// WaystoneTier highlights waystones from this tier up (1..15, TierOff = no
-	// rule) and UncutGemLevel shows uncut skill and spirit gems from this level
-	// up, hiding the rest.
+	// WaystoneTier shows waystones from this tier up and hides the lower ones
+	// (1..15, TierOff = NeverSink decides), and UncutGemLevel does the same for
+	// uncut skill and spirit gems. A drop whose price reaches a value group is
+	// still shown by that group, whatever the slider says.
 	WaystoneTier  int `json:"waystone_tier"`
 	UncutGemLevel int `json:"uncut_gem_level"`
 	// Uncut Support Gems drop constantly, so they have their own switch.
@@ -213,7 +221,7 @@ func DefaultConfig() Config {
 		FilterName:        "auto_updated",
 		Whitelist:         []string{"Mirror of Kalandra", "Albino Rhoa Feather"},
 		ChanceBases:       []string{"Heavy Belt", "Utility Belt"},
-		WaystoneTier:      14,
+		WaystoneTier:      TierOff,
 		ShowExotics:       true,
 		UncutGemLevel:     MaxUncutGemLevel,
 		UncutSupportLevel: TierHide,
@@ -583,6 +591,11 @@ func (c *Config) clampTiers() {
 // "never hide, plainly". A look picked for the old meaning (often the loudest
 // style with a sound) would make every cheap entry scream, so it is reset to
 // the new plain default once.
+//
+// Version 4: the waystone slider hides the tiers below it instead of only
+// highlighting the ones above. The old default (LegacyWaystoneDefault) goes to
+// TierOff so nobody loses waystones they never chose to hide; any other tier
+// was picked on purpose and keeps its value under the new meaning.
 func (c *Config) migrateTierMeaning() {
 	if c.ConfigVersion >= configVersion {
 		c.ConfigVersion = configVersion
@@ -600,6 +613,9 @@ func (c *Config) migrateTierMeaning() {
 		delete(c.Styles, GroupWhitelist)
 		delete(c.Sounds, GroupWhitelist)
 		delete(c.CustomStyles, GroupWhitelist)
+	}
+	if c.ConfigVersion < 4 && c.WaystoneTier == LegacyWaystoneDefault {
+		c.WaystoneTier = TierOff
 	}
 	c.ConfigVersion = configVersion
 }

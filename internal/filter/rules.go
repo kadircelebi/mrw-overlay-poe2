@@ -735,9 +735,12 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		if cfg.WaystoneTier == TierHide {
 			b.rule("Hide", []string{`Class == "Waystones"`}, "", nil, nil)
 		} else {
+			// From the chosen tier up the waystone is shown, below it hidden,
+			// like the gem sliders: the player asked to start there.
 			wp, _ := cfg.Palette(GroupWaystone, ns)
 			b.rule("Show", []string{`Class == "Waystones"`, fmt.Sprintf("WaystoneTier >= %d", cfg.WaystoneTier)}, "", nil,
 				styleWaystone.with(wp).withSound(cfg.Sound(GroupWaystone)).withVolume(cfg.Volume(GroupWaystone)).withFont(cfg.FontSize(GroupWaystone)))
+			b.rule("Hide", []string{`Class == "Waystones"`}, "", nil, nil)
 		}
 	}
 	// Skill and spirit gems share one slider; support gems have their own
