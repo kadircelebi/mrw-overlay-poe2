@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/logo.png" alt="MrW Overlay for POE 2" width="360"></p>
+<p align="center"><img src="docs/logo.png" alt="MrW Overlay for POE 2" width="520"></p>
 
 <p align="center"><b>A loot filter that knows today's prices, and every tool you'd otherwise go hunting for, in one app.</b><br>
 Price check, trade, live search, a crafting sim, Expedition prices. It sits quietly in the tray while you map.</p>

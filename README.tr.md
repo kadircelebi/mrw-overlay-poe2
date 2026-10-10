@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/logo.png" alt="MrW Overlay for POE 2" width="360"></p>
+<p align="center"><img src="docs/logo.png" alt="MrW Overlay for POE 2" width="520"></p>
 
 <p align="center"><b>Günün fiyatlarını bilen bir loot filtresi ve normalde tek tek arayıp bulacağın bütün araçlar, tek uygulamada.</b><br>
 Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları. Sen farmlarken tepside sessizce çalışır.</p>

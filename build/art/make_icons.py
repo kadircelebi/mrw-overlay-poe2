@@ -98,7 +98,6 @@ def main() -> None:
         # Small sizes: a thinner ring and a bigger crystal read better.
         img = badge(gem, 512, ring=0.03 if s <= 32 else 0.045, fill=0.74 if s <= 32 else 0.66)
         img.resize((s, s), Image.LANCZOS).save(ext / f"icon-{s}.png")
-    Image.open(ART / "logo.png").convert("RGBA").save(ROOT / "docs" / "logo.png")
     print("icons written")
 
 
