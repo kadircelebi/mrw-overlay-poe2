@@ -939,3 +939,33 @@ func TestMagicItemBaseIsPickedOutOfItsName(t *testing.T) {
 		}
 	}
 }
+
+func TestRelicModsAreSearchedAsSanctumStats(t *testing.T) {
+	catalog := Catalog{Stats: []StatGroup{
+		{ID: "explicit", Entries: []StatEntry{
+			{ID: "explicit.stat_2154246560", Text: "#% increased Damage", Type: "explicit"},
+		}},
+		{ID: "sanctum", Entries: []StatEntry{
+			{ID: "sanctum.stat_3226329527", Text: "Bosses take #% increased Damage", Type: "sanctum"},
+			{ID: "sanctum.stat_2492340460", Text: "Restore # Honour on venerating a Maraketh Shrine", Type: "sanctum"},
+		}},
+	}}
+	raw := "Item Class: Relics\nRarity: Magic\nChallenger's Tapestry Relic of Refreshment\n--------\nItem Level: 22\n--------\n" +
+		"{ Prefix Modifier \"Challenger's\" (Tier: 3) }\nBosses take 11(11-15)% increased Damage\n" +
+		"{ Suffix Modifier \"of Refreshment\" (Tier: 5) }\nRestore 35(25-35) Honour on venerating a Maraketh Shrine\n" +
+		"--------\nPlace this item on the Relic Altar at the start of the Trial of the Sekhemas\n"
+	item, err := ParseItem(raw, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mods := ownMods(item.Mods)
+	want := []string{"sanctum.stat_3226329527", "sanctum.stat_2492340460"}
+	if len(mods) != len(want) {
+		t.Fatalf("mods=%+v", mods)
+	}
+	for i, id := range want {
+		if mods[i].StatID != id || mods[i].Type != "sanctum" || !mods[i].Selected {
+			t.Fatalf("mod %d = %+v, want %s", i, mods[i], id)
+		}
+	}
+}

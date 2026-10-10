@@ -383,7 +383,13 @@ func ParseItemWith(raw string, catalog Catalog, opts ParseOptions) (Item, error)
 				case "enhancement", "corruption enhancement":
 					current.Type = "enchant"
 				default:
-					current.Type = "explicit"
+					// The trade site files relic modifiers (unique ones too)
+					// as their own "sanctum" stats, not as explicit ones.
+					if item.Class == "Relics" {
+						current.Type = "sanctum"
+					} else {
+						current.Type = "explicit"
+					}
 				}
 			}
 			if kind == "prefix" || kind == "suffix" {
