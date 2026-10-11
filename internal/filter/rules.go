@@ -26,6 +26,10 @@ const (
 	minUniqueListingsToHide      = 3
 	minExceptionalListingsToHide = 10
 	minExceptionalSamplesToHide  = 3
+	// An exceptional price older than this no longer hides the item: it is
+	// shown as unpriced until a new search. The scan servers search a cheap
+	// key every 24 hours and publish every 6, so a current price is younger.
+	maxExceptionalAgeToHide = 36 * time.Hour
 )
 
 // Stats summarises what the generated block does.
@@ -340,7 +344,8 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 				valuableEx[g] = append(valuableEx[g], name)
 			}
 			st.ValuableExcept++
-		case e.Listings >= minExceptionalListingsToHide && e.Samples >= minExceptionalSamplesToHide:
+		case e.Listings >= minExceptionalListingsToHide && e.Samples >= minExceptionalSamplesToHide &&
+			!e.ScannedAt.IsZero() && time.Since(e.ScannedAt) <= maxExceptionalAgeToHide:
 			cheapEx[g] = append(cheapEx[g], name)
 			st.CheapExcept++
 		}

@@ -238,7 +238,7 @@ export const tr: Record<string, string> = {
   'gear.strict': 'Sıkı ekipman filtresi',
   'gear.strictHint': 'Sıradan silah ve zırhları gizler',
   'gear.quality': 'Yüksek kalite ekipmanı göster',
-  'gear.qualityOff': 'Kapalı',
+  'gear.qualityHint': 'En az bu kalitedeki normal, magic ve rare ekipman yerde öne çıkar.',
 
   'tier.off': 'Hiçbiri',
   'tier.hide': 'Gösterme',

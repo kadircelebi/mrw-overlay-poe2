@@ -235,7 +235,7 @@ export const zh: Record<string, string> = {
   'gear.strict': '嚴格的裝備過濾',
   'gear.strictHint': '隱藏一般的武器與防具',
   'gear.quality': '顯示高品質裝備',
-  'gear.qualityOff': '關閉',
+  'gear.qualityHint': '品質至少達此數值的普通、魔法與稀有裝備會在地上突顯。',
 
   'tier.off': '無',
   'tier.hide': '隱藏',

@@ -87,6 +87,11 @@ type keyState struct {
 	// price from an older search is due again at once, keeping its value
 	// until the new one arrives.
 	QueryVersion int `json:"query_version,omitempty"`
+	// IntervalMin is how long the key stays fresh under the smart policy, in
+	// minutes; 0 is its group's interval.
+	IntervalMin int `json:"interval_min,omitempty"`
+	// Boosted keys are due at once: another key of the base jumped in price.
+	Boosted bool `json:"boosted,omitempty"`
 }
 
 type scanState struct {
@@ -121,6 +126,11 @@ type Scanner struct {
 	buckets    []IlvlBucket  // item level ranges scanned apart; none = any level
 	shard      func(key string) bool
 	refresh    RefreshPolicy
+	smart      *SmartPolicy                       // nil: the app's plain schedule
+	prior      map[string]prices.ExceptionalPrice // the previous league's prices by key
+	priorBases map[string]bool
+	lastSearch time.Time // when the last search started, for the smart pace
+	searches   int       // searches started, for the exploring share
 }
 
 // IlvlBucket is an item level range priced as its own key; 0 leaves a bound
@@ -276,11 +286,11 @@ func (s *Scanner) refreshAfter(k *keyState) time.Duration {
 	case k.LastError != "":
 		return s.refresh.Error
 	case k.Listings == 0:
-		return s.refresh.Empty
+		return s.smartInterval(k, s.refresh.Empty)
 	case k.ValueEx >= s.hotEx:
-		return s.refresh.Hot
+		return s.smartInterval(k, s.refresh.Hot)
 	default:
-		return s.refresh.Normal
+		return s.smartInterval(k, s.refresh.Normal)
 	}
 }
 
@@ -293,9 +303,11 @@ func (s *Scanner) bucketList() []IlvlBucket {
 	return s.buckets
 }
 
-// next picks the most urgent due target (locked).
+// next picks the most urgent due target (locked). Under the smart policy
+// every few searches go to the cheap or empty key seen longest ago instead.
 func (s *Scanner) next(now time.Time) *target {
 	var due []target
+	var explore *target
 	for _, c := range s.candidates {
 		class := s.st.Classes[c.Base]
 		kinds := []struct {
@@ -321,28 +333,53 @@ func (s *Scanner) next(now time.Time) *target {
 					continue
 				}
 				ks := s.st.Keys[key]
-				if ks != nil && ks.Min == k.min && (ks.QueryVersion == scanQueryVersion || ks.LastError != "") && now.Sub(ks.LastAttempt) < s.refreshAfter(ks) {
+				t := target{key: key, base: c.Base, kind: k.kind, min: k.min, bucket: b, priority: c.Priority, state: ks}
+				if ks != nil && ks.Min == k.min && (ks.QueryVersion == scanQueryVersion || ks.LastError != "") && now.Sub(ks.LastAttempt) < s.refreshAfter(ks) && !ks.Boosted {
+					if s.smart != nil && ks.LastError == "" && (ks.Listings == 0 || ks.ValueEx < s.hotEx) &&
+						now.Sub(ks.LastAttempt) >= s.smart.ExploreAge && (explore == nil || ks.LastAttempt.Before(explore.state.LastAttempt)) {
+						explore = &t
+					}
 					continue
 				}
-				due = append(due, target{key: key, base: c.Base, kind: k.kind, min: k.min, bucket: b, priority: c.Priority, state: ks})
+				due = append(due, t)
 			}
 		}
 	}
 	if len(due) == 0 {
 		return nil
 	}
+	if explore != nil && s.exploring() {
+		return explore
+	}
 	sort.SliceStable(due, func(i, j int) bool {
 		a, b := due[i], due[j]
 		if (a.state == nil) != (b.state == nil) {
 			return a.state == nil // never scanned first
 		}
+		if a.state == nil {
+			ra, va := s.priorRank(a)
+			rb, vb := s.priorRank(b)
+			if ra != rb {
+				return ra < rb
+			}
+			if va != vb {
+				return va > vb
+			}
+			if a.priority != b.priority {
+				return a.priority < b.priority
+			}
+			return a.base < b.base
+		}
+		if s.smart != nil {
+			if a.state.Boosted != b.state.Boosted {
+				return a.state.Boosted
+			}
+			return s.urgency(a, now) > s.urgency(b, now)
+		}
 		if a.priority != b.priority {
 			return a.priority < b.priority
 		}
-		if a.state != nil && b.state != nil {
-			return a.state.LastAttempt.Before(b.state.LastAttempt)
-		}
-		return a.base < b.base
+		return a.state.LastAttempt.Before(b.state.LastAttempt)
 	})
 	return &due[0]
 }
@@ -351,10 +388,26 @@ func (s *Scanner) next(now time.Time) *target {
 func (s *Scanner) Run(ctx context.Context) {
 	for {
 		s.mu.Lock()
+		wait := s.pace(time.Now())
+		s.mu.Unlock()
+		if wait > 0 {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(wait):
+			}
+			continue
+		}
+
+		s.mu.Lock()
 		ready := s.market != nil && len(s.candidates) > 0
 		var t *target
 		if ready {
 			t = s.next(time.Now())
+		}
+		if t != nil {
+			s.lastSearch = time.Now()
+			s.searches++
 		}
 		s.mu.Unlock()
 
@@ -429,15 +482,24 @@ func (s *Scanner) scan(ctx context.Context, t *target) error {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		ks := &keyState{ExceptionalPrice: p, LastAttempt: time.Now().UTC(), QueryVersion: scanQueryVersion}
+		old := s.st.Keys[t.key]
 		if err != nil {
 			ks.QueryVersion = 0
 			// Keep the last good price; only note the failure.
-			if old := s.st.Keys[t.key]; old != nil {
+			if old != nil {
 				ks.ExceptionalPrice = old.ExceptionalPrice
+				ks.IntervalMin = old.IntervalMin
 			} else {
 				ks.ExceptionalPrice = blank
 			}
 			ks.LastError = err.Error()
+		} else if s.smart != nil {
+			s.adapt(old, ks)
+			if s.jumped(old, p) {
+				if n := s.boostSiblings(t.base, t.key); n > 0 {
+					s.logf("%s: %.0f -> %.0f ex, %d related keys brought forward", t.key, old.ValueEx, p.ValueEx, n)
+				}
+			}
 		}
 		s.st.Keys[t.key] = ks
 	}
@@ -592,6 +654,8 @@ func (s *Scanner) Status() Status {
 	spacing := s.client.Search.Spacing()
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	spacing = max(spacing, s.paceSpacing())
+	next = max(next, s.pace(time.Now()))
 	st := Status{Candidates: len(s.candidates), Current: s.current, Last: s.last,
 		NextAt: time.Now().Add(next).UnixMilli()}
 	for _, c := range s.candidates {
@@ -688,6 +752,36 @@ func (s *Scanner) Export() ([]byte, error) {
 // so a file from another league is refused; within a league the newer scan of
 // each key wins, which means importing can only ever bring us forward.
 func (s *Scanner) Import(data []byte) (ImportResult, error) {
+	return s.importShare(data, false)
+}
+
+// ImportOwn is Import limited to this machine's share of the keys: a scan
+// server takes over what the others published for the keys it now owns.
+func (s *Scanner) ImportOwn(data []byte) (ImportResult, error) {
+	return s.importShare(data, true)
+}
+
+// PruneForeign drops the keys outside this machine's share, which an earlier
+// split left behind; their owners publish them now. It returns how many.
+func (s *Scanner) PruneForeign() int {
+	s.mu.Lock()
+	n := 0
+	if s.shard != nil {
+		for key := range s.st.Keys {
+			if !s.shard(key) {
+				delete(s.st.Keys, key)
+				n++
+			}
+		}
+	}
+	s.mu.Unlock()
+	if n > 0 {
+		s.save()
+	}
+	return n
+}
+
+func (s *Scanner) importShare(data []byte, own bool) (ImportResult, error) {
 	var in Share
 	if err := json.Unmarshal(data, &in); err != nil {
 		return ImportResult{}, fmt.Errorf(i18n.T("err.importBroken"), err)
@@ -704,7 +798,7 @@ func (s *Scanner) Import(data []byte) (ImportResult, error) {
 		return res, fmt.Errorf(i18n.T("err.importLeague"), in.League, league)
 	}
 	for key, v := range in.Keys {
-		if v == nil || v.ScannedAt.IsZero() {
+		if v == nil || v.ScannedAt.IsZero() || own && s.shard != nil && !s.shard(key) {
 			continue
 		}
 		cur := s.st.Keys[key]

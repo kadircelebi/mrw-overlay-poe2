@@ -13,6 +13,7 @@
     prefix = '',
     off = -1,
     hide = -2,
+    canHide = true,
     onchange,
   }: {
     value: number
@@ -23,19 +24,24 @@
     prefix?: string // e.g. "T" for waystone tiers
     off?: number
     hide?: number
+    canHide?: boolean // false: no "hide" stop, the scale starts at "off"
     onchange?: () => void
   } = $props()
 
   // Positions: 0 hides everything, 1 writes no rule at all, 2..steps map to
   // min..max. The two words come first because they are the coarse decision.
-  const steps = $derived(max - min + 2)
+  // Without the hide stop everything moves one place left.
+  const lead = $derived(canHide ? 2 : 1)
+  const steps = $derived(max - min + lead)
   const index = $derived(
-    value === hide ? 0 : value === off ? 1 : Math.min(steps, Math.max(2, value - min + 2)),
+    canHide && value === hide ? 0 : value === off ? lead - 1 : Math.min(steps, Math.max(lead, value - min + lead)),
   )
-  const shown = $derived(value === hide ? t('tier.hide') : value === off ? t('tier.off') : `${prefix}${value}+`)
+  const shown = $derived(
+    canHide && value === hide ? t('tier.hide') : value === off ? t('tier.off') : `${prefix}${value}+`,
+  )
 
   function pick(i: number) {
-    value = i === 0 ? hide : i === 1 ? off : min + i - 2
+    value = canHide && i === 0 ? hide : i === lead - 1 ? off : min + i - lead
     onchange?.()
   }
 </script>
@@ -61,7 +67,7 @@
   <!-- The two word stops sit at the left end, in this order, before the
        numbers start; naming them together avoids two labels colliding. -->
   <div class="scale">
-    <span>{t('tier.hide')} · {t('tier.off')}</span>
+    <span>{#if canHide}{t('tier.hide')} · {/if}{t('tier.off')}</span>
     <span>{prefix}{max}+</span>
   </div>
 </div>

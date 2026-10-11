@@ -245,7 +245,7 @@ export const en: Record<string, string> = {
   'gear.strict': 'Strict equipment filter',
   'gear.strictHint': 'Hides ordinary weapons and armour',
   'gear.quality': 'Show high quality gear',
-  'gear.qualityOff': 'Off',
+  'gear.qualityHint': 'Normal, magic and rare gear with at least this much quality stands out on the ground.',
 
   // Custom rules
   'tier.off': 'None',

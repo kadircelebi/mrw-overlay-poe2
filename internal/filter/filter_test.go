@@ -37,7 +37,9 @@ func testSnapshot() *prices.Snapshot {
 		},
 		Exceptional: []prices.ExceptionalPrice{
 			{Base: "Sekhema Sandals", Kind: prices.KindSockets, Min: 2, ValueEx: 300, Listings: 40, Samples: 8},
-			{Base: "Cavalry Boots", Kind: prices.KindSockets, Min: 2, ValueEx: 5, Listings: 700, Samples: 8},
+			{Base: "Cavalry Boots", Kind: prices.KindSockets, Min: 2, ValueEx: 5, Listings: 700, Samples: 8, ScannedAt: time.Now().Add(-time.Hour)},
+			// Cheap, but searched too long ago to hide on.
+			{Base: "Stocky Mitts", Kind: prices.KindSockets, Min: 2, ValueEx: 5, Listings: 700, Samples: 8, ScannedAt: time.Now().Add(-40 * time.Hour)},
 			// Too few listings to trust a hide.
 			{Base: "Adherent Cuffs", Kind: prices.KindSockets, Min: 2, ValueEx: 4, Listings: 3, Samples: 3},
 		},
@@ -48,7 +50,7 @@ var testBases = map[string]string{
 	"mirror of kalandra": "Mirror of Kalandra", "orb of alchemy": "Orb of Alchemy",
 	"silk robe": "Silk Robe", "knight armour": "Knight Armour", "moulded mitts": "Moulded Mitts",
 	"sekhema sandals": "Sekhema Sandals", "cavalry boots": "Cavalry Boots",
-	"adherent cuffs": "Adherent Cuffs", "heavy belt": "Heavy Belt",
+	"adherent cuffs": "Adherent Cuffs", "heavy belt": "Heavy Belt", "stocky mitts": "Stocky Mitts",
 }
 
 // blockContaining returns the index of the first rule block whose text
@@ -91,6 +93,9 @@ func TestRuleOrderAndSafety(t *testing.T) {
 	}
 	if blockContaining(t, out, "Hide", `"Adherent Cuffs"`) >= 0 {
 		t.Fatal("exceptional base with too few listings must not be hidden")
+	}
+	if blockContaining(t, out, "Hide", `"Stocky Mitts"`) >= 0 {
+		t.Fatal("exceptional base priced 40 hours ago must not be hidden")
 	}
 
 	if blockContaining(t, out, "Show", "Rarity Unique", `"Silk Robe"`) < 0 {
@@ -972,7 +977,7 @@ func TestExceptionalPricesPerItemLevelRange(t *testing.T) {
 	snap := testSnapshot()
 	snap.Exceptional = []prices.ExceptionalPrice{
 		{Base: "Knight Armour", Kind: prices.KindQuality, Min: 21, MinIlvl: 82, ValueEx: 300, Listings: 40, Samples: 8},
-		{Base: "Knight Armour", Kind: prices.KindQuality, Min: 21, MinIlvl: 79, MaxIlvl: 81, ValueEx: 2, Listings: 400, Samples: 8},
+		{Base: "Knight Armour", Kind: prices.KindQuality, Min: 21, MinIlvl: 79, MaxIlvl: 81, ValueEx: 2, Listings: 400, Samples: 8, ScannedAt: time.Now()},
 	}
 	out, _ := GenerateDynamicFilterBlock(cfg, snap, testBases, nil)
 

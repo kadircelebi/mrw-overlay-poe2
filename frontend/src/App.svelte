@@ -1555,14 +1555,17 @@
                         hint={t('tier.jewelsHint')}
                         onchange={() => queueSave()}
                       />
-                      <label class="field">
-                        <span>{t('gear.quality')}</span>
-                        <select bind:value={cfg.quality_threshold} onchange={() => queueSave()}>
-                          <option value={0}>{t('gear.qualityOff')}</option>
-                          <option value={15}>%15+</option>
-                          <option value={20}>%20+</option>
-                        </select>
-                      </label>
+                      <TierSlider
+                        bind:value={cfg.quality_threshold}
+                        min={15}
+                        max={30}
+                        off={0}
+                        canHide={false}
+                        prefix="%"
+                        label={t('gear.quality')}
+                        hint={t('gear.qualityHint')}
+                        onchange={() => queueSave()}
+                      />
                     </section>
                   </div>
                   <div class="col">

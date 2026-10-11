@@ -36,6 +36,16 @@ func TestShardsSplitEveryKeyOnceByWeight(t *testing.T) {
 	if share := float64(officeKeys) / float64(n); share < 0.56 || share > 0.64 {
 		t.Fatalf("office share %.2f, want about 0.60", share)
 	}
+	// Every key of a base stays together.
+	for i := 0; i < 200; i++ {
+		base := fmt.Sprintf("Base %d", i)
+		want := office(base + "|quality|ilvl82+")
+		for _, rest := range []string{"|quality|ilvl79-81", "|sockets|ilvl82+", "|sockets|ilvl79-81", "|sockets"} {
+			if office(base+rest) != want {
+				t.Fatalf("%s%s split from its base", base, rest)
+			}
+		}
+	}
 	// The split never depends on the order the weights were written in.
 	again, _ := ShardFilter("office", map[string]int{"home": 40, "office": 60})
 	for i := 0; i < 200; i++ {

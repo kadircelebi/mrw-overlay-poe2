@@ -34,9 +34,11 @@ func ParseShardWeights(spec string) (map[string]int, error) {
 }
 
 // ShardFilter splits scan keys between machines by weight. A key belongs to
-// one machine for good (FNV-1a of the key into the weight ranges, names in
+// one machine for good (FNV-1a of its base into the weight ranges, names in
 // sorted order), so no two machines search the same key and none of them
-// needs to know about the others.
+// needs to know about the others. Every key of a base (kinds, item level
+// ranges) lands on the same machine, which lets a price jump on one of them
+// bring the others forward.
 func ShardFilter(name string, weights map[string]int) (func(key string) bool, error) {
 	if _, ok := weights[name]; !ok {
 		return nil, fmt.Errorf("shard %q is not among the weights", name)
@@ -57,8 +59,9 @@ func ShardFilter(name string, weights map[string]int) (func(key string) bool, er
 	}
 	hi := lo + weights[name]
 	return func(key string) bool {
+		base, _, _ := strings.Cut(key, "|")
 		h := fnv.New32a()
-		h.Write([]byte(key))
+		h.Write([]byte(base))
 		slot := int(h.Sum32() % uint32(total))
 		return slot >= lo && slot < hi
 	}, nil
