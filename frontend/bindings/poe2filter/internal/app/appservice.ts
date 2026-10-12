@@ -615,6 +615,10 @@ export function RefreshTradeCatalog(): $CancellablePromise<overlay$0.Catalog> {
     return $Call.ByID(2146022305);
 }
 
+export function RenameOverlaySearch(id: string, name: string): $CancellablePromise<overlay$0.SearchLibrary> {
+    return $Call.ByID(496632141, id, name);
+}
+
 /**
  * RenameProfile changes a saved profile's name without duplicating it.
  */
@@ -833,6 +837,15 @@ export function UnpublishProfile(name: string): $CancellablePromise<void> {
  */
 export function UpdateNow(): $CancellablePromise<void> {
     return $Call.ByID(1730923500);
+}
+
+/**
+ * UpdateOverlaySearch saves an edited search over the saved one it was opened
+ * from. A live search running for it starts again with the new query; if it
+ * cannot, it shows as stopped in the live list and the save still stands.
+ */
+export function UpdateOverlaySearch(id: string, name: string, query: trade$0.EvaluateRequest): $CancellablePromise<overlay$0.SearchLibrary> {
+    return $Call.ByID(1895599712, id, name, query);
 }
 
 /**

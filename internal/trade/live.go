@@ -187,6 +187,34 @@ func (m *LiveManager) Forget(id string) {
 	m.changed()
 }
 
+// Running reports whether a live search is open (connecting, live or
+// waiting to reconnect).
+func (m *LiveManager) Running(id string) bool {
+	if m == nil {
+		return false
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	run := m.runs[id]
+	return run != nil && run.cancel != nil
+}
+
+// Rename changes the name a live search shows and notifies with.
+func (m *LiveManager) Rename(id, name string) {
+	if m == nil {
+		return
+	}
+	m.mu.Lock()
+	run := m.runs[id]
+	if run != nil {
+		run.state.Name = name
+	}
+	m.mu.Unlock()
+	if run != nil {
+		m.changed()
+	}
+}
+
 // Clear drops a live search's found listings and resets its count.
 func (m *LiveManager) Clear(id string) {
 	m.mu.Lock()

@@ -626,10 +626,40 @@
     catch (e) { saveError = String(e).replace(/^RuntimeError:\s*/i, ''); return false }
   }
 
-  async function saveCurrent() {
+  // The saved search this tab was opened from (or last saved as): Save writes
+  // over it, "Save as new" adds another next to it.
+  const linkedSaved = $derived.by(() => {
+    const origin = tabs.find((tab) => tab.id === activeTab)?.origin ?? ''
+    return origin.startsWith('saved:') ? searches.find((saved) => saved.id === origin.slice(6)) ?? null : null
+  })
+
+  // A new save never takes a name already in the list: the fourth "Abyss
+  // Tablet" is saved as "Abyss Tablet 4".
+  function freeName(name: string) {
+    const taken = new Set(searches.map((saved) => saved.name.toLowerCase()))
+    if (!taken.has(name.toLowerCase())) return name
+    let n = 2
+    while (taken.has(`${name} ${n}`.toLowerCase())) n++
+    return `${name} ${n}`
+  }
+
+  async function saveCurrent(asNew = false) {
     if (!item || !canSearch) return
-    const name = saveName.trim() || searchLabel(item) || t('mk.searchFallback')
-    if (await libraryCall(AppService.SaveOverlaySearch(name, '', currentRequest()))) saveName = ''
+    const tab = tabs.find((candidate) => candidate.id === activeTab)
+    const linked = linkedSaved
+    const typed = saveName.trim()
+    if (linked && !asNew) {
+      const name = typed || linked.name
+      if (await libraryCall(AppService.UpdateOverlaySearch(linked.id, name, currentRequest())) && activeTab === tab?.id) saveName = name
+      return
+    }
+    const name = freeName(typed || searchLabel(item) || t('mk.searchFallback'))
+    const before = new Set(searches.map((saved) => saved.id))
+    if (!(await libraryCall(AppService.SaveOverlaySearch(name, linked?.folder ?? '', currentRequest())))) return
+    // The tab is now that save: its next Save updates it.
+    const added = searches.find((saved) => !before.has(saved.id))
+    if (added && tab) tab.origin = 'saved:' + added.id
+    if (activeTab === tab?.id) saveName = added?.name ?? ''
   }
 
   function deleteSaved(id: string, event: MouseEvent) {
@@ -696,6 +726,22 @@
     const id = renamingFolder
     renamingFolder = ''
     if (id && renameValue.trim()) await libraryCall(AppService.RenameSearchFolder(id, renameValue))
+  }
+
+  // Saves of one item all start under its name; renaming tells them apart.
+  let renamingSearch = $state('')
+  function startSearchRename(saved: SavedSearch, event: MouseEvent) {
+    event.stopPropagation()
+    renamingSearch = saved.id
+    renameValue = saved.name
+  }
+
+  async function commitSearchRename() {
+    const id = renamingSearch
+    renamingSearch = ''
+    const name = renameValue.trim()
+    if (!id || !name || searches.find((saved) => saved.id === id)?.name === name) return
+    if (await libraryCall(AppService.RenameOverlaySearch(id, name)) && tabs.find((tab) => tab.id === activeTab)?.origin === 'saved:' + id) saveName = name
   }
 
   function deleteFolder(id: string) {
@@ -842,8 +888,14 @@
 </script>
 
 {#snippet savedRow(saved: SavedSearch)}
-  <div class="saved-row" class:dragging={draggedSearch === saved.id} role="listitem" draggable="true" ondragstart={(event) => { draggedSearch = saved.id; event.dataTransfer?.setData('text/plain', saved.id) }} ondragend={() => { draggedSearch = ''; dropTarget = null }}>
-    <button class="saved-load" onclick={() => loadSaved(saved)}><span>♥</span><b>{saved.name}</b><i>{saved.query.name || saved.query.baseType}</i></button>
+  <div class="saved-row" class:dragging={draggedSearch === saved.id} role="listitem" draggable={renamingSearch !== saved.id} ondragstart={(event) => { draggedSearch = saved.id; event.dataTransfer?.setData('text/plain', saved.id) }} ondragend={() => { draggedSearch = ''; dropTarget = null }}>
+    {#if renamingSearch === saved.id}
+      <!-- svelte-ignore a11y_autofocus -->
+      <input class="folder-input saved-input" bind:value={renameValue} autofocus onfocus={(event) => event.currentTarget.select()} onkeydown={(event) => { if (event.key === 'Enter') commitSearchRename(); if (event.key === 'Escape') renamingSearch = '' }} onblur={commitSearchRename} />
+    {:else}
+      <button class="saved-load" onclick={() => loadSaved(saved)} ondblclick={(event) => startSearchRename(saved, event)}><span>♥</span><b>{saved.name}</b><i>{saved.query.name || saved.query.baseType}</i></button>
+      <button class="saved-rename" title={t('mk.renameSaved')} onclick={(event) => startSearchRename(saved, event)}>✎</button>
+    {/if}
     <button class="saved-delete" title={t('mk.deleteSaved')} onclick={(event) => deleteSaved(saved.id, event)}>×</button>
   </div>
 {/snippet}
@@ -863,7 +915,14 @@
         <div class="saved-title"><strong>{t('mk.explorer')}</strong></div>
         <div class="save-box">
           <input bind:value={saveName} placeholder={currentLabel() || t('mk.searchName')} />
-          <button disabled={!canSearch} onclick={saveCurrent}>{t('mk.save')}</button>
+          {#if linkedSaved}
+            <div class="save-actions">
+              <button disabled={!canSearch} title={t('mk.updateSavedTitle', linkedSaved.name)} onclick={() => saveCurrent()}>{t('mk.updateSaved')}</button>
+              <button disabled={!canSearch} onclick={() => saveCurrent(true)}>{t('mk.saveAsNew')}</button>
+            </div>
+          {:else}
+            <button disabled={!canSearch} onclick={() => saveCurrent()}>{t('mk.save')}</button>
+          {/if}
         </div>
         {#if saveError}<p class="save-error">{saveError}</p>{/if}
         <div class="saved-list">
@@ -1072,7 +1131,7 @@
   .market-shell{height:100%;display:flex;flex-direction:column;border:1px solid var(--line-strong);background:var(--grain),var(--ui-bg,#101210)}
   header{height:36px;flex:0 0 36px;display:flex;align-items:center;gap:7px;padding:0 8px;border-bottom:1px solid var(--ui-line-strong,#4b4a3e);background:var(--ui-surface-3,#151715);--wails-draggable:drag;font-size:11px}header .mark{width:20px;height:20px}header strong{font-family:var(--serif);color:var(--gold-bright)}header .league{flex:1;overflow:hidden;text-overflow:ellipsis;color:var(--muted);white-space:nowrap}header button{--wails-draggable:no-drag;border:0;background:none;color:var(--ui-text-2,#aaa);font-size:17px}
   .workspace{min-height:0;flex:1;display:grid;grid-template-columns:176px minmax(245px,.9fr) minmax(280px,1.1fr);overflow:hidden}.workspace.saved-collapsed{grid-template-columns:28px minmax(245px,.9fr) minmax(280px,1.1fr)}.workspace.no-advanced{grid-template-columns:176px 1fr}.workspace.no-advanced.saved-collapsed{grid-template-columns:28px 1fr}
-  .saved-pane{position:relative;min-width:0;overflow:hidden;border-right:1px solid var(--ui-line,#3a392f);background:var(--ui-sunk,#11130f)}.saved-pane.collapsed{background:var(--ui-surface-2,#20221d)}.saved-toggle{position:absolute;z-index:3;top:7px;right:4px;width:19px;height:22px;border:1px solid var(--ui-line-strong,#45443a);background:var(--ui-surface-2,#24261f);color:var(--ui-gold-bright,#b8ae91)}.saved-title{height:36px;display:flex;align-items:center;padding:0 26px 0 8px;border-bottom:1px solid var(--ui-line,#38382f);color:var(--ui-gold-bright,#d6ccb0);font-family:var(--serif);font-size:10px}.save-box{display:grid;gap:5px;padding:7px}.save-box input{min-width:0;width:100%;padding:6px;border:1px solid var(--ui-line-strong,#414139);background:var(--ui-surface,#171916);color:var(--ui-gold-bright,#ccc6b2);font-size:9px}.save-box button{padding:6px;border:1px solid var(--ui-line-strong,#665b40);background:var(--ui-surface-2,#20221d);color:var(--gold-bright);font-size:9px}.save-box button:disabled{opacity:.4}.save-error{margin:0 7px 7px;color:var(--ui-bad,#df8179);font-size:8px}.saved-list{height:calc(100% - 98px);overflow:auto;padding:3px 5px 8px}.saved-row{position:relative;display:grid;grid-template-columns:1fr 17px;width:100%;margin-bottom:4px;border:1px solid var(--ui-line,#30322b);background:var(--ui-surface,#191b17)}.saved-row:hover{border-color:var(--ui-line-strong,#756847);background:var(--ui-hover,#23251e)}.saved-load{min-width:0;display:grid;grid-template-columns:12px 1fr;gap:2px 3px;padding:6px 3px 6px 5px;border:0;background:none;text-align:left}.saved-load>span{grid-row:1/3;color:var(--ui-gold,#9f9067)}.saved-load b{overflow:hidden;text-overflow:ellipsis;color:var(--ui-gold-bright,#d2c8aa);font-size:8px;white-space:nowrap}.saved-load i{overflow:hidden;text-overflow:ellipsis;color:var(--ui-muted,#737a78);font-size:7px;font-style:normal;white-space:nowrap}.saved-delete{padding:0;border:0;border-left:1px solid var(--ui-line,#2f302a);background:none;color:var(--ui-gold,#817a69);font-size:13px}.saved-delete:hover{color:var(--ui-bad,#df8179)}
+  .saved-pane{position:relative;min-width:0;overflow:hidden;border-right:1px solid var(--ui-line,#3a392f);background:var(--ui-sunk,#11130f)}.saved-pane.collapsed{background:var(--ui-surface-2,#20221d)}.saved-toggle{position:absolute;z-index:3;top:7px;right:4px;width:19px;height:22px;border:1px solid var(--ui-line-strong,#45443a);background:var(--ui-surface-2,#24261f);color:var(--ui-gold-bright,#b8ae91)}.saved-title{height:36px;display:flex;align-items:center;padding:0 26px 0 8px;border-bottom:1px solid var(--ui-line,#38382f);color:var(--ui-gold-bright,#d6ccb0);font-family:var(--serif);font-size:10px}.save-box{display:grid;gap:5px;padding:7px}.save-box input{min-width:0;width:100%;padding:6px;border:1px solid var(--ui-line-strong,#414139);background:var(--ui-surface,#171916);color:var(--ui-gold-bright,#ccc6b2);font-size:9px}.save-box button{padding:6px;border:1px solid var(--ui-line-strong,#665b40);background:var(--ui-surface-2,#20221d);color:var(--gold-bright);font-size:9px}.save-box button:disabled{opacity:.4}.save-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px}.save-error{margin:0 7px 7px;color:var(--ui-bad,#df8179);font-size:8px}.saved-list{height:calc(100% - 98px);overflow:auto;padding:3px 5px 8px}.saved-row{position:relative;display:grid;grid-template-columns:1fr 17px 17px;width:100%;margin-bottom:4px;border:1px solid var(--ui-line,#30322b);background:var(--ui-surface,#191b17)}.saved-row:hover{border-color:var(--ui-line-strong,#756847);background:var(--ui-hover,#23251e)}.saved-load{min-width:0;display:grid;grid-template-columns:12px 1fr;gap:2px 3px;padding:6px 3px 6px 5px;border:0;background:none;text-align:left}.saved-load>span{grid-row:1/3;color:var(--ui-gold,#9f9067)}.saved-load b{overflow:hidden;text-overflow:ellipsis;color:var(--ui-gold-bright,#d2c8aa);font-size:8px;white-space:nowrap}.saved-load i{overflow:hidden;text-overflow:ellipsis;color:var(--ui-muted,#737a78);font-size:7px;font-style:normal;white-space:nowrap}.saved-delete{padding:0;border:0;border-left:1px solid var(--ui-line,#2f302a);background:none;color:var(--ui-gold,#817a69);font-size:13px}.saved-delete:hover{color:var(--ui-bad,#df8179)}
   .search-pane{position:relative;min-width:0;padding:8px;overflow:auto;border-right:1px solid var(--ui-line,#37372f)}.tabs{display:grid;grid-template-columns:repeat(3,1fr);margin:-8px -8px 8px}.tabs button{padding:8px 3px;border:0;border-bottom:1px solid var(--ui-line,#34362f);background:var(--ui-surface,#171917);color:var(--ui-muted,#898d85);font-size:9px}.tabs button.on{color:var(--gold-bright);border-bottom:2px solid var(--gold);background:var(--ui-hover,#20221e)}.item-search{position:relative;display:grid;grid-template-columns:1fr 34px;gap:5px;margin-bottom:7px}.item-search>input{min-width:0;padding:7px;border:1px solid var(--ui-line-strong,#46463d);background:var(--ui-sunk,#111311);font-size:10px}.item-search>button{border:1px solid var(--ui-line-strong,#5b543f);background:var(--ui-surface-2,#20221e);color:var(--gold-bright);font-size:17px}.suggestions,.stat-suggestions{position:absolute;z-index:30;top:100%;left:0;right:39px;max-height:260px;overflow:auto;border:1px solid var(--ui-line-strong,#555042);background:var(--ui-sunk,#111310);box-shadow:0 10px 30px var(--ui-shadow,#000)}.suggestions button,.stat-suggestions button{display:flex;width:100%;justify-content:space-between;gap:8px;padding:7px;border:0;border-bottom:1px solid var(--ui-line,#282a25);background:transparent;text-align:left;font-size:9px}.suggestions button:hover,.stat-suggestions button:hover{background:var(--ui-hover,#25271f)}.suggestions span{color:var(--muted)}.search-button{position:sticky;bottom:0;width:100%;margin-top:7px;padding:8px;border:1px solid var(--ui-line-strong,#8c7b50);background:var(--ui-surface,#171917);color:var(--gold-bright);font-family:var(--serif);font-size:10px;font-weight:bold}.search-button:hover{background:var(--ui-hover,#25261f)}.search-button:disabled{opacity:.5}
   .advanced{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:var(--ui-surface,#171914)}.advanced-title{display:flex;flex:0 0 auto;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--ui-line-strong,#48483c);background:var(--ui-surface-2,#2b2d27);color:var(--ui-gold-bright,#d8cfb1);font-family:var(--serif);font-size:10px}.advanced-title button{border:0;background:none;color:var(--ui-muted,#999)}.advanced-scroll{min-height:0;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:7px}.filter-group{border:1px solid var(--ui-line,#33352f);margin-bottom:7px;background:var(--ui-sunk,#11130f)}.filter-group h2{margin:0 0 6px;padding:7px 8px;background:var(--ui-surface-3,#30322c);color:var(--ui-gold-bright,#ddd4b5);font-family:var(--serif);font-size:10px}.filter-row,.status-line{display:grid;grid-template-columns:minmax(90px,.85fr) minmax(112px,1.15fr);align-items:center;gap:6px;padding:4px 8px;color:var(--ui-gold-bright,#d0c7a9)}.filter-row>span:first-child{font-size:9px}.filter-row input,.filter-row select,.status-line select,.stat-add input{min-width:0;width:100%;padding:6px;border:1px solid var(--ui-line-strong,#414139);border-radius:2px;background:var(--ui-surface-2,#20221d);color:var(--ui-gold-bright,#ccc6b2);font-size:9px}.minmax{display:grid;grid-template-columns:1fr 1fr;gap:5px}.stat-add{position:relative;margin:7px 8px 9px}.stat-suggestions{right:0;max-height:320px}.stat-suggestions button{justify-content:flex-start}.stat-suggestions small{flex:0 0 52px;color:var(--ui-ok,#77a070);text-transform:uppercase}.stat-suggestions span{color:var(--ui-gold-bright,#c3bda8)}
   .stat-group{margin:7px 8px;border:1px solid var(--ui-line,#34362f);background:var(--ui-sunk,#0d0f0d)}.stat-group-head{display:grid;grid-template-columns:minmax(72px,105px) minmax(90px,120px) 1fr 22px;gap:5px;align-items:center;padding:5px;border-bottom:1px solid var(--ui-line,#303229)}.stat-group-head select,.stat-group-head input{min-width:0;width:100%;padding:5px;border:1px solid var(--ui-line-strong,#504b3c);background:var(--ui-surface-3,#20221d);color:var(--ui-gold-bright,#d7cfb5);font-size:9px}.stat-group-head>span{color:var(--ui-ok,#6f9c6c);font-size:8px;font-weight:bold}.stat-group-head button,.stat-choice>button{border:0;background:none;color:var(--ui-gold,#9b9380);font-size:14px}.stat-group-head button:disabled{opacity:.25}.stat-choice{display:grid;grid-template-columns:minmax(0,1fr) 42px 94px 18px 20px;gap:5px;align-items:center;padding:5px;border-top:1px solid var(--ui-line,#23251f)}.stat-choice.off{opacity:.5}.stat-choice>button.stat-sort{padding:0;font-size:11px;color:var(--ui-gold,#6f6a5a)}.stat-choice>button.stat-sort:hover:not(:disabled){color:var(--gold-bright)}.stat-choice>button.stat-sort.on{color:var(--gold-bright)}.stat-choice>button.stat-sort:disabled{opacity:.3}.stat-choice>label{display:flex;gap:6px;align-items:flex-start;min-width:0;color:var(--ui-text,#aeb9d5);font-size:9px}.stat-choice>label input{position:absolute;opacity:0}.stat-choice>label i{flex:0 0 10px;width:10px;height:10px;margin-top:2px;transform:rotate(45deg);border:1px solid var(--gold-dim)}.stat-choice>label input:checked+i{background:var(--gold);box-shadow:inset 0 0 0 3px var(--ui-shadow,#17191b)}.stat-choice>label span{overflow-wrap:anywhere}.stat-choice .minmax input,.stat-choice .weight input{min-width:0;width:100%;padding:4px;border:1px solid var(--ui-line,#3d3a31);background:var(--ui-sunk,#111313);color:var(--gold-bright)}.add-group{display:block;margin:0 8px 8px auto;padding:6px 8px;border:1px solid var(--ui-line-strong,#716342);background:var(--ui-surface,#191b17);color:var(--gold-bright);font-family:var(--serif);font-size:9px}
@@ -1104,6 +1163,7 @@
   .folder-action{padding:0;border:0;background:none;color:var(--ui-gold,#817a69);font-size:11px}.folder-action:hover{color:var(--gold-bright)}.folder-action.confirm{color:var(--ui-bad,#df8179);font-weight:bold}.folder-body{padding:4px 4px 1px 10px}
   .folder-input{width:100%;min-width:0;padding:5px 6px;border:1px solid var(--ui-line-strong,#665b40);background:var(--ui-surface,#171916);color:var(--ui-gold-bright,#ddd4b5);font-size:10px}.folder-input.new{margin:0 0 6px}.new-folder{display:block;width:100%;margin:0 0 6px;padding:5px;border:1px dashed var(--ui-line-strong,#45443a);background:none;color:var(--ui-gold,#9f9067);font-size:9.5px}.new-folder:hover{color:var(--gold-bright);border-color:var(--gold-dim)}
   .saved-row{cursor:grab}.saved-row.dragging{opacity:.4}
+  .saved-rename{padding:0;border:0;border-left:1px solid var(--ui-line,#2f302a);background:none;color:var(--ui-gold,#817a69);font-size:10px}.saved-rename:hover{color:var(--gold-bright)}.saved-input{grid-column:1/3;width:auto;margin:4px}
   /* Search tabs */
   .search-tabs{display:flex;flex-wrap:wrap;gap:3px;margin:-2px 0 8px}.search-tab{display:flex;min-width:0;max-width:150px;border:1px solid var(--ui-line,#34362f);background:var(--ui-surface,#141613)}.search-tab.on{border-color:var(--ui-line-strong,#7a6c48);background:var(--ui-hover,#23241e)}.search-tab.busy .search-tab-pick::after{content:' …';color:var(--gold)}.search-tab-pick{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 4px 5px 7px;border:0;background:none;color:var(--ui-muted,#9a9c92);font-size:9.5px}.search-tab.on .search-tab-pick{color:var(--gold-bright)}.search-tab-close{padding:0 5px;border:0;background:none;color:var(--ui-gold,#6f6a5a);font-size:12px}.search-tab-close:hover{color:var(--ui-bad,#df8179)}.search-tab-add{padding:3px 8px;border:1px dashed var(--ui-line-strong,#45443a);background:none;color:var(--ui-gold,#9f9067);font-size:11px}.search-tab-add:hover{color:var(--gold-bright);border-color:var(--gold-dim)}
 </style>

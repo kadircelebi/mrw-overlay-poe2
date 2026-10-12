@@ -148,6 +148,29 @@ func (s *AppService) DeleteOverlaySearch(id string) (overlay.SearchLibrary, erro
 	return s.overlaySearches.Delete(id)
 }
 
+// UpdateOverlaySearch saves an edited search over the saved one it was opened
+// from. A live search running for it starts again with the new query; if it
+// cannot, it shows as stopped in the live list and the save still stands.
+func (s *AppService) UpdateOverlaySearch(id, name string, query trade.EvaluateRequest) (overlay.SearchLibrary, error) {
+	lib, err := s.overlaySearches.Update(id, name, query)
+	if err != nil || !s.live.Running(id) {
+		return lib, err
+	}
+	s.live.Stop(id)
+	if err := s.live.Start(id, strings.TrimSpace(name), query); err != nil {
+		s.liveLog("restart " + id + " after update: " + err.Error())
+	}
+	return lib, nil
+}
+
+func (s *AppService) RenameOverlaySearch(id, name string) (overlay.SearchLibrary, error) {
+	lib, err := s.overlaySearches.Rename(id, name)
+	if err == nil {
+		s.live.Rename(id, strings.TrimSpace(name))
+	}
+	return lib, err
+}
+
 // MoveOverlaySearch puts a saved search into a folder ("" = top level).
 func (s *AppService) MoveOverlaySearch(id, folder string) (overlay.SearchLibrary, error) {
 	return s.overlaySearches.Move(id, folder)

@@ -106,6 +106,42 @@ func (s *SearchStore) Delete(id string) (SearchLibrary, error) {
 	})
 }
 
+// Update replaces a saved search's name and query in place: it keeps its id,
+// folder and place in the list.
+func (s *SearchStore) Update(id, name string, query trade.EvaluateRequest) (SearchLibrary, error) {
+	return s.change(func(lib *SearchLibrary) error {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return errors.New("saved search name is empty")
+		}
+		if strings.TrimSpace(query.BaseType) == "" {
+			return errors.New("saved search base type is empty")
+		}
+		for i := range lib.Searches {
+			if lib.Searches[i].ID == id {
+				lib.Searches[i].Name, lib.Searches[i].Query = name, query
+				return nil
+			}
+		}
+		return errors.New("no such saved search")
+	})
+}
+
+func (s *SearchStore) Rename(id, name string) (SearchLibrary, error) {
+	return s.change(func(lib *SearchLibrary) error {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return errors.New("saved search name is empty")
+		}
+		for i := range lib.Searches {
+			if lib.Searches[i].ID == id {
+				lib.Searches[i].Name = name
+			}
+		}
+		return nil
+	})
+}
+
 // Move puts a search into a folder, or back to the top level with "".
 func (s *SearchStore) Move(id, folder string) (SearchLibrary, error) {
 	return s.change(func(lib *SearchLibrary) error {

@@ -81,6 +81,28 @@ func TestSearchFolders(t *testing.T) {
 		t.Error("moving into a missing folder should fail")
 	}
 
+	lib, err = store.Rename(lib.Searches[1].ID, "  HH 3 jewel  ")
+	if err != nil || lib.Searches[1].Name != "HH 3 jewel" || lib.Searches[0].Name != "Mageblood" {
+		t.Fatalf("rename search = %#v, %v", lib.Searches, err)
+	}
+	if _, err := store.Rename(lib.Searches[1].ID, " "); err == nil {
+		t.Error("an empty search name should fail")
+	}
+
+	// Saving over an opened search keeps its id, folder and place.
+	id := lib.Searches[0].ID
+	lib, err = store.Update(id, "MB 3 flasks", trade.EvaluateRequest{BaseType: "Utility Belt", Name: "Mageblood", Rarity: "unique"})
+	if err != nil || len(lib.Searches) != 2 || lib.Searches[0].ID != id || lib.Searches[0].Folder != folder ||
+		lib.Searches[0].Name != "MB 3 flasks" || lib.Searches[0].Query.Rarity != "unique" {
+		t.Fatalf("update = %#v, %v", lib.Searches, err)
+	}
+	if _, err := store.Update("missing", "x", trade.EvaluateRequest{BaseType: "Utility Belt"}); err == nil {
+		t.Error("updating a missing search should fail")
+	}
+	if _, err := store.Update(id, "x", trade.EvaluateRequest{}); err == nil {
+		t.Error("an update without a base type should fail")
+	}
+
 	lib, err = store.RenameFolder(folder, "Unique belts")
 	if err != nil || lib.Folders[0].Name != "Unique belts" {
 		t.Fatalf("rename = %#v, %v", lib.Folders, err)
