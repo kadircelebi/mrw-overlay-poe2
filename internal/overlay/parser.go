@@ -112,7 +112,7 @@ type Snapshot struct {
 }
 
 var (
-	headerRE = regexp.MustCompile(`^\{\s*((?:(?:Desecrated|Crafted|Fractured)\s+)*)(Prefix|Suffix|Implicit|Unique|Rune|Corruption\s+Enhancement|Enhancement)(?:\s+Modifier)?(?:\s+"([^"]+)")?(?:\s+\(Tier:\s*(\d+)\))?`)
+	headerRE = regexp.MustCompile(`^\{\s*((?:(?:Desecrated|Crafted|Fractured|Vaal)\s+)*)(Prefix|Suffix|Implicit|Unique|Rune|Corruption\s+Enhancement|Enhancement)(?:\s+Modifier)?(?:\s+"([^"]+)")?(?:\s+\(Tier:\s*(\d+)\))?`)
 	rangeRE  = regexp.MustCompile(`\([^()]*\)`)
 	numberRE = regexp.MustCompile(`[+-]?\d+(?:\.\d+)?`)
 	spaceRE  = regexp.MustCompile(`\s+`)

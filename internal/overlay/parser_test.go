@@ -804,6 +804,22 @@ func TestWeaponsAndArmourMatchTheLocalStat(t *testing.T) {
 	}
 }
 
+func TestVaalUniqueModifierIsRead(t *testing.T) {
+	catalog := Catalog{Stats: []StatGroup{{Entries: []StatEntry{
+		{ID: "explicit.stat_3128077011", Text: "#% increased Effect of Jewel Socket Passive Skills\ncontaining Corrupted Rare Jewels", Type: "explicit"},
+	}}}}
+	raw := "Item Class: Jewels\nRarity: Unique\nThe Adorned\nDiamond\n--------\nLimited to: 1\n--------\nItem Level: 82\n--------\n" +
+		"{ Vaal Unique Modifier }\n48(0-75)% increased Effect of Jewel Socket Passive Skills\ncontaining Corrupted Rare Jewels\n--------\n" +
+		"At their height, the Vaal glittered under the sun.\n--------\nCorrupted\n"
+	item, err := ParseItem(raw, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(item.Mods) != 1 || item.Mods[0].StatID != "explicit.stat_3128077011" || item.Mods[0].Type != "explicit" || !item.Mods[0].Selected {
+		t.Fatalf("mods = %+v", item.Mods)
+	}
+}
+
 func TestAmbiguousStatsKeepTheirTwins(t *testing.T) {
 	catalog := Catalog{Stats: []StatGroup{{Entries: []StatEntry{
 		{ID: "explicit.stat_2866361420", Text: "#% increased Armour", Type: "explicit"},
