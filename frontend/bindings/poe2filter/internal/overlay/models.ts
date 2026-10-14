@@ -301,6 +301,14 @@ export interface Settings {
      */
     "live_sound": string;
     "live_notify": boolean;
+
+    /**
+     * OffNoticeHidden and ChatNoticeHidden hide the main panel's "price
+     * check is off" and "game commands are off" cards for players who keep
+     * them off on purpose.
+     */
+    "off_notice_hidden"?: boolean;
+    "chat_notice_hidden"?: boolean;
 }
 
 /**

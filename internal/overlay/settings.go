@@ -45,6 +45,11 @@ type Settings struct {
 	// listing ("none" = silent); LiveNotify shows a Windows notification.
 	LiveSound  string `json:"live_sound"`
 	LiveNotify bool   `json:"live_notify"`
+	// OffNoticeHidden and ChatNoticeHidden hide the main panel's "price
+	// check is off" and "game commands are off" cards for players who keep
+	// them off on purpose.
+	OffNoticeHidden  bool `json:"off_notice_hidden,omitempty"`
+	ChatNoticeHidden bool `json:"chat_notice_hidden,omitempty"`
 }
 
 // DefaultSettings leaves the overlay off: it registers a global shortcut and

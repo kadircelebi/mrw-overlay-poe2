@@ -246,6 +246,30 @@
     queueOverlaySave()
   }
 
+  // The main panel's "price check is off" and "game commands are off" cards
+  // save at once: a taken shortcut must show up on the card, not in the
+  // settings window.
+  let overlayOffBusy = $state(false)
+  let overlayOffError = $state<Record<string, string>>({})
+  async function saveOverlayOff(kind: string, change: Partial<OverlaySettings>) {
+    if (!overlaySettings) return
+    overlayOffBusy = true
+    overlayOffError = {}
+    try {
+      const next = { ...($state.snapshot(overlaySettings) as OverlaySettings), ...change }
+      overlaySettings = await AppService.SaveOverlaySettings(next as OverlaySettings)
+    } catch (e) {
+      overlayOffError = { [kind]: String(e) }
+    } finally {
+      overlayOffBusy = false
+    }
+  }
+
+  // The first two commands as examples ("F5 /hideout, F6 /dnd").
+  function chatSample(s: OverlaySettings): string {
+    return (s.chat_commands ?? []).filter((c) => c.hotkey && c.text).slice(0, 2).map((c) => `${c.hotkey} ${c.text}`).join(', ') || 'F5 /hideout'
+  }
+
   function queueOverlaySave() {
     if (!overlaySettings) return
     overlaySaveState = 'saving'
@@ -1101,6 +1125,24 @@
             <div><strong class="num cyan-text">{last.valuableExcept}</strong><span>{t('stats.exceptional')}</span></div>
           </section>
           <p class="stats-caption">{t('stats.caption', Math.round(divineEx))}</p>
+        {/if}
+
+        {#snippet offCard(kind: string, body: string, enable: Partial<OverlaySettings>, hide: Partial<OverlaySettings>)}
+          <section class="card overlay-off">
+            <h2>{t(kind + '.title')}</h2>
+            <p class="desc">{body}</p>
+            {#if overlayOffError[kind]}<p class="error">{overlayOffError[kind]}</p>{/if}
+            <div class="overlay-off-actions">
+              <button class="primary" disabled={overlayOffBusy} onclick={() => saveOverlayOff(kind, enable)}>{t('overlayOff.enable')}</button>
+              <button disabled={overlayOffBusy} title={t(kind + '.hideHint')} onclick={() => saveOverlayOff(kind, hide)}>{t('overlayOff.hide')}</button>
+            </div>
+          </section>
+        {/snippet}
+        {#if overlaySettings && !overlaySettings.enabled && !overlaySettings.off_notice_hidden}
+          {@render offCard('overlayOff', t('overlayOff.body', overlaySettings.hotkey, overlaySettings.market_hotkey, overlaySettings.hide_hotkey), { enabled: true }, { off_notice_hidden: true })}
+        {/if}
+        {#if overlaySettings && !overlaySettings.chat_enabled && !overlaySettings.chat_notice_hidden}
+          {@render offCard('chatOff', t('chatOff.body', chatSample(overlaySettings)), { chat_enabled: true }, { chat_notice_hidden: true })}
         {/if}
 
         <section class="actions">
@@ -2526,6 +2568,34 @@
     color: var(--text-2);
   }
   .actions button:hover {
+    color: var(--text);
+    border-color: var(--gold-dim);
+  }
+  .overlay-off .desc {
+    margin: 0;
+  }
+  .overlay-off .error {
+    margin: 8px 0 0;
+  }
+  .overlay-off-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .overlay-off-actions button {
+    flex: 1;
+    margin: 0;
+    padding: 8px;
+  }
+  .overlay-off-actions button:not(.primary) {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--text-2);
+  }
+  .overlay-off-actions button:not(.primary):hover:not(:disabled) {
     color: var(--text);
     border-color: var(--gold-dim);
   }
