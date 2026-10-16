@@ -19,6 +19,7 @@ const (
 	SourceScout         = "poe2scout"
 	SourceNinjaExchange = "poe.ninja/exchange"
 	SourceExceptional   = "trade-exceptional"
+	SourceCX            = "ggg/currency-exchange"
 )
 
 // Options configures a collection run.
@@ -26,6 +27,10 @@ type Options struct {
 	League string
 	HTTP   *http.Client
 	Log    func(string)
+	// CX, when set, reads GGG's Currency Exchange: it then leads for the
+	// rates and every item it lists, the other sources fill the rest. Only
+	// the price server sets it; it downloads a few MB per hour.
+	CX *CXSource
 }
 
 func (o Options) logf(format string, args ...any) {
@@ -53,7 +58,13 @@ func Collect(ctx context.Context, opt Options, prev *prices.Snapshot) (*prices.S
 		exchange []NinjaExchangePrice
 		exDiv    float64
 		exFailed map[string]error
+		cx       CXResult
+		cxErr    = errors.New("not asked")
 	)
+	if opt.CX != nil {
+		wg.Add(1)
+		go func() { defer wg.Done(); cx, cxErr = opt.CX.Prices(ctx, opt.League) }()
+	}
 	wg.Add(3)
 	go func() { defer wg.Done(); ninja = FetchNinjaUniques(ctx, opt.HTTP, opt.League) }()
 	go func() { defer wg.Done(); scout, scoutDiv, scoutErr = FetchScout(ctx, opt.HTTP, opt.League) }()
@@ -71,8 +82,11 @@ func Collect(ctx context.Context, opt Options, prev *prices.Snapshot) (*prices.S
 	}
 	usablePrev := prev != nil && prev.League == opt.League
 
-	// Rates: poe.ninja first, poe2scout second, previous snapshot last.
+	// Rates: the exchange's completed trades first, poe.ninja second,
+	// poe2scout third, previous snapshot last.
 	switch {
+	case cxErr == nil && cx.Rates.DivineEx > 0:
+		snap.Rates = cx.Rates
 	case ninja.DivineEx > 0:
 		snap.Rates = prices.Rates{DivineEx: ninja.DivineEx, ChaosEx: ninja.ChaosEx}
 	case scoutDiv > 0:
@@ -119,6 +133,22 @@ func Collect(ctx context.Context, opt Options, prev *prices.Snapshot) (*prices.S
 	}
 	for t, err := range exFailed {
 		opt.logf("      [Uyarı] poe.ninja %s alınamadı: %v", t, err)
+	}
+
+	// GGG's Currency Exchange over the rest for every item that traded.
+	if opt.CX != nil {
+		if cxErr == nil {
+			var notes []string
+			snap.Currency, notes = MergeCXPrices(snap.Currency, cx)
+			snap.Sources[SourceCX] = prices.SourceStatus{OK: true, FetchedAt: now}
+			opt.logf("      currency exchange: %d items over %d hours (1 Divine = %.1f Exalt).", len(cx.Items), cx.Hours, cx.Rates.DivineEx)
+			for _, n := range notes {
+				opt.logf("      currency exchange check: %s", n)
+			}
+		} else {
+			snap.Sources[SourceCX] = prices.SourceStatus{Error: cxErr.Error()}
+			opt.logf("      [Uyarı] currency exchange alınamadı: %v", cxErr)
+		}
 	}
 
 	// Uniques (poe.ninja). Failed categories fall back to the previous snapshot

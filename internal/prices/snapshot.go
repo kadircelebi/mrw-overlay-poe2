@@ -40,6 +40,26 @@ type CurrencyPrice struct {
 	APIID    string  `json:"api_id,omitempty"`
 	Category string  `json:"category"`
 	ValueEx  float64 `json:"value_ex"`
+	// LowEx is set when the item's Currency Exchange markets disagree (one
+	// is over three times another): ValueEx is then the highest market that
+	// saw a completed trade, LowEx the lowest.
+	LowEx float64 `json:"low_ex,omitempty"`
+	// Markets are the item's Currency Exchange markets that saw trades in
+	// the window, one per currency it was traded against.
+	Markets []MarketPrice `json:"markets,omitempty"`
+}
+
+// MarketPrice is what one Currency Exchange market paid for an item.
+type MarketPrice struct {
+	// Base is the currency the item was traded against ("exalted",
+	// "chaos" or "divine").
+	Base string `json:"base"`
+	// ValueEx is the price of one item in Exalted Orbs: the units of Base
+	// paid divided by the item's units traded, times Base's rate.
+	ValueEx float64 `json:"value_ex"`
+	// Units is how many of the item changed hands in the window.
+	Units float64 `json:"units"`
+	Hours int     `json:"hours"`
 }
 
 // UniqueBase groups every unique that can drop on one ground base type.
