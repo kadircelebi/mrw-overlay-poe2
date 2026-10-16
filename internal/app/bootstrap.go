@@ -145,7 +145,7 @@ func Run(opt Options) {
 			UniqueID: "com.kadir.poe2filter",
 			OnSecondInstanceLaunch: func(application.SecondInstanceData) {
 				if tray != nil {
-					tray.ShowWindow()
+					svc.showPanel()
 				}
 			},
 		},
@@ -154,8 +154,8 @@ func Run(opt Options) {
 	panel := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "panel",
 		Title:            "MrW Overlay",
-		Width:            800,
-		Height:           640,
+		Width:            panelWidth,
+		Height:           panelHeight,
 		Frameless:        true,
 		AlwaysOnTop:      true,
 		Hidden:           !opt.Show,
@@ -242,6 +242,41 @@ func Run(opt Options) {
 		e.Cancel()
 	})
 
+	// The earnings overlay: like the Expedition labels, a see-through window
+	// over the game that lets clicks through and never takes focus.
+	earningsWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name: "earnings", Title: "MrW Overlay · Earnings", Width: earningsWidth, Height: earningsHeight,
+		Frameless: true, AlwaysOnTop: true, Hidden: true, DisableResize: true,
+		BackgroundType:    application.BackgroundTypeTransparent,
+		BackgroundColour:  application.NewRGBA(0, 0, 0, 0),
+		IgnoreMouseEvents: true,
+		Windows:           application.WindowsWindow{HiddenOnTaskbar: true, ExStyle: expeditionExStyle},
+		URL:               "/?view=earnings",
+	})
+	earningsWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		earningsWindow.Hide()
+		e.Cancel()
+	})
+
+	// The tracker: an ordinary window meant to stay open beside the game
+	// (another monitor), its tabs filled by the logs and the trade site.
+	trackerWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:             "tracker",
+		Title:            "MrW Overlay · Tracker",
+		Width:            1080,
+		Height:           760,
+		MinWidth:         720,
+		MinHeight:        480,
+		Frameless:        true,
+		Hidden:           true,
+		BackgroundColour: svc.uiThemeBackground(),
+		URL:              "/?view=tracker",
+	})
+	trackerWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		trackerWindow.Hide()
+		e.Cancel()
+	})
+
 	// Settings live in a window of their own: an ordinary one that stays open
 	// beside the game, so a colour can be changed and tried with Reload
 	// without the panel vanishing on every click in between.
@@ -265,12 +300,13 @@ func Run(opt Options) {
 
 	trayMenu := func() *application.Menu {
 		m := app.NewMenu()
-		m.Add(i18n.T("tray.open")).OnClick(func(*application.Context) { tray.ShowWindow() })
+		m.Add(i18n.T("tray.open")).OnClick(func(*application.Context) { svc.showPanel() })
 		m.Add(i18n.T("tray.settings")).OnClick(func(*application.Context) { svc.ShowSettings("") })
+		m.Add(i18n.T("tray.tracker")).OnClick(func(*application.Context) { svc.ShowTracker() })
 		m.Add(i18n.T("tray.update")).OnClick(func(*application.Context) { _ = svc.UpdateNow() })
 		if !platform.StoreBuild {
 			m.Add(i18n.T("tray.appUpdate")).OnClick(func(*application.Context) {
-				tray.ShowWindow()
+				svc.showPanel()
 				go func() { _, _ = svc.CheckForAppUpdate() }()
 			})
 		}
@@ -286,12 +322,13 @@ func Run(opt Options) {
 	tray.SetTooltip("MrW Overlay for POE 2")
 	tray.SetMenu(trayMenu())
 	svc.relabel = func() { tray.SetMenu(trayMenu()) }
-	tray.AttachWindow(panel).WindowOffset(8)
+	tray.AttachWindow(panel).WindowOffset(8).OnClick(svc.togglePanel)
 
 	svc.app, svc.tray, svc.panel = app, tray, panel
 	svc.overlayWindow, svc.marketWindow, svc.settingsWindow = overlayWindow, marketWindow, settingsWindow
 	svc.craftWindow = craftWindow
 	svc.expeditionWindow = expeditionWindow
+	svc.trackerWindow, svc.earningsWindow = trackerWindow, earningsWindow
 	// Price check (Alt+E), market (Alt+M) and craft (Alt+F) shortcuts
 	// exist only while the overlay is switched on.
 	shortcuts := func(s overlay.Settings) [][2]any {
@@ -304,6 +341,9 @@ func Run(opt Options) {
 		}
 		if s.ExpeditionHotkey != "" {
 			list = append(list, [2]any{s.ExpeditionHotkey, svc.captureExpedition})
+		}
+		if s.TrackerHotkey != "" {
+			list = append(list, [2]any{s.TrackerHotkey, svc.toggleTracker})
 		}
 		return list
 	}

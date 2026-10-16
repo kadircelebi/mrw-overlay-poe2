@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestWhisperFrom(t *testing.T) {
@@ -74,5 +75,42 @@ func TestWhispersPickUpThisSessionsLastWhisper(t *testing.T) {
 	w.read(path, -1)
 	if w.Last() != "Second" {
 		t.Fatalf("last = %q", w.Last())
+	}
+}
+
+// The game's start time comes from its log, and every line of the merchant
+// is reported (they carry no item or price).
+func TestWhispersSessionStartAndMerchant(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Client.txt")
+	log := "2026/10/14 20:00:00 ***** LOG FILE OPENING *****\n" +
+		"2026/10/15 21:06:00 ***** LOG FILE OPENING *****\n"
+	if err := os.WriteFile(path, []byte(log), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var w Whispers
+	spoke := 0
+	w.SetOnMerchant(func() { spoke++ })
+	off := w.read(path, -1)
+	if want := time.Date(2026, 10, 15, 21, 6, 0, 0, time.Local); !w.SessionStart().Equal(want) {
+		t.Fatalf("session start %v, want %v", w.SessionStart(), want)
+	}
+	if spoke != 0 {
+		t.Fatal("lines before the log was followed were reported")
+	}
+	more := "2026/10/15 21:06:14 535981375 3ef23348 [INFO Client 28104] Ange: Good news!\n" +
+		"2026/10/15 21:07:00 535981375 3ef23348 [INFO Client 28104] #Somebody: ange told me\n" +
+		"2026/10/15 23:00:00 ***** LOG FILE OPENING *****\n"
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.WriteString(more)
+	f.Close()
+	w.read(path, off)
+	if spoke != 1 {
+		t.Fatalf("merchant lines %d, want 1", spoke)
+	}
+	if want := time.Date(2026, 10, 15, 23, 0, 0, 0, time.Local); !w.SessionStart().Equal(want) {
+		t.Fatalf("restarted game: session start %v", w.SessionStart())
 	}
 }

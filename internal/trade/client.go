@@ -28,6 +28,8 @@ type Client struct {
 	league   string
 	Search   *Limiter
 	Fetch    *Limiter
+	// History paces the sales history, whose quota is per account.
+	History *Limiter
 
 	// session is the player's pathofexile.com session (POESESSID). Only the
 	// interactive client gets one, and it is sent only to pathofexile.com.
@@ -73,10 +75,11 @@ func (c *Client) SignedIn() bool {
 // NewClient creates a client that uses at most budget (0..1) of the IP quota.
 func NewClient(league string, budget float64) *Client {
 	return &Client{
-		http:   &http.Client{Timeout: 30 * time.Second},
-		league: league,
-		Search: NewLimiter(budget, SearchSeedRules),
-		Fetch:  NewLimiter(budget, FetchSeedRules),
+		http:    &http.Client{Timeout: 30 * time.Second},
+		league:  league,
+		Search:  NewLimiter(budget, SearchSeedRules),
+		Fetch:   NewLimiter(budget, FetchSeedRules),
+		History: NewLimiter(budget, HistorySeedRules),
 	}
 }
 
@@ -87,6 +90,7 @@ func NewInteractiveClient(league string, budget float64) *Client {
 	client := NewClient(league, budget)
 	client.Search.SetEvenPacing(false)
 	client.Fetch.SetEvenPacing(false)
+	client.History.SetEvenPacing(false)
 	return client
 }
 

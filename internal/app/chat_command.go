@@ -46,7 +46,7 @@ func (s *AppService) syncChatShortcuts() {
 		s.chatKeys = append(s.chatKeys, c.Hotkey)
 	}
 	if panelKey != "" && s.tray != nil {
-		err := s.app.GlobalShortcut.Register(panelKey, func() { application.InvokeAsync(s.tray.ShowWindow) })
+		err := s.app.GlobalShortcut.Register(panelKey, func() { application.InvokeAsync(s.showPanel) })
 		if err != nil {
 			log.Printf("panel shortcut %s: %v", panelKey, err)
 		} else {
@@ -66,7 +66,9 @@ func (s *AppService) setGameActive(active bool, hwnd uintptr) {
 			s.gameLog.Store(path)
 		}
 		s.overlayMu.RLock()
-		on := s.overlaySettings.ChatEnabled
+		// The trade history also reads it: when the game started, and
+		// whether the merchant spoke.
+		on := s.overlaySettings.ChatEnabled || s.overlaySettings.TradeHistory
 		s.overlayMu.RUnlock()
 		if on && path != "" {
 			s.whispers.Follow(path)
@@ -75,6 +77,7 @@ func (s *AppService) setGameActive(active bool, hwnd uintptr) {
 	if s.gameActive.Swap(active) != active {
 		s.syncChatShortcuts()
 	}
+	s.syncEarningsOverlay()
 }
 
 // sendChatCommand types a line into the game's chat through the clipboard,

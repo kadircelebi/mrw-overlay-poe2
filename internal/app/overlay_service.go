@@ -66,6 +66,7 @@ func (s *AppService) SaveOverlaySettings(next overlay.Settings) (overlay.Setting
 	s.overlayMu.Unlock()
 	s.applyOverlayScale()
 	s.syncChatShortcuts()
+	s.applyTradeHistory(old, next)
 	return next, nil
 }
 
@@ -681,7 +682,10 @@ func (s *AppService) watchGameFocus() {
 		if game || overlay.WindowPID(fg) == own {
 			continue
 		}
-		for _, w := range []application.Window{s.overlayWindow, s.marketWindow, s.craftWindow, s.expeditionWindow} {
+		for _, w := range []application.Window{s.overlayWindow, s.marketWindow, s.craftWindow, s.expeditionWindow, s.earningsWindow} {
+			if w == s.earningsWindow && s.earningsPlacing.Load() {
+				continue // being dragged into place from the tracker
+			}
 			if w != nil && w.IsVisible() {
 				w.Hide()
 			}
@@ -735,22 +739,24 @@ func (s *AppService) showMarketWindow() {
 // windowArea is the room the overlay windows have, in window (DIP) pixels:
 // the game's client area on its screen, or the screen's work area when the
 // game is not running. physicalHeight is the height the game draws at, which
-// its own interface scales with.
+// its own interface scales with. dpi is the Windows display scale every page
+// is drawn at.
 type windowArea struct {
 	width, height  float64
 	physicalHeight int
+	dpi            float64
 }
 
 func areaOf(screen *application.Screen, gameW, gameH int, haveGame bool) windowArea {
 	if screen == nil {
 		return windowArea{}
 	}
-	a := windowArea{width: float64(screen.WorkArea.Width), height: float64(screen.WorkArea.Height), physicalHeight: screen.PhysicalBounds.Height}
+	dpi := float64(screen.ScaleFactor)
+	if dpi <= 0 {
+		dpi = 1
+	}
+	a := windowArea{width: float64(screen.WorkArea.Width), height: float64(screen.WorkArea.Height), physicalHeight: screen.PhysicalBounds.Height, dpi: dpi}
 	if haveGame && gameW > 0 && gameH > 0 {
-		dpi := float64(screen.ScaleFactor)
-		if dpi <= 0 {
-			dpi = 1
-		}
 		a.width = min(a.width, float64(gameW)/dpi)
 		a.height = min(a.height, float64(gameH)/dpi)
 		a.physicalHeight = gameH
@@ -768,19 +774,31 @@ func (s *AppService) windowArea() windowArea {
 }
 
 // autoScale enlarges the windows when the game runs tall (2K, 4K), where its
-// own interface grows with the resolution.
+// own interface grows with the resolution. Windows then draws the page at its
+// display scale, which the game's interface ignores, so a screen kept at a low
+// scale (common on ultrawide and 4K monitors) also gets the game's height in
+// window pixels: the text keeps the size it has next to the game's interface
+// on a 4K screen at 150%. It never drops below the fixed steps.
 func autoScale(settings overlay.Settings, a windowArea) float64 {
 	if !settings.AutoScale {
 		return 1
 	}
+	step := 1.0
 	switch {
 	case a.physicalHeight >= 2000:
-		return 1.25
+		step = 1.25
 	case a.physicalHeight >= 1400:
-		return 1.10
+		step = 1.10
 	}
-	return 1
+	if a.dpi <= 0 {
+		return step
+	}
+	return max(step, float64(a.physicalHeight)/a.dpi/autoScaleHeight)
 }
+
+// autoScaleHeight is the game height in window pixels that gets scale 1:
+// a 4K game at 150% (1440 window pixels) gets 1.25.
+const autoScaleHeight = 2160 / 1.5 / 1.25
 
 // fitScale is how far a page designed at w×h pixels must shrink to take at
 // most share of the area (1 when it already fits). A 1080p game with Windows
@@ -831,9 +849,15 @@ func overlayWindowHeight(a windowArea, h int, scale float64) int {
 }
 
 // The market fills a third of the screen's width; only its contents scale.
+// Its largest zoom is set for a 150% screen and grows on lower Windows
+// scales, so the cap is the same size on screen.
 func marketScaleFor(settings overlay.Settings, a windowArea) float64 {
 	scale := clampScale(float64(settings.UIScale)/100*autoScale(settings, a), 0.5, 2.0) * 0.82
-	return clampScale(scale, 0.5, 1.45)
+	limit := 1.45
+	if a.dpi > 0 {
+		limit = max(limit, 1.45*1.5/a.dpi)
+	}
+	return clampScale(scale, 0.5, limit)
 }
 
 // marketMinWidth is the narrowest page (in page pixels) on which the

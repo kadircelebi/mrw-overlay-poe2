@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"slices"
 	"strings"
 
 	"poe2filter/internal/prices"
@@ -50,12 +51,35 @@ type Settings struct {
 	// them off on purpose.
 	OffNoticeHidden  bool `json:"off_notice_hidden,omitempty"`
 	ChatNoticeHidden bool `json:"chat_notice_hidden,omitempty"`
+	// TradeHistory follows the account's merchant sales on the trade site
+	// (signed in through the browser link). EarningsOverlay shows their
+	// totals over the game, at EarningsCorner. Both start off.
+	TradeHistory bool `json:"trade_history,omitempty"`
+	// TrackerHotkey opens the tracker window, or closes it when open.
+	TrackerHotkey   string `json:"tracker_hotkey"`
+	EarningsOverlay bool   `json:"earnings_overlay,omitempty"`
+	EarningsCorner  string `json:"earnings_corner,omitempty"`
+	// EarningsX and EarningsY place the overlay where the player dragged it
+	// (EarningsCorner "custom"): its top-left corner as a share of the
+	// game's client area, so it stays put at any resolution.
+	EarningsX float64 `json:"earnings_x,omitempty"`
+	EarningsY float64 `json:"earnings_y,omitempty"`
 }
+
+// Where the earnings overlay sits on the game's screen; "custom" is where
+// the player dragged it.
+var EarningsCorners = []string{"top-left", "top-center", "top-right", "bottom-left", "bottom-right", EarningsCustom}
+
+const EarningsCustom = "custom"
+
+// DefaultEarningsCorner keeps clear of the minimap (top right) and the
+// globes and skill bar (bottom).
+const DefaultEarningsCorner = "top-center"
 
 // DefaultSettings leaves the overlay off: it registers a global shortcut and
 // sends keys to the game, so players opt in from Settings.
 func DefaultSettings() Settings {
-	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", HideHotkey: "Alt+H", ExpeditionHotkey: "Alt+Q", Commands: DefaultChatCommands(), PanelHotkey: "F9", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true}
+	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", HideHotkey: "Alt+H", ExpeditionHotkey: "Alt+Q", Commands: DefaultChatCommands(), PanelHotkey: "F9", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true, EarningsCorner: DefaultEarningsCorner, TrackerHotkey: "Alt+K"}
 }
 
 // DefaultLiveSound is a short chime distinct from the loot filter's drops.
@@ -81,7 +105,7 @@ func (s Settings) uses(key string) bool {
 // DistinctHotkeys reports whether every shortcut differs from the others.
 func (s Settings) DistinctHotkeys() error {
 	seen := map[string]bool{}
-	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.HideHotkey, s.ExpeditionHotkey, s.PanelHotkey}
+	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.HideHotkey, s.ExpeditionHotkey, s.TrackerHotkey, s.PanelHotkey}
 	for _, c := range s.Commands {
 		keys = append(keys, c.Hotkey)
 	}
@@ -160,6 +184,12 @@ func (s *Settings) Normalize() {
 		// player who already gave Alt+Q to something else keeps it.
 		s.ExpeditionHotkey = ""
 	}
+	s.TrackerHotkey = strings.TrimSpace(s.TrackerHotkey)
+	if strings.EqualFold(s.TrackerHotkey, "Alt+K") && (s.uses("Alt+K") || strings.EqualFold(s.ExpeditionHotkey, "Alt+K")) {
+		// As with Alt+Q: a player who already gave Alt+K to something else
+		// keeps it.
+		s.TrackerHotkey = ""
+	}
 	if s.Commands == nil {
 		s.Commands = DefaultChatCommands()
 		if k := strings.TrimSpace(s.HideoutHotkey); k != "" {
@@ -196,6 +226,11 @@ func (s *Settings) Normalize() {
 	if s.UIScale > 175 {
 		s.UIScale = 175
 	}
+	if !slices.Contains(EarningsCorners, s.EarningsCorner) {
+		s.EarningsCorner = DefaultEarningsCorner
+	}
+	s.EarningsX = min(max(s.EarningsX, 0), 1)
+	s.EarningsY = min(max(s.EarningsY, 0), 1)
 }
 
 func LoadSettings(path string) Settings {

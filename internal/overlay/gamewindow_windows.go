@@ -242,6 +242,29 @@ func GameCenter() (int, int, bool) {
 	return int(r.Left + r.width()/2), int(r.Top + r.height()/2), true
 }
 
+// GameClient returns the game's client area on the screen, in physical
+// pixels.
+func GameClient() (image.Rectangle, bool) {
+	g := gameWindow()
+	if g == 0 {
+		return image.Rectangle{}, false
+	}
+	r, ok := clientRect(g)
+	if !ok {
+		return image.Rectangle{}, false
+	}
+	return image.Rect(int(r.Left), int(r.Top), int(r.Right), int(r.Bottom)), true
+}
+
+// WindowRect returns a window's place on the screen, in physical pixels.
+func WindowRect(hwnd uintptr) (image.Rectangle, bool) {
+	r, ok := windowRect(hwnd)
+	if !ok {
+		return image.Rectangle{}, false
+	}
+	return image.Rect(int(r.Left), int(r.Top), int(r.Right), int(r.Bottom)), true
+}
+
 // GameSize returns the physical size of the game window's client area.
 func GameSize() (int, int, bool) {
 	g := gameWindow()

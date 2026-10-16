@@ -1,6 +1,7 @@
 package app
 
 import (
+	"image"
 	"testing"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -85,6 +86,52 @@ func TestWindowScaleFitsTheGame(t *testing.T) {
 	}
 }
 
+// The game's interface follows only its height in physical pixels, while the
+// page is drawn at the Windows scale. A screen kept at a low scale (ultrawide,
+// 4K at 100%) must not get smaller text next to the game than a 4K screen at
+// 150%, and screens that already had that keep their old size.
+func TestAutoScaleFollowsTheGameNotWindowsScale(t *testing.T) {
+	auto := overlay.Settings{AutoScale: true, UIScale: 100}
+	// Market text in physical pixels per 1000 pixels of game height.
+	nextToGame := func(a windowArea) float64 {
+		return marketScaleFor(auto, a) * a.dpi / float64(a.physicalHeight) * 1000
+	}
+	ref := nextToGame(areaOf(screenOf(3840, 2160, 1.5, 48), 3840, 2160, true))
+
+	low := map[string]windowArea{
+		"3440x1440 100%": areaOf(screenOf(3440, 1440, 1, 40), 3440, 1440, true),
+		"5120x1440 100%": areaOf(screenOf(5120, 1440, 1, 40), 5120, 1440, true),
+		"2560x1440 100%": areaOf(screenOf(2560, 1440, 1, 40), 2560, 1440, true),
+		"3440x1440 125%": areaOf(screenOf(3440, 1440, 1.25, 40), 3440, 1440, true),
+		"2560x1080 100%": areaOf(screenOf(2560, 1080, 1, 40), 2560, 1080, true),
+		"3840x2160 100%": areaOf(screenOf(3840, 2160, 1, 48), 3840, 2160, true),
+		"no game 3440":   areaOf(screenOf(3440, 1440, 1, 40), 0, 0, false),
+	}
+	for name, a := range low {
+		if got := nextToGame(a); got < ref-0.01 {
+			t.Errorf("%s: market text %.2f next to the game, 4K 150%% has %.2f", name, got, ref)
+		}
+	}
+
+	same := map[string]struct {
+		a    windowArea
+		want float64
+	}{
+		"3840x2160 150%": {areaOf(screenOf(3840, 2160, 1.5, 48), 3840, 2160, true), 1.25},
+		"2560x1440 150%": {areaOf(screenOf(2560, 1440, 1.5, 32), 2560, 1440, true), 1.10},
+		"1920x1080 125%": {areaOf(screenOf(1920, 1080, 1.25, 40), 1920, 1080, true), 1},
+		"1920x1080 100%": {areaOf(screenOf(1920, 1080, 1, 40), 1920, 1080, true), 1},
+	}
+	for name, c := range same {
+		if got := autoScale(auto, c.a); got < c.want-0.001 || got > c.want+0.001 {
+			t.Errorf("%s: auto scale %.3f, want %.2f", name, got, c.want)
+		}
+	}
+	if got := autoScale(overlay.Settings{UIScale: 100}, low["3440x1440 100%"]); got != 1 {
+		t.Errorf("auto scale off still scales: %.2f", got)
+	}
+}
+
 // The market window grows with the UI size so its columns keep their room:
 // the page width (window width / zoom) never drops below what it has at the
 // default size, and never under the narrowest layout, unless the screen or
@@ -119,5 +166,38 @@ func TestMarketWidthGrowsWithUISize(t *testing.T) {
 	small := areaOf(screenOf(3840, 2160, 1.5, 48), 1280, 720, true)
 	if got := marketWidthFor(overlay.Settings{AutoScale: true, UIScale: 175}, small, work); float64(got) > small.width {
 		t.Errorf("market %d wider than the game %.0f", got, small.width)
+	}
+}
+
+// The earnings overlay sits inside the game's client area in every corner,
+// sized by the screen's scale.
+func TestEarningsRectStaysInTheGame(t *testing.T) {
+	client := image.Rect(100, 50, 100+3840, 50+2160)
+	for _, corner := range overlay.EarningsCorners {
+		r := earningsRect(client, corner, 0.3, 0.4, 1.5)
+		if !r.In(client) {
+			t.Errorf("%s: %v outside %v", corner, r, client)
+		}
+		if r.Dx() != int(earningsWidth*1.5) || r.Dy() != int(earningsHeight*1.5) {
+			t.Errorf("%s: size %dx%d", corner, r.Dx(), r.Dy())
+		}
+	}
+	if r := earningsRect(client, "top-center", 0, 0, 1); r.Min.X+r.Dx()/2 != client.Min.X+client.Dx()/2 {
+		t.Errorf("top-center not centred: %v", r)
+	}
+}
+
+// A dragged place is kept as a share of the game's area, so it lands on the
+// same spot at another resolution, and never outside the game.
+func TestEarningsCustomPlace(t *testing.T) {
+	small := image.Rect(0, 0, 1920, 1080)
+	big := image.Rect(0, 0, 3840, 2160)
+	a := earningsRect(small, overlay.EarningsCustom, 0.25, 0.5, 1)
+	b := earningsRect(big, overlay.EarningsCustom, 0.25, 0.5, 1.5)
+	if a.Min != image.Pt(480, 540) || b.Min != image.Pt(960, 1080) {
+		t.Errorf("places %v and %v", a.Min, b.Min)
+	}
+	if r := earningsRect(small, overlay.EarningsCustom, 1, 1, 1); !r.In(small) {
+		t.Errorf("past the edge: %v", r)
 	}
 }

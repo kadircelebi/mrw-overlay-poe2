@@ -22,6 +22,7 @@ import (
 	"poe2filter/internal/profileclient"
 	"poe2filter/internal/session"
 	"poe2filter/internal/trade"
+	"poe2filter/internal/tradehistory"
 	"poe2filter/internal/uitheme"
 )
 
@@ -138,6 +139,14 @@ type AppService struct {
 	// Runeshape Combinations panel (Alt+Q); expedition holds what it shows.
 	expeditionWindow application.Window
 	expedition       expeditionState
+
+	// The tracker window (kept open beside the game) and the earnings
+	// overlay; history is the trade history they show.
+	trackerWindow  application.Window
+	earningsWindow application.Window
+	history        tradeHistoryState
+	// earningsPlacing is set while the earnings overlay is being dragged.
+	earningsPlacing atomic.Bool
 }
 
 func newAppService(meta Meta) *AppService {
@@ -157,6 +166,11 @@ func newAppService(meta Meta) *AppService {
 		overlayEvalFlights:  make(map[string]*overlayEvaluationFlight),
 		session:             sessions,
 		profiles:            profileclient.New(meta.DataDir),
+		history: tradeHistoryState{
+			store:    tradehistory.New(meta.DataDir),
+			appStart: time.Now(),
+			kick:     make(chan struct{}, 1),
+		},
 	}
 	svc.setupGameLanguages()
 	// Only the overlay's user-started searches go out signed in; the
@@ -197,6 +211,8 @@ func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOp
 			}
 		}()
 		go s.refreshBrowserExtension()
+		s.whispers.SetOnMerchant(s.merchantSpoke)
+		go s.tradeHistoryLoop()
 		go s.restoreLiveSearches(ctx)
 		go s.followLoop(ctx)
 		if s.updater != nil {
@@ -630,6 +646,41 @@ func (s *AppService) HidePanel() {
 	if s.tray != nil {
 		s.tray.HideWindow()
 	}
+}
+
+// The tray panel's size in window (DIP) pixels.
+const (
+	panelWidth  = 800
+	panelHeight = 640
+)
+
+// fitPanel gives the panel its size again on the screen it is on. A hidden
+// window keeps the pixel size it was made with, so one made at 150% stayed
+// half again too large on a 100% screen, its page filling only part of it.
+func (s *AppService) fitPanel() {
+	if s.panel != nil {
+		s.panel.SetSize(panelWidth, panelHeight)
+	}
+}
+
+// showPanel opens the tray panel above the tray icon.
+func (s *AppService) showPanel() {
+	if s.tray == nil {
+		return
+	}
+	s.fitPanel()
+	s.tray.ShowWindow()
+}
+
+// togglePanel is the tray icon's click.
+func (s *AppService) togglePanel() {
+	if s.tray == nil {
+		return
+	}
+	if s.panel != nil && !s.panel.IsVisible() {
+		s.fitPanel()
+	}
+	s.tray.ToggleWindow()
 }
 
 // Quit exits the application.

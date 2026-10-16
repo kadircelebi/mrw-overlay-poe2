@@ -26,14 +26,56 @@ func WhisperFrom(line string) (string, bool) {
 	return strings.TrimSpace(m[1]), true
 }
 
+// merchantLine is how the game logs a line of Ange, the merchant who sells
+// the player's items ("Ange: I have a buyer!"). The line names no item or
+// price; it only tells that the sales history may have changed.
+const merchantLine = "] Ange: "
+
 // Whispers follows the end of the game's Client.txt for the player who
-// whispered last. Only that name is kept, in memory; nothing else of the
-// chat log is read into the app or stored.
+// whispered last, the time the game started and whether the merchant spoke.
+// Only that is kept, in memory; nothing else of the chat log is read into
+// the app or stored.
 type Whispers struct {
 	mu     sync.Mutex
 	path   string
 	last   string
+	start  time.Time
 	cancel chan struct{}
+	// onMerchant, when set, is called for every line of the merchant.
+	onMerchant func()
+}
+
+// SetOnMerchant sets what to call when the merchant speaks (nil: nothing).
+func (w *Whispers) SetOnMerchant(f func()) {
+	w.mu.Lock()
+	w.onMerchant = f
+	w.mu.Unlock()
+}
+
+// SessionStart is when the game was last started, as its log tells (zero
+// before the log was followed).
+func (w *Whispers) SessionStart() time.Time {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.start
+}
+
+// logTime reads the local time a Client.txt line starts with.
+func logTime(line string) (time.Time, bool) {
+	if len(line) < 19 {
+		return time.Time{}, false
+	}
+	t, err := time.ParseInLocation("2006/01/02 15:04:05", line[:19], time.Local)
+	return t, err == nil
+}
+
+func (w *Whispers) merchant() {
+	w.mu.Lock()
+	on := w.onMerchant
+	w.mu.Unlock()
+	if on != nil {
+		on()
+	}
 }
 
 // Last is the player who whispered last since the log was first followed.
@@ -95,18 +137,25 @@ func (w *Whispers) recent(f *os.File, size int64) {
 		return
 	}
 	last := ""
+	var began time.Time
 	for _, line := range strings.Split(string(buf), "\n") {
 		if strings.Contains(line, sessionStart) {
 			last = ""
+			if at, ok := logTime(line); ok {
+				began = at
+			}
 		} else if name, ok := WhisperFrom(line); ok {
 			last = name
 		}
 	}
+	w.mu.Lock()
 	if last != "" {
-		w.mu.Lock()
 		w.last = last
-		w.mu.Unlock()
 	}
+	if !began.IsZero() {
+		w.start = began
+	}
+	w.mu.Unlock()
 }
 
 // read handles the lines added since offset and returns the new offset.
@@ -146,6 +195,14 @@ func (w *Whispers) read(path string, offset int64) int64 {
 			w.mu.Lock()
 			w.last = name
 			w.mu.Unlock()
+		} else if strings.Contains(line, sessionStart) {
+			if at, ok := logTime(line); ok {
+				w.mu.Lock()
+				w.start, w.last = at, ""
+				w.mu.Unlock()
+			}
+		} else if strings.Contains(line, merchantLine) {
+			w.merchant()
 		}
 	}
 }

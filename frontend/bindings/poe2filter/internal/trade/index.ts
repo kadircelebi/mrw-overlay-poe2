@@ -9,6 +9,7 @@ export type {
     EvaluatedModPart,
     EvaluatedProperty,
     Evaluation,
+    HistoryItem,
     ImportResult,
     LiveState,
     QuotaStatus,

@@ -16,6 +16,12 @@ import * as prices$0 from "../prices/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as publicprofile$0 from "../publicprofile/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as trade$0 from "../trade/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as tradehistory$0 from "../tradehistory/models.js";
 
 export interface BrowserLinkStatus {
     "state": string;
@@ -327,4 +333,49 @@ export interface StyleOptions {
      * cannot drift apart about what the game accepts.
      */
     "sounds": string[] | null;
+}
+
+/**
+ * TradeHistoryView is what the tracker window and the earnings overlay show.
+ * Session counts from the game's start (SessionStart, Unix ms), Today from
+ * local midnight, League from the first sale kept for the league.
+ */
+export interface TradeHistoryView {
+    "enabled": boolean;
+    "signedIn": boolean;
+    "league": string;
+    "status": string;
+    "error"?: string;
+    "fetching": boolean;
+    "fetchedAt": number;
+    "nextInSec": number;
+    "sessionStart": number;
+    "session": tradehistory$0.Total;
+    "today": tradehistory$0.Total;
+    "leagueTotal": tradehistory$0.Total;
+    "divineEx": number;
+    "sales": TradeSale[] | null;
+    "overlay": boolean;
+    "overlayCorner": string;
+
+    /**
+     * Placing is set while the player drags the overlay to its place.
+     */
+    "placing": boolean;
+}
+
+/**
+ * TradeSale is one sale with its worth at today's rates.
+ */
+export interface TradeSale {
+    "itemId": string;
+    "time": string;
+    "amount": number;
+    "currency": string;
+    "item": trade$0.HistoryItem;
+
+    /**
+     * ValueEx is 0 when the currency has no rate.
+     */
+    "valueEx": number;
 }

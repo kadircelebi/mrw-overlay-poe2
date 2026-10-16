@@ -22,5 +22,7 @@ export type {
     Meta,
     PublishInfo,
     StartupStatus,
-    StyleOptions
+    StyleOptions,
+    TradeHistoryView,
+    TradeSale
 } from "./models.js";

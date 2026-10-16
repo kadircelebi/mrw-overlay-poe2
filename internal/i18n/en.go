@@ -11,6 +11,7 @@ var en = map[string]string{
 	// Tray menu and tooltip
 	"tray.open":        "Open panel",
 	"tray.settings":    "Settings",
+	"tray.tracker":     "Tracker",
 	"tray.update":      "Update now",
 	"tray.appUpdate":   "Check for app updates",
 	"tray.openFolder":  "Open filter folder",

@@ -96,3 +96,23 @@ func TestExpeditionHotkeyDefault(t *testing.T) {
 		t.Fatalf("got %q", s.ExpeditionHotkey)
 	}
 }
+
+// The tracker shortcut comes as Alt+K, unless the player already gave Alt+K
+// to something else.
+func TestTrackerHotkeyDefault(t *testing.T) {
+	s := DefaultSettings()
+	s.Normalize()
+	if s.TrackerHotkey != "Alt+K" {
+		t.Fatalf("default %q", s.TrackerHotkey)
+	}
+	s.Commands = append(s.Commands, ChatCommand{Hotkey: "Alt+K", Text: "/hideout"})
+	s.Normalize()
+	if s.TrackerHotkey != "" {
+		t.Fatalf("taken Alt+K kept: %q", s.TrackerHotkey)
+	}
+	s = DefaultSettings()
+	s.TrackerHotkey = s.Hotkey
+	if s.DistinctHotkeys() == nil {
+		t.Fatal("tracker shortcut equal to the price check was accepted")
+	}
+}

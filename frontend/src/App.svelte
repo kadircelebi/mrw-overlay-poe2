@@ -1148,6 +1148,7 @@
         <section class="actions">
           <button onclick={() => AppService.ShowSettings('')}>{t('header.settings')}</button>
           <button title={overlaySettings?.craft_hotkey || 'Alt+F'} onclick={() => AppService.ShowCraft()}>{t('craft.open')}</button>
+          <button onclick={() => AppService.ShowTracker()}>{t('tracker.title')}</button>
           {#if overlaySettings?.enabled}
             <button onclick={() => AppService.ShowMarket()}>{t('panel.market')} · {overlaySettings.market_hotkey}</button>
           {/if}
@@ -1680,11 +1681,13 @@
                         </label>
                         <p class="desc hint">{t('overlay.marketHotkeyHint')}</p>
                         <label class="field stack"><span>{t('craft.hotkey')}</span><HotkeyInput label={t('craft.hotkey')} bind:value={overlaySettings.craft_hotkey} onchange={queueOverlaySave} /></label>
+                        <p class="desc hint">{t('craft.hotkeyHint')}</p>
                         <label class="field stack"><span>{t('hidden.hotkey')}</span><HotkeyInput label={t('hidden.hotkey')} bind:value={overlaySettings.hide_hotkey} onchange={queueOverlaySave} /></label>
                         <p class="desc hint">{t('hidden.hotkeyHint')}</p>
                         <label class="field stack"><span>{t('expedition.hotkey')}</span><HotkeyInput label={t('expedition.hotkey')} bind:value={overlaySettings.expedition_hotkey} onchange={queueOverlaySave} /></label>
                         <p class="desc hint">{t('expedition.hotkeyHint')}</p>
-                        <p class="desc hint">{t('craft.hotkeyHint')}</p>
+                        <label class="field stack"><span>{t('tracker.hotkey')}</span><HotkeyInput label={t('tracker.hotkey')} bind:value={overlaySettings.tracker_hotkey} onchange={queueOverlaySave} /></label>
+                        <p class="desc hint">{t('tracker.hotkeyHint')}</p>
                       </section>
                     </div>
                     <div class="col">

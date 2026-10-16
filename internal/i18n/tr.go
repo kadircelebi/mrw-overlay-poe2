@@ -5,6 +5,7 @@ var tr = map[string]string{
 
 	"tray.open":        "Paneli aç",
 	"tray.settings":    "Ayarlar",
+	"tray.tracker":     "Takip",
 	"tray.update":      "Şimdi güncelle",
 	"tray.appUpdate":   "Uygulama güncellemesini denetle",
 	"tray.openFolder":  "Filtre klasörünü aç",

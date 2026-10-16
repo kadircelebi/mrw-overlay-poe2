@@ -90,6 +90,13 @@ export function ClearLiveResults(id: string): $CancellablePromise<trade$0.LiveSt
 }
 
 /**
+ * ClearTradeHistory forgets the kept sales of every league.
+ */
+export function ClearTradeHistory(): $CancellablePromise<$models.TradeHistoryView> {
+    return $Call.ByID(2173090904);
+}
+
+/**
  * CommunityLinks lists the community buttons that have an address, in order.
  */
 export function CommunityLinks(): $CancellablePromise<string[] | null> {
@@ -241,6 +248,14 @@ export function FetchOverlayListings(searchID: string, ids: string[] | null): $C
 }
 
 /**
+ * FinishEarningsPlace ends placing; with save, the overlay keeps the place
+ * it was dragged to.
+ */
+export function FinishEarningsPlace(save: boolean): $CancellablePromise<void> {
+    return $Call.ByID(2931835140, save);
+}
+
+/**
  * FitOverlay sets the compact overlay's height to the page's content (in page
  * pixels). A worth card or the hide panel fits within the normal height; a
  * search never gets shorter than it, only taller. The window keeps its top
@@ -325,6 +340,14 @@ export function GetState(): $CancellablePromise<engine$0.State> {
 
 export function GetTradeCatalog(): $CancellablePromise<overlay$0.Catalog> {
     return $Call.ByID(2776211382);
+}
+
+/**
+ * GetTradeHistory returns the kept sales of the current league and their
+ * totals.
+ */
+export function GetTradeHistory(): $CancellablePromise<$models.TradeHistoryView> {
+    return $Call.ByID(3592112709);
 }
 
 export function GetUIThemes(): $CancellablePromise<uitheme$0.State> {
@@ -521,6 +544,13 @@ export function ParseOverlayText(raw: string): $CancellablePromise<overlay$0.Sna
 }
 
 /**
+ * PlaceEarnings starts placing the earnings overlay over the game.
+ */
+export function PlaceEarnings(): $CancellablePromise<string> {
+    return $Call.ByID(340397827);
+}
+
+/**
  * PrepareBrowserExtension writes the extension into the data folder, where
  * the browser can load it ("Load unpacked"), and returns that folder.
  */
@@ -613,6 +643,13 @@ export function QuoteCurrency(name: string): $CancellablePromise<overlay$0.Curre
 
 export function RefreshTradeCatalog(): $CancellablePromise<overlay$0.Catalog> {
     return $Call.ByID(2146022305);
+}
+
+/**
+ * RefreshTradeHistory asks the trade site now, when the quota allows.
+ */
+export function RefreshTradeHistory(): $CancellablePromise<$models.TradeHistoryView> {
+    return $Call.ByID(2934187762);
 }
 
 export function RenameOverlaySearch(id: string, name: string): $CancellablePromise<overlay$0.SearchLibrary> {
@@ -731,6 +768,13 @@ export function ShowMarketWithQuery($in: trade$0.EvaluateRequest): $CancellableP
  */
 export function ShowSettings(section: string): $CancellablePromise<void> {
     return $Call.ByID(3765493377, section);
+}
+
+/**
+ * ShowTracker opens the tracker window.
+ */
+export function ShowTracker(): $CancellablePromise<void> {
+    return $Call.ByID(1032707248);
 }
 
 /**

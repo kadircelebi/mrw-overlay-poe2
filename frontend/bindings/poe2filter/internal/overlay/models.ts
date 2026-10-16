@@ -309,6 +309,28 @@ export interface Settings {
      */
     "off_notice_hidden"?: boolean;
     "chat_notice_hidden"?: boolean;
+
+    /**
+     * TradeHistory follows the account's merchant sales on the trade site
+     * (signed in through the browser link). EarningsOverlay shows their
+     * totals over the game, at EarningsCorner. Both start off.
+     */
+    "trade_history"?: boolean;
+
+    /**
+     * TrackerHotkey opens the tracker window, or closes it when open.
+     */
+    "tracker_hotkey": string;
+    "earnings_overlay"?: boolean;
+    "earnings_corner"?: string;
+
+    /**
+     * EarningsX and EarningsY place the overlay where the player dragged it
+     * (EarningsCorner "custom"): its top-left corner as a share of the
+     * game's client area, so it stays put at any resolution.
+     */
+    "earnings_x"?: number;
+    "earnings_y"?: number;
 }
 
 /**

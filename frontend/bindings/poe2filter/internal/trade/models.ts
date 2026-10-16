@@ -130,6 +130,21 @@ export interface Evaluation {
 }
 
 /**
+ * HistoryItem is what is kept of a sold item: enough to show and recognise
+ * it, not the whole listing.
+ */
+export interface HistoryItem {
+    "name"?: string;
+    "typeLine": string;
+    "baseType"?: string;
+    "rarity"?: string;
+    "icon"?: string;
+    "ilvl"?: number;
+    "corrupted"?: boolean;
+    "mods"?: string[] | null;
+}
+
+/**
  * ImportResult reports what an import changed.
  */
 export interface ImportResult {
