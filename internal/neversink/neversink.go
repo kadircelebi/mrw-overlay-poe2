@@ -199,24 +199,42 @@ func StackedBases(content string) map[string]bool {
 // ExceptionalBases returns the bases NeverSink ranks in its exceptional tiers
 // (blocks tagged "$type->exotic->exceptional"). They are scanned first.
 func ExceptionalBases(content string) map[string]bool {
-	out := map[string]bool{}
-	in := false
+	valuable, chance := ExceptionalBaseLists(content)
+	for b := range chance {
+		valuable[b] = true
+	}
+	return valuable
+}
+
+// ExceptionalBaseLists splits the exceptional blocks' bases in two: the ones
+// worth having as exceptional items, and the ones listed for Orb of Chance
+// ("$tier->chancing…"), whose value is the unique they can become.
+func ExceptionalBaseLists(content string) (valuable, chance map[string]bool) {
+	valuable, chance = map[string]bool{}, map[string]bool{}
+	var in map[string]bool
 	sc := bufio.NewScanner(strings.NewReader(content))
 	sc.Buffer(make([]byte, 1<<20), 1<<20)
 	for sc.Scan() {
 		// Commented-out rules count here too, for the same reason as in BaseTypes.
 		line := uncomment(sc.Text())
 		if strings.HasPrefix(line, "Show") || strings.HasPrefix(line, "Hide") || strings.HasPrefix(line, "Minimal") {
-			in = strings.Contains(line, "$type->exotic->exceptional")
+			switch {
+			case !strings.Contains(line, "$type->exotic->exceptional"):
+				in = nil
+			case strings.Contains(line, "$tier->chancing"):
+				in = chance
+			default:
+				in = valuable
+			}
 			continue
 		}
-		if in && strings.HasPrefix(line, "BaseType") {
+		if in != nil && strings.HasPrefix(line, "BaseType") {
 			for _, m := range quoted.FindAllStringSubmatch(line, -1) {
-				out[m[1]] = true
+				in[m[1]] = true
 			}
 		}
 	}
-	return out
+	return valuable, chance
 }
 
 // Style is one of NeverSink's named looks (the "!tag" on a rule), e.g.

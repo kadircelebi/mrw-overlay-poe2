@@ -625,6 +625,28 @@ func (e *Engine) run(ctx context.Context) (err error) {
 		}
 	}
 
+	var ex trade.Exceptions
+	ex.Valuable, ex.Chance = neversink.ExceptionalBaseLists(string(baseContent))
+	var lowLevel []string
+	if len(tradeBases) > 0 {
+		lowLevel = trade.LowLevelBases(tradeBases, ex)
+		// A price for a base no longer scanned (from a scan server not yet
+		// updated, or an older local scan) would go stale unseen.
+		keep := map[string]bool{}
+		for _, c := range trade.BuildCandidates(tradeBases, ex) {
+			keep[c.Base] = true
+		}
+		kept := make([]prices.ExceptionalPrice, 0, len(snap.Exceptional))
+		for _, p := range snap.Exceptional {
+			if keep[p.Base] {
+				kept = append(kept, p)
+			}
+		}
+		cp := *snap
+		cp.Exceptional = kept
+		snap = &cp
+	}
+
 	e.snapMu.Lock()
 	e.snap, e.validBases = snap, validBases
 	e.snapMu.Unlock()
@@ -633,7 +655,7 @@ func (e *Engine) run(ctx context.Context) (err error) {
 		scanner.SetMarket(snap)
 		scanner.SetHotThreshold(cfg.ThresholdEx(snap.Rates) / 2)
 		if len(tradeBases) > 0 {
-			scanner.SetCandidates(trade.BuildCandidates(tradeBases, nil, neversink.ExceptionalBases(string(baseContent))))
+			scanner.SetCandidates(trade.BuildCandidates(tradeBases, ex))
 		}
 	}
 
@@ -650,6 +672,7 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	ns := e.ns.set(basePath, string(baseContent))
 	cfg.Stacked = filter.StackedBases(neversink.StackedBases(string(baseContent)))
 	cfg.Exotics = neversink.ExoticBlocks(string(baseContent))
+	cfg.LowLevelExceptional = lowLevel
 	block, st := filter.GenerateDynamicFilterBlock(cfg, snap, validBases, ns)
 	// A value the game does not know makes it refuse the whole filter; one a
 	// patch removed is taken out here instead (see filter.SelfCheck).

@@ -254,6 +254,9 @@ export const en: Record<string, string> = {
   'gear.strictHint': 'Hides ordinary weapons and armour',
   'gear.quality': 'Show high quality gear',
   'gear.qualityHint': 'Normal, magic and rare gear with at least this much quality stands out on the ground.',
+  'gear.lowLevelEx': 'Show exceptional items below level 65',
+  'gear.lowLevelExHint':
+    'Bases that require less than level 65 are not priced, and their exceptional drops (extra sockets or 21%+ quality) stay hidden. The few low bases NeverSink rates as valuable or as Orb of Chance targets are always priced.',
 
   // Custom rules
   'tier.off': 'None',

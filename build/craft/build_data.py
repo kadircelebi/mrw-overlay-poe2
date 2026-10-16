@@ -26,6 +26,7 @@ import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / 'frontend' / 'public' / 'craft' / 'data'
+BASE_LEVELS = ROOT / 'internal' / 'trade' / 'base_levels.json'
 
 ATTRS = ['str', 'dex', 'int', 'str_dex', 'str_int', 'dex_int']
 
@@ -376,6 +377,15 @@ def main():
         entries.sort(key=lambda e: (e['level'], e['name']))
     write(args.out / 'bases.json', {'source': 'RePoE base_items (https://repoe-fork.github.io/poe2/)',
                                     'generated_at': now, 'pages': page_bases})
+    # The exceptional scan and the loot filter skip low-level bases; the Go
+    # side reads their required levels from this copy. A name two bases share
+    # (Ornate Buckler 52 and 65) takes the higher level: trade searches by name.
+    levels = {}
+    for entries in page_bases.values():
+        for e in entries:
+            levels[e['name']] = max(levels.get(e['name'], 0), e['req'].get('level', e['level']))
+    write(BASE_LEVELS, {'source': 'RePoE base_items (https://repoe-fork.github.io/poe2/)',
+                        'generated_at': now, 'levels': dict(sorted(levels.items()))})
     runes = {key: {'name': name, 'kind': 'pool', 'pool': pool, 'label': label, 'text': f'Can roll {label} modifiers',
                    'bound': True, 'icon': f'Art/2DItems/Currency/Expedition2/{art}.webp', 'pages': rune_pages[pool]}
              for key, name, pool, label, art in RUNES if rune_pages.get(pool)}

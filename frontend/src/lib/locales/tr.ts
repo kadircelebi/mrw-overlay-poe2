@@ -247,6 +247,9 @@ export const tr: Record<string, string> = {
   'gear.strictHint': 'Sıradan silah ve zırhları gizler',
   'gear.quality': 'Yüksek kalite ekipmanı göster',
   'gear.qualityHint': 'En az bu kalitedeki normal, magic ve rare ekipman yerde öne çıkar.',
+  'gear.lowLevelEx': 'Seviye 65 altı exceptional eşyaları göster',
+  'gear.lowLevelExHint':
+    'Seviye gereksinimi 65’in altındaki tabanlar fiyatlanmaz; bunların exceptional düşüşleri (fazladan soket ya da %21+ kalite) gizli kalır. NeverSink’in değerli ya da Orb of Chance hedefi saydığı birkaç düşük taban her zaman fiyatlanır.',
 
   'tier.off': 'Hiçbiri',
   'tier.hide': 'Gösterme',

@@ -230,12 +230,48 @@ func (s *Scanner) logf(format string, args ...any) {
 	}
 }
 
-// SetCandidates replaces the list of bases to scan.
+// SetCandidates replaces the list of bases to scan. Results for bases no
+// longer on it are dropped, so they are not published or priced from.
 func (s *Scanner) SetCandidates(c []Candidate) {
 	s.mu.Lock()
 	s.candidates = c
+	pruned := 0
+	if len(c) > 0 {
+		for key, v := range s.st.Keys {
+			if !s.isCandidate(keyBase(key, v)) {
+				delete(s.st.Keys, key)
+				pruned++
+			}
+		}
+	}
 	s.mu.Unlock()
+	if pruned > 0 {
+		s.logf("%d results dropped for bases no longer scanned", pruned)
+		s.save()
+	}
 	s.nudge()
+}
+
+// isCandidate reports whether base is on the scan list (locked); with no list
+// yet, every base is.
+func (s *Scanner) isCandidate(base string) bool {
+	if len(s.candidates) == 0 {
+		return true
+	}
+	for _, c := range s.candidates {
+		if c.Base == base {
+			return true
+		}
+	}
+	return false
+}
+
+func keyBase(key string, v *keyState) string {
+	if v != nil && v.Base != "" {
+		return v.Base
+	}
+	base, _, _ := strings.Cut(key, "|")
+	return base
 }
 
 func (s *Scanner) nudge() {
@@ -798,7 +834,7 @@ func (s *Scanner) importShare(data []byte, own bool) (ImportResult, error) {
 		return res, fmt.Errorf(i18n.T("err.importLeague"), in.League, league)
 	}
 	for key, v := range in.Keys {
-		if v == nil || v.ScannedAt.IsZero() || own && s.shard != nil && !s.shard(key) {
+		if v == nil || v.ScannedAt.IsZero() || own && s.shard != nil && !s.shard(key) || !s.isCandidate(keyBase(key, v)) {
 			continue
 		}
 		cur := s.st.Keys[key]

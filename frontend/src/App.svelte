@@ -1609,6 +1609,12 @@
                         hint={t('gear.qualityHint')}
                         onchange={() => queueSave()}
                       />
+                      <Toggle
+                        bind:checked={cfg.show_low_level_exceptional}
+                        label={t('gear.lowLevelEx')}
+                        hint={t('gear.lowLevelExHint')}
+                        onchange={() => queueSave()}
+                      />
                     </section>
                   </div>
                   <div class="col">

@@ -9,4 +9,40 @@ export interface CurrencyPrice {
     "api_id"?: string;
     "category": string;
     "value_ex": number;
+
+    /**
+     * LowEx is set when the item's Currency Exchange markets disagree (one
+     * is over three times another): ValueEx is then the highest market that
+     * saw a completed trade, LowEx the lowest.
+     */
+    "low_ex"?: number;
+
+    /**
+     * Markets are the item's Currency Exchange markets that saw trades in
+     * the window, one per currency it was traded against.
+     */
+    "markets"?: MarketPrice[] | null;
+}
+
+/**
+ * MarketPrice is what one Currency Exchange market paid for an item.
+ */
+export interface MarketPrice {
+    /**
+     * Base is the currency the item was traded against ("exalted",
+     * "chaos" or "divine").
+     */
+    "base": string;
+
+    /**
+     * ValueEx is the price of one item in Exalted Orbs: the units of Base
+     * paid divided by the item's units traded, times Base's rate.
+     */
+    "value_ex": number;
+
+    /**
+     * Units is how many of the item changed hands in the window.
+     */
+    "units": number;
+    "hours": number;
 }

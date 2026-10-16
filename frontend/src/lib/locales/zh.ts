@@ -244,6 +244,9 @@ export const zh: Record<string, string> = {
   'gear.strictHint': '隱藏一般的武器與防具',
   'gear.quality': '顯示高品質裝備',
   'gear.qualityHint': '品質至少達此數值的普通、魔法與稀有裝備會在地上突顯。',
+  'gear.lowLevelEx': '顯示等級 65 以下的 exceptional 物品',
+  'gear.lowLevelExHint':
+    '需求等級低於 65 的基底不會定價，其 exceptional 掉落（額外插槽或 21% 以上品質）會保持隱藏。NeverSink 評為有價值或 Orb of Chance 目標的少數低等基底一律定價。',
 
   'tier.off': '無',
   'tier.hide': '隱藏',

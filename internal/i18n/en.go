@@ -150,6 +150,7 @@ var en = map[string]string{
 	"filter.sec.pinnacle":    "8.6 PINNACLE KEYS",
 	"filter.sec.below":       "9. BELOW THRESHOLD (%s)",
 	"filter.sec.unpriced":    "10. EXCEPTIONAL BASES NOT YET PRICED (shown until scanned)",
+	"filter.sec.lowLevelEx":  "8.9 EXCEPTIONAL ITEMS ON BASES BELOW LEVEL %d (hidden, not scanned)",
 
 	"filter.sec.userShow":    "USER GROUP: %s",
 	"filter.sec.userStack":   "USER GROUP: %s (STACKS OF %d+)",

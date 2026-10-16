@@ -137,6 +137,7 @@ var zh = map[string]string{
 	"filter.sec.pinnacle":    "8.6 PINNACLE 鑰匙",
 	"filter.sec.below":       "9. 低於門檻（%s）",
 	"filter.sec.unpriced":    "10. 尚未定價的 EXCEPTIONAL 基底（掃描完成前顯示）",
+	"filter.sec.lowLevelEx":  "8.9 需求等級低於 %d 的基底上的 EXCEPTIONAL 物品（隱藏，不掃描）",
 
 	"filter.sec.userShow":    "使用者群組：%s",
 	"filter.sec.userStack":   "使用者群組：%s（%d+ 堆疊）",

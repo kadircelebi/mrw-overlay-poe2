@@ -134,6 +134,7 @@ var tr = map[string]string{
 	"filter.sec.pinnacle":    "8.6 PINNACLE ANAHTARLARI",
 	"filter.sec.below":       "9. EŞİK ALTI (%s)",
 	"filter.sec.unpriced":    "10. HENÜZ FİYATLANMAMIŞ EXCEPTIONAL TABANLAR (taranana kadar görünür)",
+	"filter.sec.lowLevelEx":  "8.9 SEVİYE %d ALTI TABANLARDA EXCEPTIONAL EŞYALAR (gizli, taranmaz)",
 
 	"filter.sec.userShow":    "KULLANICI GRUBU: %s",
 	"filter.sec.userStack":   "KULLANICI GRUBU: %s (%d+ YIĞIN)",

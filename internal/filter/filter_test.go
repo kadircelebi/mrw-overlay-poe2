@@ -1310,3 +1310,32 @@ func TestUncutGemsJoinTheirValueTierByLevel(t *testing.T) {
 		t.Fatalf("slider rules before the value tiers: slider=%d tier=%d", slider, skill1)
 	}
 }
+
+// Exceptional drops on bases below the scan level are hidden unless the
+// player asks for them: white only, ahead of the unpriced-exceptional show
+// that would catch them, and behind the player's own lists.
+func TestLowLevelExceptionalHidden(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.LowLevelExceptional = []string{"Stocky Mitts", "Moulded Mitts"}
+	cfg.ItemGroups = []ItemGroup{{ID: "g1", Name: "Mine", Items: []string{"Moulded Mitts"}}}
+	out, _ := GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+
+	hideQ := blockContaining(t, out, "Hide", "Rarity Normal", "Quality >= 21", `"Stocky Mitts"`)
+	hideS := blockContaining(t, out, "Hide", "Rarity Normal", "Sockets >= 2", `Class == "Boots"`, `"Stocky Mitts"`)
+	unpriced := blockContaining(t, out, "Show", "Rarity Normal Magic", "Sockets >= 2", `Class == "Boots"`)
+	if hideQ < 0 || hideS < 0 || unpriced < 0 || hideS > unpriced {
+		t.Fatalf("low-level hide missing or after the unpriced show (quality=%d sockets=%d unpriced=%d)", hideQ, hideS, unpriced)
+	}
+	if strings.Contains(strings.Split(out, "\n\n")[hideQ], "Rarity Normal Magic") {
+		t.Error("the low-level hide must cover white items only")
+	}
+	if mine := blockContaining(t, out, "Show", `"Moulded Mitts"`); mine < 0 || mine > hideQ {
+		t.Errorf("the player's own group must come first (group=%d hide=%d)", mine, hideQ)
+	}
+
+	cfg.ShowLowLevelExceptional = true
+	out, _ = GenerateDynamicFilterBlock(cfg, testSnapshot(), testBases, nil)
+	if blockContaining(t, out, "Hide", "Rarity Normal", "Quality >= 21", `"Stocky Mitts"`) >= 0 {
+		t.Error("switched on, low-level exceptional items must not be hidden")
+	}
+}

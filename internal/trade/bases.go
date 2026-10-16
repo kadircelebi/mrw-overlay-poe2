@@ -85,20 +85,3 @@ func EquipmentBaseTypes(ctx context.Context, cachePath string) ([]string, error)
 	sort.Strings(out)
 	return out, nil
 }
-
-// BuildCandidates keeps bases the loot filter knows (i.e. that actually drop)
-// and ranks bases from the preferred set first.
-func BuildCandidates(bases []string, droppable map[string]bool, preferred map[string]bool) []Candidate {
-	var out []Candidate
-	for _, b := range bases {
-		if len(droppable) > 0 && !droppable[b] {
-			continue
-		}
-		p := 1
-		if preferred[b] {
-			p = 0
-		}
-		out = append(out, Candidate{Base: b, Priority: p})
-	}
-	return out
-}

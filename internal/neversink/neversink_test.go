@@ -104,6 +104,29 @@ Show # $type->ut->rare
 	}
 }
 
+// The chance blocks sit in the exceptional section but list Orb of Chance
+// targets; they are kept apart from the bases worth having as exceptional.
+func TestExceptionalBaseListsSeparatesChanceBases(t *testing.T) {
+	const content = `
+Show # %D9 $type->exotic->exceptional $tier->overqual1q1 !exotics_artifacthigh
+	BaseType == "Vile Robe" "Withered Wand"
+Show # %D9 $type->exotic->exceptional $tier->chancingoversocket2 !itemproperty_achancing
+	BaseType == "Stocky Mitts" "Withered Wand"
+Show # %D7 $type->exotic->exceptional $tier->oversockt2s3 !exotics_btier
+	Sockets >= 3
+`
+	valuable, chance := ExceptionalBaseLists(content)
+	if len(valuable) != 2 || !valuable["Vile Robe"] || !valuable["Withered Wand"] {
+		t.Errorf("valuable %v", valuable)
+	}
+	if len(chance) != 2 || !chance["Stocky Mitts"] || !chance["Withered Wand"] {
+		t.Errorf("chance %v", chance)
+	}
+	if all := ExceptionalBases(content); len(all) != 3 {
+		t.Errorf("union %v", all)
+	}
+}
+
 // Items ranked by stack size are the ones that drop in stacks; a switched-off
 // rule counts too, and a rule without StackSize does not.
 func TestStackedBases(t *testing.T) {

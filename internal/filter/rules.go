@@ -805,6 +805,29 @@ func GenerateDynamicFilterBlock(cfg Config, snap *prices.Snapshot, validBases ma
 		}
 	}
 
+	// ---- 8.9 low-level exceptional bases ------------------------------------
+	// Bases required below trade.MinScanLevel are not scanned: their
+	// exceptional drops are hidden unless the player asks for them. They drop
+	// white, and Orb of Chance needs a white item too, so the rule is Normal
+	// only. Every list and value tier above still wins.
+	if !cfg.ShowLowLevelExceptional && len(cfg.LowLevelExceptional) > 0 {
+		var bases []string
+		for _, raw := range cfg.LowLevelExceptional {
+			if name, ok := canon(raw); ok {
+				bases = append(bases, name)
+			}
+		}
+		if len(bases) > 0 {
+			b.section(fmt.Sprintf(i18n.T("filter.sec.lowLevelEx"), trade.MinScanLevel))
+			low := []string{"Corrupted False", "Rarity Normal"}
+			b.rule("Hide", append(low, fmt.Sprintf("Quality >= %d", trade.ExceptionalQualityMin)), "BaseType", bases, nil)
+			for _, min := range []int{2, 3} {
+				b.rule("Hide", append(low, fmt.Sprintf("Sockets >= %d", min),
+					"Class == "+strings.Join(quoteItems(trade.SocketClasses(min)), " ")), "BaseType", bases, nil)
+			}
+		}
+	}
+
 	// ---- 9. below-threshold items ------------------------------------------
 	if cfg.FilterMode == "hide" || cfg.FilterMode == "dim" {
 		action, dim := "Hide", (*style)(nil)

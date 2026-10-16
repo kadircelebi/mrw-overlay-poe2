@@ -6,6 +6,12 @@
  */
 export interface Config {
     /**
+     * ShowLowLevelExceptional keeps those bases' exceptional drops visible;
+     * off, they are hidden.
+     */
+    "show_low_level_exceptional": boolean;
+
+    /**
      * ShowExotics repeats those rules ahead of ours, so the leftover-gear hide
      * cannot swallow valuable bases (Absent/Lament/Portent Amulet...) or
      * identified items with a valuable modifier.

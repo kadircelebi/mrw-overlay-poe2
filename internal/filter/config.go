@@ -106,6 +106,12 @@ type Config struct {
 	// Exotics are NeverSink's exotic gear rules, verbatim (neversink.ExoticBlocks),
 	// filled by the engine like Stacked.
 	Exotics []string `json:"-"`
+	// LowLevelExceptional are the bases below trade.MinScanLevel that the
+	// scan skips (trade.LowLevelBases), filled by the engine like Stacked.
+	LowLevelExceptional []string `json:"-"`
+	// ShowLowLevelExceptional keeps those bases' exceptional drops visible;
+	// off, they are hidden.
+	ShowLowLevelExceptional bool `json:"show_low_level_exceptional"`
 	// ShowExotics repeats those rules ahead of ours, so the leftover-gear hide
 	// cannot swallow valuable bases (Absent/Lament/Portent Amulet...) or
 	// identified items with a valuable modifier.
