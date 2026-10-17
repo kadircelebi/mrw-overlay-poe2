@@ -28,8 +28,9 @@ type Options struct {
 	HTTP   *http.Client
 	Log    func(string)
 	// CX, when set, reads GGG's Currency Exchange: it then leads for the
-	// rates and every item it lists, the other sources fill the rest. Only
-	// the price server sets it; it downloads a few MB per hour.
+	// rates and every item it lists, the other sources fill the rest. The
+	// price server sets it, and the app when it collects on its own; it
+	// downloads a few MB per hour.
 	CX *CXSource
 }
 

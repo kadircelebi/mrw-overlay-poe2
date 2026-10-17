@@ -36,8 +36,14 @@ import (
 // without such an Exalted market the price is the highest market that saw
 // enough trades (optimistic: an item that sold that dear is not hidden).
 // The lowest market is kept as LowEx when it is below the price.
+//
+// An item whose markets all saw fewer than cxMinUnits in the window is weak.
+// When its Exalted market saw cxMinUnits over the last cxDayHours, that
+// day's Exalted market is its price (units of Exalted paid / units traded);
+// otherwise another source's price is kept for it.
 const (
 	cxWindowHours = 6
+	cxDayHours    = 24
 	cxEnoughUnits = 10.0
 	cxSpread      = 3.0
 	cxMinUnits    = 5.0
@@ -163,6 +169,46 @@ func cxItemPricesWeak(vol map[cxPair]cxVolume, rates prices.Rates) (map[string]p
 		out[cxChaos] = prices.CurrencyPrice{ValueEx: rates.ChaosEx}
 	}
 	return out, weak
+}
+
+// cxDayFallback prices the weak items whose Exalted market saw cxMinUnits
+// over the last cxDayHours of hours (newest first) on that day's trades, and
+// drops them from weak. Their Exalted entry in Markets becomes the day's.
+func cxDayFallback(items map[string]prices.CurrencyPrice, weak map[string]bool, hours [][]cxTrade) {
+	day := map[string]cxVolume{}
+	for i, hour := range hours {
+		if i >= cxDayHours {
+			break
+		}
+		seen := map[string]bool{}
+		for _, t := range hour {
+			for _, side := range [2]cxTrade{t, {A: t.B, B: t.A, QA: t.QB, QB: t.QA}} {
+				if side.B != cxExalted || !weak[side.A] || side.QA <= 0 || side.QB <= 0 {
+					continue
+				}
+				v := day[side.A]
+				v.Item += side.QA
+				v.Base += side.QB
+				if !seen[side.A] {
+					v.Hours++
+					seen[side.A] = true
+				}
+				day[side.A] = v
+			}
+		}
+	}
+	for id, v := range day {
+		if v.Item < cxMinUnits {
+			continue
+		}
+		m := prices.MarketPrice{Base: "exalted", ValueEx: v.Base / v.Item, Units: v.Item, Hours: v.Hours}
+		p := items[id]
+		p.Markets = append(slices.DeleteFunc(slices.Clone(p.Markets), func(x prices.MarketPrice) bool { return x.Base == "exalted" }), m)
+		sort.Slice(p.Markets, func(i, j int) bool { return p.Markets[i].Base < p.Markets[j].Base })
+		p.ValueEx, p.LowEx = m.ValueEx, 0
+		items[id] = p
+		delete(weak, id)
+	}
 }
 
 // cxCombine turns an item's markets into its price (see the notes above the

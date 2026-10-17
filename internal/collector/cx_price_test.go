@@ -1,8 +1,16 @@
 package collector
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"math"
+	"net/http"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 )
 
 func near(a, b float64) bool { return math.Abs(a-b) < 1e-9*max(1, math.Abs(b)) }
@@ -150,5 +158,85 @@ func TestCXWeakItems(t *testing.T) {
 	_, weak := cxItemPricesWeak(vol, cxRates(vol))
 	if !weak[thin] || weak[mirror] {
 		t.Fatalf("weak %v", weak)
+	}
+}
+
+type offline struct{}
+
+func (offline) RoundTrip(*http.Request) (*http.Response, error) { return nil, errors.New("offline") }
+
+// The price server reads the day and prices a thin item on it; the app reads
+// the price window only and leaves the item weak.
+func TestCXSourceHours(t *testing.T) {
+	dir := t.TempDir()
+	if err := writeGzip(filepath.Join(dir, "base_items.json.gz"), []byte(`{"`+thin+`":{"name":"Thin","item_class":"StackableCurrency"}}`)); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC().Truncate(time.Hour)
+	market := func(a, b string, qa, qb float64) string {
+		return fmt.Sprintf(`{"league":"L","market_pair":["%s","%s"],"volume_traded":{"%s":%v,"%s":%v}}`, a, b, a, qa, b, qb)
+	}
+	for back := 1; back <= 10; back++ {
+		ms := []string{market(cxDivine, cxExalted, 10, 7000)}
+		if back == 1 || back == 9 {
+			ms = append(ms, market(thin, cxExalted, 3, 30)) // 6 units at 10 ex over the day, 3 in the window
+		}
+		at := now.Add(-time.Duration(back) * time.Hour).Unix()
+		raw := fmt.Sprintf(`{"next_change_id":%d,"markets":[%s]}`, at+3600, strings.Join(ms, ","))
+		if err := writeGzip(filepath.Join(dir, "hours", strconv.FormatInt(at, 10)+".json.gz"), []byte(raw)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	server := NewCXSource(dir)
+	server.HTTP = &http.Client{Transport: offline{}}
+	res, err := server.Prices(context.Background(), "L")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Weak["Thin"] || !near(res.Items["Thin"].ValueEx, 10) || res.Hours != cxWindowHours {
+		t.Errorf("server: weak %v %+v hours %d", res.Weak["Thin"], res.Items["Thin"], res.Hours)
+	}
+	app := NewAppCXSource(dir)
+	app.HTTP = &http.Client{Transport: offline{}}
+	res, err = app.Prices(context.Background(), "L")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Weak["Thin"] {
+		t.Errorf("app priced the thin item on the day: %+v", res.Items["Thin"])
+	}
+}
+
+// A weak item takes the last day's Exalted market when that saw five units;
+// one that did not stays weak.
+func TestCXDayFallback(t *testing.T) {
+	hours := make([][]cxTrade, 30)
+	hours[0] = []cxTrade{
+		{A: cxDivine, B: cxExalted, QA: 10, QB: 7500},
+		{A: thin, B: cxDivine, QA: 1, QB: 2}, // 1500 ex: one trade
+		{A: tasalio, B: cxExalted, QA: 1, QB: 4},
+	}
+	// Thin: 6 more units for 60 ex over the day, written either way round.
+	hours[8] = []cxTrade{{A: cxExalted, B: thin, QA: 24, QB: 2}}
+	hours[20] = []cxTrade{{A: thin, B: cxExalted, QA: 4, QB: 36}}
+	// Outside the day: not counted.
+	hours[25] = []cxTrade{{A: tasalio, B: cxExalted, QA: 10, QB: 10}}
+	vol := cxVolumes(hours)
+	items, weak := cxItemPricesWeak(vol, cxRates(vol))
+	if !weak[thin] || !weak[tasalio] || !near(items[thin].ValueEx, 1500) {
+		t.Fatalf("before %v %+v", weak, items[thin])
+	}
+	cxDayFallback(items, weak, hours)
+	p := items[thin]
+	if weak[thin] || !near(p.ValueEx, 10) || p.LowEx != 0 {
+		t.Errorf("thin %+v weak %v", p, weak[thin])
+	}
+	// The Divine market stays; the Exalted entry is the day's.
+	if len(p.Markets) != 2 || p.Markets[0].Base != "divine" || p.Markets[1].Base != "exalted" ||
+		!near(p.Markets[1].Units, 6) || p.Markets[1].Hours != 2 {
+		t.Errorf("thin markets %+v", p.Markets)
+	}
+	if !weak[tasalio] || !near(items[tasalio].ValueEx, 4) {
+		t.Errorf("tasalio %+v weak %v", items[tasalio], weak[tasalio])
 	}
 }

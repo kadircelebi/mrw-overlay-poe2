@@ -219,6 +219,10 @@ var fetchLeagues = collector.FetchLeagues
 // leagueRetryDelay spaces out fetches while the league list cannot be had.
 const leagueRetryDelay = 10 * time.Minute
 
+// recentPrices is how old shared or cached prices may be before the app
+// collects its own. The server publishes hourly.
+const recentPrices = 6 * time.Hour
+
 type leagueCache struct {
 	FetchedAt    time.Time `json:"fetched_at"`
 	Leagues      []string  `json:"leagues"`
@@ -591,15 +595,20 @@ func (e *Engine) run(ctx context.Context) (err error) {
 		e.ensureScanner(true)
 	}
 
+	// The shared prices (or the last download of them), then the last prices
+	// at hand, while either is recent; past that the prices are collected
+	// here, the exchange included; the last prices of any age stay the final
+	// fallback so the filter is never written without prices.
 	var chain provider.Chain
 	if cfg.SharedScan {
-		// Published hourly; older than three hours means the server is
-		// behind, and the prices are collected here instead.
-		chain = append(chain, provider.SharedPrices{Store: e.shared, League: cfg.LeagueName, MaxAge: 3 * time.Hour,
-			CachePath: e.snapshotPath(), Exceptional: exceptional})
+		chain = append(chain,
+			provider.SharedPrices{Store: e.shared, League: cfg.LeagueName, MaxAge: recentPrices,
+				CachePath: e.snapshotPath(), Exceptional: exceptional},
+			provider.Cache{Path: e.snapshotPath(), MaxAge: recentPrices, League: cfg.LeagueName})
 	}
 	local := provider.Local{
-		Options:   collector.Options{League: cfg.LeagueName, Log: func(s string) { e.logf("%s", strings.TrimSpace(s)) }},
+		Options: collector.Options{League: cfg.LeagueName, Log: func(s string) { e.logf("%s", strings.TrimSpace(s)) },
+			CX: collector.NewAppCXSource(filepath.Join(e.dataDir, "cx"))},
 		CachePath: e.snapshotPath(),
 	}
 	if exceptional != nil {

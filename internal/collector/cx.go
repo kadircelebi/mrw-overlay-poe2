@@ -26,8 +26,9 @@ import (
 const (
 	cxURL        = "https://web.poecdn.com/api/currency-exchange/poe2/"
 	baseItemsURL = "https://repoe-fork.github.io/poe2/base_items.min.json"
-	// cxKeep is how long fetched hours stay on disk.
-	cxKeep = 24 * time.Hour
+	// cxKeep is how long fetched hours stay on disk: the day the weak items
+	// fall back to, and the hour still being published.
+	cxKeep = (cxDayHours + 2) * time.Hour
 	// baseItemsEvery is how often the trade id to name list is refreshed.
 	baseItemsEvery = 24 * time.Hour
 )
@@ -38,6 +39,10 @@ type CXSource struct {
 	Dir  string
 	HTTP *http.Client
 	Now  func() time.Time
+	// Hours is how many published hours Prices reads; 0 means cxDayHours.
+	// The app reads cxWindowHours: the weak items' day fallback is the
+	// price server's.
+	Hours int
 }
 
 // NewCXSource keeps its files under dir.
@@ -57,16 +62,29 @@ type CXResult struct {
 	Hours int
 }
 
-// Prices reads the last cxWindowHours published hours of league.
+// NewAppCXSource is the app's own reading of the exchange, for when no
+// recent shared prices are at hand: the price window only.
+func NewAppCXSource(dir string) *CXSource {
+	s := NewCXSource(dir)
+	s.Hours = cxWindowHours
+	return s
+}
+
+// Prices reads the last cxWindowHours published hours of league, and the
+// last cxDayHours for the items those hours saw too few trades of.
 func (s *CXSource) Prices(ctx context.Context, league string) (CXResult, error) {
 	names, err := s.baseItems(ctx)
 	if err != nil {
 		return CXResult{}, fmt.Errorf("item names: %w", err)
 	}
+	want := s.Hours
+	if want <= 0 {
+		want = cxDayHours
+	}
 	now := s.Now().UTC().Truncate(time.Hour)
 	var hours [][]cxTrade
 	got := 0
-	for back := 1; back <= cxWindowHours+1 && got < cxWindowHours; back++ {
+	for back := 1; back <= want+1 && got < want; back++ {
 		at := now.Add(-time.Duration(back) * time.Hour).Unix()
 		markets, err := s.hour(ctx, at)
 		if err != nil {
@@ -89,11 +107,12 @@ func (s *CXSource) Prices(ctx context.Context, league string) (CXResult, error) 
 	}
 	s.prune()
 	vol := cxVolumes(hours)
-	res := CXResult{Rates: cxRates(vol), Items: map[string]prices.CurrencyPrice{}, Classes: map[string]string{}, Weak: map[string]bool{}, Hours: got}
+	res := CXResult{Rates: cxRates(vol), Items: map[string]prices.CurrencyPrice{}, Classes: map[string]string{}, Weak: map[string]bool{}, Hours: min(got, cxWindowHours)}
 	if res.Rates.DivineEx <= 0 {
 		return CXResult{}, errors.New("no Divine Orb trades in the window")
 	}
 	items, weak := cxItemPricesWeak(vol, res.Rates)
+	cxDayFallback(items, weak, hours)
 	for id, p := range items {
 		item, ok := names[id]
 		if !ok || item.Name == "" {

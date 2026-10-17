@@ -37,12 +37,36 @@ func (c Chain) Get(ctx context.Context) (*prices.Snapshot, string, error) {
 	return nil, "", errors.New(i18n.T("err.noPriceSource") + strings.Join(errs, "; "))
 }
 
-// Cache serves the last snapshot saved on disk.
-type Cache struct{ Path string }
+// Cache serves the last snapshot saved on disk. With MaxAge set it serves
+// it only while it is that recent, and with League only for that league.
+type Cache struct {
+	Path   string
+	MaxAge time.Duration
+	League string
+	Now    func() time.Time // nil means time.Now
+}
 
 func (c Cache) Name() string { return "önbellek" }
 
-func (c Cache) Get(ctx context.Context) (*prices.Snapshot, error) { return prices.Load(c.Path) }
+func (c Cache) Get(ctx context.Context) (*prices.Snapshot, error) {
+	snap, err := prices.Load(c.Path)
+	if err != nil {
+		return nil, err
+	}
+	if c.League != "" && !strings.EqualFold(strings.TrimSpace(snap.League), strings.TrimSpace(c.League)) {
+		return nil, fmt.Errorf("cached prices are for %s", snap.League)
+	}
+	if c.MaxAge > 0 {
+		now := time.Now
+		if c.Now != nil {
+			now = c.Now
+		}
+		if age := now().Sub(snap.GeneratedAt); age > c.MaxAge {
+			return nil, fmt.Errorf("cached prices are %s old", age.Round(time.Minute))
+		}
+	}
+	return snap, nil
+}
 
 // ExceptionalSource supplies exceptional base prices (the local trade scanner).
 type ExceptionalSource interface {
