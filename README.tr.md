@@ -32,7 +32,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
 ## Özellikler
 
 ### Canlı fiyatlı loot filtresi
-[NeverSink'in filtresinin](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2) üstüne kurulur: NeverSink'in bütün emeği yerinde kalır, senin fiyat kuralların en üste eklenir. Unique fiyatları poe.ninja'dan, currency ve yığınlanan eşyalar poe2scout'tan, exceptional tabanlar (fazla soketli ya da %21+ kaliteli) resmi trade sitesinden gelir. Bu tabanları MrW Overlay'in kendi sunucuları günün her saati tarar; fiyatlar sana hazır gelir. Filtre varsayılan olarak 4 saatte bir kendini günceller.
+[NeverSink'in filtresinin](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2) üstüne kurulur: NeverSink'in bütün emeği yerinde kalır, senin fiyat kuralların en üste eklenir. Unique fiyatları poe.ninja'dan, currency ve yığınlanan eşyalar oyun içi Currency Exchange'te gerçekleşen takaslardan (orada az takas görenleri poe2scout ve poe.ninja tamamlar), exceptional tabanlar (fazla soketli ya da %21+ kaliteli) resmi trade sitesinden gelir. Bu fiyatları MrW Overlay'in kendi sunucuları hesaplar ve tabanları günün her saati tarar; fiyatlar sana hazır gelir. Filtre varsayılan olarak 4 saatte bir kendini günceller.
 
 <p align="center"><img src="docs/filter-ground.jpg" alt="Yerde filtrelenmiş drop'lar" width="800"></p>
 
@@ -156,7 +156,7 @@ Hata mı buldun, aklına bir fikir mi geldi? [Issue aç](../../issues/new/choose
 
 Uygulamada telemetri ya da analiz yok; oturum çerezini ve hesap adını asla MrW Overlay sunucularına göndermez.
 
-Herkese açık veriyi okur: fiyatları [poe.ninja](https://poe.ninja/) ve [poe2scout](https://poe2scout.com/)'tan, ilanları resmi trade API'sinden (başka bir dilde oynuyorsan sitenin o dildeki sürümünden, ör. de.pathofexile.com), NeverSink'in filtresini GitHub'dan.
+Herkese açık veriyi okur: fiyatları MrW Overlay'in GitHub'daki ortak fiyat dosyasından, o dosya altı saatten eskiyse doğrudan [poe.ninja](https://poe.ninja/), [poe2scout](https://poe2scout.com/) ve GGG'nin herkese açık Currency Exchange özetlerinden (`web.poecdn.com`); ilanları resmi trade API'sinden (başka bir dilde oynuyorsan sitenin o dildeki sürümünden, ör. de.pathofexile.com), NeverSink'in filtresini GitHub'dan.
 
 - **Tarayıcı eklentisi:** bağlarsan oturumu ve hesap adını yalnız aynı bilgisayardaki uygulamaya verir. İkisi de Windows DPAPI ile saklanır. Oturum yalnız senin istediğin trade işlemleri için `www.pathofexile.com`'a gider. **Ayarlar → Hesap → Bağlantıyı kes** ikisini de siler.
 - **Satış takibi:** varsayılan olarak kapalıdır. Açınca uygulama bağlı oturumla kendi satıcı satışlarını `www.pathofexile.com`'dan okur ve yalnız senin bilgisayarında saklar. Takip penceresindeki **Saklanan satışları sil** onları siler.

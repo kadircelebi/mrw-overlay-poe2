@@ -32,7 +32,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
 ## Features
 
 ### Live-price loot filter
-Built on top of [NeverSink's filter](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2): all of NeverSink's work stays, and your price rules go on top. Uniques are priced from poe.ninja, currency and stackables from poe2scout, and exceptional bases (extra sockets, 21%+ quality) from the official trade site. MrW Overlay's own servers scan those bases around the clock, so you get the prices ready-made. The filter updates itself every 4 hours by default.
+Built on top of [NeverSink's filter](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2): all of NeverSink's work stays, and your price rules go on top. Uniques are priced from poe.ninja, currency and stackables from the trades completed on the in-game Currency Exchange (poe2scout and poe.ninja fill in what rarely trades there), and exceptional bases (extra sockets, 21%+ quality) from the official trade site. MrW Overlay's own servers work out these prices and scan those bases around the clock, so you get the prices ready-made. The filter updates itself every 4 hours by default.
 
 <p align="center"><img src="docs/filter-ground.jpg" alt="Filtered drops on the ground" width="800"></p>
 
@@ -156,7 +156,7 @@ Found a bug or have an idea? [Open an issue](../../issues/new/choose), or come s
 
 The app has no telemetry or analytics, and it never sends your session cookie or account name to MrW Overlay's servers.
 
-It reads public data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout](https://poe2scout.com/), listings from the official trade API (from its edition in your game's language, such as de.pathofexile.com, when you play in another language), and NeverSink's filter from GitHub.
+It reads public data: prices from MrW Overlay's shared price file on GitHub, or, when that is more than six hours old, straight from [poe.ninja](https://poe.ninja/), [poe2scout](https://poe2scout.com/) and GGG's public Currency Exchange digests (`web.poecdn.com`); listings from the official trade API (from its edition in your game's language, such as de.pathofexile.com, when you play in another language), and NeverSink's filter from GitHub.
 
 - **Browser extension:** if you connect it, it sends your session and account name only to the app on the same PC. They are stored with Windows DPAPI, the session is sent only to `www.pathofexile.com` for trade actions you ask for, and **Settings → Account → Disconnect** deletes both.
 - **Sales tracker:** this is off by default. When on, the app reads your own merchant sales from `www.pathofexile.com` with the linked session and keeps them only on your PC. **Delete kept sales** in the Tracker window removes them.
