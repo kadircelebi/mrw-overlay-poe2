@@ -57,6 +57,33 @@ func TestChooseAndEnter(t *testing.T) {
 	if tot := Sum(list, at.Add(time.Minute)); tot.Maps != 2 || tot.ValueEx != 6 {
 		t.Errorf("sum since %+v", tot)
 	}
+	// Undo takes back the current map's latest choice, not a finished map's.
+	_ = s.Choose("L", Entry{At: at.Add(2 * time.Hour), AreaID: "MapCrypt", Seed: "9", Name: "Regal Orb", ValueEx: 2})
+	if gone, ok, err := s.Undo("L"); !ok || err != nil || gone.Name != "Regal Orb" {
+		t.Fatalf("undo %+v %v %v", gone, ok, err)
+	}
+	if gone, ok, _ := s.Undo("L"); !ok || gone.Name != "Exalted Orb" {
+		t.Fatalf("second undo %+v %v", gone, ok)
+	}
+	if _, ok, _ := s.Undo("L"); ok {
+		t.Error("undid a finished map's choice")
+	}
+	// Reset forgets the current map's choices only.
+	_ = s.Choose("L", Entry{At: at.Add(3 * time.Hour), AreaID: "MapBay", Seed: "4", ValueEx: 3})
+	_ = s.Choose("L", Entry{At: at.Add(4 * time.Hour), AreaID: "MapBay", Seed: "4", ValueEx: 4})
+	if n, err := s.ResetMap("L"); n != 2 || err != nil || len(s.Entries("L")) != 3 {
+		t.Fatalf("reset %d %v %d", n, err, len(s.Entries("L")))
+	}
+	if n, _ := s.ResetMap("L"); n != 0 {
+		t.Errorf("reset with no open map: %d", n)
+	}
+	// Delete takes out one choice of any map.
+	if ok, _ := s.Delete("L", at.Add(30*time.Minute)); !ok || len(s.Entries("L")) != 2 {
+		t.Errorf("delete %v %d", ok, len(s.Entries("L")))
+	}
+	if ok, _ := s.Delete("L", at.Add(99*time.Hour)); ok {
+		t.Error("deleted a choice that is not there")
+	}
 	if err := s.Clear(); err != nil || len(s.Entries("L")) != 0 {
 		t.Errorf("clear %v", err)
 	}

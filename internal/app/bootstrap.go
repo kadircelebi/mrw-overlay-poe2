@@ -361,6 +361,12 @@ func Run(opt Options) {
 		if s.TrackerHotkey != "" {
 			list = append(list, [2]any{s.TrackerHotkey, svc.toggleTracker})
 		}
+		if s.ExpeditionUndoHotkey != "" {
+			list = append(list, [2]any{s.ExpeditionUndoHotkey, func() { svc.UndoExpeditionChoice() }})
+		}
+		if s.ExpeditionResetHotkey != "" {
+			list = append(list, [2]any{s.ExpeditionResetHotkey, func() { svc.ResetExpeditionMap() }})
+		}
 		return list
 	}
 	register := func(list [][2]any) error {

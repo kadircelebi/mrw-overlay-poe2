@@ -1692,6 +1692,10 @@
                         <p class="desc hint">{t('hidden.hotkeyHint')}</p>
                         <label class="field stack"><span>{t('expedition.hotkey')}</span><HotkeyInput label={t('expedition.hotkey')} bind:value={overlaySettings.expedition_hotkey} onchange={queueOverlaySave} /></label>
                         <p class="desc hint">{t('expedition.hotkeyHint')}</p>
+                        <label class="field stack"><span>{t('expedition.undoHotkey')}</span><HotkeyInput label={t('expedition.undoHotkey')} bind:value={overlaySettings.expedition_undo_hotkey} onchange={queueOverlaySave} /></label>
+                        <p class="desc hint">{t('expedition.undoHotkeyHint')}</p>
+                        <label class="field stack"><span>{t('expedition.resetHotkey')}</span><HotkeyInput label={t('expedition.resetHotkey')} bind:value={overlaySettings.expedition_reset_hotkey} onchange={queueOverlaySave} /></label>
+                        <p class="desc hint">{t('expedition.resetHotkeyHint')}</p>
                         <label class="field stack"><span>{t('tracker.hotkey')}</span><HotkeyInput label={t('tracker.hotkey')} bind:value={overlaySettings.tracker_hotkey} onchange={queueOverlaySave} /></label>
                         <p class="desc hint">{t('tracker.hotkeyHint')}</p>
                       </section>

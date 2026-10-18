@@ -136,6 +136,53 @@ func closeOthers(list []Entry, here Entry) bool {
 	return closed
 }
 
+// Undo forgets the latest choice of the map the player is in and returns
+// it; a finished map's choices are not undone.
+func (s *Store) Undo(league string) (Entry, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f := s.load()
+	list := f.Leagues[league]
+	if len(list) == 0 || list[0].Done {
+		return Entry{}, false, nil
+	}
+	gone := list[0]
+	f.Leagues[league] = slices.Clone(list[1:])
+	return gone, true, s.save(f)
+}
+
+// ResetMap forgets every choice of the map the player is in, for choosing
+// again from the start, and returns how many there were.
+func (s *Store) ResetMap(league string) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f := s.load()
+	list := f.Leagues[league]
+	n := 0
+	for n < len(list) && !list[n].Done {
+		n++
+	}
+	if n == 0 {
+		return 0, nil
+	}
+	f.Leagues[league] = slices.Clone(list[n:])
+	return n, s.save(f)
+}
+
+// Delete forgets the choice made at at, from any map.
+func (s *Store) Delete(league string, at time.Time) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f := s.load()
+	list := f.Leagues[league]
+	i := slices.IndexFunc(list, func(e Entry) bool { return e.At.Equal(at) })
+	if i < 0 {
+		return false, nil
+	}
+	f.Leagues[league] = slices.Delete(slices.Clone(list), i, i+1)
+	return true, s.save(f)
+}
+
 func sameMap(a, b Entry) bool { return a.AreaID == b.AreaID && a.Seed == b.Seed }
 
 func (s *Store) save(f *file) error {

@@ -86,6 +86,42 @@ func (s *AppService) GetExpeditionHistory() ExpeditionHistoryView {
 	return v
 }
 
+// UndoExpeditionChoice takes back the latest choice of the current map.
+func (s *AppService) UndoExpeditionChoice() ExpeditionHistoryView {
+	if _, ok, err := s.expeditionLog.Undo(s.overlayClient.League()); err != nil {
+		log.Printf("expedition history: undo: %v", err)
+	} else if ok {
+		s.expeditionChanged()
+	}
+	return s.GetExpeditionHistory()
+}
+
+// ResetExpeditionMap forgets every choice of the current map, for choosing
+// again from the start.
+func (s *AppService) ResetExpeditionMap() ExpeditionHistoryView {
+	if n, err := s.expeditionLog.ResetMap(s.overlayClient.League()); err != nil {
+		log.Printf("expedition history: reset map: %v", err)
+	} else if n > 0 {
+		s.expeditionChanged()
+	}
+	return s.GetExpeditionHistory()
+}
+
+// DeleteExpeditionChoice forgets one choice, named by when it was made
+// (RFC 3339 as the history shows it).
+func (s *AppService) DeleteExpeditionChoice(at string) ExpeditionHistoryView {
+	when, err := time.Parse(time.RFC3339Nano, at)
+	if err != nil {
+		return s.GetExpeditionHistory()
+	}
+	if ok, err := s.expeditionLog.Delete(s.overlayClient.League(), when); err != nil {
+		log.Printf("expedition history: delete: %v", err)
+	} else if ok {
+		s.expeditionChanged()
+	}
+	return s.GetExpeditionHistory()
+}
+
 // ClearExpeditionHistory forgets the chosen rewards of every league.
 func (s *AppService) ClearExpeditionHistory() (ExpeditionHistoryView, error) {
 	err := s.expeditionLog.Clear()

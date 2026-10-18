@@ -70,6 +70,15 @@
     accept(await AppService.ClearTradeHistory())
   }
 
+  async function resetMap() {
+    if (!confirm(t('expedition.hist.resetConfirm'))) return
+    exp = await AppService.ResetExpeditionMap()
+  }
+
+  async function deleteChoice(e: ExpeditionEntry) {
+    exp = await AppService.DeleteExpeditionChoice(String(e.at))
+  }
+
   async function clearExpedition() {
     if (!confirm(t('expedition.hist.clearConfirm'))) return
     exp = await AppService.ClearExpeditionHistory()
@@ -263,6 +272,7 @@
             <span class="muted small">{t('expedition.hist.current', exp.pending.map)}</span>
             <span class="pending-reward">{t('expedition.hist.maps', exp.mapTotal.maps)} · {rewardName(exp.pending)}</span>
             <span class="value num">{expWorth(exp.mapTotal.valueEx)}</span>
+            <button class="small-btn" onclick={resetMap}>{t('expedition.hist.reset')}</button>
           </div>
         {/if}
 
@@ -307,6 +317,7 @@
                       <span class="time num">{clock(new Date(e.at).getTime())}</span>
                       <span class="name currency">{rewardName(e)}</span>
                       <span class="worth num">{e.valueEx > 0 ? `≈ ${expWorth(e.valueEx)}` : ''}</span>
+                      <button class="del" title={t('expedition.hist.delete')} aria-label={t('expedition.hist.delete')} onclick={() => deleteChoice(e)}>✕</button>
                     </div>
                   {/each}
                 {/if}
@@ -751,7 +762,7 @@
   }
   .card.pending {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr auto auto;
     align-items: center;
     gap: 12px;
     border-color: var(--gold-dim);
@@ -767,8 +778,27 @@
     color: var(--gold-bright);
   }
   .row.exp-row {
-    grid-template-columns: 48px 1fr 110px;
+    grid-template-columns: 48px 1fr 110px 24px;
     padding-left: 44px;
+  }
+  .row.exp-row .del {
+    width: 24px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    visibility: hidden;
+  }
+  .row.exp-row:hover .del {
+    visibility: visible;
+  }
+  .row.exp-row .del:hover {
+    color: var(--bad);
+  }
+  .small-btn {
+    padding: 3px 10px;
+    font-size: 12px;
   }
   .map-head {
     display: grid;

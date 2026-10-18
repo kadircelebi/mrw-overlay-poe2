@@ -321,6 +321,14 @@ export interface Settings {
      * TrackerHotkey opens the tracker window, or closes it when open.
      */
     "tracker_hotkey": string;
+
+    /**
+     * ExpeditionUndoHotkey takes back the latest Expedition choice of the
+     * current map; ExpeditionResetHotkey forgets all of that map's choices
+     * (no key by default: it throws away more than one).
+     */
+    "expedition_undo_hotkey": string;
+    "expedition_reset_hotkey": string;
     "earnings_overlay"?: boolean;
     "earnings_corner"?: string;
 

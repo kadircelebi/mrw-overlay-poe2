@@ -141,6 +141,14 @@ export function DefaultChatCommands(): $CancellablePromise<overlay$0.ChatCommand
     return $Call.ByID(3166849358);
 }
 
+/**
+ * DeleteExpeditionChoice forgets one choice, named by when it was made
+ * (RFC 3339 as the history shows it).
+ */
+export function DeleteExpeditionChoice(at: string): $CancellablePromise<$models.ExpeditionHistoryView> {
+    return $Call.ByID(2679628490, at);
+}
+
 export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.SearchLibrary> {
     return $Call.ByID(768745922, id);
 }
@@ -704,6 +712,14 @@ export function ReportProfile(id: string, reason: string, note: string): $Cancel
 }
 
 /**
+ * ResetExpeditionMap forgets every choice of the current map, for choosing
+ * again from the start.
+ */
+export function ResetExpeditionMap(): $CancellablePromise<$models.ExpeditionHistoryView> {
+    return $Call.ByID(2766594263);
+}
+
+/**
  * SaveConfig stores new settings and returns them normalised.
  */
 export function SaveConfig(c: filter$0.Config): $CancellablePromise<filter$0.Config> {
@@ -885,6 +901,13 @@ export function TravelToHideout(token: string): $CancellablePromise<void> {
  */
 export function UIZoom(window: string): $CancellablePromise<number> {
     return $Call.ByID(2495769444, window);
+}
+
+/**
+ * UndoExpeditionChoice takes back the latest choice of the current map.
+ */
+export function UndoExpeditionChoice(): $CancellablePromise<$models.ExpeditionHistoryView> {
+    return $Call.ByID(4248233631);
 }
 
 /**
