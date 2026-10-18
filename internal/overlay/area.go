@@ -11,7 +11,34 @@ import (
 // The game logs each area it builds:
 //
 //	2026/10/03 22:40:26 17384312 2caa229f [DEBUG Client 32476] Generating level 79 area "MapWaywardIsle" with seed 817132385
-var areaRE = regexp.MustCompile(`Generating level (\d+) area "([^"]+)"`)
+var areaRE = regexp.MustCompile(`Generating level (\d+) area "([^"]+)"(?: with seed (\d+))?`)
+
+// Area is one area the game built: its level, id ("MapWaywardIsle") and
+// seed. A map is one instance: the same id with another seed is another map.
+type Area struct {
+	Level int    `json:"level"`
+	ID    string `json:"id"`
+	Seed  string `json:"seed,omitempty"`
+}
+
+// Rest tells hideouts and towns, where nothing drops.
+func (a Area) Rest() bool { return isRestArea(a.ID) }
+
+// Same tells whether a and b are the same instance.
+func (a Area) Same(b Area) bool { return a.ID == b.ID && a.Seed == b.Seed }
+
+// ParseArea reads an area line of Client.txt.
+func ParseArea(line string) (Area, bool) {
+	m := areaRE.FindStringSubmatch(line)
+	if m == nil {
+		return Area{}, false
+	}
+	n, err := strconv.Atoi(m[1])
+	if err != nil {
+		return Area{}, false
+	}
+	return Area{Level: n, ID: m[2], Seed: m[3]}, true
+}
 
 // areaWindow is how far back LastArea looks; a session writes an area line
 // at every zone change, and the log is hundreds of MB.
@@ -22,39 +49,41 @@ const areaWindow = 1 << 20
 // are skipped: an item in the inventory came from the area before them.
 // Only these two values are taken from the log.
 func LastArea(path string) (int, string) {
+	a := LastMap(path)
+	return a.Level, a.ID
+}
+
+// LastMap is LastArea with the area's seed.
+func LastMap(path string) Area {
 	f, err := os.Open(path)
 	if err != nil {
-		return 0, ""
+		return Area{}
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil {
-		return 0, ""
+		return Area{}
 	}
 	start := max(0, info.Size()-areaWindow)
 	buf := make([]byte, info.Size()-start)
 	if _, err := f.ReadAt(buf, start); err != nil && err != io.EOF {
-		return 0, ""
+		return Area{}
 	}
 	return lastArea(string(buf))
 }
 
-func lastArea(log string) (int, string) {
-	level, area := 0, ""
+func lastArea(log string) Area {
+	var last Area
 	for _, line := range strings.Split(log, "\n") {
 		if strings.Contains(line, sessionStart) {
-			level, area = 0, ""
+			last = Area{}
 			continue
 		}
-		m := areaRE.FindStringSubmatch(line)
-		if m == nil || isRestArea(m[2]) {
-			continue
-		}
-		if n, err := strconv.Atoi(m[1]); err == nil {
-			level, area = n, m[2]
+		if a, ok := ParseArea(line); ok && !a.Rest() {
+			last = a
 		}
 	}
-	return level, area
+	return last
 }
 
 // isRestArea tells hideouts and towns, where nothing drops.

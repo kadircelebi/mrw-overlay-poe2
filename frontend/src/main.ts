@@ -10,6 +10,7 @@ import CraftApp from './CraftApp.svelte'
 import ExpeditionApp from './ExpeditionApp.svelte'
 import TrackerApp from './TrackerApp.svelte'
 import EarningsApp from './EarningsApp.svelte'
+import ExpeditionStripApp from './ExpeditionStripApp.svelte'
 import { installWheelNumbers } from './lib/wheelNumbers'
 import { followUIZoom } from './lib/uiZoom'
 import { followUITheme } from './lib/uiTheme'
@@ -23,6 +24,7 @@ else if (view === 'market') mount(MarketApp, { target })
 else if (view === 'expedition') mount(ExpeditionApp, { target })
 else if (view === 'tracker') mount(TrackerApp, { target })
 else if (view === 'earnings') mount(EarningsApp, { target })
+else if (view === 'expstrip') mount(ExpeditionStripApp, { target })
 else mount(App, { target, props: { win: view === 'settings' ? 'settings' : 'panel' } })
 installWheelNumbers()
 if (view === 'overlay' || view === 'craft' || view === 'market') followUIZoom(view)

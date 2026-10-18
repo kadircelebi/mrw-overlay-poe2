@@ -125,3 +125,6 @@ func CursorPosition() (int, int, bool) {
 func ClickOrEscape() bool {
 	return keyDown(0x01) || keyDown(0x02) || keyDown(0x04) || keyDown(0x1B) // left, right, middle, Escape
 }
+
+// LeftButtonDown reports whether the left mouse button is held down now.
+func LeftButtonDown() bool { return keyDown(0x01) }

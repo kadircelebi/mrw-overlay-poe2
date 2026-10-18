@@ -258,6 +258,21 @@ func Run(opt Options) {
 		e.Cancel()
 	})
 
+	// The Expedition reward chosen in the current map, in a box of its own.
+	expeditionStripWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name: "expstrip", Title: "MrW Overlay · Expedition", Width: expeditionStripWidth, Height: expeditionStripHeight,
+		Frameless: true, AlwaysOnTop: true, Hidden: true, DisableResize: true,
+		BackgroundType:    application.BackgroundTypeTransparent,
+		BackgroundColour:  application.NewRGBA(0, 0, 0, 0),
+		IgnoreMouseEvents: true,
+		Windows:           application.WindowsWindow{HiddenOnTaskbar: true, ExStyle: expeditionExStyle},
+		URL:               "/?view=expstrip",
+	})
+	expeditionStripWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		expeditionStripWindow.Hide()
+		e.Cancel()
+	})
+
 	// The tracker: an ordinary window meant to stay open beside the game
 	// (another monitor), its tabs filled by the logs and the trade site.
 	trackerWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
@@ -329,6 +344,7 @@ func Run(opt Options) {
 	svc.craftWindow = craftWindow
 	svc.expeditionWindow = expeditionWindow
 	svc.trackerWindow, svc.earningsWindow = trackerWindow, earningsWindow
+	svc.expeditionStripWindow = expeditionStripWindow
 	// Price check (Alt+E), market (Alt+M) and craft (Alt+F) shortcuts
 	// exist only while the overlay is switched on.
 	shortcuts := func(s overlay.Settings) [][2]any {

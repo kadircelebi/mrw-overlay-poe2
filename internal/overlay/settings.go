@@ -64,6 +64,16 @@ type Settings struct {
 	// game's client area, so it stays put at any resolution.
 	EarningsX float64 `json:"earnings_x,omitempty"`
 	EarningsY float64 `json:"earnings_y,omitempty"`
+	// ExpeditionStripHidden keeps the Expedition reward chosen in the
+	// current map off the game screen (shown by default, in a small box of
+	// its own at ExpeditionCorner, or where the player dragged it:
+	// ExpeditionX/Y as with the earnings overlay).
+	ExpeditionStripHidden bool `json:"expedition_strip_hidden,omitempty"`
+	// ExpeditionStripNames lists the current map's choices in the box too.
+	ExpeditionStripNames bool    `json:"expedition_strip_names,omitempty"`
+	ExpeditionCorner     string  `json:"expedition_corner,omitempty"`
+	ExpeditionX          float64 `json:"expedition_x,omitempty"`
+	ExpeditionY          float64 `json:"expedition_y,omitempty"`
 }
 
 // Where the earnings overlay sits on the game's screen; "custom" is where
@@ -75,6 +85,9 @@ const EarningsCustom = "custom"
 // DefaultEarningsCorner keeps clear of the minimap (top right) and the
 // globes and skill bar (bottom).
 const DefaultEarningsCorner = "top-center"
+
+// DefaultExpeditionCorner keeps the Expedition box apart from the earnings.
+const DefaultExpeditionCorner = "top-left"
 
 // DefaultSettings leaves the overlay off: it registers a global shortcut and
 // sends keys to the game, so players opt in from Settings.
@@ -225,6 +238,9 @@ func (s *Settings) Normalize() {
 	}
 	if s.UIScale > 175 {
 		s.UIScale = 175
+	}
+	if !slices.Contains(EarningsCorners, s.ExpeditionCorner) {
+		s.ExpeditionCorner = DefaultExpeditionCorner
 	}
 	if !slices.Contains(EarningsCorners, s.EarningsCorner) {
 		s.EarningsCorner = DefaultEarningsCorner

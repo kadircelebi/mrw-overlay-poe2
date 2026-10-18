@@ -25,3 +25,5 @@ func SetOCRLanguage(string) {}
 
 // OCRLanguageInstalled is false: there is no recognizer off Windows.
 func OCRLanguageInstalled(string) bool { return false }
+
+func LeftButtonDown() bool { return false }

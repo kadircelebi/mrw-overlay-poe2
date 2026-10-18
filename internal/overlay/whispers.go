@@ -32,9 +32,9 @@ func WhisperFrom(line string) (string, bool) {
 const merchantLine = "] Ange: "
 
 // Whispers follows the end of the game's Client.txt for the player who
-// whispered last, the time the game started and whether the merchant spoke.
-// Only that is kept, in memory; nothing else of the chat log is read into
-// the app or stored.
+// whispered last, the time the game started, whether the merchant spoke and
+// which area the game built. Only that is kept, in memory; nothing else of
+// the chat log is read into the app or stored.
 type Whispers struct {
 	mu     sync.Mutex
 	path   string
@@ -43,6 +43,8 @@ type Whispers struct {
 	cancel chan struct{}
 	// onMerchant, when set, is called for every line of the merchant.
 	onMerchant func()
+	// onArea, when set, is called for every area the game builds.
+	onArea func(Area)
 }
 
 // SetOnMerchant sets what to call when the merchant speaks (nil: nothing).
@@ -50,6 +52,22 @@ func (w *Whispers) SetOnMerchant(f func()) {
 	w.mu.Lock()
 	w.onMerchant = f
 	w.mu.Unlock()
+}
+
+// SetOnArea sets what to call when the game builds an area (nil: nothing).
+func (w *Whispers) SetOnArea(f func(Area)) {
+	w.mu.Lock()
+	w.onArea = f
+	w.mu.Unlock()
+}
+
+func (w *Whispers) area(a Area) {
+	w.mu.Lock()
+	on := w.onArea
+	w.mu.Unlock()
+	if on != nil {
+		on(a)
+	}
 }
 
 // SessionStart is when the game was last started, as its log tells (zero
@@ -203,6 +221,8 @@ func (w *Whispers) read(path string, offset int64) int64 {
 			}
 		} else if strings.Contains(line, merchantLine) {
 			w.merchant()
+		} else if a, ok := ParseArea(line); ok {
+			w.area(a)
 		}
 	}
 }

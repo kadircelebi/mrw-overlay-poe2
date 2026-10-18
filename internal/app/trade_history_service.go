@@ -422,7 +422,12 @@ func (s *AppService) syncEarningsOverlay() {
 // (physical pixels), clear of its edge, or where it was dragged (fx, fy:
 // its top-left corner as a share of the area), kept inside the area.
 func earningsRect(client image.Rectangle, corner string, fx, fy, dpi float64) image.Rectangle {
-	w, h := int(earningsWidth*dpi), int(earningsHeight*dpi)
+	return boxRect(client, corner, fx, fy, dpi, earningsWidth, earningsHeight)
+}
+
+// boxRect places a box of width × height window pixels like earningsRect.
+func boxRect(client image.Rectangle, corner string, fx, fy, dpi float64, width, height int) image.Rectangle {
+	w, h := int(float64(width)*dpi), int(float64(height)*dpi)
 	margin := int(10 * dpi)
 	x, y := client.Min.X+margin, client.Min.Y+margin
 	switch corner {

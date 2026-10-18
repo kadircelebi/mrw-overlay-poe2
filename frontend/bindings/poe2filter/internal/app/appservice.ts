@@ -85,6 +85,13 @@ export function ChromiumBrowsers(): $CancellablePromise<$models.ChromiumBrowser[
     return $Call.ByID(342838824);
 }
 
+/**
+ * ClearExpeditionHistory forgets the chosen rewards of every league.
+ */
+export function ClearExpeditionHistory(): $CancellablePromise<$models.ExpeditionHistoryView> {
+    return $Call.ByID(1134481667);
+}
+
 export function ClearLiveResults(id: string): $CancellablePromise<trade$0.LiveState[] | null> {
     return $Call.ByID(2538878790, id);
 }
@@ -256,6 +263,14 @@ export function FinishEarningsPlace(save: boolean): $CancellablePromise<void> {
 }
 
 /**
+ * FinishExpeditionPlace ends placing; with save, the box keeps the place it
+ * was dragged to, as a share of the game's client area.
+ */
+export function FinishExpeditionPlace(save: boolean): $CancellablePromise<void> {
+    return $Call.ByID(340303392, save);
+}
+
+/**
  * FitOverlay sets the compact overlay's height to the page's content (in page
  * pixels). A worth card or the hide panel fits within the normal height; a
  * search never gets shorter than it, only taller. The window keeps its top
@@ -290,6 +305,13 @@ export function GetConfig(): $CancellablePromise<filter$0.Config> {
 
 export function GetCraftPrices(): $CancellablePromise<$models.CraftPrices> {
     return $Call.ByID(673939037);
+}
+
+/**
+ * GetExpeditionHistory returns the current league's chosen rewards.
+ */
+export function GetExpeditionHistory(): $CancellablePromise<$models.ExpeditionHistoryView> {
+    return $Call.ByID(1461137244);
 }
 
 /**
@@ -551,6 +573,13 @@ export function PlaceEarnings(): $CancellablePromise<string> {
 }
 
 /**
+ * PlaceExpeditionStrip starts placing the Expedition box over the game.
+ */
+export function PlaceExpeditionStrip(): $CancellablePromise<string> {
+    return $Call.ByID(2583894443);
+}
+
+/**
  * PrepareBrowserExtension writes the extension into the data folder, where
  * the browser can load it ("Load unpacked"), and returns that folder.
  */
@@ -716,6 +745,13 @@ export function SearchItems(query: string): $CancellablePromise<insights$0.Searc
 
 export function SelectUITheme(id: string): $CancellablePromise<uitheme$0.State> {
     return $Call.ByID(3676360300, id);
+}
+
+/**
+ * SetExpeditionStrip shows or hides the chosen reward over the game.
+ */
+export function SetExpeditionStrip(on: boolean): $CancellablePromise<$models.ExpeditionHistoryView> {
+    return $Call.ByID(3695132590, on);
 }
 
 /**

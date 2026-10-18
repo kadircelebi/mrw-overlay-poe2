@@ -13,11 +13,28 @@ func TestLastArea(t *testing.T) {
 2026/10/03 22:45:09 1 a [DEBUG Client 2] Generating level 65 area "HideoutShrine" with seed 1
 2026/10/03 22:45:30 1 a [DEBUG Client 2] Generating level 15 area "G1_town" with seed 1
 `
-	if level, area := lastArea(log); level != 79 || area != "MapWaywardIsle" {
-		t.Errorf("got %d %q", level, area)
+	if a := lastArea(log); a != (Area{79, "MapWaywardIsle", "817132385"}) {
+		t.Errorf("got %+v", a)
 	}
-	if level, _ := lastArea("2026/10/03 22:00:00 1 a [INFO Client 2] ***** LOG FILE OPENING *****\n"); level != 0 {
-		t.Errorf("fresh session level %d", level)
+	if a := lastArea("2026/10/03 22:00:00 1 a [INFO Client 2] ***** LOG FILE OPENING *****\n"); a.Level != 0 {
+		t.Errorf("fresh session %+v", a)
+	}
+}
+
+// The same map id with another seed is another map; hideouts and towns rest.
+func TestParseArea(t *testing.T) {
+	a, ok := ParseArea(`2026/10/03 22:40:26 1 a [DEBUG Client 2] Generating level 79 area "MapWaywardIsle" with seed 817132385`)
+	if !ok || a != (Area{79, "MapWaywardIsle", "817132385"}) || a.Rest() {
+		t.Fatalf("%+v %v", a, ok)
+	}
+	if !a.Same(Area{80, "MapWaywardIsle", "817132385"}) || a.Same(Area{79, "MapWaywardIsle", "1"}) {
+		t.Error("Same")
+	}
+	if h, _ := ParseArea(`x Generating level 65 area "HideoutShrine" with seed 1`); !h.Rest() {
+		t.Error("hideout not rest")
+	}
+	if _, ok := ParseArea("2026/10/03 22:40:26 1 a [INFO Client 2] : You have entered Wayward Isle."); ok {
+		t.Error("parsed a non-area line")
 	}
 }
 

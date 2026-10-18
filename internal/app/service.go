@@ -15,6 +15,7 @@ import (
 
 	"poe2filter/internal/appupdate"
 	"poe2filter/internal/engine"
+	"poe2filter/internal/expeditionhistory"
 	"poe2filter/internal/filter"
 	"poe2filter/internal/i18n"
 	"poe2filter/internal/insights"
@@ -145,8 +146,13 @@ type AppService struct {
 	trackerWindow  application.Window
 	earningsWindow application.Window
 	history        tradeHistoryState
+	expeditionLog  *expeditionhistory.Store
 	// earningsPlacing is set while the earnings overlay is being dragged.
 	earningsPlacing atomic.Bool
+	// expeditionStripWindow shows the Expedition reward chosen in the
+	// current map; expeditionPlacing is set while it is being dragged.
+	expeditionStripWindow application.Window
+	expeditionPlacing     atomic.Bool
 }
 
 func newAppService(meta Meta) *AppService {
@@ -171,6 +177,7 @@ func newAppService(meta Meta) *AppService {
 			appStart: time.Now(),
 			kick:     make(chan struct{}, 1),
 		},
+		expeditionLog: expeditionhistory.New(meta.DataDir),
 	}
 	svc.setupGameLanguages()
 	// Only the overlay's user-started searches go out signed in; the
@@ -212,6 +219,7 @@ func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOp
 		}()
 		go s.refreshBrowserExtension()
 		s.whispers.SetOnMerchant(s.merchantSpoke)
+		s.whispers.SetOnArea(s.expeditionAreaEntered)
 		go s.tradeHistoryLoop()
 		go s.restoreLiveSearches(ctx)
 		go s.followLoop(ctx)

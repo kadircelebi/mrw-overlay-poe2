@@ -3,6 +3,9 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as expeditionhistory$0 from "../expeditionhistory/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as filter$0 from "../filter/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -150,6 +153,56 @@ export interface ExoticTier {
 }
 
 /**
+ * ExpeditionEntry is one chosen reward as the tracker window shows it; Map
+ * is the map's name made readable from its id ("Wayward Isle").
+ */
+export interface ExpeditionEntry {
+    "at": string;
+    "area": string;
+    "level": number;
+    "seed"?: string;
+    "name": string;
+    "display"?: string;
+    "text": string;
+    "count": number;
+    "countKnown": boolean;
+    "valueEx": number;
+    "done": boolean;
+    "map": string;
+}
+
+/**
+ * ExpeditionHistoryView is what the tracker window and the overlay show.
+ * Pending is the latest reward chosen in the map the player is in and Map
+ * the sum of that map's choices. Session counts from the game's start
+ * (SessionStart, Unix ms), Today from local midnight, League all of it;
+ * every choice counts, the current map's included.
+ */
+export interface ExpeditionHistoryView {
+    "league": string;
+    "entries": ExpeditionEntry[] | null;
+    "pending": ExpeditionEntry | null;
+    "mapTotal": expeditionhistory$0.Total;
+    "sessionStart": number;
+    "session": expeditionhistory$0.Total;
+    "today": expeditionhistory$0.Total;
+    "leagueTotal": expeditionhistory$0.Total;
+    "divineEx": number;
+
+    /**
+     * Strip shows the pending reward over the game; Placing is set while
+     * the player drags its box to its place.
+     */
+    "strip": boolean;
+    "placing": boolean;
+
+    /**
+     * Names lists the current map's choices in the box too.
+     */
+    "names": boolean;
+}
+
+/**
  * ExpeditionPrice is one reward of the Runeshape panel as the labels show
  * it. Y and H are the reward text's line in the game's client area, in
  * physical pixels. ValueEx is the reward's worth (the unit's when the count
@@ -174,7 +227,9 @@ export interface ExpeditionPrice {
     "bg": string;
     "color": string;
     "border": string;
+    "x": number;
     "y": number;
+    "w": number;
     "h": number;
 }
 

@@ -47,7 +47,9 @@ type ExpeditionPrice struct {
 	Bg         string  `json:"bg"`
 	Color      string  `json:"color"`
 	Border     string  `json:"border"`
+	X          float64 `json:"x"`
 	Y          float64 `json:"y"`
+	W          float64 `json:"w"`
 	H          float64 `json:"h"`
 }
 
@@ -73,6 +75,10 @@ type expeditionState struct {
 	gemsAt time.Time
 	// threshold is the loot filter's value threshold at the last read.
 	threshold float64
+	// client is the game's client area on the screen at the last read and
+	// area the map it was read in: a click on a row is the reward chosen.
+	client image.Rectangle
+	area   overlay.Area
 }
 
 // uncutGemsFor is how long poe2scout's uncut gem prices are reused.
@@ -100,9 +106,14 @@ func (s *AppService) captureExpedition() {
 		return
 	}
 	view, client, gems := s.readExpedition()
+	var area overlay.Area
+	if path, _ := s.gameLog.Load().(string); path != "" {
+		area = overlay.LastMap(path)
+	}
 	s.expedition.mu.Lock()
 	view.Seq = s.expedition.view.Seq + 1
 	s.expedition.view = view
+	s.expedition.client, s.expedition.area = client, area
 	if s.expedition.timer != nil {
 		s.expedition.timer.Stop()
 	}
@@ -133,7 +144,8 @@ func (s *AppService) captureExpedition() {
 // hideExpeditionOnClick hides the labels of read seq at the next click or
 // Escape (choosing a reward changes the panel). The window lets clicks
 // through, so the buttons are polled while it shows; a button already down
-// when the labels appear counts only once released.
+// when the labels appear counts only once released. A left click on a row
+// is that reward chosen (expeditionClicked).
 func (s *AppService) hideExpeditionOnClick(seq int) {
 	held := overlay.ClickOrEscape()
 	shown, start := false, time.Now()
@@ -149,6 +161,11 @@ func (s *AppService) hideExpeditionOnClick(seq int) {
 		}
 		down := overlay.ClickOrEscape()
 		if down && !held {
+			if overlay.LeftButtonDown() {
+				if x, y, ok := overlay.CursorPosition(); ok {
+					s.expeditionClicked(seq, x, y)
+				}
+			}
 			s.hideExpedition()
 			return
 		}
@@ -231,7 +248,8 @@ func (s *AppService) readExpedition() (view ExpeditionView, client image.Rectang
 	s.expedition.mu.Unlock()
 	var rights []float64
 	for i, row := range rows {
-		price := ExpeditionPrice{Name: row.Name, Display: display[i], Text: row.Text, Count: row.Count, CountKnown: row.CountRead, Y: row.Y, H: row.H}
+		price := ExpeditionPrice{Name: row.Name, Display: display[i], Text: row.Text, Count: row.Count, CountKnown: row.CountRead,
+			X: row.X, Y: row.Y, W: row.W, H: row.H}
 		if row.Name != "" {
 			if q := overlay.QuoteCurrency(snap, row.Name); q.Found {
 				price.ValueEx = q.ValueEx

@@ -66,9 +66,10 @@ func (s *AppService) setGameActive(active bool, hwnd uintptr) {
 			s.gameLog.Store(path)
 		}
 		s.overlayMu.RLock()
-		// The trade history also reads it: when the game started, and
-		// whether the merchant spoke.
-		on := s.overlaySettings.ChatEnabled || s.overlaySettings.TradeHistory
+		// The trade history also reads it (when the game started, whether
+		// the merchant spoke), and so does the Expedition history behind the
+		// price check (which map the player is in).
+		on := s.overlaySettings.ChatEnabled || s.overlaySettings.TradeHistory || s.overlaySettings.Enabled
 		s.overlayMu.RUnlock()
 		if on && path != "" {
 			s.whispers.Follow(path)
@@ -78,6 +79,7 @@ func (s *AppService) setGameActive(active bool, hwnd uintptr) {
 		s.syncChatShortcuts()
 	}
 	s.syncEarningsOverlay()
+	s.syncExpeditionStrip()
 }
 
 // sendChatCommand types a line into the game's chat through the clipboard,

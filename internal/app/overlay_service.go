@@ -67,6 +67,9 @@ func (s *AppService) SaveOverlaySettings(next overlay.Settings) (overlay.Setting
 	s.applyOverlayScale()
 	s.syncChatShortcuts()
 	s.applyTradeHistory(old, next)
+	if old.Enabled != next.Enabled || old.ExpeditionStripHidden != next.ExpeditionStripHidden || old.ExpeditionStripNames != next.ExpeditionStripNames {
+		s.expeditionChanged()
+	}
 	return next, nil
 }
 

@@ -1,10 +1,11 @@
 <script lang="ts">
   // The tracker: an ordinary window meant to stay open beside the game. Its
-  // tabs grow one by one; the first follows the account's merchant sales.
+  // tabs grow one by one: the account's merchant sales, and the Expedition
+  // rewards chosen map by map.
   import { onDestroy, onMount } from 'svelte'
   import { Events, Window } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter/internal/app'
-  import type { TradeHistoryView, TradeSale } from '../bindings/poe2filter/internal/app/models'
+  import type { ExpeditionEntry, ExpeditionHistoryView, TradeHistoryView, TradeSale } from '../bindings/poe2filter/internal/app/models'
   import type { Settings } from '../bindings/poe2filter/internal/overlay/models'
   import type { Total } from '../bindings/poe2filter/internal/tradehistory/models'
   import { t, locale } from './lib/i18n.svelte'
@@ -13,9 +14,10 @@
   import { currencyInfo } from './lib/currencies.svelte'
   import Toggle from './lib/Toggle.svelte'
 
-  type Tab = 'sales'
+  type Tab = 'sales' | 'expedition'
   let tab = $state<Tab>('sales')
   let view = $state<TradeHistoryView | null>(null)
+  let exp = $state<ExpeditionHistoryView | null>(null)
   // When the view arrived, for the quota countdown.
   let viewAt = $state(Date.now())
   let now = $state(Date.now())
@@ -31,12 +33,15 @@
   let timer: ReturnType<typeof setInterval> | undefined
   onMount(() => {
     AppService.GetTradeHistory().then(accept).catch(() => {})
+    AppService.GetExpeditionHistory().then((v) => (exp = v)).catch(() => {})
     AppService.GetOverlaySettings().then((s) => (settings = s)).catch(() => {})
     const off = Events.On('trade-history', (event) => accept(event.data as TradeHistoryView))
+    const offExp = Events.On('expedition-history', (event) => (exp = event.data as ExpeditionHistoryView))
     const offLang = followAppLanguage()
     timer = setInterval(() => (now = Date.now()), 1000)
     return () => {
       off()
+      offExp()
       offLang()
     }
   })
@@ -63,6 +68,72 @@
   async function clearAll() {
     if (!confirm(t('tracker.clearConfirm'))) return
     accept(await AppService.ClearTradeHistory())
+  }
+
+  async function clearExpedition() {
+    if (!confirm(t('expedition.hist.clearConfirm'))) return
+    exp = await AppService.ClearExpeditionHistory()
+  }
+
+  let expPlaceError = $state('')
+  async function placeExpedition() {
+    expPlaceError = (await AppService.PlaceExpeditionStrip()) ?? ''
+  }
+
+  async function setStrip(on: boolean) {
+    exp = await AppService.SetExpeditionStrip(on)
+    settings = await AppService.GetOverlaySettings()
+  }
+
+  function rewardName(e: ExpeditionEntry) {
+    const name = e.display || e.name || e.text
+    return e.countKnown && e.count > 1 ? `${e.count}× ${name}` : name
+  }
+
+  function expWorth(valueEx: number) {
+    return valueEx > 0 ? money(valueEx, exp?.divineEx ?? 0) : '—'
+  }
+
+  // The history by day, and in a day by map: one group per map instance
+  // (same id and seed), its choices newest first.
+  type ExpMap = { key: string; map: string; area: string; level: number; entries: ExpeditionEntry[]; valueEx: number; open: boolean; from: number; to: number }
+  type ExpDay = { key: string; label: string; maps: ExpMap[]; valueEx: number; count: number }
+  const expDays = $derived.by(() => {
+    const out: ExpDay[] = []
+    for (const e of exp?.entries ?? []) {
+      const d = new Date(e.at)
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+      let day = out[out.length - 1]
+      if (!day || day.key !== key) {
+        day = { key, label: d.toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' }), maps: [], valueEx: 0, count: 0 }
+        out.push(day)
+      }
+      const at = d.getTime()
+      const mapKey = `${e.area}|${e.seed ?? ''}`
+      let group = day.maps[day.maps.length - 1]
+      if (!group || group.key !== mapKey) {
+        group = { key: mapKey, map: e.map, area: e.area, level: e.level, entries: [], valueEx: 0, open: false, from: at, to: at }
+        day.maps.push(group)
+      }
+      group.entries.push(e)
+      group.valueEx += e.valueEx
+      group.open ||= !e.done
+      group.from = Math.min(group.from, at)
+      group.to = Math.max(group.to, at)
+      day.valueEx += e.valueEx
+      day.count++
+    }
+    return out
+  })
+
+  // Which map groups are folded open: the current map unless closed, the
+  // others only when opened.
+  let unfolded = $state<Record<string, boolean>>({})
+  function isUnfolded(g: ExpMap) {
+    return unfolded[g.key] ?? g.open
+  }
+  function toggleMap(g: ExpMap) {
+    unfolded[g.key] = !isUnfolded(g)
   }
 
   // Placing the overlay over the game: "" or "noGame" from the last try.
@@ -153,10 +224,105 @@
 
   <nav class="tabs" aria-label={t('tracker.title')}>
     <button class:on={tab === 'sales'} onclick={() => (tab = 'sales')}>{t('tracker.tab.sales')}</button>
+    <button class:on={tab === 'expedition'} onclick={() => (tab = 'expedition')}>{t('tracker.tab.expedition')}</button>
   </nav>
 
   <section class="body">
-    {#if !view}
+    {#if tab === 'expedition'}
+      {#if !exp}
+        <p class="muted">…</p>
+      {:else}
+        {#if settings && !settings.enabled}
+          <div class="card warn">
+            <p>{t('expedition.hist.needOverlay')}</p>
+            <button onclick={() => AppService.ShowSettings('')}>{t('header.settings')}</button>
+          </div>
+        {/if}
+        <div class="card overlay-row">
+          <p class="muted small">{t('expedition.hist.intro')}</p>
+          <Toggle checked={exp.strip} label={t('expedition.hist.strip')} hint={t('expedition.hist.stripHint')} onchange={(v) => setStrip(v)} />
+          {#if exp.strip}
+            <div class="sub-toggle">
+              <Toggle checked={exp.names} label={t('expedition.hist.names')} hint={t('expedition.hist.namesHint')} onchange={(v) => saveSettings((s) => (s.expedition_strip_names = v))} />
+            </div>
+            <div class="place">
+              {#if exp.placing}
+                <span class="muted small">{t('tracker.placeHint')}</span>
+                <button class="primary" onclick={() => AppService.FinishExpeditionPlace(true)}>{t('tracker.placeSave')}</button>
+                <button onclick={() => AppService.FinishExpeditionPlace(false)}>{t('tracker.placeCancel')}</button>
+              {:else}
+                <button onclick={placeExpedition}>{t('tracker.place')}</button>
+                {#if expPlaceError === 'noGame'}<span class="muted small">{t('tracker.placeNoGame')}</span>{/if}
+              {/if}
+            </div>
+          {/if}
+        </div>
+
+        {#if exp.pending}
+          <div class="card pending">
+            <span class="muted small">{t('expedition.hist.current', exp.pending.map)}</span>
+            <span class="pending-reward">{t('expedition.hist.maps', exp.mapTotal.maps)} · {rewardName(exp.pending)}</span>
+            <span class="value num">{expWorth(exp.mapTotal.valueEx)}</span>
+          </div>
+        {/if}
+
+        <div class="totals">
+          <div class="total">
+            <span class="label">{t('tracker.session')}</span>
+            <span class="value num">{expWorth(exp.session.valueEx)}</span>
+            <span class="sub">{t('expedition.hist.maps', exp.session.maps)} · {t('tracker.since', clock(exp.sessionStart))}</span>
+          </div>
+          <div class="total">
+            <span class="label">{t('tracker.today')}</span>
+            <span class="value num">{expWorth(exp.today.valueEx)}</span>
+            <span class="sub">{t('expedition.hist.maps', exp.today.maps)}</span>
+          </div>
+          <div class="total">
+            <span class="label">{t('tracker.league')}</span>
+            <span class="value num">{expWorth(exp.leagueTotal.valueEx)}</span>
+            <span class="sub">{t('expedition.hist.maps', exp.leagueTotal.maps)} · {exp.league}</span>
+          </div>
+        </div>
+
+        {#if expDays.length === 0}
+          <p class="muted empty">{t('expedition.hist.empty')}</p>
+        {:else}
+          <div class="list">
+            {#each expDays as day (day.key)}
+              <div class="day">
+                <span>{day.label}</span>
+                <span class="num">{t('expedition.hist.maps', day.count)} · {expWorth(day.valueEx)}</span>
+              </div>
+              {#each day.maps as g (g.key + g.from)}
+                <button class="map-head" class:open={g.open} aria-expanded={isUnfolded(g)} onclick={() => toggleMap(g)}>
+                  <span class="chev">{isUnfolded(g) ? '▾' : '▸'}</span>
+                  <span class="time num">{clock(g.from)}{g.to !== g.from ? `–${clock(g.to)}` : ''}</span>
+                  <span class="map" title={g.area}>{g.map}{#if g.level}&nbsp;<span class="muted">({g.level})</span>{/if}</span>
+                  <span class="count muted">{t('expedition.hist.maps', g.entries.length)}{#if g.open}&nbsp;·&nbsp;<span class="open-label">{t('expedition.hist.inProgress')}</span>{/if}</span>
+                  <span class="worth num">{expWorth(g.valueEx)}</span>
+                </button>
+                {#if isUnfolded(g)}
+                  {#each g.entries as e (e.at)}
+                    <div class="row exp-row" class:open={!e.done}>
+                      <span class="time num">{clock(new Date(e.at).getTime())}</span>
+                      <span class="name currency">{rewardName(e)}</span>
+                      <span class="worth num">{e.valueEx > 0 ? `≈ ${expWorth(e.valueEx)}` : ''}</span>
+                    </div>
+                  {/each}
+                {/if}
+              {/each}
+            {/each}
+          </div>
+        {/if}
+
+        <div class="card options">
+          <p class="muted small">{t('expedition.hist.note')}</p>
+          <div class="end">
+            <button class="link" onclick={clearExpedition}>{t('expedition.hist.clear')}</button>
+          </div>
+        </div>
+      {/if}
+    {:else if !view}
       <p class="muted">…</p>
     {:else if !view.enabled}
       <div class="card intro">
@@ -582,5 +748,70 @@
   .end {
     display: flex;
     gap: 12px;
+  }
+  .card.pending {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    border-color: var(--gold-dim);
+  }
+  .pending-reward {
+    color: var(--gold-bright);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card.pending .value {
+    color: var(--gold-bright);
+  }
+  .row.exp-row {
+    grid-template-columns: 48px 1fr 110px;
+    padding-left: 44px;
+  }
+  .map-head {
+    display: grid;
+    grid-template-columns: 16px 96px minmax(120px, 1fr) auto 110px;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    background: var(--surface);
+    color: var(--text);
+    text-align: left;
+  }
+  .map-head:hover:not(:disabled) {
+    background: var(--surface-2);
+  }
+  .map-head .chev {
+    color: var(--muted);
+  }
+  .map-head .count {
+    font-size: 12px;
+  }
+  .map-head .worth {
+    color: var(--text);
+  }
+  .map-head.open .worth,
+  .open-label {
+    color: var(--gold);
+  }
+  .row.exp-row.open .worth {
+    color: var(--gold);
+  }
+  .sub-toggle {
+    padding-left: 18px;
+    border-left: 2px solid var(--line);
+  }
+  .map {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-2);
   }
 </style>

@@ -14,6 +14,8 @@ export type {
     ExoticCandidate,
     ExoticModOption,
     ExoticTier,
+    ExpeditionEntry,
+    ExpeditionHistoryView,
     ExpeditionPrice,
     ExpeditionView,
     FilterExplanation,

@@ -331,6 +331,22 @@ export interface Settings {
      */
     "earnings_x"?: number;
     "earnings_y"?: number;
+
+    /**
+     * ExpeditionStripHidden keeps the Expedition reward chosen in the
+     * current map off the game screen (shown by default, in a small box of
+     * its own at ExpeditionCorner, or where the player dragged it:
+     * ExpeditionX/Y as with the earnings overlay).
+     */
+    "expedition_strip_hidden"?: boolean;
+
+    /**
+     * ExpeditionStripNames lists the current map's choices in the box too.
+     */
+    "expedition_strip_names"?: boolean;
+    "expedition_corner"?: string;
+    "expedition_x"?: number;
+    "expedition_y"?: number;
 }
 
 /**
