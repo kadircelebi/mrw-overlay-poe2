@@ -133,11 +133,7 @@ func (s *AppService) captureExpedition() {
 	}
 	s.expeditionWindow.Show()
 	overlay.ShowOver(uintptr(s.expeditionWindow.NativeWindow()), client)
-	// The window is made not to take focus; should Windows give it anyway,
-	// the game gets it back so the next keys still reach it.
-	if !overlay.IsGameWindow(overlay.ForegroundWindow()) {
-		overlay.FocusGame()
-	}
+	giveFocusBack(s.expeditionWindow)
 	go s.hideExpeditionOnClick(view.Seq)
 }
 

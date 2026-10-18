@@ -8,6 +8,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/wailsapp/wails/v3/pkg/application"
+
 	"poe2filter/internal/expeditionhistory"
 	"poe2filter/internal/overlay"
 )
@@ -185,11 +187,24 @@ func (s *AppService) syncExpeditionStrip() {
 	if !ok {
 		return
 	}
-	w.Show()
+	showBox(w)
 	overlay.ShowOver(uintptr(w.NativeWindow()), s.expeditionStripRect(client))
-	// The window is made not to take focus; should Windows give it anyway,
-	// the game gets it back.
-	if !overlay.IsGameWindow(overlay.ForegroundWindow()) {
+	giveFocusBack(w)
+}
+
+// showBox shows a box over the game only when it is hidden: Wails shows a
+// window activating it, which a visible one need not risk again.
+func showBox(box application.Window) {
+	if !box.IsVisible() {
+		box.Show()
+	}
+}
+
+// giveFocusBack returns the focus to the game should Windows have given it
+// to box, a window made not to take it. Any other window keeps the focus:
+// the price check opened by a hotkey closes when it loses it.
+func giveFocusBack(box application.Window) {
+	if overlay.ForegroundWindow() == uintptr(box.NativeWindow()) {
 		overlay.FocusGame()
 	}
 }

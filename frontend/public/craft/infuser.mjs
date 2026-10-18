@@ -58,6 +58,9 @@ export function infuseReason(item, data, id) {
   const q = currentQuality(item, data), max = maxQuality(item);
   if (jewellery(data) && !item.catalyst?.id) return t('err.infuserNeedsCatalyst');
   if (q < max) return t('err.infuserBelowMax', max);
+  // Quality raised under a maximum that is gone (Essence of the Breach
+  // removed) cannot be infused further (checked in game).
+  if (q > max + infuserBeyond) return t('err.infuserOverCap', q, max, max + infuserBeyond);
   if (q >= max + infuserBeyond) return t('err.infuserCap', max + infuserBeyond);
   return '';
 }

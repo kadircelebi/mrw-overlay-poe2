@@ -597,6 +597,8 @@ export const tr: Record<string, string> = {
   'ov.ago.h': '{0} sa',
   'ov.ago.d': '{0} g',
   'ov.cc.stock': 'Stok',
+  'ov.cc.qtyTitle': 'Fiyatlanacak adet: istediğin sayıyı yaz',
+  'ov.cc.qtyReset': 'Yığın adedine dön',
   'ov.cc.unit': 'Birim',
   'ov.cc.perDiv': 'adet / div',
   'ov.cc.divEach': 'div / adet',

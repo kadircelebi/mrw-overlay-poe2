@@ -209,10 +209,10 @@ a { color: var(--gold); white-space: nowrap; }
 .workbench { padding: 24px; gap: 24px; }
 .next-step { align-items: start; }
 .reveal-choices .hint { color: var(--muted); font-size: .82rem; margin: .2rem 0 .5rem; }
-.reveal-choices .echo-option { display: flex; align-items: center; gap: .5rem; margin: .4rem 0 .6rem; color: var(--text); }
-.reveal-choices .echo-option input { min-height: 0; }
-.reveal-choices .echo-option img { width: 28px; height: 28px; }
-.reveal-choices .echo-option small { color: var(--muted); }
+.reveal-choices .echo-option { display: flex; justify-self: start; align-items: center; gap: var(--space-xs); margin: .4rem 0 .6rem; font-size: .8rem; color: var(--secondary); cursor: pointer; }
+.reveal-choices .echo-option input { width: 18px; min-height: 18px; flex-shrink: 0; accent-color: var(--gold); cursor: pointer; }
+.reveal-choices .echo-option img { width: 28px; height: 28px; object-fit: contain; }
+.reveal-choices .echo-option small { color: var(--muted); font-size: .75rem; }
 .reveal-choices .reroll { border-color: var(--gold-dim); }
 .essence-grid { display: grid; gap: var(--space-sm); margin: var(--space-sm) 0; }
 .essence-grid[hidden] { display: none; }

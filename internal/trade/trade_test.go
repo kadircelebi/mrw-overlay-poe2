@@ -124,6 +124,22 @@ func TestFetchListingReadsModDomains(t *testing.T) {
 	}
 }
 
+// An Absent Amulet's skill comes in "grantedSkills" (a real listing,
+// 2026-10-18), not among the properties.
+func TestFetchListingReadsGrantedSkill(t *testing.T) {
+	raw := []byte(`{"result":[{"id":"amulet","listing":{"price":{"amount":8,"currency":"exalted"}},"item":{"typeLine":"Absent Amulet",
+		"properties":[{"name":"[Quality] ([Caster] Modifiers)","values":[["+50%",1]]}],
+		"grantedSkills":[{"name":"Grants Skill","values":[["Level 18 Cast on Elemental Ailment",25]],"displayMode":0,"domain":"skill","hash":"stat.skill.cast_on_elemental_ailment"}]}}]}`)
+	var response evaluatedFetchResponse
+	if err := json.Unmarshal(raw, &response); err != nil {
+		t.Fatal(err)
+	}
+	props := evaluatedListings(response, "")[0].Item.Properties
+	if len(props) != 2 || props[1].Name != "Grants Skill" || props[1].Value != "Level 18 Cast on Elemental Ailment" {
+		t.Fatalf("properties = %+v", props)
+	}
+}
+
 // Gem listings come with "extended": [] (an empty array, not an object); that
 // used to fail the whole fetch.
 func TestFetchListingAcceptsArrayExtended(t *testing.T) {

@@ -584,6 +584,8 @@ export const zh: Record<string, string> = {
   'ov.ago.h': '{0} 小時',
   'ov.ago.d': '{0} 天',
   'ov.cc.stock': '庫存',
+  'ov.cc.qtyTitle': '計價數量：可輸入任意數量',
+  'ov.cc.qtyReset': '恢復為堆疊數量',
   'ov.cc.unit': '單價',
   'ov.cc.perDiv': '個 / div',
   'ov.cc.divEach': 'div / 個',

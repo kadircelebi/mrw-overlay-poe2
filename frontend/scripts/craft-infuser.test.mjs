@@ -29,6 +29,14 @@ test('catalysts stop at the ring maximum; Infusers go 10 past it (75 on a Refine
   assert.match(currencyReason(item, ring, 'vaal-catalysing-infuser', infuser), /75/);
 });
 
+test('quality left from a removed Essence of the Breach is not infused, and the reason says why', () => {
+  const item = { ...setRarity(createItem('Rings'), 'Rare'), ilvl: 82, mods: [], catalyst: { id: 'sibilant-catalyst', quality: 40 } };
+  const reason = currencyReason(item, ring, 'vaal-catalysing-infuser', rules['vaal-catalysing-infuser']);
+  assert.match(reason, /%40/);
+  assert.match(reason, /%20 \(/);
+  assert.match(reason, /%30/);
+});
+
 test('an Infuser needs the maximum, fits only its classes, and corrupts more often the higher it goes', () => {
   const armour = rules['vaal-armourers-infuser'];
   const below = { ...setRarity(createItem(), 'Rare'), quality: 19 };

@@ -409,13 +409,9 @@ func (s *AppService) syncEarningsOverlay() {
 	if !ok {
 		return
 	}
-	w.Show()
+	showBox(w)
 	overlay.ShowOver(uintptr(w.NativeWindow()), s.earningsRectNow(client))
-	// The window is made not to take focus; should Windows give it anyway,
-	// the game gets it back.
-	if !overlay.IsGameWindow(overlay.ForegroundWindow()) {
-		overlay.FocusGame()
-	}
+	giveFocusBack(w)
 }
 
 // earningsRect places the overlay in a corner of the game's client area

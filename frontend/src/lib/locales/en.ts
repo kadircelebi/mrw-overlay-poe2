@@ -621,6 +621,8 @@ export const en: Record<string, string> = {
   'ov.ago.h': '{0}h',
   'ov.ago.d': '{0}d',
   'ov.cc.stock': 'Stock',
+  'ov.cc.qtyTitle': 'Amount to price: type any count',
+  'ov.cc.qtyReset': 'Back to the stack size',
   'ov.cc.unit': 'Unit',
   'ov.cc.perDiv': 'per div',
   'ov.cc.divEach': 'div each',

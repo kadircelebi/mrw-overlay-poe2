@@ -217,6 +217,12 @@ type evaluatedFetchResponse struct {
 				Name   string          `json:"name"`
 				Values [][]interface{} `json:"values"`
 			} `json:"properties"`
+			// GrantedSkills is the skill a base grants (Absent Amulet:
+			// "Grants Skill" / "Level 18 Cast on Elemental Ailment").
+			GrantedSkills []struct {
+				Name   string          `json:"name"`
+				Values [][]interface{} `json:"values"`
+			} `json:"grantedSkills"`
 			ImplicitMods   []evaluatedModLine `json:"implicitMods"`
 			ExplicitMods   []evaluatedModLine `json:"explicitMods"`
 			CraftedMods    []evaluatedModLine `json:"craftedMods"`
@@ -440,6 +446,10 @@ func evaluatedListings(fetched evaluatedFetchResponse, lang string) []EvaluatedL
 				entry.Item.Quality = firstNumber(value)
 			}
 			entry.Item.Properties = append(entry.Item.Properties, EvaluatedProperty{Name: name, Value: value, key: key})
+		}
+		for _, g := range row.Item.GrantedSkills {
+			name, value := formatTradeProperty(g.Name, g.Values)
+			entry.Item.Properties = append(entry.Item.Properties, EvaluatedProperty{Name: name, Value: cleanTradeDescription(value), key: name})
 		}
 		addWeaponDPS(&entry.Item)
 		for _, hashes := range row.Item.Extended.Hashes {
