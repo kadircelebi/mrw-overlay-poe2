@@ -65,6 +65,12 @@ Open the Runeshape Combinations panel and press Alt+Q. Every reward gets a price
 
 <p align="center"><img src="docs/expedition.jpg" alt="Expedition reward prices" width="800"></p>
 
+**Your choices, added up.** After Alt+Q, click the reward you take: the app keeps it with the map it was chosen in. A small box over the game adds up this map's and this session's choices (it can list their names too), and the Tracker's Expedition tab shows every map with its choices and totals for the session, the day and the league.
+
+> **Note:** the app cannot see what drops and never chooses for you. It only follows the choices you click after an Alt+Q read.
+
+<p align="center"><img src="docs/expedition-box.png" alt="Expedition choices over the game" width="400"> <img src="docs/expedition-history.png" alt="Expedition history in the Tracker" width="480"></p>
+
 ### Sales tracker, Alt+K
 Your merchant (Ange) sales, day by day, with totals for this game session, today and the league at today's rates, and a search over everything you sold. The app reads your own sales history from pathofexile.com through the browser link, shortly after Ange speaks in game, and keeps it on your PC, so the history keeps growing past the trade site's last 100 sales. An optional small strip over the game shows this session's and the league's earnings: clicks go through to the game, and you can drag it anywhere on the screen. Both stay off until you turn them on.
 

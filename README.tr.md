@@ -65,6 +65,12 @@ Runeshape Combinations panelini aç ve Alt+Q'ya bas. Her ödülün yanına, değ
 
 <p align="center"><img src="docs/expedition.jpg" alt="Expedition ödül fiyatları" width="800"></p>
 
+**Seçimlerin toplanır.** Alt+Q'dan sonra aldığın ödüle tıkla: uygulama onu seçildiği map'le birlikte saklar. Oyunun üstündeki küçük bir kutu bu map'in ve bu oturumun seçimlerini toplar (istersen adlarını da listeler), Takip penceresindeki Expedition sekmesi de her map'i seçimleriyle birlikte, oturum, gün ve lig toplamlarıyla gösterir.
+
+> **Not:** Uygulama düşen eşyaları göremez ve senin yerine seçim yapmaz. Yalnız Alt+Q ile taradıktan sonra tıkladığın seçimleri takip eder.
+
+<p align="center"><img src="docs/expedition-box.png" alt="Oyunun üstünde Expedition seçimleri" width="400"> <img src="docs/expedition-history.png" alt="Takip penceresinde Expedition geçmişi" width="480"></p>
+
 ### Satış takibi, Alt+K
 Satıcının (Ange) yaptığı satışlar gün gün: bu oyun oturumu, bugün ve lig toplamları bugünkü kurla, sattığın her şeyde arama. Uygulama kendi satış geçmişini tarayıcı bağlantısıyla pathofexile.com'dan, oyunda Ange konuştuktan kısa süre sonra okur ve bilgisayarında saklar; böylece geçmiş, trade sitesinin gösterdiği son 100 satışın ötesine uzar. İsteğe bağlı küçük bir şerit oyunun üstünde bu oturumun ve ligin kazancını gösterir: tıklamalar oyuna geçer, şeridi ekranda istediğin yere sürükleyebilirsin. İkisi de sen açana kadar kapalıdır.
 
