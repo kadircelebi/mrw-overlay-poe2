@@ -23,7 +23,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
 
 ## Neden MrW Overlay?
 
-- **Beş araç yerine tek uygulama.** Loot filtresi, fiyat sorgulama, trade ve canlı arama, craft simülatörü, Expedition fiyatları, oyun kısayolları. Bir sürü araç ve site arasında alt-tab yapmaya son.
+- **Beş araç yerine tek uygulama.** Loot filtresi, fiyat sorgulama, trade ve canlı arama, craft simülatörü, Expedition fiyatları, satış takibi, oyun kısayolları. Bir sürü araç ve site arasında alt-tab yapmaya son.
 - **Filtren piyasayla birlikte güncellenir.** Bir değer belirlersin, diyelim 50 ex. Üstündeki drop'lar parlar, ucuzlar gizlenir ya da soluklaşır. Fiyatlar değiştikçe filtre de değişir; lig ortasında listeleri elle düzeltmezsin.
 - **Oyunun hangi dildeyse o dilde.** English, Deutsch, Français, Español, Português, Русский, 日本語, 한국어 ya da 繁體中文: fiyat sorgusu, trade ve Expedition fiyatları eşyayı oyunun yazdığı gibi okur, o dilde gösterir, ilanları da o dilde getirir. Oyunun sunduğu dillerin hepsi çalışıyor; yalnız Tayca desteklenmiyor.
 - **Çıktığı her platformda onaylı.** Microsoft Store, Chrome Web Store, Edge Add-ons ve Firefox Add-ons inceleyip onayladı.
@@ -64,6 +64,11 @@ Oyunun kendi craft sistemi gibi çalışsın diye yapılmış bir craft simülat
 Runeshape Combinations panelini aç ve Alt+Q'ya bas. Her ödülün yanına, değer gruplarının renginde bir fiyat etiketi gelir. Bir tuşa basmak tek bir okuma demektir; uygulama ekranını sürekli izlemez.
 
 <p align="center"><img src="docs/expedition.jpg" alt="Expedition ödül fiyatları" width="800"></p>
+
+### Satış takibi, Alt+K
+Satıcının (Ange) yaptığı satışlar gün gün: bu oyun oturumu, bugün ve lig toplamları bugünkü kurla, sattığın her şeyde arama. Uygulama kendi satış geçmişini tarayıcı bağlantısıyla pathofexile.com'dan, oyunda Ange konuştuktan kısa süre sonra okur ve bilgisayarında saklar; böylece geçmiş, trade sitesinin gösterdiği son 100 satışın ötesine uzar. İsteğe bağlı küçük bir şerit oyunun üstünde bu oturumun ve ligin kazancını gösterir: tıklamalar oyuna geçer, şeridi ekranda istediğin yere sürükleyebilirsin. İkisi de sen açana kadar kapalıdır.
+
+<p align="center"><img src="docs/tracker.png" alt="Satış takibi" width="480"> <img src="docs/earnings.png" alt="Oyunun üstünde kazanç şeridi" width="400"></p>
 
 ### Paylaşılan filtre profilleri
 League start, Expedition farmı ya da sıkı bir endgame filtresi için ayrı ayarlar tut, tek tıkla aralarında geçiş yap. Profilini yayınla, başkaları takip etsin; ya da diğer oyuncuların paylaştıklarına göz at, en çok takip edilenler en üstte. Takip ettiğin profil, sahibi değiştirdikçe kendiliğinden güncellenir.
@@ -117,7 +122,7 @@ Windows 10/11 ve WebView2 gerekir (Windows 11'de hazır gelir). Ayarlar `%APPDAT
 Ayarlarını da silmek için `%APPDATA%\PoE2Filtre` klasörünü sil. Üretilen filtre `Belgeler\My Games\Path of Exile 2` altındaki `auto_updated.filter`; oyunda artık istemiyorsan onu da sil.
 
 ### Tarayıcı eklentisi (isteğe bağlı)
-Canlı arama, hideout'a gitme ve daha büyük aramalar için uygulamanın pathofexile.com oturumuna ihtiyacı var. Bunu küçük bir eklenti aktarır: [Chrome](https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn) · [Edge](https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc) · [Firefox](https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/). Eklenti yalnız sen **Ayarlar → Hesap → Tarayıcıyla bağlan**'ya bastığında devreye girer. Oturum çerezini ve hesap adını okuyup kendi bilgisayarındaki uygulamaya (`127.0.0.1`) verir. Asla şifre istemez ve sayfayı değiştirmez. Kaynak kodu: [`browser-extension/`](browser-extension/).
+Canlı arama, hideout'a gitme, satış takibi ve daha büyük aramalar için uygulamanın pathofexile.com oturumuna ihtiyacı var. Bunu küçük bir eklenti aktarır: [Chrome](https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn) · [Edge](https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc) · [Firefox](https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/). Eklenti yalnız sen **Ayarlar → Hesap → Tarayıcıyla bağlan**'ya bastığında devreye girer. Oturum çerezini ve hesap adını okuyup kendi bilgisayarındaki uygulamaya (`127.0.0.1`) verir. Asla şifre istemez ve sayfayı değiştirmez. Kaynak kodu: [`browser-extension/`](browser-extension/).
 
 ## SSS
 
@@ -154,6 +159,7 @@ Uygulamada telemetri ya da analiz yok; oturum çerezini ve hesap adını asla Mr
 Herkese açık veriyi okur: fiyatları [poe.ninja](https://poe.ninja/) ve [poe2scout](https://poe2scout.com/)'tan, ilanları resmi trade API'sinden (başka bir dilde oynuyorsan sitenin o dildeki sürümünden, ör. de.pathofexile.com), NeverSink'in filtresini GitHub'dan.
 
 - **Tarayıcı eklentisi:** bağlarsan oturumu ve hesap adını yalnız aynı bilgisayardaki uygulamaya verir. İkisi de Windows DPAPI ile saklanır. Oturum yalnız senin istediğin trade işlemleri için `www.pathofexile.com`'a gider. **Ayarlar → Hesap → Bağlantıyı kes** ikisini de siler.
+- **Satış takibi:** varsayılan olarak kapalıdır. Açınca uygulama bağlı oturumla kendi satıcı satışlarını `www.pathofexile.com`'dan okur ve yalnız senin bilgisayarında saklar. Takip penceresindeki **Saklanan satışları sil** onları siler.
 - **Herkese açık profiller:** isteğe bağlıdır. Yalnız yayınlarken ya da takip ederken MrW Overlay profil sunucusuyla (`profiles.mrwproject.com`) konuşulur. Yayınlarsan profilin filtre ayarları, adı, açıklaması ve etiketleri herkese açık olur; hesap adın da yazar olarak görünür. Lig, dil, dosya yolları, ses dosyaları, oturumun ve fiyat ayarların asla gönderilmez. Takip ettiğinde rastgele bir kurulum anahtarının özeti saklanır. Kötüye kullanımı sınırlamak için IP'nin kendisi değil, tuzlanmış özeti tutulur. Yayından kaldırınca profil ve takipçileri silinir.
 - **Fiyat sorgulama:** varsayılan olarak kapalıdır. Kısayola bastığında uygulama eşyanın metnini oyunun kopyalama komutuyla alır ve resmi trade API'sine bir arama gönderir.
 

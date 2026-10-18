@@ -23,7 +23,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
 
 ## Why MrW Overlay?
 
-- **One app instead of five.** Loot filter, price check, trade and live search, crafting sim, Expedition prices, game hotkeys. No more alt-tabbing between a dozen tools and websites.
+- **One app instead of five.** Loot filter, price check, trade and live search, crafting sim, Expedition prices, sales tracker, game hotkeys. No more alt-tabbing between a dozen tools and websites.
 - **Your filter follows the market.** You set a value, say 50 ex. Drops worth more get a strong highlight, cheap ones get hidden or dimmed. As prices move, the filter keeps up, and you never edit a list by hand mid-league.
 - **Plays in your game's language.** English, Deutsch, Français, Español, Português, Русский, 日本語, 한국어 or 繁體中文: the price check, trade and Expedition prices read items the way your game writes them, show them in that language, and bring listings back in it. Every language the game offers works except Thai, which is not supported.
 - **Approved everywhere it ships.** Microsoft Store, Chrome Web Store, Edge Add-ons and Firefox Add-ons have all reviewed and approved it.
@@ -64,6 +64,11 @@ A crafting sim built to behave like the game's own crafting: real bases, real mo
 Open the Runeshape Combinations panel and press Alt+Q. Every reward gets a price label, coloured by your value groups. One key press is one read: the app never watches your screen.
 
 <p align="center"><img src="docs/expedition.jpg" alt="Expedition reward prices" width="800"></p>
+
+### Sales tracker, Alt+K
+Your merchant (Ange) sales, day by day, with totals for this game session, today and the league at today's rates, and a search over everything you sold. The app reads your own sales history from pathofexile.com through the browser link, shortly after Ange speaks in game, and keeps it on your PC, so the history keeps growing past the trade site's last 100 sales. An optional small strip over the game shows this session's and the league's earnings: clicks go through to the game, and you can drag it anywhere on the screen. Both stay off until you turn them on.
+
+<p align="center"><img src="docs/tracker.png" alt="Sales tracker" width="480"> <img src="docs/earnings.png" alt="Earnings strip over the game" width="400"></p>
 
 ### Public filter profiles
 Keep separate setups for league start, Expedition farming or a strict endgame filter, and switch with one click. Publish a profile so other players can follow it, or browse what others shared, most followed first. A profile you follow updates itself when its author changes it.
@@ -117,7 +122,7 @@ Windows 10/11 with WebView2 (built into Windows 11). Settings live in `%APPDATA%
 To remove your settings too, delete `%APPDATA%\PoE2Filtre`. The generated filter is `auto_updated.filter` in `Documents\My Games\Path of Exile 2`; delete it if you no longer want it in game.
 
 ### Browser extension (optional)
-For live search, hideout travel and bigger searches, the app needs your pathofexile.com session. A small extension hands it over: [Chrome](https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn) · [Edge](https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc) · [Firefox](https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/). It only acts when you press **Settings → Account → Connect browser**. It reads the session cookie and your account name and passes them to the app on your own PC (`127.0.0.1`). It never asks for your password and never changes the page. Source: [`browser-extension/`](browser-extension/).
+For live search, hideout travel, the sales tracker and bigger searches, the app needs your pathofexile.com session. A small extension hands it over: [Chrome](https://chromewebstore.google.com/detail/ibjjhhjnfdokcbfckecbpkpibpdclpmn) · [Edge](https://microsoftedge.microsoft.com/addons/detail/djfodaadmhknalfdphcadiojbfabedlc) · [Firefox](https://addons.mozilla.org/firefox/addon/mrw-overlay-for-poe-2-bridge/). It only acts when you press **Settings → Account → Connect browser**. It reads the session cookie and your account name and passes them to the app on your own PC (`127.0.0.1`). It never asks for your password and never changes the page. Source: [`browser-extension/`](browser-extension/).
 
 ## FAQ
 
@@ -154,6 +159,7 @@ The app has no telemetry or analytics, and it never sends your session cookie or
 It reads public data: prices from [poe.ninja](https://poe.ninja/) and [poe2scout](https://poe2scout.com/), listings from the official trade API (from its edition in your game's language, such as de.pathofexile.com, when you play in another language), and NeverSink's filter from GitHub.
 
 - **Browser extension:** if you connect it, it sends your session and account name only to the app on the same PC. They are stored with Windows DPAPI, the session is sent only to `www.pathofexile.com` for trade actions you ask for, and **Settings → Account → Disconnect** deletes both.
+- **Sales tracker:** this is off by default. When on, the app reads your own merchant sales from `www.pathofexile.com` with the linked session and keeps them only on your PC. **Delete kept sales** in the Tracker window removes them.
 - **Public profiles:** these are optional. Only publishing or following talks to the MrW Overlay profile server (`profiles.mrwproject.com`). Publishing makes the profile's filter settings, its name, description and tags, and your account name (as the author) public. League, language, file paths, sound files, your session and price settings are never sent. Following stores a hash of a random install key, plus a salted hash of the IP (not the IP itself) to limit abuse. Unpublishing deletes the profile and its followers.
 - **Price check:** this is off by default. When you press the hotkey, the app copies that item's text with the game's copy command and sends a search to the official trade API.
 
