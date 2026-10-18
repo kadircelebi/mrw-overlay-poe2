@@ -36,14 +36,24 @@ func BaseLevel(base string) (level int, ok bool) {
 }
 
 // Exceptions are the low-level bases scanned and shown anyway: NeverSink's
-// valuable exceptional bases (a caster weapon's implicit can carry it) and
-// its Orb of Chance targets.
+// valuable exceptional bases (a caster weapon's implicit can carry it), its
+// Orb of Chance targets, and the low bases known to sell as exceptional
+// crafting bases (lowValuable).
 type Exceptions struct {
 	Valuable map[string]bool
 	Chance   map[string]bool
 }
 
-func (e Exceptions) has(base string) bool { return e.Valuable[base] || e.Chance[base] }
+// lowValuable are low-level bases whose exceptional copies sell although
+// NeverSink lists them as neither: a Jade Tiara with two rune sockets
+// trades for a few Chaos Orbs.
+var lowValuable = map[string]bool{
+	"Jade Tiara": true,
+}
+
+func (e Exceptions) has(base string) bool {
+	return e.Valuable[base] || e.Chance[base] || lowValuable[base]
+}
 
 // BuildCandidates keeps the bases worth scanning: those required at
 // MinScanLevel or above, plus the exceptions. A base of unknown level is

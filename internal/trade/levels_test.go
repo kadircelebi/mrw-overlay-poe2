@@ -63,12 +63,13 @@ func TestBuildCandidatesSkipsLowLevelBases(t *testing.T) {
 		Valuable: map[string]bool{"Withered Wand": true, "Vile Robe": true},
 		Chance:   map[string]bool{"Stocky Mitts": true},
 	}
-	bases := []string{"Vile Robe", "Warlord Cuirass", "Withered Wand", "Stocky Mitts", "Leather Vest", "Not A Real Base"}
+	bases := []string{"Vile Robe", "Warlord Cuirass", "Withered Wand", "Stocky Mitts", "Leather Vest", "Jade Tiara", "Not A Real Base"}
 	got := map[string]int{}
 	for _, c := range BuildCandidates(bases, ex) {
 		got[c.Base] = c.Priority
 	}
-	want := map[string]int{"Vile Robe": 0, "Warlord Cuirass": 1, "Withered Wand": 0, "Stocky Mitts": 1}
+	// Jade Tiara (level 50) is one of the low bases kept on their own.
+	want := map[string]int{"Vile Robe": 0, "Warlord Cuirass": 1, "Withered Wand": 0, "Stocky Mitts": 1, "Jade Tiara": 1}
 	if len(got) != len(want) {
 		t.Fatalf("candidates %v, want %v", got, want)
 	}
