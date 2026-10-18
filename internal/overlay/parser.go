@@ -545,13 +545,42 @@ func affixSlots(item *Item) int {
 const (
 	emptyPrefixStat = "pseudo.pseudo_number_of_empty_prefix_mods"
 	emptySuffixStat = "pseudo.pseudo_number_of_empty_suffix_mods"
+	// The stats behind "+1 Prefix Modifier allowed" and "-2 Suffix
+	// Modifiers allowed" (Tenebrous jewellery, some uniques and crafts),
+	// whatever their kind (implicit, explicit, fractured, crafted, rune).
+	prefixAllowedStat = ".stat_3182714256"
+	suffixAllowedStat = ".stat_718638445"
 )
+
+// allowedAffixes adds up the item's modifiers that change how many prefixes
+// and suffixes it may have.
+func allowedAffixes(item *Item) (prefix, suffix int) {
+	for _, m := range item.Mods {
+		if len(m.Values) == 0 {
+			continue
+		}
+		switch {
+		case strings.HasSuffix(m.StatID, prefixAllowedStat):
+			prefix += int(m.Values[0])
+		case strings.HasSuffix(m.StatID, suffixAllowedStat):
+			suffix += int(m.Values[0])
+		}
+	}
+	return prefix, suffix
+}
 
 // addEmptyAffixes offers the open prefix and suffix slots as the trade site's
 // pseudo stats, unselected, so a crafting base can be priced by room left.
 // Only the advanced copy (with modifier headers) tells prefixes from suffixes.
+// A Tenebrous Amulet's "-2 Prefix Modifiers allowed, +2 Suffix Modifiers
+// allowed" leaves a rare 1 prefix and 5 suffixes.
 func addEmptyAffixes(item *Item, prefixes, suffixes int) {
 	slots := affixSlots(item)
+	if slots == 0 {
+		return
+	}
+	morePrefixes, moreSuffixes := allowedAffixes(item)
+	prefixSlots, suffixSlots := max(0, slots+morePrefixes), max(0, slots+moreSuffixes)
 	add := func(count int, statID, text, affix string) {
 		if count <= 0 {
 			return
@@ -561,8 +590,8 @@ func addEmptyAffixes(item *Item, prefixes, suffixes int) {
 			Text: strconv.Itoa(count) + text, Values: []float64{float64(count)},
 		})
 	}
-	add(slots-prefixes, emptyPrefixStat, " Empty Prefix Modifiers", "prefix")
-	add(slots-suffixes, emptySuffixStat, " Empty Suffix Modifiers", "suffix")
+	add(prefixSlots-prefixes, emptyPrefixStat, " Empty Prefix Modifiers", "prefix")
+	add(suffixSlots-suffixes, emptySuffixStat, " Empty Suffix Modifiers", "suffix")
 }
 
 // splitStats groups the lines of one modifier into stats: greedily the
@@ -764,6 +793,9 @@ func normalizeStat(s string) string {
 		s = s[:i] + pluralRE.ReplaceAllString(s[i:], "$1")
 	}
 	s = strings.ReplaceAll(s, "slots", "slot")
+	// "-2 Prefix Modifiers allowed" against the catalog's "# Prefix
+	// Modifier allowed".
+	s = strings.ReplaceAll(s, "modifiers allowed", "modifier allowed")
 	s = strings.ReplaceAll(s, "damageable companion's", "damageable companion")
 	s = strings.ReplaceAll(s, "’", "'")
 	s = spaceRE.ReplaceAllString(s, "")

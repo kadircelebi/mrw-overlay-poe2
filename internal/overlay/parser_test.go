@@ -17,6 +17,8 @@ func testCatalog() Catalog {
 		{ID: "implicit", Entries: []StatEntry{
 			{ID: "implicit.stat_1416292992", Text: "Has # Charm Slot", Type: "implicit"},
 			{ID: "implicit.stat_462041840", Text: "#% of Flask Recovery applied Instantly", Type: "implicit"},
+			{ID: "implicit.stat_3182714256", Text: "# Prefix Modifier allowed", Type: "implicit"},
+			{ID: "implicit.stat_718638445", Text: "# Suffix Modifier allowed", Type: "implicit"},
 		}},
 	}}
 }
@@ -675,6 +677,51 @@ func TestEmptyAffixSlotsCountHeadersNotLines(t *testing.T) {
 	}
 	if got := emptyAffixes(item); len(got) != 0 {
 		t.Fatalf("plain copy empty affixes = %v", got)
+	}
+}
+
+// Tenebrous jewellery trades two prefixes for two suffixes: its implicit
+// lines are found in the catalog's singular wording, and a rare has room for
+// one prefix and five suffixes.
+func TestEmptyAffixSlotsFollowAllowedModifiers(t *testing.T) {
+	amulet := "Item Class: Amulets\nRarity: Rare\nChimeric Collar\nTenebrous Amulet\n--------\nRequires: Level 52\n--------\nItem Level: 79\n--------\n" +
+		"{ Implicit Modifier }\n-2 Prefix Modifiers allowed\n+2 Suffix Modifiers allowed\n--------\n" +
+		"{ Suffix Modifier \"of the Augur\" (Tier: 5) — Attribute }\n+17(17-20) to Intelligence\n" +
+		"{ Suffix Modifier \"of the Volcano\" (Tier: 3) — Elemental, Fire, Resistance }\n+35(31-35)% to Fire Resistance\n" +
+		"{ Suffix Modifier \"of Prestidigitation\" (Tier: 1) — Caster, Speed }\n27(25-28)% increased Cast Speed\n" +
+		"{ Suffix Modifier \"of the Fox\" (Tier: 6) — Attribute }\n+14(13-16) to Dexterity\n"
+	item, err := ParseItem(amulet, testCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := map[string]float64{}
+	for _, m := range item.Mods {
+		if m.Type == "implicit" && len(m.Values) > 0 {
+			ids[m.StatID] = m.Values[0]
+		}
+	}
+	if ids["implicit.stat_3182714256"] != -2 || ids["implicit.stat_718638445"] != 2 {
+		t.Fatalf("implicits = %v", ids)
+	}
+	// No prefix of one allowed, four suffixes of five.
+	if got := emptyAffixes(item); got[emptyPrefixStat] != 1 || got[emptySuffixStat] != 1 {
+		t.Fatalf("amulet empty affixes = %v", got)
+	}
+
+	ring := "Item Class: Rings\nRarity: Rare\nFoe Grip\nTenebrous Ring\n--------\nItem Level: 79\n--------\n" +
+		"{ Implicit Modifier }\n-2 Prefix Modifiers allowed\n+2 Suffix Modifiers allowed\n--------\n" +
+		"{ Prefix Modifier \"Annealed\" (Tier: 4) — Damage, Physical, Attack }\nAdds 8(6-10) to 13(12-17) Physical Damage to Attacks\n" +
+		"{ Suffix Modifier \"of the Fox\" (Tier: 6) — Attribute }\n+16(13-16) to Dexterity\n" +
+		"{ Suffix Modifier \"of the Whelpling\" (Tier: 8) — Elemental, Fire, Resistance }\n+10(6-10)% to Fire Resistance\n" +
+		"{ Suffix Modifier \"of the Remora\" (Tier: 1) — Life, Physical, Attack }\nLeech 7.67(7-7.9)% of Physical Attack Damage as Life\n" +
+		"{ Suffix Modifier \"of the Prism\" (Tier: 4) — Elemental, Fire, Cold, Lightning, Resistance }\n+8(6-8)% to all Elemental Resistances\n"
+	item, err = ParseItem(ring, testCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Its one prefix is taken; one of five suffixes is open.
+	if got := emptyAffixes(item); got[emptyPrefixStat] != 0 || got[emptySuffixStat] != 1 {
+		t.Fatalf("ring empty affixes = %v", got)
 	}
 }
 
