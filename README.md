@@ -41,6 +41,26 @@ Make up to 12 groups: lists of items to always show or hide, or value tiers with
 
 <p align="center"><img src="docs/groups.png" alt="Item groups" width="440"> <img src="docs/look.png" alt="Look editor" width="440"></p>
 
+### Map loot, Alt+I
+See what each map really brought. The app reads the currency in your inventory off the screen before a map and again after it; what the inventory gained, at the loot filter's prices, is that map's loot. The Tracker's Map loot tab adds it up with your times from the game's log: session time, time in maps and in the hideout, loot per map and per hour, average and last map time, the best map and what came in most. A small box over the game, in maps too, shows the figures you pick, and **Start a new session** lets you compare one farm with the next without deleting anything. If GGG allows it, the experience you gain will be added to these figures too.
+
+Pick how it reads in **Settings → Price check → Inventory scan**. It stays **Off** until you choose:
+
+- **Automatic:** in your hideout or town, whenever the inventory is open, the app reads it about once a second. Nothing is read in a map. Opening a map from the atlas opens the inventory anyway (the waystone goes into the device), so the last read before you leave is where the map starts, and the box shows **Base read** with its time. When you come back, open the inventory before you put anything in the stash: the first seconds it is open tell what the map brought, and the box counts down while it reads. Stashing after that changes nothing.
+- **Manual:** nothing is read on its own. Press **Alt+I** with the inventory open in your hideout before the map, and again when you are back, before stashing anything. Alt+I also shows what your inventory is worth at any time, in either rule.
+
+<p align="center"><img src="docs/map-loot-box.png" alt="Map loot box over the game" width="330"> <img src="docs/map-loot-box-full.png" alt="The box with every figure picked" width="330"></p>
+
+> **What counts:** only items traded on Ange's Currency Exchange: currency, omens, essences, splinters, fragments, catalysts, uncut gems, flux and the like. Uniques, rares, gear, waystones and anything else whose worth depends on its mods are left out, because the screen doesn't tell what they are.
+>
+> **Good to know:**
+> - What goes into the stash before the read after a map is not counted. In Automatic, things bought or traded in the first seconds back count as loot.
+> - When a cell is not read for sure (a missing digit, a gem level), the card and the Tracker name it, such as "row 2, column 7", and that map's figure may be off.
+> - Hideout time leaves out AFK time and anything past 10 minutes of one stay there, so a break doesn't spoil your per-hour figure.
+> - To read without a tooltip in the way, Alt+I moves the mouse pointer off the items for a moment and puts it back. It never clicks.
+
+<p align="center"><img src="docs/map-loot-tracker.png" alt="Map loot in the Tracker" width="560"> <img src="docs/inventory-scan-settings.png" alt="Inventory scan settings" width="300"></p>
+
 ### Price check, Alt+E
 Hover an item in game and press Alt+E. A small window reads the item, lets you toggle affixes, DPS and properties in or out, and searches the official trade site. It can also read skill gems from the Skills panel and Expedition rewards straight off your screen.
 
@@ -75,26 +95,6 @@ Open the Runeshape Combinations panel and press Alt+Q. Every reward gets a price
 Your merchant (Ange) sales, day by day, with totals for this game session, today and the league at today's rates, and a search over everything you sold. The app reads your own sales history from pathofexile.com through the browser link, shortly after Ange speaks in game, and keeps it on your PC, so the history keeps growing past the trade site's last 100 sales. An optional small strip over the game shows this session's and the league's earnings: clicks go through to the game, and you can drag it anywhere on the screen. Both stay off until you turn them on.
 
 <p align="center"><img src="docs/tracker.png" alt="Sales tracker" width="480"> <img src="docs/earnings.png" alt="Earnings strip over the game" width="400"></p>
-
-### Map loot, Alt+I
-See what each map really brought. The app reads the currency in your inventory off the screen before a map and again after it; what the inventory gained, at the loot filter's prices, is that map's loot. The Tracker's Map loot tab adds it up with your times from the game's log: session time, time in maps and in the hideout, loot per map and per hour, average and last map time, the best map and what came in most. A small box over the game, in maps too, shows the figures you pick, and **Start a new session** lets you compare one farm with the next without deleting anything. If GGG allows it, the experience you gain will be added to these figures too.
-
-Pick how it reads in **Settings → Price check → Inventory scan**. It stays **Off** until you choose:
-
-- **Automatic:** in your hideout or town, whenever the inventory is open, the app reads it about once a second. Nothing is read in a map. Opening a map from the atlas opens the inventory anyway (the waystone goes into the device), so the last read before you leave is where the map starts, and the box shows **Base read** with its time. When you come back, open the inventory before you put anything in the stash: the first seconds it is open tell what the map brought, and the box counts down while it reads. Stashing after that changes nothing.
-- **Manual:** nothing is read on its own. Press **Alt+I** with the inventory open in your hideout before the map, and again when you are back, before stashing anything. Alt+I also shows what your inventory is worth at any time, in either rule.
-
-<p align="center"><img src="docs/map-loot-box.png" alt="Map loot box over the game" width="330"> <img src="docs/map-loot-box-full.png" alt="The box with every figure picked" width="330"></p>
-
-> **What counts:** only items traded on Ange's Currency Exchange: currency, omens, essences, splinters, fragments, catalysts, uncut gems, flux and the like. Uniques, rares, gear, waystones and anything else whose worth depends on its mods are left out, because the screen doesn't tell what they are.
->
-> **Good to know:**
-> - What goes into the stash before the read after a map is not counted. In Automatic, things bought or traded in the first seconds back count as loot.
-> - When a cell is not read for sure (a missing digit, a gem level), the card and the Tracker name it, such as "row 2, column 7", and that map's figure may be off.
-> - Hideout time leaves out AFK time and anything past 10 minutes of one stay there, so a break doesn't spoil your per-hour figure.
-> - To read without a tooltip in the way, Alt+I moves the mouse pointer off the items for a moment and puts it back. It never clicks.
-
-<p align="center"><img src="docs/map-loot-tracker.png" alt="Map loot in the Tracker" width="560"> <img src="docs/inventory-scan-settings.png" alt="Inventory scan settings" width="300"></p>
 
 ### Public filter profiles
 Keep separate setups for league start, Expedition farming or a strict endgame filter, and switch with one click. Publish a profile so other players can follow it, or browse what others shared, most followed first. A profile you follow updates itself when its author changes it.

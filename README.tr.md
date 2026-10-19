@@ -41,6 +41,26 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
 
 <p align="center"><img src="docs/groups.png" alt="Eşya grupları" width="440"> <img src="docs/look.png" alt="Görünüm düzenleyici" width="440"></p>
 
+### Map kazancı, Alt+I
+Her map'in gerçekte ne getirdiğini gör. Uygulama envanterindeki currency'yi map'ten önce ve sonra ekrandan okur; envanterin artışı, loot filtresinin fiyatlarıyla, o map'in kazancıdır. Takip penceresindeki Map kazancı sekmesi bunu oyunun logundaki sürelerle birlikte toplar: oturum süresi, map'te ve hideout'ta geçen süre, map başına ve saatte kazanç, ortalama ve son map süresi, en iyi map ve en çok gelenler. Oyunun üstündeki küçük kutu, map'te de, seçtiğin değerleri gösterir; **Yeni oturum başlat** ile hiçbir şeyi silmeden bir farmı diğeriyle karşılaştırabilirsin. GGG izin verirse kazanılan experience de bu değerlere eklenecek.
+
+Nasıl okuyacağını **Ayarlar → Price check → Envanter taraması**'ndan seçersin. Sen seçene kadar **Kapalı** kalır:
+
+- **Otomatik:** hideout ya da kasabada envanter her açık olduğunda uygulama onu saniyede bir kadar okur. Map'te hiçbir şey okunmaz. Atlas'tan map'e girerken envanter zaten açılır (waystone cihaza oradan gider), bu yüzden çıkmadan önceki son okuma map'in başlangıcı olur; kutu saatiyle birlikte **Taban alındı** yazar. Dönünce stash'e bir şey koymadan önce envanteri aç: açık kaldığı ilk saniyeler map'in ne getirdiğini söyler, okurken kutu geri sayar. Sonrasında stash'e atmak hiçbir şeyi değiştirmez.
+- **Manuel:** hiçbir şey kendiliğinden okunmaz. Map'ten önce hideout'ta envanter açıkken **Alt+I**'ye bas, dönünce de stash'e bir şey koymadan önce yine bas. Alt+I iki kuralda da envanterinin o anki değerini gösterir.
+
+<p align="center"><img src="docs/map-loot-box.png" alt="Oyunun üstünde map kazancı kutusu" width="330"> <img src="docs/map-loot-box-full.png" alt="Bütün değerleri seçilmiş kutu" width="330"></p>
+
+> **Neler sayılır:** yalnız Ange'nin Currency Exchange'inde takas edilen eşyalar: currency, omen, essence, splinter, fragment, catalyst, uncut gem, flux ve benzerleri. Unique, rare, ekipman, waystone ve değeri affix'lerine bağlı her şey sayılmaz; ekrandan ne oldukları anlaşılmaz.
+>
+> **Bilmekte fayda var:**
+> - Map'ten sonraki okumadan önce stash'e konan sayılmaz. Otomatik'te dönüşün ilk saniyelerinde alınan ya da takas edilen şeyler kazanca girer.
+> - Bir hücre kesin okunamazsa (eksik bir rakam, bir gem seviyesi) kart ve Takip onu "2. satır, 7. sütun" gibi adıyla gösterir; o map'in değeri yanlış olabilir.
+> - Hideout süresine AFK süresi ve tek kalışta 10 dakikayı aşan kısım girmez; mola, saatlik kazancını bozmaz.
+> - Tooltip okumayı engellemesin diye Alt+I fare imlecini bir anlığına eşyaların üstünden çeker ve geri koyar. Asla tıklamaz.
+
+<p align="center"><img src="docs/map-loot-tracker.png" alt="Takip penceresinde map kazancı" width="560"> <img src="docs/inventory-scan-settings.png" alt="Envanter taraması ayarları" width="300"></p>
+
 ### Fiyat sorgulama, Alt+E
 Oyunda eşyanın üstüne gel ve Alt+E'ye bas. Küçük bir pencere eşyayı okur. Affix'leri, DPS'i ve özellikleri aramaya ekleyip çıkarabilirsin; arama resmi trade sitesinde yapılır. Skills panelindeki gem'leri ve Expedition ödüllerini doğrudan ekrandan da okuyabilir.
 
@@ -75,26 +95,6 @@ Runeshape Combinations panelini aç ve Alt+Q'ya bas. Her ödülün yanına, değ
 Satıcının (Ange) yaptığı satışlar gün gün: bu oyun oturumu, bugün ve lig toplamları bugünkü kurla, sattığın her şeyde arama. Uygulama kendi satış geçmişini tarayıcı bağlantısıyla pathofexile.com'dan, oyunda Ange konuştuktan kısa süre sonra okur ve bilgisayarında saklar; böylece geçmiş, trade sitesinin gösterdiği son 100 satışın ötesine uzar. İsteğe bağlı küçük bir şerit oyunun üstünde bu oturumun ve ligin kazancını gösterir: tıklamalar oyuna geçer, şeridi ekranda istediğin yere sürükleyebilirsin. İkisi de sen açana kadar kapalıdır.
 
 <p align="center"><img src="docs/tracker.png" alt="Satış takibi" width="480"> <img src="docs/earnings.png" alt="Oyunun üstünde kazanç şeridi" width="400"></p>
-
-### Map kazancı, Alt+I
-Her map'in gerçekte ne getirdiğini gör. Uygulama envanterindeki currency'yi map'ten önce ve sonra ekrandan okur; envanterin artışı, loot filtresinin fiyatlarıyla, o map'in kazancıdır. Takip penceresindeki Map kazancı sekmesi bunu oyunun logundaki sürelerle birlikte toplar: oturum süresi, map'te ve hideout'ta geçen süre, map başına ve saatte kazanç, ortalama ve son map süresi, en iyi map ve en çok gelenler. Oyunun üstündeki küçük kutu, map'te de, seçtiğin değerleri gösterir; **Yeni oturum başlat** ile hiçbir şeyi silmeden bir farmı diğeriyle karşılaştırabilirsin. GGG izin verirse kazanılan experience de bu değerlere eklenecek.
-
-Nasıl okuyacağını **Ayarlar → Price check → Envanter taraması**'ndan seçersin. Sen seçene kadar **Kapalı** kalır:
-
-- **Otomatik:** hideout ya da kasabada envanter her açık olduğunda uygulama onu saniyede bir kadar okur. Map'te hiçbir şey okunmaz. Atlas'tan map'e girerken envanter zaten açılır (waystone cihaza oradan gider), bu yüzden çıkmadan önceki son okuma map'in başlangıcı olur; kutu saatiyle birlikte **Taban alındı** yazar. Dönünce stash'e bir şey koymadan önce envanteri aç: açık kaldığı ilk saniyeler map'in ne getirdiğini söyler, okurken kutu geri sayar. Sonrasında stash'e atmak hiçbir şeyi değiştirmez.
-- **Manuel:** hiçbir şey kendiliğinden okunmaz. Map'ten önce hideout'ta envanter açıkken **Alt+I**'ye bas, dönünce de stash'e bir şey koymadan önce yine bas. Alt+I iki kuralda da envanterinin o anki değerini gösterir.
-
-<p align="center"><img src="docs/map-loot-box.png" alt="Oyunun üstünde map kazancı kutusu" width="330"> <img src="docs/map-loot-box-full.png" alt="Bütün değerleri seçilmiş kutu" width="330"></p>
-
-> **Neler sayılır:** yalnız Ange'nin Currency Exchange'inde takas edilen eşyalar: currency, omen, essence, splinter, fragment, catalyst, uncut gem, flux ve benzerleri. Unique, rare, ekipman, waystone ve değeri affix'lerine bağlı her şey sayılmaz; ekrandan ne oldukları anlaşılmaz.
->
-> **Bilmekte fayda var:**
-> - Map'ten sonraki okumadan önce stash'e konan sayılmaz. Otomatik'te dönüşün ilk saniyelerinde alınan ya da takas edilen şeyler kazanca girer.
-> - Bir hücre kesin okunamazsa (eksik bir rakam, bir gem seviyesi) kart ve Takip onu "2. satır, 7. sütun" gibi adıyla gösterir; o map'in değeri yanlış olabilir.
-> - Hideout süresine AFK süresi ve tek kalışta 10 dakikayı aşan kısım girmez; mola, saatlik kazancını bozmaz.
-> - Tooltip okumayı engellemesin diye Alt+I fare imlecini bir anlığına eşyaların üstünden çeker ve geri koyar. Asla tıklamaz.
-
-<p align="center"><img src="docs/map-loot-tracker.png" alt="Takip penceresinde map kazancı" width="560"> <img src="docs/inventory-scan-settings.png" alt="Envanter taraması ayarları" width="300"></p>
 
 ### Paylaşılan filtre profilleri
 League start, Expedition farmı ya da sıkı bir endgame filtresi için ayrı ayarlar tut, tek tıkla aralarında geçiş yap. Profilini yayınla, başkaları takip etsin; ya da diğer oyuncuların paylaştıklarına göz at, en çok takip edilenler en üstte. Takip ettiğin profil, sahibi değiştirdikçe kendiliğinden güncellenir.
