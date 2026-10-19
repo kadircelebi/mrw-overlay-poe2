@@ -16,3 +16,4 @@ func Confine(uintptr)                            {}
 func FocusGame() (bool, bool)                    { return false, false }
 func GameLogPath(uintptr) string                 { return "" }
 func ShowOver(uintptr, image.Rectangle)          {}
+func Popup(uintptr)                              {}

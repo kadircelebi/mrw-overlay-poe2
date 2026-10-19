@@ -203,6 +203,14 @@ export function DownloadAppUpdate(): $CancellablePromise<appupdate$0.State> {
 }
 
 /**
+ * EndBoxMove makes the last move of a grip's drag and keeps the box's new
+ * place, as a share of the game's client area.
+ */
+export function EndBoxMove(box: string, drag: number, seq: number, dx: number, dy: number): $CancellablePromise<void> {
+    return $Call.ByID(1589298350, box, drag, seq, dx, dy);
+}
+
+/**
  * EvaluateOverlay reuses identical successful searches for ten minutes unless
  * refresh is true. In-flight requests are shared as well, so opening Market
  * while the compact overlay is evaluating cannot consume a second GGG search.
@@ -516,6 +524,15 @@ export function LiveResults(id: string): $CancellablePromise<trade$0.EvaluatedLi
  */
 export function LiveSearches(): $CancellablePromise<trade$0.LiveState[] | null> {
     return $Call.ByID(1469155687);
+}
+
+/**
+ * MoveBox moves box by dx, dy physical pixels from where it was when drag
+ * began (move seq of that drag), kept inside the game's client area: while
+ * it is being placed, or by its grip while it shows.
+ */
+export function MoveBox(box: string, drag: number, seq: number, dx: number, dy: number): $CancellablePromise<void> {
+    return $Call.ByID(2136333629, box, drag, seq, dx, dy);
 }
 
 /**

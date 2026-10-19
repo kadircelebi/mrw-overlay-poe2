@@ -8,6 +8,7 @@
   import { Events } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter/internal/app'
   import type { ExpeditionEntry, ExpeditionHistoryView } from '../bindings/poe2filter/internal/app/models'
+  import { boxDrag } from './lib/boxDrag'
   import { t } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
   import { money } from './lib/format'
@@ -57,7 +58,7 @@
 </script>
 
 {#if placing || shown}
-  <div class="box" class:placing>
+  <div class="box" class:placing use:boxDrag={{ box: 'expedition' }}>
     {#if placing}
       <div class="line"><span class="k">⠿ {t('earnings.drag')}</span></div>
       <div class="line buttons">
@@ -103,7 +104,6 @@
     border: 1px dashed #f3d38a;
     background: rgba(10, 8, 6, 0.8);
     cursor: move;
-    --wails-draggable: drag;
   }
   .line {
     display: flex;
@@ -144,7 +144,6 @@
     gap: 6px;
   }
   .buttons button {
-    --wails-draggable: no-drag;
     border: 1px solid rgba(175, 145, 90, 0.7);
     border-radius: 3px;
     background: #2a2217;

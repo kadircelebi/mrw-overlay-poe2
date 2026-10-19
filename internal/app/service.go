@@ -167,6 +167,10 @@ type AppService struct {
 	// lootPlacing is set while it is being dragged.
 	lootBoxWindow application.Window
 	lootPlacing   atomic.Bool
+	// boxDrag follows a box being dragged (MoveBox); grips are the boxes'
+	// handles, by box name.
+	boxDrag boxDragState
+	grips   map[string]application.Window
 	// autoScan is the automatic inventory scan's state (autoScanLoop).
 	autoScan autoScanState
 }

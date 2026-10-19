@@ -27,6 +27,7 @@ var (
 	procSetWindowLongPtrW        = user32.NewProc("SetWindowLongPtrW")
 	procCallWindowProcW          = user32.NewProc("CallWindowProcW")
 	procSetForegroundWindow      = user32.NewProc("SetForegroundWindow")
+	procGetWindowLongPtrW        = user32.NewProc("GetWindowLongPtrW")
 
 	kernel32                       = syscall.NewLazyDLL("kernel32.dll")
 	procQueryFullProcessImageNameW = kernel32.NewProc("QueryFullProcessImageNameW")
@@ -402,6 +403,30 @@ const (
 	swpShowWindow = 0x0040
 	hwndTopmost   = ^uintptr(0) // (HWND)-1
 )
+
+const (
+	gwlStyle       = ^uintptr(15) // -16
+	wsPopup        = 0x80000000
+	wsFrameStyles  = 0x00C00000 | 0x00040000 | 0x00080000 | 0x00020000 | 0x00010000 // CAPTION, THICKFRAME, SYSMENU, MINIMIZEBOX, MAXIMIZEBOX
+	swpNoMove      = 0x0002
+	swpFrameChange = 0x0020
+)
+
+// Popup drops hwnd's frame styles (caption, sizing border, system menu):
+// Windows keeps a window with a caption at least a caption tall, too big
+// for a box's grip.
+func Popup(hwnd uintptr) {
+	if hwnd == 0 {
+		return
+	}
+	style, _, _ := procGetWindowLongPtrW.Call(hwnd, gwlStyle)
+	want := style&^wsFrameStyles | wsPopup
+	if want == style {
+		return
+	}
+	procSetWindowLongPtrW.Call(hwnd, gwlStyle, want)
+	procSetWindowPos.Call(hwnd, 0, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoZOrder|swpNoActivate|swpFrameChange)
+}
 
 // ShowOver lays hwnd over the screen rectangle r (physical pixels), above
 // other windows, and shows it without taking keyboard focus from the game.

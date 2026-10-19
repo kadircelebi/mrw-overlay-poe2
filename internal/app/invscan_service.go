@@ -257,6 +257,9 @@ func (s *AppService) hideBoxesForRead() bool {
 			hidden = true
 		}
 	}
+	for _, box := range boxNames {
+		s.putGripAway(box)
+	}
 	return hidden
 }
 

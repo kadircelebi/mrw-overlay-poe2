@@ -260,7 +260,7 @@ func Run(opt Options) {
 
 	// The Expedition reward chosen in the current map, in a box of its own.
 	expeditionStripWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name: "expstrip", Title: "MrW Overlay · Expedition", Width: expeditionStripWidth, Height: expeditionStripHeight,
+		Name: "expstrip", Title: "MrW Overlay · Expedition", Width: expeditionStripNameWidth, Height: expeditionStripMaxHeight,
 		Frameless: true, AlwaysOnTop: true, Hidden: true, DisableResize: true,
 		BackgroundType:    application.BackgroundTypeTransparent,
 		BackgroundColour:  application.NewRGBA(0, 0, 0, 0),
@@ -292,7 +292,7 @@ func Run(opt Options) {
 	// The inventory scan's state (the next map's base, the last map's
 	// gain), in a box of its own.
 	lootBoxWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name: "lootbox", Title: "MrW Overlay · Map loot", Width: lootBoxWidth, Height: lootBoxHeight,
+		Name: "lootbox", Title: "MrW Overlay · Map loot", Width: lootBoxWidth, Height: lootBoxMaxHeight,
 		Frameless: true, AlwaysOnTop: true, Hidden: true, DisableResize: true,
 		BackgroundType:    application.BackgroundTypeTransparent,
 		BackgroundColour:  application.NewRGBA(0, 0, 0, 0),
@@ -304,6 +304,26 @@ func Run(opt Options) {
 		lootBoxWindow.Hide()
 		e.Cancel()
 	})
+
+	// Each box's grip: a small window by its top-right corner that, unlike
+	// the box, takes the mouse (still never the focus), to drag it.
+	const gripExStyle = 0x08000000 | 0x80 | 0x8 // NOACTIVATE, TOOLWINDOW, TOPMOST
+	grips := map[string]application.Window{}
+	for _, box := range boxNames {
+		grip := app.Window.NewWithOptions(application.WebviewWindowOptions{
+			Name: "grip-" + box, Title: "MrW Overlay · Grip", Width: gripWidth, Height: gripHeight,
+			Frameless: true, AlwaysOnTop: true, Hidden: true, DisableResize: true,
+			BackgroundType:   application.BackgroundTypeTransparent,
+			BackgroundColour: application.NewRGBA(0, 0, 0, 0),
+			Windows:          application.WindowsWindow{HiddenOnTaskbar: true, ExStyle: gripExStyle},
+			URL:              "/?view=grip&box=" + box,
+		})
+		grip.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+			grip.Hide()
+			e.Cancel()
+		})
+		grips[box] = grip
+	}
 
 	// The tracker: an ordinary window meant to stay open beside the game
 	// (another monitor), its tabs filled by the logs and the trade site.
@@ -378,6 +398,7 @@ func Run(opt Options) {
 	svc.trackerWindow, svc.earningsWindow = trackerWindow, earningsWindow
 	svc.expeditionStripWindow = expeditionStripWindow
 	svc.invScanWindow, svc.lootBoxWindow = invScanWindow, lootBoxWindow
+	svc.grips = grips
 	// Price check (Alt+E), market (Alt+M) and craft (Alt+F) shortcuts
 	// exist only while the overlay is switched on.
 	shortcuts := func(s overlay.Settings) [][2]any {

@@ -157,6 +157,11 @@ const (
 	expeditionStripNameRows  = 8
 )
 
+// expeditionStripMaxHeight is the box's height with the most names: the
+// window is made that big, as a see-through window takes the mouse only
+// over the size it was made with.
+var expeditionStripMaxHeight = func() int { _, h := expeditionStripSize(expeditionStripNameRows + 1); return h }()
+
 // expeditionStripSize is the box's size for names of the map's choices
 // (0: names off or none chosen yet); past the row limit one line says how
 // many more there are.
@@ -172,8 +177,9 @@ func expeditionStripSize(names int) (w, h int) {
 // while it is the active window, the box is switched on and the league has a
 // choice, and hides it otherwise.
 func (s *AppService) syncExpeditionStrip() {
+	defer s.syncGrip("expedition")
 	w := s.expeditionStripWindow
-	if w == nil || s.expeditionPlacing.Load() {
+	if w == nil || s.expeditionPlacing.Load() || s.boxMoving("expedition") {
 		return
 	}
 	any := len(s.expeditionLog.Entries(s.overlayClient.League())) > 0

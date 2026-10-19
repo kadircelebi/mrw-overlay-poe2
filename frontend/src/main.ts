@@ -13,6 +13,7 @@ import EarningsApp from './EarningsApp.svelte'
 import ExpeditionStripApp from './ExpeditionStripApp.svelte'
 import InvScanApp from './InvScanApp.svelte'
 import LootBoxApp from './LootBoxApp.svelte'
+import GripApp from './GripApp.svelte'
 import { installWheelNumbers } from './lib/wheelNumbers'
 import { followUIZoom } from './lib/uiZoom'
 import { followUITheme } from './lib/uiTheme'
@@ -29,6 +30,7 @@ else if (view === 'earnings') mount(EarningsApp, { target })
 else if (view === 'expstrip') mount(ExpeditionStripApp, { target })
 else if (view === 'invscan') mount(InvScanApp, { target })
 else if (view === 'lootbox') mount(LootBoxApp, { target })
+else if (view === 'grip') mount(GripApp, { target })
 else mount(App, { target, props: { win: view === 'settings' ? 'settings' : 'panel' } })
 installWheelNumbers()
 if (view === 'overlay' || view === 'craft' || view === 'market') followUIZoom(view)

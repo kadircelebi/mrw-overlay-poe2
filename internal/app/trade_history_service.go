@@ -349,6 +349,7 @@ func (s *AppService) PlaceEarnings() string {
 	w.SetIgnoreMouseEvents(false)
 	w.Show()
 	overlay.ShowOver(uintptr(w.NativeWindow()), s.earningsRectNow(client))
+	s.syncGrip("earnings")
 	s.emitTradeHistory(s.GetTradeHistory())
 	return PlaceOK
 }
@@ -394,8 +395,9 @@ func (s *AppService) earningsRectNow(client image.Rectangle) image.Rectangle {
 // syncEarningsOverlay shows the earnings over the game while it is the
 // active window and the overlay is switched on, and hides it otherwise.
 func (s *AppService) syncEarningsOverlay() {
+	defer s.syncGrip("earnings")
 	w := s.earningsWindow
-	if w == nil || s.earningsPlacing.Load() {
+	if w == nil || s.earningsPlacing.Load() || s.boxMoving("earnings") {
 		return
 	}
 	_, on, _ := s.tradeHistoryOn()

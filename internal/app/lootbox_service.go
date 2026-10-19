@@ -59,13 +59,16 @@ type LootStatusView struct {
 }
 
 // The loot box's size in window pixels: its width, and per line shown
-// (lootBoxLines) besides the frame.
+// (lootBoxLines) besides the frame. The window is made as tall as every
+// line needs (lootBoxMaxHeight): a see-through window takes the mouse only
+// over the size it was made with, not one SetWindowPos gives it later.
 const (
-	lootBoxWidth  = 250
-	lootBoxLine   = 17
-	lootBoxFrame  = 12
-	lootBoxHeight = lootBoxFrame + 4*lootBoxLine
+	lootBoxWidth = 250
+	lootBoxLine  = 17
+	lootBoxFrame = 12
 )
+
+var lootBoxMaxHeight = lootBoxFrame + len(overlay.LootBoxFieldKeys)*lootBoxLine
 
 func lootBoxLines(fields []string) int { return max(1, len(fields)) }
 
@@ -173,8 +176,9 @@ func (s *AppService) emitLootStatus() {
 // syncLootBox shows the loot box over the game while it is the active
 // window and the box is on, and hides it otherwise.
 func (s *AppService) syncLootBox() {
+	defer s.syncGrip("loot")
 	w := s.lootBoxWindow
-	if w == nil || s.lootPlacing.Load() {
+	if w == nil || s.lootPlacing.Load() || s.boxMoving("loot") {
 		return
 	}
 	if !s.lootBoxOn() || !s.gameActive.Load() {
@@ -259,8 +263,9 @@ func (s *AppService) boxWindows() []application.Window {
 	return out
 }
 
-// hideBoxesOver hides the boxes shown over screen area r, which a read of
-// it would take for part of the game; it reports whether it hid one.
+// hideBoxesOver hides the boxes (and grips) shown over screen area r,
+// which a read of it would take for part of the game; it reports whether
+// it hid one.
 func (s *AppService) hideBoxesOver(r image.Rectangle) bool {
 	hidden := false
 	for _, w := range s.boxWindows() {
@@ -270,6 +275,14 @@ func (s *AppService) hideBoxesOver(r image.Rectangle) bool {
 		if box, ok := overlay.WindowRect(uintptr(w.NativeWindow())); ok && box.Overlaps(r) {
 			w.Hide()
 			hidden = true
+		}
+	}
+	for _, box := range boxNames {
+		if g := s.grips[box]; g != nil {
+			if gr, ok := overlay.WindowRect(uintptr(g.NativeWindow())); ok && gr.Overlaps(r) {
+				s.putGripAway(box)
+				hidden = true
+			}
 		}
 	}
 	return hidden
