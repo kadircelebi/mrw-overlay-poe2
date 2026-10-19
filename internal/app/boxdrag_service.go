@@ -4,6 +4,7 @@ import (
 	"image"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -33,11 +34,20 @@ const (
 )
 
 type boxDragState struct {
-	mu    sync.Mutex
-	box   string // the box a grip is moving ("" when none)
-	drag  int
-	seq   int
-	start image.Rectangle
+	// moving keeps one move's windows from being laid between another's
+	// (mu, taken inside it, guards the state below and the grips').
+	moving sync.Mutex
+	mu     sync.Mutex
+	box    string // the box a grip is moving ("" when none)
+	drag   int
+	seq    int
+	start  image.Rectangle
+	// ended is the last drag let go of: its moves still on their way (they
+	// arrive one by one, in any order) move nothing. movedAt is when box
+	// last moved: a drag whose end never came stops counting after
+	// boxDragIdle.
+	ended   int
+	movedAt time.Time
 	// grips that Wails has shown once (later shown and put away without
 	// it), and those showing now.
 	gripReady map[string]bool
@@ -65,12 +75,15 @@ func (s *AppService) boxWindow(box string) (application.Window, bool) {
 	return nil, false
 }
 
+// boxDragIdle is how long a grip's drag counts without a move.
+const boxDragIdle = 2 * time.Second
+
 // boxMoving tells whether box's grip is being dragged: its place then is
 // the drag's, not the settings'.
 func (s *AppService) boxMoving(box string) bool {
 	s.boxDrag.mu.Lock()
 	defer s.boxDrag.mu.Unlock()
-	return s.boxDrag.box == box
+	return s.boxDrag.box == box && time.Since(s.boxDrag.movedAt) < boxDragIdle
 }
 
 // MoveBox moves box by dx, dy physical pixels from where it was when drag
@@ -85,6 +98,7 @@ func (s *AppService) MoveBox(box string, drag, seq, dx, dy int) {
 func (s *AppService) EndBoxMove(box string, drag, seq, dx, dy int) {
 	w, placing := s.moveBox(box, drag, seq, dx, dy)
 	s.boxDrag.mu.Lock()
+	s.boxDrag.ended = drag
 	if s.boxDrag.box == box {
 		s.boxDrag.box = ""
 	}
@@ -121,23 +135,13 @@ func (s *AppService) moveBox(box string, drag, seq, dx, dy int) (application.Win
 	}
 	hwnd := uintptr(w.NativeWindow())
 	st := &s.boxDrag
-	st.mu.Lock()
-	defer st.mu.Unlock()
-	if drag != st.drag {
-		r, ok := overlay.WindowRect(hwnd)
-		if !ok {
-			return w, placing
-		}
-		st.drag, st.seq, st.start = drag, 0, r
-	}
-	if !placing {
-		st.box = box
-	}
-	if seq <= st.seq {
+	st.moving.Lock()
+	defer st.moving.Unlock()
+	start, ok := st.moveFrom(box, drag, seq, placing, hwnd)
+	if !ok {
 		return w, placing
 	}
-	st.seq = seq
-	r := st.start.Add(image.Pt(dx, dy))
+	r := start.Add(image.Pt(dx, dy))
 	client, ok := overlay.GameClient()
 	if ok {
 		r = r.Add(image.Pt(max(0, client.Min.X-r.Min.X), max(0, client.Min.Y-r.Min.Y)))
@@ -148,6 +152,31 @@ func (s *AppService) moveBox(box string, drag, seq, dx, dy int) (application.Win
 		s.placeGrip(box, client, r)
 	}
 	return w, placing
+}
+
+// moveFrom takes move seq of drag and returns where the box stood when the
+// drag began; ok is false for a move to drop (late, or of an ended drag).
+func (st *boxDragState) moveFrom(box string, drag, seq int, placing bool, hwnd uintptr) (image.Rectangle, bool) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	if drag == st.ended {
+		return image.Rectangle{}, false
+	}
+	if drag != st.drag {
+		r, ok := overlay.WindowRect(hwnd)
+		if !ok {
+			return image.Rectangle{}, false
+		}
+		st.drag, st.seq, st.start = drag, 0, r
+	}
+	if seq <= st.seq {
+		return image.Rectangle{}, false
+	}
+	st.seq, st.movedAt = seq, time.Now()
+	if !placing {
+		st.box = box
+	}
+	return st.start, true
 }
 
 // gripRect is where box's grip goes for the box at r: just above its
@@ -189,6 +218,8 @@ func (s *AppService) placeGrip(box string, client, r image.Rectangle) {
 		overlay.Popup(hwnd)
 		g.Show()
 	}
+	// Again after Wails' first showing, which may set the frame back.
+	overlay.Popup(hwnd)
 	overlay.ShowOver(hwnd, gripRect(client, r, dpi))
 	if overlay.ForegroundWindow() == hwnd {
 		overlay.FocusGame()
