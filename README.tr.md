@@ -23,7 +23,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
 
 ## Neden MrW Overlay?
 
-- **Beş araç yerine tek uygulama.** Loot filtresi, fiyat sorgulama, trade ve canlı arama, craft simülatörü, Expedition fiyatları, satış ve map kazancı takibi, oyun kısayolları. Bir sürü araç ve site arasında alt-tab yapmaya son.
+- **Yedi araç yerine tek uygulama.** Loot filtresi, fiyat sorgulama, trade ve canlı arama, craft simülatörü, Expedition fiyatları, satış ve map kazancı takibi, oyun kısayolları. Bir sürü araç ve site arasında alt-tab yapmaya son.
 - **Filtren piyasayla birlikte güncellenir.** Bir değer belirlersin, diyelim 50 ex. Üstündeki drop'lar parlar, ucuzlar gizlenir ya da soluklaşır. Fiyatlar değiştikçe filtre de değişir; lig ortasında listeleri elle düzeltmezsin.
 - **Oyunun hangi dildeyse o dilde.** English, Deutsch, Français, Español, Português, Русский, 日本語, 한국어 ya da 繁體中文: fiyat sorgusu, trade ve Expedition fiyatları eşyayı oyunun yazdığı gibi okur, o dilde gösterir, ilanları da o dilde getirir. Oyunun sunduğu dillerin hepsi çalışıyor; yalnız Tayca desteklenmiyor.
 - **Çıktığı her platformda onaylı.** Microsoft Store, Chrome Web Store, Edge Add-ons ve Firefox Add-ons inceleyip onayladı.

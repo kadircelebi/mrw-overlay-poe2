@@ -23,7 +23,7 @@ Price check, trade, live search, a crafting sim, Expedition prices, map loot tra
 
 ## Why MrW Overlay?
 
-- **One app instead of five.** Loot filter, price check, trade and live search, crafting sim, Expedition prices, sales and map loot tracking, game hotkeys. No more alt-tabbing between a dozen tools and websites.
+- **One app instead of seven.** Loot filter, price check, trade and live search, crafting sim, Expedition prices, sales and map loot tracking, game hotkeys. No more alt-tabbing between a dozen tools and websites.
 - **Your filter follows the market.** You set a value, say 50 ex. Drops worth more get a strong highlight, cheap ones get hidden or dimmed. As prices move, the filter keeps up, and you never edit a list by hand mid-league.
 - **Plays in your game's language.** English, Deutsch, Français, Español, Português, Русский, 日本語, 한국어 or 繁體中文: the price check, trade and Expedition prices read items the way your game writes them, show them in that language, and bring listings back in it. Every language the game offers works except Thai, which is not supported.
 - **Approved everywhere it ships.** Microsoft Store, Chrome Web Store, Edge Add-ons and Firefox Add-ons have all reviewed and approved it.
