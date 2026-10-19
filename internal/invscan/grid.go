@@ -223,6 +223,28 @@ func gridLine(pic Img, g Grid, c, r int) bool {
 	return peak-side > 15
 }
 
+// Bare tells a filled cell whose middle is the plain blue ground: a cell of
+// an item bigger than one, its picture drawn over the others, only its
+// number (a tablet's uses, a level) in this one's corner. Every item's own
+// cell has its picture over the middle (a third of it at the least, seen
+// at five sizes); such a cell is none of the listed items.
+func Bare(pic Img, cell image.Rectangle) bool {
+	w, h := cell.Dx(), cell.Dy()
+	r := image.Rect(cell.Min.X+w/4, cell.Min.Y+h/4, cell.Max.X-w/4, cell.Max.Y-h/4).Intersect(image.Rect(0, 0, pic.W, pic.H))
+	art, n := 0, 0
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			i := (y*pic.W + x) * 3
+			red, green, blue := pic.Pix[i], pic.Pix[i+1], pic.Pix[i+2]
+			n++
+			if !(blue-red > 8 && max(red, green, blue) < 70 && red < 40) {
+				art++
+			}
+		}
+	}
+	return n > 0 && float64(art) < 0.12*float64(n)
+}
+
 // blueGround tells the dark blue an item's cell is drawn on.
 func blueGround(pic Img, r image.Rectangle) bool {
 	p := pic.crop(r)

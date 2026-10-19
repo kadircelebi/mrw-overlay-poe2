@@ -12,6 +12,7 @@ import (
 	"poe2filter/internal/invscan"
 	"poe2filter/internal/lootlog"
 	"poe2filter/internal/overlay"
+	"poe2filter/internal/prices"
 )
 
 // invScanShowFor is how long the inventory's worth stays over the game; a
@@ -278,6 +279,9 @@ func (s *AppService) priceInventory(view *InvScanView, cells []invscan.Cell) {
 		}
 		e, ok := invscan.Pick(c.Entries, c.Marks)
 		if !ok {
+			e, ok = onlyPriced(c.Entries, snap)
+		}
+		if !ok {
 			view.Unsure++
 			view.Doubts = append(view.Doubts, lootlog.Doubt{Row: c.Row + 1, Col: c.Col + 1, Name: baseName(c.Entries), Count: c.Stack, Why: "item"})
 			continue
@@ -314,6 +318,23 @@ func (s *AppService) priceInventory(view *InvScanView, cells []invscan.Cell) {
 		}
 		return view.Rows[i].Name < view.Rows[j].Name
 	})
+}
+
+// onlyPriced is the one item of those sharing an icon that the price list
+// knows, when the cell's figures do not tell them apart: Exceptional
+// Verisium shares its picture with Mutated, Corrupted and Founders
+// Verisium, which are not traded. With more than one priced (gem levels,
+// orb tiers) it tells nothing.
+func onlyPriced(entries []invscan.Entry, snap *prices.Snapshot) (invscan.Entry, bool) {
+	var found invscan.Entry
+	n := 0
+	for _, e := range entries {
+		if overlay.QuoteCurrency(snap, e.Name).Found {
+			found = e
+			n++
+		}
+	}
+	return found, n == 1
 }
 
 // baseName names the items sharing an icon by the shortest of their names

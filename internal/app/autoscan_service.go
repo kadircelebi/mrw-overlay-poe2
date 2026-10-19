@@ -5,6 +5,7 @@ import (
 	"image"
 	"log"
 	"maps"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -36,6 +37,9 @@ const (
 	// autoPollFast is the pace once back from a map until the inventory
 	// first shows (for autoFastFor): the first frames tell what came back.
 	autoPollFast = 150 * time.Millisecond
+	// autoPollOpen is the pace while the inventory is open at home: a base
+	// takes three frames (the panel still, then the same read twice).
+	autoPollOpen = 300 * time.Millisecond
 	autoFastFor  = 90 * time.Second
 	// afterWindow is how long after the inventory first shows on the way
 	// back its reads count towards what the map brought.
@@ -53,12 +57,27 @@ type autoScanState struct {
 	// after collects the reads back from a map until afterUntil.
 	after       map[string]int
 	afterUnsure int
-	// afterDoubts are the doubts of the read back with the most of them.
+	// afterDoubts are the doubts of the read back with the fewest of them
+	// (afterUnsure; −1 before the first).
 	afterDoubts []lootlog.Doubt
 	afterUntil  time.Time
 	// readingUntil is afterUntil in Unix ms, for the loot box (read
 	// without the lock).
 	readingUntil atomic.Int64
+	// grid is where the inventory's grid was found in the last frame
+	// (gridSeen: one was found): a frame is read only once the grid stands
+	// where it stood in the one before, as the panel slides in when it
+	// opens and a frame of it moving cuts every cell off its numbers.
+	grid     invscan.Grid
+	gridSeen bool
+}
+
+// settled tells whether g stands where the last frame's grid stood, and
+// keeps it for the next.
+func (st *autoScanState) settled(g invscan.Grid) bool {
+	same := st.gridSeen && math.Abs(g.X-st.grid.X) <= 2 && math.Abs(g.Y-st.grid.Y) <= 2 && math.Abs(g.Cell-st.grid.Cell) <= 1
+	st.grid, st.gridSeen = g, true
+	return same
 }
 
 func (s *AppService) autoScanLoop(ctx context.Context) {
@@ -132,7 +151,11 @@ func (s *AppService) autoScanTick() time.Duration {
 	local.X, local.Y = margin, margin
 	g := invscan.Align(pic, local)
 	if !invscan.Shown(pic, g) {
-		st.last = nil
+		st.last, st.gridSeen = nil, false
+		return wait
+	}
+	wait = min(wait, autoPollOpen)
+	if !st.settled(g) {
 		return wait
 	}
 	cell := int(g.Cell + 0.5)
@@ -151,7 +174,7 @@ func (s *AppService) autoScanTick() time.Duration {
 	if waiting || !st.afterUntil.IsZero() {
 		// Back from a map: the most of each item seen in the first seconds.
 		if st.afterUntil.IsZero() {
-			st.after, st.afterUnsure, st.afterDoubts = map[string]int{}, 0, nil
+			st.after, st.afterUnsure, st.afterDoubts = map[string]int{}, -1, nil
 			st.afterUntil = time.Now().Add(afterWindow)
 			st.readingUntil.Store(st.afterUntil.UnixMilli())
 			go s.emitLootStatus()
@@ -159,26 +182,39 @@ func (s *AppService) autoScanTick() time.Duration {
 		for name, n := range items {
 			st.after[name] = max(st.after[name], n)
 		}
-		if view.Unsure > st.afterUnsure || st.afterDoubts == nil {
+		if st.afterUnsure < 0 || view.Unsure < st.afterUnsure {
 			st.afterUnsure, st.afterDoubts = view.Unsure, view.Doubts
 		}
 		s.closeAfterLocked(false)
 		return wait
 	}
 
-	stable := maps.Equal(items, st.last) && view.Unsure == st.lastUnsure
-	st.last, st.lastUnsure = items, view.Unsure
-	if stable && !overPanel && !maps.Equal(items, st.kept) {
+	if st.newBase(items, view.Unsure, overPanel, s.lootLog.State(s.overlayClient.League()).Last != nil) {
 		s.keepRead(items, view.Unsure, view.Doubts)
-		st.kept = items
 	}
 	return wait
+}
+
+// newBase takes a read in a hideout or town and tells whether it is the
+// next map's new base: the same as the read before (an empty inventory
+// too: a read is never nil, unlike "none yet"), made with the pointer off
+// the panel, and not the base already kept, while the loot log still has
+// one (have: the player may have cleared it).
+func (st *autoScanState) newBase(items map[string]int, unsure int, overPanel, have bool) bool {
+	stable := st.last != nil && maps.Equal(items, st.last) && unsure == st.lastUnsure
+	st.last, st.lastUnsure = items, unsure
+	if !stable || overPanel || have && st.kept != nil && maps.Equal(items, st.kept) {
+		return false
+	}
+	st.kept = items
+	return true
 }
 
 func (st *autoScanState) reset() {
 	st.cache, st.cell = invscan.GridCache{}, 0
 	st.last, st.kept, st.after = nil, nil, nil
 	st.lastUnsure, st.afterUnsure, st.afterUntil = 0, 0, time.Time{}
+	st.gridSeen = false
 	st.readingUntil.Store(0)
 }
 
@@ -196,7 +232,7 @@ func (s *AppService) closeAfterLocked(now bool) {
 	if st.afterUntil.IsZero() || (!now && time.Now().Before(st.afterUntil)) {
 		return
 	}
-	items, unsure, doubts := st.after, st.afterUnsure, st.afterDoubts
+	items, unsure, doubts := st.after, max(0, st.afterUnsure), st.afterDoubts
 	st.after, st.afterUntil, st.afterDoubts = nil, time.Time{}, nil
 	st.readingUntil.Store(0)
 	st.last, st.kept = nil, items

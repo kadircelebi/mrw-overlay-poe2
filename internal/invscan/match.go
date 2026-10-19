@@ -248,7 +248,10 @@ func (m *Matcher) ReadGrid(pic Img, g Grid) []Cell {
 	scans := make([][2]cornerScan, len(cells))
 	parallel(len(cells), func(i int) {
 		c := &cells[i]
-		c.Result = m.Classify(pic.crop(g.Padded(c.Col, c.Row, pad)))
+		c.Result = Result{Icon: -1}
+		if !Bare(pic, g.Rect(c.Col, c.Row)) {
+			c.Result = m.Classify(pic.crop(g.Padded(c.Col, c.Row, pad)))
+		}
 		if c.Icon >= 0 {
 			scans[i][0], scans[i][1] = scanMarks(pic, g.Rect(c.Col, c.Row))
 		}

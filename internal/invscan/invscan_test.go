@@ -236,6 +236,8 @@ func TestReadMarksReadsTheFontsOwnFigures(t *testing.T) {
 		want          Marks
 	}{
 		{"39", "", Marks{Stack: 39}},
+		{"1000", "", Marks{Stack: 1000}},
+		{"976", "", Marks{Stack: 976}},
 		{"1", "III", Marks{Stack: 1, Corner: 3, Roman: true}},
 		{"20", "II", Marks{Stack: 20, Corner: 2, Roman: true}},
 		{"", "9", Marks{Stack: 1, Corner: 9}},
@@ -408,5 +410,21 @@ func TestReadGridCachedRereadsOnlyChangedCells(t *testing.T) {
 	}
 	if direct := m.ReadGrid(pic, g); len(direct) != len(third) {
 		t.Fatalf("cache and a full read disagree: %d vs %d cells", len(third), len(direct))
+	}
+}
+
+func TestBareTellsAnItemsOtherCell(t *testing.T) {
+	// A cell of a bigger item: the blue ground and its number in the corner.
+	pic := solid(figCell+20, figCell+20, 18, 22, 64)
+	cell := image.Rect(10, 10, 10+figCell, 10+figCell)
+	drawFigures(pic, "10", cell.Max.X-30, cell.Max.Y-36)
+	if !Bare(pic, cell) {
+		t.Error("a cell with only a corner number is not bare")
+	}
+	// An item's own cell: its picture over the middle.
+	icon := blob(64, color.NRGBA{200, 140, 60, 255}, 1)
+	full := inCell(icon, figCell+20, 0.85, 0, 0)
+	if Bare(full, cell) {
+		t.Error("a cell with an icon taken for bare")
 	}
 }

@@ -92,7 +92,10 @@ func (m *Matcher) ReadGridCached(pic Img, g Grid, c *GridCache) []Cell {
 	parallel(len(todo), func(k int) {
 		i := todoIdx[k]
 		cl := &cells[i]
-		cl.Result = m.Classify(pic.crop(g.Padded(cl.Col, cl.Row, pad)))
+		cl.Result = Result{Icon: -1}
+		if !Bare(pic, g.Rect(cl.Col, cl.Row)) {
+			cl.Result = m.Classify(pic.crop(g.Padded(cl.Col, cl.Row, pad)))
+		}
 		if cl.Icon >= 0 {
 			scans[i][0], scans[i][1] = scanMarks(pic, g.Rect(cl.Col, cl.Row))
 		}

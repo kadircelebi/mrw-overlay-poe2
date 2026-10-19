@@ -12,7 +12,7 @@ import (
 
 // Corners of a cell (shares of its side) where the figures are written.
 var (
-	stackCorner = [4]float64{0.07, 0, 0.62, 0.52} // x0, y0, x1, y1
+	stackCorner = [4]float64{0.07, 0, 0.92, 0.52} // x0, y0, x1, y1
 	tierCorner  = [4]float64{0.2, 0.5, 1, 1}
 )
 
