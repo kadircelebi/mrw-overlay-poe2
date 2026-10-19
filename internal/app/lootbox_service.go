@@ -15,9 +15,8 @@ import (
 // The loot box lies over the game while the inventory scan is on, in maps
 // too: what the next map starts from (the last read in the hideout and when
 // it was made), the map the player is in and the read it began from, the
-// reads back from it, what the last map brought and the session's sum. The
-// session counts from the game's start or, later, from when the player
-// started it over in the tracker window.
+// reads back from it, what the last map brought and the open session's
+// figures (see lootlog.Session).
 
 // Where the loot log stands, as the box words it.
 const (
@@ -36,7 +35,8 @@ const (
 // back from (Entered: when they went in). ReadingUntil (Unix ms) is when
 // the reads back from the map stop counting; Hotkey is the scan's shortcut
 // (the manual rule reads only with it). LastRun is the latest map
-// run filed, at LastRunAt.
+// run filed, at LastRunAt. Session, SessionStart (Unix ms), CostEx and
+// Farm are the open session's (zero when none is open).
 type LootStatusView struct {
 	Mode         string        `json:"mode"`
 	Hotkey       string        `json:"hotkey"`
@@ -53,6 +53,7 @@ type LootStatusView struct {
 	LastRunAt    int64         `json:"lastRunAt"`
 	Session      lootlog.Total `json:"session"`
 	SessionStart int64         `json:"sessionStart"`
+	CostEx       float64       `json:"costEx"`
 	Farm         FarmView      `json:"farm"`
 	Fields       []string      `json:"fields"`
 	DivineEx     float64       `json:"divineEx"`
@@ -71,17 +72,6 @@ const (
 var lootBoxMaxHeight = lootBoxFrame + len(overlay.LootBoxFieldKeys)*lootBoxLine
 
 func lootBoxLines(fields []string) int { return max(1, len(fields)) }
-
-// lootSessionStart is when the loot session began: the game's start, or the
-// player's restart of it when later.
-func (s *AppService) lootSessionStart() (time.Time, bool) {
-	start := s.sessionStart()
-	farm := s.lootLog.State(s.overlayClient.League()).Farm
-	if farm.After(start) {
-		return farm, true
-	}
-	return start, false
-}
 
 // GetLootStatus returns what the loot box shows.
 func (s *AppService) GetLootStatus() LootStatusView {
@@ -127,28 +117,19 @@ func (s *AppService) GetLootStatus() LootStatusView {
 	if base != nil {
 		v.InvEx, v.BaseAt, v.Fresh, v.Unsure = worth(base), base.At.UnixMilli(), fresh, base.Unsure
 	}
-	start, _ := s.lootSessionStart()
-	v.Farm = s.farmTimes(league, start)
-	list := s.lootLog.Maps(league)
-	farmFill(&v.Farm, list, start)
+	sessions, by, _, list := s.lootSessions(league)
+	if n := len(sessions); n > 0 && sessions[n-1].Open() {
+		now, running := s.farmNow()
+		sv := s.sessionView(league, n, sessions[n-1], by[n-1], now, running)
+		v.Farm, v.Session, v.SessionStart, v.CostEx = sv.Farm, sv.Total, sv.Start, sv.CostEx
+	}
 	if len(list) > 0 && len(list[0].Runs) > 0 {
 		m := list[0]
 		r := m.Runs[len(m.Runs)-1]
 		v.LastRun = &InvScanMap{Name: mapName(m.AreaID), RunEx: r.ValueEx, MapEx: m.ValueEx, Runs: len(m.Runs), Fresh: r.Fresh, NoBase: r.NoBase || r.Unread, Unsure: r.Unsure}
 		v.LastRunAt = r.To.UnixMilli()
 	}
-	v.Session, v.SessionStart = lootlog.Sum(list, start), start.UnixMilli()
 	return v
-}
-
-// StartLootSession starts the loot session over now: the maps stay, the
-// session's sum counts from here.
-func (s *AppService) StartLootSession() LootLogView {
-	if err := s.lootLog.StartFarm(s.overlayClient.League(), time.Now()); err != nil {
-		log.Printf("loot log: start session: %v", err)
-	}
-	s.lootChanged()
-	return s.GetLootLog()
 }
 
 // SetLootBox shows or hides the loot box over the game.

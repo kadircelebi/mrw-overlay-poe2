@@ -160,9 +160,9 @@ type AppService struct {
 	invScanWindow application.Window
 	invScan       invScanState
 	lootLog       *lootlog.Store
-	// farmLog reads the game session's area and AFK lines for the farm's
-	// times.
-	farmLog overlay.Timeline
+	// farmFollow keeps one read of the game's log into the loot log's
+	// session at a time.
+	farmFollow sync.Mutex
 	// lootBoxWindow shows the inventory scan's state over the game;
 	// lootPlacing is set while it is being dragged.
 	lootBoxWindow application.Window

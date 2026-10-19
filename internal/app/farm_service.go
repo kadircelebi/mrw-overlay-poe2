@@ -11,8 +11,8 @@ import (
 	"poe2filter/internal/overlay"
 )
 
-// The farm's figures for the loot session: its times from the game's log
-// (lootlog.FarmTimes), the best map and what came in most from the loot
+// The farm's figures for a loot session: its times from the game's log
+// (lootlog.Session.Clock), the best map and what came in most from the loot
 // log. The rates (per map, per hour) are made from these where they show.
 
 // FarmView is the loot session's figures. Times are in seconds, as they
@@ -47,65 +47,91 @@ type FarmBest struct {
 // farmTop is how many kinds of item the session's list shows.
 const farmTop = 12
 
-// farmTimes reads the game's log and keeps the time of each map left in
-// the loot log; the view's figures from the loot log come with farmFill.
-func (s *AppService) farmTimes(league string, start time.Time) FarmView {
-	now := time.Now()
-	v := FarmView{At: now.UnixMilli()}
+// followLog reads what the game's log added since the last read into the
+// loot log's open session, while the inventory scan is on.
+func (s *AppService) followLog() {
+	if mode, _ := s.invScanMode(); mode == overlay.ScanOff {
+		return
+	}
 	path, _ := s.gameLog.Load().(string)
 	if path == "" {
-		return v
+		return
 	}
-	marks, _, last := s.farmLog.Marks(path)
-	if len(marks) == 0 {
-		return v
+	s.farmFollow.Lock()
+	defer s.farmFollow.Unlock()
+	marks, next, again, err := overlay.ReadMarks(path, overlay.LogPos(s.lootLog.LogPos()))
+	if err != nil {
+		return
 	}
-	running := true
-	if _, ok := overlay.GameClient(); !ok && !last.IsZero() {
-		// The game is closed: the clock stopped at its last line.
-		now, running = last, false
-	}
-	in := make([]lootlog.Mark, len(marks))
+	lines := make([]lootlog.Line, len(marks))
 	for i, m := range marks {
-		in[i] = lootlog.Mark{At: m.At, AFK: m.AFK}
+		lines[i] = lootlog.Line{Mark: lootlog.Mark{At: m.At, AFK: m.AFK}, Open: m.Open, Prev: m.Prev}
 		if m.Area != nil {
 			a := lootArea(*m.Area)
-			in[i].Area = &a
+			lines[i].Area = &a
 		}
 	}
-	t := lootlog.FarmTimes(in, start, now)
-	v.Timed = true
-	v.Active, v.InMaps, v.InRest, v.Breaks = t.Active.Seconds(), t.InMaps.Seconds(), t.InRest.Seconds(), t.Breaks.Seconds()
-	v.Maps = len(t.Maps)
-	if running {
-		v.Live, v.RestLeft = t.Live, t.RestLeft.Seconds()
-		v.Since = t.Since.UnixMilli()
+	if err := s.lootLog.Follow(s.overlayClient.League(), lines, lootlog.LogPos(next), again); err != nil {
+		log.Printf("loot log: follow: %v", err)
 	}
-	left := t.Maps
-	if t.Live == lootlog.LiveMap && len(left) > 0 {
-		left = left[:len(left)-1]
+}
+
+// farmNow is the time the open session's clock stands at: now while the
+// game runs, else the log's last line; running tells which.
+func (s *AppService) farmNow() (time.Time, bool) {
+	if _, ok := overlay.GameClient(); !ok {
+		if last := s.lootLog.LogPos().Last; !last.IsZero() {
+			return last, false
+		}
 	}
-	if n := len(left); n > 0 {
-		v.LastMap, v.LastSecs = mapName(left[n-1].AreaID), left[n-1].Dur.Seconds()
+	return time.Now(), true
+}
+
+// farmTimes is the figures of session sess, with maps its maps (newest
+// first) and now as farmNow gives it. The time of each map the open session
+// has left is kept in the loot log.
+func (s *AppService) farmTimes(league string, sess lootlog.Session, maps []lootlog.Map, now time.Time, running bool) FarmView {
+	t, sum := sess.Clock(now)
+	v := FarmView{At: now.UnixMilli(), Timed: sum.Active > 0 || len(sess.Marks) > 0}
+	v.Active, v.InMaps, v.InRest, v.Breaks = float64(sum.Active), float64(sum.InMaps), float64(sum.InRest), float64(sum.Breaks)
+	v.Maps = sum.Maps
+	if sess.Open() {
+		if running {
+			v.Live, v.RestLeft = t.Live, t.RestLeft.Seconds()
+			v.Since = t.Since.UnixMilli()
+		}
+		left := t.Maps
+		if t.Live == lootlog.LiveMap && len(left) > 0 {
+			left = left[:len(left)-1]
+		}
+		if n := len(left); n > 0 {
+			v.LastMap, v.LastSecs = mapName(left[n-1].AreaID), left[n-1].Dur.Seconds()
+		}
+		if _, err := s.lootLog.SetMapTimes(league, left); err != nil {
+			log.Printf("loot log: map times: %v", err)
+		}
 	}
-	if _, err := s.lootLog.SetMapTimes(league, left); err != nil {
-		log.Printf("loot log: map times: %v", err)
+	if v.LastMap == "" {
+		for _, m := range maps {
+			if m.Secs > 0 {
+				v.LastMap, v.LastSecs = mapName(m.AreaID), float64(m.Secs)
+				break
+			}
+		}
 	}
+	farmFill(&v, maps)
 	return v
 }
 
 // farmFill adds the best map and what came in most, from the session's
 // maps (newest first, as the loot log lists them).
-func farmFill(v *FarmView, list []lootlog.Map, start time.Time) {
+func farmFill(v *FarmView, list []lootlog.Map) {
 	type kind struct {
 		count  int
 		eachEx float64
 	}
 	kinds := map[string]*kind{}
 	for _, m := range list {
-		if m.At.Before(start) {
-			continue
-		}
 		if m.ValueEx > 0 && (v.Best == nil || m.ValueEx > v.Best.ValueEx) {
 			v.Best = &FarmBest{Name: mapName(m.AreaID), ValueEx: m.ValueEx}
 		}
@@ -153,6 +179,7 @@ func (s *AppService) farmLoop(ctx context.Context) {
 			return
 		case <-tick.C:
 		}
+		s.followLog()
 		if s.app == nil {
 			continue
 		}

@@ -12,12 +12,14 @@ export type FarmData = {
   session: Total
   divineEx: number
   lastRun: InvScanMap | null
+  // What went into the session (0: not told).
+  costEx: number
 }
 
 // Lines only the box shows (the scan's state, the live clock, the
 // inventory); the rest are the tracker's figures too.
 export const BOX_ONLY = ['status', 'timer', 'inventory']
-export const FIGURES = ['sessionTime', 'sessionGain', 'maps', 'perMap', 'perHour', 'perMapHour', 'avgTime', 'mapTime', 'restTime', 'lastTime', 'lastGain', 'best']
+export const FIGURES = ['sessionTime', 'sessionGain', 'sessionNet', 'maps', 'perMap', 'perHour', 'perMapHour', 'avgTime', 'mapTime', 'restTime', 'lastTime', 'lastGain', 'best']
 
 /** h:mm:ss, or m:ss under an hour. */
 export function duration(secs: number): string {
@@ -63,6 +65,10 @@ export function fieldValue(key: string, d: FarmData, now: number): string {
       return f.timed ? duration(times.active) : '—'
     case 'sessionGain':
       return worth(gain)
+    case 'sessionNet': {
+      const net = gain - d.costEx
+      return net < 0 ? `-${worth(-net)}` : worth(net)
+    }
     case 'maps':
       return String(d.session.maps)
     case 'perMap':

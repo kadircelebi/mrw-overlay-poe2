@@ -86,7 +86,7 @@
   const last = $derived(view?.lastRun ?? null)
   const lastWarn = $derived(!!last && (last.noBase || !last.fresh || last.unsure > 0))
   const flash = $derived(!!view && view.lastRunAt > 0 && now - view.lastRunAt < FLASH_MS)
-  const data = $derived<FarmData>({ farm: view!.farm, session: view!.session, divineEx: view?.divineEx ?? 0, lastRun: last })
+  const data = $derived<FarmData>({ farm: view!.farm, session: view!.session, divineEx: view?.divineEx ?? 0, lastRun: last, costEx: view?.costEx ?? 0 })
 </script>
 
 {#if view}

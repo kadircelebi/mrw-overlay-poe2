@@ -102,7 +102,7 @@ type Settings struct {
 // began from), the last map, then the session's figures.
 var LootBoxFieldKeys = []string{
 	"status", "timer", "inventory", "lastGain", "lastTime",
-	"sessionTime", "sessionGain", "maps", "perMap", "perHour", "perMapHour",
+	"sessionTime", "sessionGain", "sessionNet", "maps", "perMap", "perHour", "perMapHour",
 	"avgTime", "mapTime", "restTime", "best",
 }
 

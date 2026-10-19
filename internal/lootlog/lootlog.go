@@ -87,10 +87,10 @@ type Map struct {
 
 // Area is an area the game built (overlay.Area's fields).
 type Area struct {
-	ID    string
-	Level int
-	Seed  string
-	Rest  bool // hideout or town
+	ID    string `json:"id"`
+	Level int    `json:"level,omitempty"`
+	Seed  string `json:"seed,omitempty"`
+	Rest  bool   `json:"rest,omitempty"` // hideout or town
 }
 
 // trip is the map the player went into from the hideout, with the read
@@ -113,14 +113,15 @@ type league struct {
 	// Last is the latest read made in a hideout or town.
 	Last *Scan `json:"last,omitempty"`
 	Trip *trip `json:"trip,omitempty"`
-	// Farm is when the player last started counting a session over (the
-	// maps stay); a later game session counts from its own start.
-	Farm time.Time `json:"farm,omitzero"`
+	// Sessions are oldest first (see Session).
+	Sessions []Session `json:"sessions,omitempty"`
 }
 
 type file struct {
 	Version int                `json:"version"`
 	Leagues map[string]*league `json:"leagues"`
+	// Log is where the last read of the game's log stopped.
+	Log LogPos `json:"log"`
 }
 
 // Store is the local file of map runs.
@@ -349,7 +350,6 @@ type State struct {
 	TripFresh     bool
 	Back          bool
 	BackAt        time.Time
-	Farm          time.Time
 }
 
 // State returns league's state.
@@ -361,7 +361,6 @@ func (s *Store) State(leagueName string) State {
 	if l == nil {
 		return st
 	}
-	st.Farm = l.Farm
 	if l.Last != nil {
 		last := *l.Last
 		st.Last = &last
@@ -384,9 +383,13 @@ func (s *Store) SetMapTimes(leagueName string, times []MapTime) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	l := s.load().Leagues[leagueName]
-	if l == nil {
+	if l == nil || !l.setMapTimes(times) {
 		return false, nil
 	}
+	return true, s.save()
+}
+
+func (l *league) setMapTimes(times []MapTime) bool {
 	changed := false
 	for _, mt := range times {
 		secs := int(mt.Dur.Round(time.Second) / time.Second)
@@ -401,18 +404,7 @@ func (s *Store) SetMapTimes(leagueName string, times []MapTime) (bool, error) {
 			break
 		}
 	}
-	if !changed {
-		return false, nil
-	}
-	return true, s.save()
-}
-
-// StartFarm starts counting league's session over at at.
-func (s *Store) StartFarm(leagueName string, at time.Time) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.league(leagueName).Farm = at
-	return s.save()
+	return changed
 }
 
 // Maps returns league's maps, newest first.

@@ -426,25 +426,22 @@ export interface LanguageOption {
 }
 
 /**
- * LootLogView is what the tracker window's loot tab shows. Waiting names
- * the map whose run waits for a read in the hideout ("" when none). The
- * totals count like the Expedition tab's, but the session from the player's
- * restart of it when later than the game's start (Restarted), with its
- * figures (Farm). Box tells the
- * loot box is on, Placing that it is being dragged.
+ * LootLogView is what the tracker window's loot tab shows: the league's
+ * sessions, newest first, and the maps from before the first (Before).
+ * Waiting names the map whose run waits for a read in the hideout ("" when
+ * none). Today counts from local midnight, LeagueTotal all the maps. Box
+ * tells the loot box is on, Placing that it is being dragged.
  */
 export interface LootLogView {
     "league": string;
     "mode": string;
-    "maps": LootMap[] | null;
+    "sessions": LootSessionView[] | null;
+    "before": LootMap[] | null;
+    "beforeTotal": lootlog$0.Total;
     "waiting": string;
-    "sessionStart": number;
-    "session": lootlog$0.Total;
     "today": lootlog$0.Total;
     "leagueTotal": lootlog$0.Total;
     "divineEx": number;
-    "restarted": boolean;
-    "farm": FarmView;
     "box": boolean;
     "placing": boolean;
 }
@@ -469,6 +466,25 @@ export interface LootMap {
 }
 
 /**
+ * LootSessionView is one session as the tracker shows it: N is its number
+ * in the league (from 1), Start and End Unix ms (End 0 while Open), CostEx
+ * what went into it (0: not told), Total what its maps brought, Farm its
+ * figures and Maps its maps, newest first.
+ */
+export interface LootSessionView {
+    "id": number;
+    "n": number;
+    "name": string;
+    "start": number;
+    "end": number;
+    "open": boolean;
+    "costEx": number;
+    "total": lootlog$0.Total;
+    "farm": FarmView;
+    "maps": LootMap[] | null;
+}
+
+/**
  * LootStatusView is what the loot box shows. InvEx is the worth of the
  * inventory last read in a hideout or town (in a map: the read the map
  * began from, at BaseAt, Unix ms; 0 when none); Fresh tells it was read on
@@ -476,7 +492,8 @@ export interface LootMap {
  * back from (Entered: when they went in). ReadingUntil (Unix ms) is when
  * the reads back from the map stop counting; Hotkey is the scan's shortcut
  * (the manual rule reads only with it). LastRun is the latest map
- * run filed, at LastRunAt.
+ * run filed, at LastRunAt. Session, SessionStart (Unix ms), CostEx and
+ * Farm are the open session's (zero when none is open).
  */
 export interface LootStatusView {
     "mode": string;
@@ -494,6 +511,7 @@ export interface LootStatusView {
     "lastRunAt": number;
     "session": lootlog$0.Total;
     "sessionStart": number;
+    "costEx": number;
     "farm": FarmView;
     "fields": string[] | null;
     "divineEx": number;

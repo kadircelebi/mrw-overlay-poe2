@@ -5,7 +5,7 @@
   import { onDestroy, onMount } from 'svelte'
   import { Events, Window } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter/internal/app'
-  import type { ExpeditionEntry, ExpeditionHistoryView, LootLogView, LootMap, TradeHistoryView, TradeSale } from '../bindings/poe2filter/internal/app/models'
+  import type { ExpeditionEntry, ExpeditionHistoryView, LootLogView, LootMap, LootSessionView, TradeHistoryView, TradeSale } from '../bindings/poe2filter/internal/app/models'
   import type { Run } from '../bindings/poe2filter/internal/lootlog/models'
   import type { Settings } from '../bindings/poe2filter/internal/overlay/models'
   import type { Total } from '../bindings/poe2filter/internal/tradehistory/models'
@@ -14,7 +14,7 @@
   import { clock, money, relative, until } from './lib/format'
   import { currencyInfo } from './lib/currencies.svelte'
   import Toggle from './lib/Toggle.svelte'
-  import { BOX_ONLY, FIGURES, doubtText, duration, fieldLabel, fieldValue, type FarmData } from './lib/farm'
+  import { BOX_ONLY, FIGURES, doubtText, duration, fieldLabel, fieldValue, liveTimes, type FarmData } from './lib/farm'
 
   type Tab = 'sales' | 'expedition' | 'loot'
   let tab = $state<Tab>('sales')
@@ -142,14 +142,15 @@
   })
 
 
-  // The loot log: what each map brought, by day and map, newest first.
+  // The loot log: the league's sessions, newest first, each with its maps
+  // by day and map, newest first.
   function lootWorth(valueEx: number) {
     return valueEx > 0 ? money(valueEx, loot?.divineEx ?? 0) : '—'
   }
   type LootDay = { key: string; label: string; maps: LootMap[]; valueEx: number }
-  const lootDays = $derived.by(() => {
+  function lootDays(maps: LootMap[]) {
     const out: LootDay[] = []
-    for (const m of loot?.maps ?? []) {
+    for (const m of maps) {
       const d = new Date(m.at)
       const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
       let day = out[out.length - 1]
@@ -161,7 +162,7 @@
       day.valueEx += m.valueEx
     }
     return out
-  })
+  }
   let lootOpen = $state<Record<string, boolean>>({})
   // A run's items, most worth first (unpriced last, by count).
   function runRows(r: Run) {
@@ -192,14 +193,70 @@
     settings = await AppService.GetOverlaySettings()
     loot = await AppService.GetLootLog()
   }
-  // The session's figures, the last map's gain from the newest run.
-  const lootData = $derived.by<FarmData | null>(() => {
-    if (!loot) return null
-    const m = loot.maps?.[0]
+  const sessions = $derived(loot?.sessions ?? [])
+  const current = $derived(sessions[0]?.open ? sessions[0] : null)
+  // A session's figures, the last map's gain from its newest run.
+  function sessionData(ss: LootSessionView): FarmData {
+    const m = ss.maps?.[0]
     const r = m?.runs?.[m.runs.length - 1]
     const lastRun = m && r ? { name: m.map, runEx: r.valueEx, mapEx: m.valueEx, runs: m.runs?.length ?? 1, fresh: r.fresh, noBase: !!(r.noBase || r.unread), unsure: r.unsure ?? 0 } : null
-    return { farm: loot.farm, session: loot.session, divineEx: loot.divineEx, lastRun }
-  })
+    return { farm: ss.farm, session: ss.total, divineEx: loot?.divineEx ?? 0, lastRun, costEx: ss.costEx }
+  }
+  // Which sessions are folded open: the open one unless closed, the others
+  // only when opened (earlier maps: -1).
+  let sessionUnfolded = $state<Record<number, boolean>>({})
+  function sessionShown(ss: LootSessionView) {
+    return sessionUnfolded[ss.id] ?? ss.open
+  }
+  function sessionTitle(ss: LootSessionView) {
+    return ss.name || t('loot.sessionN', ss.n)
+  }
+  function sessionWhen(ss: LootSessionView) {
+    const day = new Date(ss.start).toLocaleDateString(locale(), { day: 'numeric', month: 'short' })
+    return `${day} ${clock(ss.start)}–${ss.open ? t('loot.sessionNow') : clock(ss.end)}`
+  }
+  function sessionNet(ss: LootSessionView) {
+    const net = ss.total.valueEx - ss.costEx
+    return net < 0 ? `-${lootWorth(-net)}` : lootWorth(net)
+  }
+  // The session being renamed or given its cost, and the drafts.
+  let editing = $state<{ id: number; what: 'name' | 'cost' } | null>(null)
+  let nameDraft = $state('')
+  let costDraft = $state('')
+  let costUnit = $state<'div' | 'ex'>('div')
+  function editName(ss: LootSessionView) {
+    editing = { id: ss.id, what: 'name' }
+    nameDraft = ss.name
+  }
+  function editCost(ss: LootSessionView) {
+    editing = { id: ss.id, what: 'cost' }
+    const div = loot?.divineEx ?? 0
+    costUnit = div > 0 ? 'div' : 'ex'
+    costDraft = ss.costEx > 0 ? String(+(costUnit === 'div' ? ss.costEx / div : ss.costEx).toFixed(2)) : ''
+  }
+  async function saveEdit(ss: LootSessionView) {
+    if (!editing) return
+    if (editing.what === 'name') {
+      loot = await AppService.RenameLootSession(ss.id, nameDraft)
+    } else {
+      const n = parseFloat(costDraft.replace(',', '.'))
+      const ex = n > 0 ? (costUnit === 'div' ? n * (loot?.divineEx ?? 0) : n) : 0
+      loot = await AppService.SetLootSessionCost(ss.id, ex)
+    }
+    editing = null
+  }
+  function editKey(e: KeyboardEvent, ss: LootSessionView) {
+    if (e.key === 'Enter') saveEdit(ss)
+    if (e.key === 'Escape') editing = null
+  }
+  async function mergeSession(ss: LootSessionView) {
+    if (!confirm(t('loot.mergeConfirm', sessionTitle(ss)))) return
+    loot = await AppService.MergeLootSession(ss.id)
+  }
+  async function deleteSession(ss: LootSessionView) {
+    if (!confirm(t('loot.deleteSessionConfirm', sessionTitle(ss)))) return
+    loot = await AppService.DeleteLootSession(ss.id)
+  }
   function inBox(key: string) {
     return (settings?.loot_box_fields ?? []).includes(key)
   }
@@ -352,11 +409,103 @@
           </div>
         {/if}
 
+        {#snippet farmCard(ss: LootSessionView)}
+          {@const data = sessionData(ss)}
+          <div class="card farm">
+            <div class="farm-head">
+              <span class="label">{t('farm.title')}</span>
+              {#if ss.open}<span class="muted small">{t('farm.pinHint')}</span>{/if}
+            </div>
+            {#if !ss.farm.timed}<p class="muted small">{t('farm.noLog')}</p>{/if}
+            <div class="farm-grid">
+              {#each FIGURES as key (key)}
+                {#if key !== 'sessionNet' || ss.costEx > 0}
+                  <div class="farm-cell">
+                    <span class="label" title={fieldLabel(key, data)}>{fieldLabel(key, data)}</span>
+                    <span class="value num">{fieldValue(key, data, now)}</span>
+                    {#if ss.open}<button class="pin" class:on={inBox(key)} aria-pressed={inBox(key)} title={t('farm.pinHint')} onclick={() => toggleBox(key)}>{inBox(key) ? '■' : '□'} {t('farm.pin')}</button>{/if}
+                  </div>
+                {/if}
+              {/each}
+            </div>
+            {#if ss.open}
+              <div class="farm-only">
+                <span class="muted small">{t('farm.boxOnly')}</span>
+                {#each BOX_ONLY as key (key)}
+                  <button class="pin" class:on={inBox(key)} aria-pressed={inBox(key)} onclick={() => toggleBox(key)}>{inBox(key) ? '■' : '□'} {t(`farm.${key}`)}</button>
+                {/each}
+              </div>
+            {/if}
+            <p class="muted small">{t('farm.restNote')}{#if ss.farm.breaks > 0}&nbsp;· {t('farm.breaks', duration(ss.farm.breaks))}{/if}</p>
+          </div>
+          {#if ss.farm.top?.length}
+            <div class="card farm-top">
+              <span class="label">{t('farm.top')}</span>
+              {#each ss.farm.top as it (it.name)}
+                <div class="loot-item">
+                  <span class="count num muted">{it.count}×</span>
+                  <span class="name currency">{it.name}</span>
+                  <span class="each num muted">{it.eachEx > 0 ? lootWorth(it.eachEx) : '?'}</span>
+                  <span class="worth num">{it.eachEx > 0 ? lootWorth(it.eachEx * it.count) : ''}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        {/snippet}
+
+        {#snippet mapList(maps: LootMap[])}
+          {#if maps.length === 0}
+            <p class="muted empty">{t('loot.empty')}</p>
+          {:else}
+            <div class="list">
+              {#each lootDays(maps) as day (day.key)}
+                <div class="day">
+                  <span>{day.label}</span>
+                  <span class="num">{t('loot.maps', day.maps.length)} · {lootWorth(day.valueEx)}</span>
+                </div>
+                {#each day.maps as m (String(m.at))}
+                  <div class="map-line">
+                    <button class="map-head" aria-expanded={!!lootOpen[String(m.at)]} onclick={() => (lootOpen[String(m.at)] = !lootOpen[String(m.at)])}>
+                      <span class="chev">{lootOpen[String(m.at)] ? '▾' : '▸'}</span>
+                      <span class="time num">{clock(new Date(m.at).getTime())}</span>
+                      <span class="map" title={m.area}>{m.map}{#if m.level}&nbsp;<span class="muted">({m.level})</span>{/if}</span>
+                      <span class="count muted">{#if m.secs}{duration(m.secs)}&nbsp;·&nbsp;{/if}{t('loot.runs', (m.runs ?? []).length)}{#if mapWarned(m)}&nbsp;·&nbsp;<span class="warn-text">⚠</span>{/if}</span>
+                      <span class="worth num">{lootWorth(m.valueEx)}</span>
+                    </button>
+                    <button class="del" title={t('loot.delete')} aria-label={t('loot.delete')} onclick={() => deleteLoot(m)}>✕</button>
+                  </div>
+                  {#if lootOpen[String(m.at)]}
+                    {#each m.runs ?? [] as r, i (i)}
+                      <div class="loot-run">
+                        <div class="run-head">
+                          <span class="time num">{clock(new Date(r.from).getTime())}–{clock(new Date(r.to).getTime())}</span>
+                          <span class="muted small">{(m.runs ?? []).length > 1 ? t('loot.trip', i + 1) : ''}</span>
+                          <span class="worth num">{lootWorth(r.valueEx)}</span>
+                        </div>
+                        {#if runNote(r)}<p class="small warn-text run-note">{runNote(r)}</p>{/if}
+                        {#each r.doubts ?? [] as d, k (k)}<p class="small warn-text run-note">{d.after ? t('loot.after') : t('loot.before')} · {doubtText(d)}</p>{/each}
+                        {#each runRows(r) as it (it.name)}
+                          <div class="loot-item">
+                            <span class="count num muted">{it.count}×</span>
+                            <span class="name currency">{it.name}</span>
+                            <span class="each num muted">{it.eachEx > 0 ? lootWorth(it.eachEx) : '?'}</span>
+                            <span class="worth num">{it.eachEx > 0 ? lootWorth(it.totalEx) : ''}</span>
+                          </div>
+                        {/each}
+                      </div>
+                    {/each}
+                  {/if}
+                {/each}
+              {/each}
+            </div>
+          {/if}
+        {/snippet}
+
         <div class="totals">
           <div class="total">
             <span class="label">{t('tracker.session')}</span>
-            <span class="value num">{lootWorth(loot.session.valueEx)}</span>
-            <span class="sub">{t('loot.maps', loot.session.maps)} · {t('tracker.since', clock(loot.sessionStart))}</span>
+            <span class="value num">{lootWorth(current?.total.valueEx ?? 0)}</span>
+            <span class="sub">{#if current}{t('loot.maps', current.total.maps)} · {t('tracker.since', clock(current.start))}{:else}—{/if}</span>
             <button class="link small" title={t('loot.newSessionHint')} onclick={newLootSession}>{t('loot.newSession')}</button>
           </div>
           <div class="total">
@@ -371,89 +520,64 @@
           </div>
         </div>
 
-        {#if lootData}
-          <div class="card farm">
-            <div class="farm-head">
-              <span class="label">{t('farm.title')}</span>
-              <span class="muted small">{t('farm.pinHint')}</span>
-            </div>
-            {#if !loot.farm.timed}<p class="muted small">{t('farm.noLog')}</p>{/if}
-            <div class="farm-grid">
-              {#each FIGURES as key (key)}
-                <div class="farm-cell">
-                  <span class="label" title={fieldLabel(key, lootData)}>{fieldLabel(key, lootData)}</span>
-                  <span class="value num">{fieldValue(key, lootData, now)}</span>
-                  <button class="pin" class:on={inBox(key)} aria-pressed={inBox(key)} title={t('farm.pinHint')} onclick={() => toggleBox(key)}>{inBox(key) ? '■' : '□'} {t('farm.pin')}</button>
+        {#each sessions as ss (ss.id)}
+          <div class="session" class:current={ss.open}>
+            <button class="session-head" aria-expanded={sessionShown(ss)} onclick={() => (sessionUnfolded[ss.id] = !sessionShown(ss))}>
+              <span class="chev">{sessionShown(ss) ? '▾' : '▸'}</span>
+              <span class="title">{sessionTitle(ss)}</span>
+              <span class="when muted num">{sessionWhen(ss)}</span>
+              <span class="count muted">{#if ss.farm.timed}{t('loot.active', duration(liveTimes(ss.farm, now).active))}&nbsp;·&nbsp;{/if}{t('loot.maps', ss.total.maps)}</span>
+              <span class="worth num">{lootWorth(ss.total.valueEx)}{#if ss.costEx > 0}<span class="muted net">&nbsp;· {t('loot.net', sessionNet(ss))}</span>{/if}</span>
+            </button>
+            {#if sessionShown(ss)}
+              <div class="session-body">
+                <div class="session-tools">
+                  {#if editing?.id === ss.id && editing.what === 'name'}
+                    <input class="name-input" maxlength="40" placeholder={t('loot.namePlaceholder')} bind:value={nameDraft} onkeydown={(e) => editKey(e, ss)} />
+                    <button class="primary small-btn" onclick={() => saveEdit(ss)}>{t('loot.save')}</button>
+                    <button class="small-btn" onclick={() => (editing = null)}>{t('loot.cancel')}</button>
+                  {:else if editing?.id === ss.id && editing.what === 'cost'}
+                    <span class="muted small" title={t('loot.costHint')}>{t('loot.cost')}</span>
+                    <input class="cost-input num" inputmode="decimal" placeholder="0" bind:value={costDraft} onkeydown={(e) => editKey(e, ss)} />
+                    <select bind:value={costUnit}>
+                      {#if loot.divineEx > 0}<option value="div">div</option>{/if}
+                      <option value="ex">ex</option>
+                    </select>
+                    <button class="primary small-btn" onclick={() => saveEdit(ss)}>{t('loot.save')}</button>
+                    <button class="small-btn" onclick={() => (editing = null)}>{t('loot.cancel')}</button>
+                    <span class="muted small">{t('loot.costHint')}</span>
+                  {:else}
+                    <button class="link small" onclick={() => editName(ss)}>{t('loot.rename')}</button>
+                    <button class="link small" title={t('loot.costHint')} onclick={() => editCost(ss)}>{ss.costEx > 0 ? `${t('loot.cost')}: ${lootWorth(ss.costEx)}` : t('loot.costSet')}</button>
+                    {#if ss.n > 1}<button class="link small" onclick={() => mergeSession(ss)}>{t('loot.merge')}</button>{/if}
+                    <button class="link small danger" onclick={() => deleteSession(ss)}>{t('loot.deleteSession')}</button>
+                  {/if}
                 </div>
-              {/each}
-            </div>
-            <div class="farm-only">
-              <span class="muted small">{t('farm.boxOnly')}</span>
-              {#each BOX_ONLY as key (key)}
-                <button class="pin" class:on={inBox(key)} aria-pressed={inBox(key)} onclick={() => toggleBox(key)}>{inBox(key) ? '■' : '□'} {t(`farm.${key}`)}</button>
-              {/each}
-            </div>
-            <p class="muted small">{t('farm.restNote')}{#if loot.farm.breaks > 0}&nbsp;· {t('farm.breaks', duration(loot.farm.breaks))}{/if}</p>
-          </div>
-          {#if loot.farm.top?.length}
-            <div class="card farm-top">
-              <span class="label">{t('farm.top')}</span>
-              {#each loot.farm.top as it (it.name)}
-                <div class="loot-item">
-                  <span class="count num muted">{it.count}×</span>
-                  <span class="name currency">{it.name}</span>
-                  <span class="each num muted">{it.eachEx > 0 ? lootWorth(it.eachEx) : '?'}</span>
-                  <span class="worth num">{it.eachEx > 0 ? lootWorth(it.eachEx * it.count) : ''}</span>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        {/if}
-
-        {#if lootDays.length === 0}
-          <p class="muted empty">{t('loot.empty')}</p>
-        {:else}
-          <div class="list">
-            {#each lootDays as day (day.key)}
-              <div class="day">
-                <span>{day.label}</span>
-                <span class="num">{t('loot.maps', day.maps.length)} · {lootWorth(day.valueEx)}</span>
+                {@render farmCard(ss)}
+                {@render mapList(ss.maps ?? [])}
               </div>
-              {#each day.maps as m (String(m.at))}
-                <div class="map-line">
-                  <button class="map-head" aria-expanded={!!lootOpen[String(m.at)]} onclick={() => (lootOpen[String(m.at)] = !lootOpen[String(m.at)])}>
-                    <span class="chev">{lootOpen[String(m.at)] ? '▾' : '▸'}</span>
-                    <span class="time num">{clock(new Date(m.at).getTime())}</span>
-                    <span class="map" title={m.area}>{m.map}{#if m.level}&nbsp;<span class="muted">({m.level})</span>{/if}</span>
-                    <span class="count muted">{#if m.secs}{duration(m.secs)}&nbsp;·&nbsp;{/if}{t('loot.runs', (m.runs ?? []).length)}{#if mapWarned(m)}&nbsp;·&nbsp;<span class="warn-text">⚠</span>{/if}</span>
-                    <span class="worth num">{lootWorth(m.valueEx)}</span>
-                  </button>
-                  <button class="del" title={t('loot.delete')} aria-label={t('loot.delete')} onclick={() => deleteLoot(m)}>✕</button>
-                </div>
-                {#if lootOpen[String(m.at)]}
-                  {#each m.runs ?? [] as r, i (i)}
-                    <div class="loot-run">
-                      <div class="run-head">
-                        <span class="time num">{clock(new Date(r.from).getTime())}–{clock(new Date(r.to).getTime())}</span>
-                        <span class="muted small">{(m.runs ?? []).length > 1 ? t('loot.trip', i + 1) : ''}</span>
-                        <span class="worth num">{lootWorth(r.valueEx)}</span>
-                      </div>
-                      {#if runNote(r)}<p class="small warn-text run-note">{runNote(r)}</p>{/if}
-                      {#each r.doubts ?? [] as d, k (k)}<p class="small warn-text run-note">{d.after ? t('loot.after') : t('loot.before')} · {doubtText(d)}</p>{/each}
-                      {#each runRows(r) as it (it.name)}
-                        <div class="loot-item">
-                          <span class="count num muted">{it.count}×</span>
-                          <span class="name currency">{it.name}</span>
-                          <span class="each num muted">{it.eachEx > 0 ? lootWorth(it.eachEx) : '?'}</span>
-                          <span class="worth num">{it.eachEx > 0 ? lootWorth(it.totalEx) : ''}</span>
-                        </div>
-                      {/each}
-                    </div>
-                  {/each}
-                {/if}
-              {/each}
-            {/each}
+            {/if}
           </div>
+        {/each}
+
+        {#if (loot.before ?? []).length}
+          <div class="session">
+            <button class="session-head" aria-expanded={!!sessionUnfolded[-1]} title={t('loot.earlierHint')} onclick={() => (sessionUnfolded[-1] = !sessionUnfolded[-1])}>
+              <span class="chev">{sessionUnfolded[-1] ? '▾' : '▸'}</span>
+              <span class="title">{t('loot.earlier')}</span>
+              <span class="when muted"></span>
+              <span class="count muted">{t('loot.maps', loot.beforeTotal.maps)}</span>
+              <span class="worth num">{lootWorth(loot.beforeTotal.valueEx)}</span>
+            </button>
+            {#if sessionUnfolded[-1]}
+              <div class="session-body">
+                {@render mapList(loot.before ?? [])}
+              </div>
+            {/if}
+          </div>
+        {/if}
+        {#if sessions.length === 0 && !(loot.before ?? []).length}
+          <p class="muted empty">{t('loot.empty')}</p>
         {/if}
 
         <div class="card options">
@@ -1069,6 +1193,36 @@
     color: var(--text-2);
   }
   .map-line { display: flex; align-items: stretch; gap: 4px; }
+  .session {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--sunk);
+  }
+  .session.current { border-color: var(--gold-dim); }
+  .session-head {
+    display: grid;
+    grid-template-columns: 16px minmax(90px, auto) 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 0;
+    background: var(--surface);
+    color: var(--text);
+    text-align: left;
+  }
+  .session-head:hover { background: var(--surface-2); }
+  .session-head .chev { color: var(--muted); }
+  .session-head .title { color: var(--gold-bright); font-family: var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .session-head .when, .session-head .count { font-size: 12px; white-space: nowrap; }
+  .session-head .worth { white-space: nowrap; }
+  .session-head .net { font-size: 12px; }
+  .session-body { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px; border-top: 1px solid var(--line); }
+  .session-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  .session-tools .danger { color: var(--bad); }
+  .session-tools .name-input { width: 220px; }
+  .session-tools .cost-input { width: 80px; }
   .farm { display: flex; flex-direction: column; gap: 10px; }
   .farm-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
   .farm .label, .farm-top .label { color: var(--muted); font-size: 12px; }

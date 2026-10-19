@@ -164,6 +164,14 @@ export function DeleteLootMap(at: string): $CancellablePromise<$models.LootLogVi
     return $Call.ByID(131104490, at);
 }
 
+/**
+ * DeleteLootSession forgets session id and its maps; the open one begins
+ * again now.
+ */
+export function DeleteLootSession(id: number): $CancellablePromise<$models.LootLogView> {
+    return $Call.ByID(2641002784, id);
+}
+
 export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.SearchLibrary> {
     return $Call.ByID(768745922, id);
 }
@@ -370,7 +378,7 @@ export function GetInvScanView(): $CancellablePromise<$models.InvScanView> {
 }
 
 /**
- * GetLootLog returns the current league's maps.
+ * GetLootLog returns the current league's sessions and maps.
  */
 export function GetLootLog(): $CancellablePromise<$models.LootLogView> {
     return $Call.ByID(3427134829);
@@ -524,6 +532,13 @@ export function LiveResults(id: string): $CancellablePromise<trade$0.EvaluatedLi
  */
 export function LiveSearches(): $CancellablePromise<trade$0.LiveState[] | null> {
     return $Call.ByID(1469155687);
+}
+
+/**
+ * MergeLootSession joins session id to the one before it.
+ */
+export function MergeLootSession(id: number): $CancellablePromise<$models.LootLogView> {
+    return $Call.ByID(2176183971, id);
 }
 
 /**
@@ -758,6 +773,13 @@ export function RefreshTradeHistory(): $CancellablePromise<$models.TradeHistoryV
     return $Call.ByID(2934187762);
 }
 
+/**
+ * RenameLootSession names session id ("": its number again).
+ */
+export function RenameLootSession(id: number, name: string): $CancellablePromise<$models.LootLogView> {
+    return $Call.ByID(178397439, id, name);
+}
+
 export function RenameOverlaySearch(id: string, name: string): $CancellablePromise<overlay$0.SearchLibrary> {
     return $Call.ByID(496632141, id, name);
 }
@@ -862,6 +884,14 @@ export function SetLootBox(on: boolean): $CancellablePromise<void> {
     return $Call.ByID(391201242, on);
 }
 
+/**
+ * SetLootSessionCost keeps what went into session id, in Exalted (0:
+ * nothing).
+ */
+export function SetLootSessionCost(id: number, valueEx: number): $CancellablePromise<$models.LootLogView> {
+    return $Call.ByID(4129172534, id, valueEx);
+}
+
 export function SetStartupEnabled(enabled: boolean): $CancellablePromise<$models.StartupStatus> {
     return $Call.ByID(1350568245, enabled);
 }
@@ -913,8 +943,8 @@ export function StartLiveSearch(id: string): $CancellablePromise<trade$0.LiveSta
 }
 
 /**
- * StartLootSession starts the loot session over now: the maps stay, the
- * session's sum counts from here.
+ * StartLootSession ends the open session now and begins another: the maps
+ * stay with the session they were entered in.
  */
 export function StartLootSession(): $CancellablePromise<$models.LootLogView> {
     return $Call.ByID(2657629867);

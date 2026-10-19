@@ -150,7 +150,7 @@ func TestGainCountsOnlyWhatWentUp(t *testing.T) {
 	}
 }
 
-func TestStateFollowsTheTripAndTheFarm(t *testing.T) {
+func TestStateFollowsTheTrip(t *testing.T) {
 	dir := t.TempDir()
 	s := New(dir)
 	c := &clock{time.Date(2026, 10, 19, 20, 0, 0, 0, time.UTC)}
@@ -173,12 +173,8 @@ func TestStateFollowsTheTripAndTheFarm(t *testing.T) {
 	if st := s.State("L"); !st.Back || st.Fresh {
 		t.Fatalf("back %+v", st)
 	}
-	farm := c.next()
-	if err := s.StartFarm("L", farm); err != nil {
-		t.Fatal(err)
-	}
-	if st := New(dir).State("L"); !st.Farm.Equal(farm) {
-		t.Errorf("farm start not kept: %v", st.Farm)
+	if st := New(dir).State("L"); !st.Back || st.TripArea != isle.ID {
+		t.Errorf("trip not kept: %+v", st)
 	}
 }
 

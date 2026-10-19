@@ -14,11 +14,13 @@ import "time"
 const BreakAfter = 10 * time.Minute
 
 // Mark is one line of the log the times are cut at: an area entered (Area
-// set), or the game marking the player away (AFK) or back (Area nil).
+// set), or the game marking the player away (AFK) or back (Area nil). Off
+// marks the game closed: nothing counts from then to the next mark.
 type Mark struct {
-	At   time.Time
-	Area *Area
-	AFK  bool
+	At   time.Time `json:"at"`
+	Area *Area     `json:"area,omitempty"`
+	AFK  bool      `json:"afk,omitempty"`
+	Off  bool      `json:"off,omitempty"`
 }
 
 // MapTime is the time spent in one map: from each entry from a hideout or
@@ -65,6 +67,11 @@ func FarmTimes(marks []Mark, since, now time.Time) Times {
 			continue
 		}
 		switch {
+		case m.Off:
+			// The game closed: it was not away after that.
+			if len(away) > 0 && away[len(away)-1].to.IsZero() {
+				away[len(away)-1].to = m.At
+			}
 		case m.AFK && (len(away) == 0 || !away[len(away)-1].to.IsZero()):
 			away = append(away, span{from: m.At})
 		case !m.AFK && len(away) > 0 && away[len(away)-1].to.IsZero():
@@ -86,7 +93,7 @@ func FarmTimes(marks []Mark, since, now time.Time) Times {
 	}
 	var areas []Mark
 	for _, m := range marks {
-		if m.Area != nil && m.At.Before(now) {
+		if (m.Area != nil || m.Off) && m.At.Before(now) {
 			areas = append(areas, m)
 		}
 	}
@@ -103,6 +110,13 @@ func FarmTimes(marks []Mark, since, now time.Time) Times {
 			end = areas[i+1].At
 		}
 		from := maxTime(m.At, since)
+		if m.Off {
+			// Nothing counts while the game is closed; whatever is entered
+			// next is a trip from home (back into the same map goes on
+			// with it).
+			prevRest = true
+			continue
+		}
 		a := *m.Area
 		if a.Rest {
 			if !prevRest {
@@ -140,7 +154,7 @@ func FarmTimes(marks []Mark, since, now time.Time) Times {
 	}
 	t.Active = t.InMaps + t.InRest
 	switch {
-	case len(areas) == 0:
+	case len(areas) == 0, areas[len(areas)-1].Off:
 	case !prevRest:
 		t.Live = LiveMap
 	case stay >= BreakAfter || awayIn(now.Add(-time.Second), now) > 0:

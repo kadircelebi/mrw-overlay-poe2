@@ -19,26 +19,40 @@ type LootMap struct {
 	Name string `json:"map"`
 }
 
-// LootLogView is what the tracker window's loot tab shows. Waiting names
-// the map whose run waits for a read in the hideout ("" when none). The
-// totals count like the Expedition tab's, but the session from the player's
-// restart of it when later than the game's start (Restarted), with its
-// figures (Farm). Box tells the
-// loot box is on, Placing that it is being dragged.
+// LootLogView is what the tracker window's loot tab shows: the league's
+// sessions, newest first, and the maps from before the first (Before).
+// Waiting names the map whose run waits for a read in the hideout ("" when
+// none). Today counts from local midnight, LeagueTotal all the maps. Box
+// tells the loot box is on, Placing that it is being dragged.
 type LootLogView struct {
-	League       string        `json:"league"`
-	Mode         string        `json:"mode"`
-	Maps         []LootMap     `json:"maps"`
-	Waiting      string        `json:"waiting"`
-	SessionStart int64         `json:"sessionStart"`
-	Session      lootlog.Total `json:"session"`
-	Today        lootlog.Total `json:"today"`
-	LeagueTotal  lootlog.Total `json:"leagueTotal"`
-	DivineEx     float64       `json:"divineEx"`
-	Restarted    bool          `json:"restarted"`
-	Farm         FarmView      `json:"farm"`
-	Box          bool          `json:"box"`
-	Placing      bool          `json:"placing"`
+	League      string            `json:"league"`
+	Mode        string            `json:"mode"`
+	Sessions    []LootSessionView `json:"sessions"`
+	Before      []LootMap         `json:"before"`
+	BeforeTotal lootlog.Total     `json:"beforeTotal"`
+	Waiting     string            `json:"waiting"`
+	Today       lootlog.Total     `json:"today"`
+	LeagueTotal lootlog.Total     `json:"leagueTotal"`
+	DivineEx    float64           `json:"divineEx"`
+	Box         bool              `json:"box"`
+	Placing     bool              `json:"placing"`
+}
+
+// LootSessionView is one session as the tracker shows it: N is its number
+// in the league (from 1), Start and End Unix ms (End 0 while Open), CostEx
+// what went into it (0: not told), Total what its maps brought, Farm its
+// figures and Maps its maps, newest first.
+type LootSessionView struct {
+	ID     int64         `json:"id"`
+	N      int           `json:"n"`
+	Name   string        `json:"name"`
+	Start  int64         `json:"start"`
+	End    int64         `json:"end"`
+	Open   bool          `json:"open"`
+	CostEx float64       `json:"costEx"`
+	Total  lootlog.Total `json:"total"`
+	Farm   FarmView      `json:"farm"`
+	Maps   []LootMap     `json:"maps"`
 }
 
 // InvScanMap is the map a read closed a run of, as the worth card shows it:
@@ -125,17 +139,46 @@ func (s *AppService) recordInventory(view *InvScanView) {
 	view.Map = s.keepRead(readItems(view), view.Unsure, view.Doubts)
 }
 
-// GetLootLog returns the current league's maps.
+// lootSessions are league's sessions (oldest first) with their maps, the
+// maps from before the first and all of them, after the game's log is read
+// on.
+func (s *AppService) lootSessions(league string) ([]lootlog.Session, [][]lootlog.Map, []lootlog.Map, []lootlog.Map) {
+	s.followLog()
+	sessions := s.lootLog.Sessions(league)
+	list := s.lootLog.Maps(league)
+	by, before := lootlog.Group(sessions, list)
+	return sessions, by, before, list
+}
+
+func lootMaps(list []lootlog.Map) []LootMap {
+	out := make([]LootMap, len(list))
+	for i, m := range list {
+		out[i] = LootMap{Map: m, Name: mapName(m.AreaID)}
+	}
+	return out
+}
+
+func (s *AppService) sessionView(league string, n int, sess lootlog.Session, maps []lootlog.Map, now time.Time, running bool) LootSessionView {
+	v := LootSessionView{ID: sess.ID(), N: n, Name: sess.Name, Start: sess.Start.UnixMilli(), Open: sess.Open(), Total: lootlog.Sum(maps, time.Time{}), Maps: lootMaps(maps)}
+	if !sess.Open() {
+		v.End = sess.End.UnixMilli()
+	}
+	if sess.Cost != nil {
+		v.CostEx = sess.Cost.ValueEx
+	}
+	v.Farm = s.farmTimes(league, sess, maps, now, running)
+	return v
+}
+
+// GetLootLog returns the current league's sessions and maps.
 func (s *AppService) GetLootLog() LootLogView {
 	league := s.overlayClient.League()
-	start, farm := s.lootSessionStart()
-	times := s.farmTimes(league, start)
-	list := s.lootLog.Maps(league)
-	farmFill(&times, list, start)
+	sessions, by, before, list := s.lootSessions(league)
 	mode, _ := s.invScanMode()
-	v := LootLogView{Farm: times, League: league, Mode: mode, Maps: make([]LootMap, len(list)), Box: s.lootBoxOn(), Placing: s.lootPlacing.Load()}
-	for i, m := range list {
-		v.Maps[i] = LootMap{Map: m, Name: mapName(m.AreaID)}
+	v := LootLogView{League: league, Mode: mode, Before: lootMaps(before), BeforeTotal: lootlog.Sum(before, time.Time{}), Box: s.lootBoxOn(), Placing: s.lootPlacing.Load()}
+	now, running := s.farmNow()
+	for i := len(sessions) - 1; i >= 0; i-- {
+		v.Sessions = append(v.Sessions, s.sessionView(league, i+1, sessions[i], by[i], now, running))
 	}
 	if id, _, ok := s.lootLog.Waiting(league); ok {
 		v.Waiting = mapName(id)
@@ -143,12 +186,55 @@ func (s *AppService) GetLootLog() LootLogView {
 	if snap := s.eng.Prices(); snap != nil {
 		v.DivineEx = overlay.QuoteCurrency(snap, "Divine Orb").DivineEx
 	}
-	now := time.Now()
-	v.SessionStart, v.Restarted = start.UnixMilli(), farm
-	v.Session = lootlog.Sum(list, start)
-	v.Today = lootlog.Sum(list, time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()))
+	today := time.Now()
+	v.Today = lootlog.Sum(list, time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location()))
 	v.LeagueTotal = lootlog.Sum(list, time.Time{})
 	return v
+}
+
+// StartLootSession ends the open session now and begins another: the maps
+// stay with the session they were entered in.
+func (s *AppService) StartLootSession() LootLogView {
+	s.followLog()
+	if err := s.lootLog.NewSession(s.overlayClient.League(), time.Now()); err != nil {
+		log.Printf("loot log: new session: %v", err)
+	}
+	s.lootChanged()
+	return s.GetLootLog()
+}
+
+// RenameLootSession names session id ("": its number again).
+func (s *AppService) RenameLootSession(id int64, name string) LootLogView {
+	return s.editSession(s.lootLog.RenameSession(s.overlayClient.League(), id, name))
+}
+
+// SetLootSessionCost keeps what went into session id, in Exalted (0:
+// nothing).
+func (s *AppService) SetLootSessionCost(id int64, valueEx float64) LootLogView {
+	return s.editSession(s.lootLog.SetSessionCost(s.overlayClient.League(), id, &lootlog.Cost{ValueEx: valueEx}))
+}
+
+// MergeLootSession joins session id to the one before it.
+func (s *AppService) MergeLootSession(id int64) LootLogView {
+	s.followLog()
+	return s.editSession(s.lootLog.MergeSession(s.overlayClient.League(), id))
+}
+
+// DeleteLootSession forgets session id and its maps; the open one begins
+// again now.
+func (s *AppService) DeleteLootSession(id int64) LootLogView {
+	s.followLog()
+	return s.editSession(s.lootLog.DeleteSession(s.overlayClient.League(), id, time.Now()))
+}
+
+func (s *AppService) editSession(ok bool, err error) LootLogView {
+	if err != nil {
+		log.Printf("loot log: session: %v", err)
+	}
+	if ok {
+		s.lootChanged()
+	}
+	return s.GetLootLog()
 }
 
 // DeleteLootMap forgets the map first entered at at (RFC 3339, as the view

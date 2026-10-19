@@ -1,105 +1,100 @@
 package overlay
 
 import (
+	"bufio"
 	"io"
 	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
-// The game's log tells, to the second, when each area was built and when
-// the game marked the player away from the keyboard:
+// The game's log tells, to the second, when each area was built, when the
+// game marked the player away from the keyboard and when the game started:
 //
 //	2026/10/19 01:39:10 … : AFK mode is now ON. Autoreply "This player is AFK."
 //	2026/10/19 01:50:54 … : AFK mode is now OFF.
 //
-// The farm's times (in maps, in the hideout, away) are cut at these.
+// The farm's times (in maps, in the hideout, away) are cut at these. The
+// log is read on from where the last read stopped, kept with the farm's
+// sessions, so it is not read again from the start.
 
 const (
 	afkOn  = "] : AFK mode is now ON"
 	afkOff = "] : AFK mode is now OFF"
 )
 
-// TimeMark is one such line: an area entered (Area set) or AFK going on or
-// off (AFK, with Area nil).
+// TimeMark is one such line: an area entered (Area set), AFK going on or
+// off (AFK, with Area nil) or the game starting (Open; Prev is the time of
+// the log's line before it, zero when not known).
 type TimeMark struct {
 	At   time.Time
 	Area *Area
 	AFK  bool
+	Open bool
+	Prev time.Time
 }
 
-// Timeline keeps the marks of the current game session, reading only what
-// the log added since the last look.
-type Timeline struct {
-	mu     sync.Mutex
-	path   string
-	offset int64
-	began  time.Time
-	last   time.Time
-	marks  []TimeMark
+// LogPos is where a read of the game's log stopped: the file, the offset
+// of the next line and the time of the last line read.
+type LogPos struct {
+	Path   string    `json:"path"`
+	Offset int64     `json:"offset"`
+	Last   time.Time `json:"last,omitzero"`
 }
 
-// Marks returns the current game session's marks of the log at path, when
-// it began and the time of the log's latest line.
-func (t *Timeline) Marks(path string) (marks []TimeMark, began, last time.Time) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+// catchUpLimit is how far behind the log's end a read goes on from; past
+// it (the app was closed while the game ran long) it starts at the current
+// game session's first line.
+const catchUpLimit = 64 << 20
+
+// ReadMarks reads the marks of the log at path from pos on, whole lines
+// only, and returns them with where to go on from. A pos in another file,
+// past the log's end or too far behind starts again (Again) at the current
+// game session's first line, or near the end when that is not found close
+// enough; the time of the last line read stays from pos.
+func ReadMarks(path string, pos LogPos) (marks []TimeMark, next LogPos, again bool, err error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, time.Time{}, time.Time{}
+		return nil, pos, false, err
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil {
-		return nil, time.Time{}, time.Time{}
+		return nil, pos, false, err
 	}
 	size := info.Size()
-	if path != t.path || size < t.offset {
-		// Another log, or the game began it again: from the session's
-		// first line.
-		t.path, t.marks, t.began, t.last = path, nil, time.Time{}, time.Time{}
-		t.offset = max(0, size-recentWindow)
-		if off, at, ok := sessionLine(f, size); ok {
-			t.offset, t.began = off, at
+	if pos.Path != path || pos.Offset > size || size-pos.Offset > catchUpLimit {
+		again = true
+		pos = LogPos{Path: path, Offset: max(0, size-recentWindow), Last: pos.Last}
+		if off, _, ok := sessionLine(f, size); ok && size-off <= catchUpLimit {
+			pos.Offset = off
 		}
 	}
-	if size > t.offset {
-		buf := make([]byte, size-t.offset)
-		if _, err := f.ReadAt(buf, t.offset); err != nil && err != io.EOF {
-			return t.copy()
+	r := bufio.NewReaderSize(io.NewSectionReader(f, pos.Offset, size-pos.Offset), 64<<10)
+	for {
+		line, err := r.ReadString('\n')
+		if err != nil {
+			break // the rest is not a whole line yet: read next time
 		}
-		// Only whole lines; the rest is read next time.
-		end := strings.LastIndexByte(string(buf), '\n') + 1
-		t.add(string(buf[:end]))
-		t.offset += int64(end)
-	}
-	return t.copy()
-}
-
-func (t *Timeline) copy() ([]TimeMark, time.Time, time.Time) {
-	return append([]TimeMark(nil), t.marks...), t.began, t.last
-}
-
-// add takes the marks of whole lines text; a new session starts over.
-func (t *Timeline) add(text string) {
-	for _, line := range strings.Split(text, "\n") {
+		pos.Offset += int64(len(line))
+		line = strings.TrimRight(line, "\r\n")
 		at, ok := logTime(line)
 		if !ok {
 			continue
 		}
-		t.last = at
 		switch {
 		case strings.Contains(line, sessionStart):
-			t.marks, t.began = nil, at
+			marks = append(marks, TimeMark{At: at, Open: true, Prev: pos.Last})
 		case strings.Contains(line, afkOn):
-			t.marks = append(t.marks, TimeMark{At: at, AFK: true})
+			marks = append(marks, TimeMark{At: at, AFK: true})
 		case strings.Contains(line, afkOff):
-			t.marks = append(t.marks, TimeMark{At: at})
+			marks = append(marks, TimeMark{At: at})
 		default:
 			if a, ok := ParseArea(line); ok {
-				t.marks = append(t.marks, TimeMark{At: at, Area: &a})
+				marks = append(marks, TimeMark{At: at, Area: &a})
 			}
 		}
+		pos.Last = at
 	}
+	return marks, pos, again, nil
 }

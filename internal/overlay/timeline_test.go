@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestTimelineReadsTheSessionAndThenOnlyWhatIsAdded(t *testing.T) {
+func TestReadMarksStartsAtTheSessionAndGoesOnFromWhereItStopped(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "Client.txt")
 	write := func(text string, appendTo bool) {
 		flag := os.O_CREATE | os.O_WRONLY | os.O_TRUNC
@@ -29,21 +29,31 @@ func TestTimelineReadsTheSessionAndThenOnlyWhatIsAdded(t *testing.T) {
 2026/10/19 09:04:00 1 a [INFO Client 1] : AFK mode is now OFF.
 2026/10/19 09:05:00 1 a [DEBUG Client 1] Generating level 79 area "MapCenotes" with seed 22
 2026/10/19 09:06:00 1 a [DEBUG Client 1] Generating level 79 area "MapHalf`, false)
-	var tl Timeline
-	marks, began, last := tl.Marks(path)
-	if len(marks) != 4 || began.Hour() != 9 || last.Minute() != 5 {
-		t.Fatalf("first look: %d marks, began %v, last %v", len(marks), began, last)
+	marks, pos, again, err := ReadMarks(path, LogPos{})
+	if err != nil || !again || len(marks) != 5 || pos.Last.Minute() != 5 {
+		t.Fatalf("first read: %d marks, again %v, pos %+v, %v", len(marks), again, pos, err)
 	}
-	if marks[0].Area == nil || marks[0].Area.ID != "HideoutShrine" || !marks[1].AFK || marks[2].AFK || marks[2].Area != nil || marks[3].Area.ID != "MapCenotes" {
+	if !marks[0].Open || marks[0].At.Hour() != 9 || marks[1].Area == nil || marks[1].Area.ID != "HideoutShrine" || !marks[2].AFK || marks[3].AFK || marks[3].Area != nil || marks[4].Area.ID != "MapCenotes" {
 		t.Fatalf("marks %+v", marks)
 	}
-	write(`Way" with seed 3
-`, true)
-	if marks, _, _ := tl.Marks(path); len(marks) != 5 || marks[4].Area.ID != "MapHalfWay" {
-		t.Fatalf("the line finished later: %+v", marks)
+	write("Way\" with seed 3\r\n", true)
+	marks, pos, again, _ = ReadMarks(path, pos)
+	if again || len(marks) != 1 || marks[0].Area.ID != "MapHalfWay" || marks[0].Area.Seed != "3" {
+		t.Fatalf("the line finished later: %+v again %v", marks, again)
 	}
 	write("2026/10/19 11:00:00 ***** LOG FILE OPENING *****\n", true)
-	if marks, began, _ := tl.Marks(path); len(marks) != 0 || began.Hour() != 11 {
-		t.Fatalf("a new session: %d marks, began %v", len(marks), began)
+	marks, pos, _, _ = ReadMarks(path, pos)
+	if len(marks) != 1 || !marks[0].Open || marks[0].Prev.Minute() != 6 {
+		t.Fatalf("the game started again: %+v", marks)
+	}
+	if marks, _, _, _ := ReadMarks(path, pos); len(marks) != 0 {
+		t.Fatalf("nothing new, read again: %+v", marks)
+	}
+	// A log that no longer reaches pos (another file in its place) starts
+	// at its session, keeping the last line's time.
+	write("2026/10/19 12:00:00 ***** LOG FILE OPENING *****\n", false)
+	marks, _, again, _ = ReadMarks(path, pos)
+	if !again || len(marks) != 1 || marks[0].Prev.Hour() != 11 {
+		t.Fatalf("a shorter log: %+v again %v", marks, again)
 	}
 }

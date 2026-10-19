@@ -9,7 +9,7 @@ import (
 	"poe2filter/internal/prices"
 )
 
-func TestFarmFillTakesTheSessionsMapsOnly(t *testing.T) {
+func TestFarmFillFindsTheBestMapAndTheTopItems(t *testing.T) {
 	start := time.Date(2026, 10, 19, 9, 0, 0, 0, time.UTC)
 	run := func(items ...lootlog.Item) []lootlog.Run { return []lootlog.Run{{Items: items}} }
 	list := []lootlog.Map{ // newest first
@@ -21,12 +21,9 @@ func TestFarmFillTakesTheSessionsMapsOnly(t *testing.T) {
 			lootlog.Item{Name: "Divine Orb", Count: 2, EachEx: 690},
 			lootlog.Item{Name: "Exalted Orb", Count: 120, EachEx: 1},
 		)},
-		{At: start.Add(-time.Hour), AreaID: "MapCrypt", ValueEx: 9000, Runs: run(
-			lootlog.Item{Name: "Mirror of Kalandra", Count: 1, EachEx: 9000},
-		)},
 	}
 	var v FarmView
-	farmFill(&v, list, start)
+	farmFill(&v, list)
 	if v.Best == nil || v.Best.Name != "Wayward Isle" || v.Best.ValueEx != 1500 {
 		t.Errorf("best %+v", v.Best)
 	}

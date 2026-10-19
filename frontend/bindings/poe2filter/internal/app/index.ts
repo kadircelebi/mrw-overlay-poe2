@@ -28,6 +28,7 @@ export type {
     LanguageOption,
     LootLogView,
     LootMap,
+    LootSessionView,
     LootStatusView,
     Meta,
     PublishInfo,
