@@ -3,6 +3,7 @@ package overlay
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -112,5 +113,31 @@ func TestWhispersSessionStartAndMerchant(t *testing.T) {
 	}
 	if want := time.Date(2026, 10, 15, 23, 0, 0, 0, time.Local); !w.SessionStart().Equal(want) {
 		t.Fatalf("restarted game: session start %v", w.SessionStart())
+	}
+}
+
+// A long session's first line can lie far behind the end of the log.
+func TestSessionBeganFarBack(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Client.txt")
+	var b strings.Builder
+	b.WriteString("2026/10/18 11:59:40 1 a [INFO Client 1] " + sessionStart + "\n")
+	b.WriteString("2026/10/18 13:12:50 1 a [INFO Client 2] " + sessionStart + "\n")
+	filler := "2026/10/18 13:13:00 1 a [DEBUG Client 2] nothing much\n"
+	for b.Len() < 6<<20 {
+		b.WriteString(filler)
+	}
+	if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	info, _ := f.Stat()
+	got := sessionBegan(f, info.Size()-recentWindow)
+	want := time.Date(2026, 10, 18, 13, 12, 50, 0, time.Local)
+	if !got.Equal(want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }

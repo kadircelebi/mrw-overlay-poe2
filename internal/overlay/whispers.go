@@ -145,6 +145,40 @@ const sessionStart = "***** LOG FILE OPENING *****"
 // whisper is near the end, and the log is hundreds of MB.
 const recentWindow = 512 << 10
 
+// sessionScanLimit is how far back sessionBegan looks for the session's
+// first line.
+const sessionScanLimit = 256 << 20
+
+// sessionBegan finds the time of the last "LOG FILE OPENING" line before
+// end, reading the log backwards a chunk at a time (zero when none is
+// found within sessionScanLimit).
+func sessionBegan(f *os.File, end int64) time.Time {
+	_, at, _ := sessionLine(f, end)
+	return at
+}
+
+// sessionLine finds where the last "LOG FILE OPENING" line before end
+// begins and its time, as sessionBegan.
+func sessionLine(f *os.File, end int64) (int64, time.Time, bool) {
+	const chunk = 4 << 20
+	overlap := int64(len(sessionStart) + 64)
+	for hi := end; hi > 0 && end-hi < sessionScanLimit; hi -= chunk {
+		lo := max(0, hi-chunk)
+		buf := make([]byte, min(end, hi+overlap)-lo)
+		if _, err := f.ReadAt(buf, lo); err != nil && err != io.EOF {
+			return 0, time.Time{}, false
+		}
+		text := string(buf)
+		if i := strings.LastIndex(text, sessionStart); i >= 0 {
+			// The line starts with its time.
+			lineStart := strings.LastIndex(text[:i], "\n") + 1
+			at, ok := logTime(text[lineStart:])
+			return lo + int64(lineStart), at, ok
+		}
+	}
+	return 0, time.Time{}, false
+}
+
 // recent takes the last whisper of the current game session from the end
 // of the log, so one that arrived before the log was followed still counts.
 // Whispers from an earlier session do not.
@@ -165,6 +199,10 @@ func (w *Whispers) recent(f *os.File, size int64) {
 		} else if name, ok := WhisperFrom(line); ok {
 			last = name
 		}
+	}
+	if began.IsZero() && start > 0 {
+		// A long session began further back than the window.
+		began = sessionBegan(f, start)
 	}
 	w.mu.Lock()
 	if last != "" {
