@@ -97,6 +97,13 @@ export function ClearLiveResults(id: string): $CancellablePromise<trade$0.LiveSt
 }
 
 /**
+ * ClearLootLog forgets every map and read.
+ */
+export function ClearLootLog(): $CancellablePromise<$models.LootLogView> {
+    return $Call.ByID(1424433966);
+}
+
+/**
  * ClearTradeHistory forgets the kept sales of every league.
  */
 export function ClearTradeHistory(): $CancellablePromise<$models.TradeHistoryView> {
@@ -147,6 +154,14 @@ export function DefaultChatCommands(): $CancellablePromise<overlay$0.ChatCommand
  */
 export function DeleteExpeditionChoice(at: string): $CancellablePromise<$models.ExpeditionHistoryView> {
     return $Call.ByID(2679628490, at);
+}
+
+/**
+ * DeleteLootMap forgets the map first entered at at (RFC 3339, as the view
+ * gives it).
+ */
+export function DeleteLootMap(at: string): $CancellablePromise<$models.LootLogView> {
+    return $Call.ByID(131104490, at);
 }
 
 export function DeleteOverlaySearch(id: string): $CancellablePromise<overlay$0.SearchLibrary> {
@@ -279,6 +294,14 @@ export function FinishExpeditionPlace(save: boolean): $CancellablePromise<void> 
 }
 
 /**
+ * FinishLootBoxPlace ends placing; with save, the box keeps the place it
+ * was dragged to, as a share of the game's client area.
+ */
+export function FinishLootBoxPlace(save: boolean): $CancellablePromise<void> {
+    return $Call.ByID(3765237676, save);
+}
+
+/**
  * FitOverlay sets the compact overlay's height to the page's content (in page
  * pixels). A worth card or the hide panel fits within the normal height; a
  * search never gets shorter than it, only taller. The window keeps its top
@@ -328,6 +351,28 @@ export function GetExpeditionHistory(): $CancellablePromise<$models.ExpeditionHi
  */
 export function GetExpeditionView(): $CancellablePromise<$models.ExpeditionView> {
     return $Call.ByID(325550741);
+}
+
+/**
+ * GetInvScanView returns the card last read, for a window that opens after
+ * the read.
+ */
+export function GetInvScanView(): $CancellablePromise<$models.InvScanView> {
+    return $Call.ByID(1020670814);
+}
+
+/**
+ * GetLootLog returns the current league's maps.
+ */
+export function GetLootLog(): $CancellablePromise<$models.LootLogView> {
+    return $Call.ByID(3427134829);
+}
+
+/**
+ * GetLootStatus returns what the loot box shows.
+ */
+export function GetLootStatus(): $CancellablePromise<$models.LootStatusView> {
+    return $Call.ByID(1980766419);
 }
 
 export function GetMarketSnapshot(): $CancellablePromise<overlay$0.Snapshot> {
@@ -588,6 +633,13 @@ export function PlaceExpeditionStrip(): $CancellablePromise<string> {
 }
 
 /**
+ * PlaceLootBox starts placing the loot box over the game.
+ */
+export function PlaceLootBox(): $CancellablePromise<string> {
+    return $Call.ByID(712626147);
+}
+
+/**
  * PrepareBrowserExtension writes the extension into the data folder, where
  * the browser can load it ("Load unpacked"), and returns that folder.
  */
@@ -786,6 +838,13 @@ export function SetLiveAlerts(sound: string, notify: boolean): $CancellablePromi
     return $Call.ByID(2418144930, sound, notify);
 }
 
+/**
+ * SetLootBox shows or hides the loot box over the game.
+ */
+export function SetLootBox(on: boolean): $CancellablePromise<void> {
+    return $Call.ByID(391201242, on);
+}
+
 export function SetStartupEnabled(enabled: boolean): $CancellablePromise<$models.StartupStatus> {
     return $Call.ByID(1350568245, enabled);
 }
@@ -834,6 +893,14 @@ export function ShowTracker(): $CancellablePromise<void> {
  */
 export function StartLiveSearch(id: string): $CancellablePromise<trade$0.LiveState[] | null> {
     return $Call.ByID(1942713993, id);
+}
+
+/**
+ * StartLootSession starts the loot session over now: the maps stay, the
+ * session's sum counts from here.
+ */
+export function StartLootSession(): $CancellablePromise<$models.LootLogView> {
+    return $Call.ByID(2657629867);
 }
 
 /**

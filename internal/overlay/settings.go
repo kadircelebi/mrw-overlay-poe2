@@ -79,7 +79,47 @@ type Settings struct {
 	ExpeditionCorner     string  `json:"expedition_corner,omitempty"`
 	ExpeditionX          float64 `json:"expedition_x,omitempty"`
 	ExpeditionY          float64 `json:"expedition_y,omitempty"`
+	// InventoryScan is how the inventory is read for its currency's worth
+	// (InventoryScanModes); off by default. InventoryScanHotkey reads it on
+	// demand.
+	InventoryScan       string `json:"inventory_scan,omitempty"`
+	InventoryScanHotkey string `json:"inventory_scan_hotkey"`
+	// LootBoxHidden keeps the inventory scan's box (what the next map
+	// starts from, what the last one brought) off the game; it shows at
+	// LootCorner, or where the player dragged it (LootX/Y as with the
+	// earnings overlay).
+	LootBoxHidden bool    `json:"loot_box_hidden,omitempty"`
+	LootCorner    string  `json:"loot_corner,omitempty"`
+	LootX         float64 `json:"loot_x,omitempty"`
+	LootY         float64 `json:"loot_y,omitempty"`
+	// LootBoxFields are the lines the box shows (LootBoxFieldKeys), in
+	// that order whatever this one; nil means DefaultLootBoxFields.
+	LootBoxFields []string `json:"loot_box_fields"`
 }
+
+// The loot box's lines, in the order it shows them: the scan's state, the
+// live clock of the map or stay, the inventory (in a map: the read it
+// began from), the last map, then the session's figures.
+var LootBoxFieldKeys = []string{
+	"status", "timer", "inventory", "lastGain", "lastTime",
+	"sessionTime", "sessionGain", "maps", "perMap", "perHour", "perMapHour",
+	"avgTime", "mapTime", "restTime", "best",
+}
+
+// DefaultLootBoxFields are the box's lines until the player picks theirs.
+var DefaultLootBoxFields = []string{"status", "inventory", "lastGain", "lastTime", "sessionTime", "perMap"}
+
+// Inventory scan modes: off; manual, read only when the shortcut is
+// pressed; auto, also read whenever the inventory opens in a hideout or
+// town; area, the stash tabs the player marked.
+const (
+	ScanOff    = "off"
+	ScanManual = "manual"
+	ScanAuto   = "auto"
+	ScanArea   = "area"
+)
+
+var InventoryScanModes = []string{ScanOff, ScanManual, ScanAuto, ScanArea}
 
 // Where the earnings overlay sits on the game's screen; "custom" is where
 // the player dragged it.
@@ -91,13 +131,20 @@ const EarningsCustom = "custom"
 // globes and skill bar (bottom).
 const DefaultEarningsCorner = "top-center"
 
+// The loot box starts at the top, left of the middle: between the stash
+// and the inventory panels and under the earnings overlay.
+const (
+	defaultLootX = 0.42
+	defaultLootY = 0.06
+)
+
 // DefaultExpeditionCorner keeps the Expedition box apart from the earnings.
 const DefaultExpeditionCorner = "top-left"
 
 // DefaultSettings leaves the overlay off: it registers a global shortcut and
 // sends keys to the game, so players opt in from Settings.
 func DefaultSettings() Settings {
-	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", HideHotkey: "Alt+H", ExpeditionHotkey: "Alt+Q", Commands: DefaultChatCommands(), PanelHotkey: "F9", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true, EarningsCorner: DefaultEarningsCorner, TrackerHotkey: "Alt+K", ExpeditionUndoHotkey: "Alt+Shift+Q"}
+	return Settings{Enabled: false, Hotkey: "Alt+E", MarketHotkey: "Alt+M", CraftHotkey: "Alt+F", HideHotkey: "Alt+H", ExpeditionHotkey: "Alt+Q", Commands: DefaultChatCommands(), PanelHotkey: "F9", AutoScale: true, UIScale: 100, LiveSound: DefaultLiveSound, LiveNotify: true, EarningsCorner: DefaultEarningsCorner, TrackerHotkey: "Alt+K", ExpeditionUndoHotkey: "Alt+Shift+Q", InventoryScan: ScanOff, InventoryScanHotkey: "Alt+I"}
 }
 
 // DefaultLiveSound is a short chime distinct from the loot filter's drops.
@@ -123,7 +170,7 @@ func (s Settings) uses(key string) bool {
 // DistinctHotkeys reports whether every shortcut differs from the others.
 func (s Settings) DistinctHotkeys() error {
 	seen := map[string]bool{}
-	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.HideHotkey, s.ExpeditionHotkey, s.TrackerHotkey, s.ExpeditionUndoHotkey, s.ExpeditionResetHotkey, s.PanelHotkey}
+	keys := []string{s.Hotkey, s.MarketHotkey, s.CraftHotkey, s.HideHotkey, s.ExpeditionHotkey, s.TrackerHotkey, s.ExpeditionUndoHotkey, s.ExpeditionResetHotkey, s.InventoryScanHotkey, s.PanelHotkey}
 	for _, c := range s.Commands {
 		keys = append(keys, c.Hotkey)
 	}
@@ -215,6 +262,15 @@ func (s *Settings) Normalize() {
 		s.ExpeditionUndoHotkey = ""
 	}
 	s.ExpeditionResetHotkey = strings.TrimSpace(s.ExpeditionResetHotkey)
+	if !slices.Contains(InventoryScanModes, s.InventoryScan) {
+		s.InventoryScan = ScanOff
+	}
+	s.InventoryScanHotkey = strings.TrimSpace(s.InventoryScanHotkey)
+	if strings.EqualFold(s.InventoryScanHotkey, "Alt+I") && (s.uses("Alt+I") || slices.ContainsFunc([]string{s.ExpeditionHotkey, s.TrackerHotkey, s.ExpeditionUndoHotkey, s.ExpeditionResetHotkey}, func(k string) bool { return strings.EqualFold(k, "Alt+I") })) {
+		// As with Alt+Q: a player who already gave Alt+I to something else
+		// keeps it.
+		s.InventoryScanHotkey = ""
+	}
 	if s.Commands == nil {
 		s.Commands = DefaultChatCommands()
 		if k := strings.TrimSpace(s.HideoutHotkey); k != "" {
@@ -259,6 +315,22 @@ func (s *Settings) Normalize() {
 	}
 	s.EarningsX = min(max(s.EarningsX, 0), 1)
 	s.EarningsY = min(max(s.EarningsY, 0), 1)
+	if !slices.Contains(EarningsCorners, s.LootCorner) {
+		s.LootCorner, s.LootX, s.LootY = EarningsCustom, defaultLootX, defaultLootY
+	}
+	s.LootX = min(max(s.LootX, 0), 1)
+	s.LootY = min(max(s.LootY, 0), 1)
+	if s.LootBoxFields == nil {
+		s.LootBoxFields = slices.Clone(DefaultLootBoxFields)
+	} else {
+		var fields []string
+		for _, k := range LootBoxFieldKeys {
+			if slices.Contains(s.LootBoxFields, k) {
+				fields = append(fields, k)
+			}
+		}
+		s.LootBoxFields = append([]string{}, fields...)
+	}
 }
 
 func LoadSettings(path string) Settings {

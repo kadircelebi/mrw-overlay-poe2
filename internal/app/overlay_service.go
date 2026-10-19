@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -67,8 +68,12 @@ func (s *AppService) SaveOverlaySettings(next overlay.Settings) (overlay.Setting
 	s.applyOverlayScale()
 	s.syncChatShortcuts()
 	s.applyTradeHistory(old, next)
+	s.loadInvScanIcons()
 	if old.Enabled != next.Enabled || old.ExpeditionStripHidden != next.ExpeditionStripHidden || old.ExpeditionStripNames != next.ExpeditionStripNames {
 		s.expeditionChanged()
+	}
+	if old.Enabled != next.Enabled || old.InventoryScan != next.InventoryScan || old.LootBoxHidden != next.LootBoxHidden || !slices.Equal(old.LootBoxFields, next.LootBoxFields) {
+		s.lootChanged()
 	}
 	return next, nil
 }

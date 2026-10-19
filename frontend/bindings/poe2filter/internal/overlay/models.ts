@@ -355,6 +355,31 @@ export interface Settings {
     "expedition_corner"?: string;
     "expedition_x"?: number;
     "expedition_y"?: number;
+
+    /**
+     * InventoryScan is how the inventory is read for its currency's worth
+     * (InventoryScanModes); off by default. InventoryScanHotkey reads it on
+     * demand.
+     */
+    "inventory_scan"?: string;
+    "inventory_scan_hotkey": string;
+
+    /**
+     * LootBoxHidden keeps the inventory scan's box (what the next map
+     * starts from, what the last one brought) off the game; it shows at
+     * LootCorner, or where the player dragged it (LootX/Y as with the
+     * earnings overlay).
+     */
+    "loot_box_hidden"?: boolean;
+    "loot_corner"?: string;
+    "loot_x"?: number;
+    "loot_y"?: number;
+
+    /**
+     * LootBoxFields are the lines the box shows (LootBoxFieldKeys), in
+     * that order whatever this one; nil means DefaultLootBoxFields.
+     */
+    "loot_box_fields": string[] | null;
 }
 
 /**

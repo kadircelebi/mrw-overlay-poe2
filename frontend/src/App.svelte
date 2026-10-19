@@ -1698,6 +1698,28 @@
                         <p class="desc hint">{t('expedition.resetHotkeyHint')}</p>
                         <label class="field stack"><span>{t('tracker.hotkey')}</span><HotkeyInput label={t('tracker.hotkey')} bind:value={overlaySettings.tracker_hotkey} onchange={queueOverlaySave} /></label>
                         <p class="desc hint">{t('tracker.hotkeyHint')}</p>
+                        <div class="field stack">
+                          <span>{t('invscan.mode')}</span>
+                          <Segmented
+                            small
+                            value={overlaySettings.inventory_scan || 'off'}
+                            onchange={(v) => {
+                              if (overlaySettings) overlaySettings.inventory_scan = v
+                              queueOverlaySave()
+                            }}
+                            options={[
+                              { value: 'off', label: t('invscan.mode.off') },
+                              { value: 'manual', label: t('invscan.mode.manual') },
+                              { value: 'auto', label: t('invscan.mode.auto') },
+                            ]}
+                          />
+                        </div>
+                        <p class="desc hint">{t('invscan.modeHint')}</p>
+                        {#if overlaySettings.inventory_scan === 'auto'}<p class="desc hint">{t('invscan.autoHint')}</p>{/if}
+                        {#if overlaySettings.inventory_scan && overlaySettings.inventory_scan !== 'off'}
+                          <label class="field stack"><span>{t('invscan.hotkey')}</span><HotkeyInput label={t('invscan.hotkey')} bind:value={overlaySettings.inventory_scan_hotkey} onchange={queueOverlaySave} /></label>
+                          <p class="desc hint">{t('invscan.hotkeyHint')}</p>
+                        {/if}
                       </section>
                     </div>
                     <div class="col">

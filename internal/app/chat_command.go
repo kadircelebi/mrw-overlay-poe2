@@ -80,6 +80,7 @@ func (s *AppService) setGameActive(active bool, hwnd uintptr) {
 	}
 	s.syncEarningsOverlay()
 	s.syncExpeditionStrip()
+	s.syncLootBox()
 }
 
 // sendChatCommand types a line into the game's chat through the clipboard,

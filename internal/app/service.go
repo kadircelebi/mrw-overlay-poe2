@@ -19,6 +19,7 @@ import (
 	"poe2filter/internal/filter"
 	"poe2filter/internal/i18n"
 	"poe2filter/internal/insights"
+	"poe2filter/internal/lootlog"
 	"poe2filter/internal/overlay"
 	"poe2filter/internal/profileclient"
 	"poe2filter/internal/session"
@@ -153,6 +154,21 @@ type AppService struct {
 	// current map; expeditionPlacing is set while it is being dragged.
 	expeditionStripWindow application.Window
 	expeditionPlacing     atomic.Bool
+
+	// invScanWindow shows the inventory's currency worth over the game
+	// (the inventory scan's shortcut); invScan holds the icons and the card.
+	invScanWindow application.Window
+	invScan       invScanState
+	lootLog       *lootlog.Store
+	// farmLog reads the game session's area and AFK lines for the farm's
+	// times.
+	farmLog overlay.Timeline
+	// lootBoxWindow shows the inventory scan's state over the game;
+	// lootPlacing is set while it is being dragged.
+	lootBoxWindow application.Window
+	lootPlacing   atomic.Bool
+	// autoScan is the automatic inventory scan's state (autoScanLoop).
+	autoScan autoScanState
 }
 
 func newAppService(meta Meta) *AppService {
@@ -178,6 +194,7 @@ func newAppService(meta Meta) *AppService {
 			kick:     make(chan struct{}, 1),
 		},
 		expeditionLog: expeditionhistory.New(meta.DataDir),
+		lootLog:       lootlog.New(meta.DataDir),
 	}
 	svc.setupGameLanguages()
 	// Only the overlay's user-started searches go out signed in; the
@@ -218,8 +235,14 @@ func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOp
 			}
 		}()
 		go s.refreshBrowserExtension()
+		s.loadInvScanIcons()
+		go s.autoScanLoop(ctx)
+		go s.farmLoop(ctx)
 		s.whispers.SetOnMerchant(s.merchantSpoke)
-		s.whispers.SetOnArea(s.expeditionAreaEntered)
+		s.whispers.SetOnArea(func(a overlay.Area) {
+			s.expeditionAreaEntered(a)
+			s.lootAreaEntered(a)
+		})
 		go s.tradeHistoryLoop()
 		go s.restoreLiveSearches(ctx)
 		go s.followLoop(ctx)

@@ -273,6 +273,38 @@ func Run(opt Options) {
 		e.Cancel()
 	})
 
+	// The inventory's currency worth: like the Expedition labels, a
+	// see-through window over the game that lets clicks through.
+	invScanWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name: "invscan", Title: "MrW Overlay · Inventory", Width: 800, Height: 600,
+		Frameless: true, AlwaysOnTop: true, Hidden: true, DisableResize: true,
+		BackgroundType:    application.BackgroundTypeTransparent,
+		BackgroundColour:  application.NewRGBA(0, 0, 0, 0),
+		IgnoreMouseEvents: true,
+		Windows:           application.WindowsWindow{HiddenOnTaskbar: true, ExStyle: expeditionExStyle},
+		URL:               "/?view=invscan",
+	})
+	invScanWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		invScanWindow.Hide()
+		e.Cancel()
+	})
+
+	// The inventory scan's state (the next map's base, the last map's
+	// gain), in a box of its own.
+	lootBoxWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name: "lootbox", Title: "MrW Overlay · Map loot", Width: lootBoxWidth, Height: lootBoxHeight,
+		Frameless: true, AlwaysOnTop: true, Hidden: true, DisableResize: true,
+		BackgroundType:    application.BackgroundTypeTransparent,
+		BackgroundColour:  application.NewRGBA(0, 0, 0, 0),
+		IgnoreMouseEvents: true,
+		Windows:           application.WindowsWindow{HiddenOnTaskbar: true, ExStyle: expeditionExStyle},
+		URL:               "/?view=lootbox",
+	})
+	lootBoxWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		lootBoxWindow.Hide()
+		e.Cancel()
+	})
+
 	// The tracker: an ordinary window meant to stay open beside the game
 	// (another monitor), its tabs filled by the logs and the trade site.
 	trackerWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
@@ -345,6 +377,7 @@ func Run(opt Options) {
 	svc.expeditionWindow = expeditionWindow
 	svc.trackerWindow, svc.earningsWindow = trackerWindow, earningsWindow
 	svc.expeditionStripWindow = expeditionStripWindow
+	svc.invScanWindow, svc.lootBoxWindow = invScanWindow, lootBoxWindow
 	// Price check (Alt+E), market (Alt+M) and craft (Alt+F) shortcuts
 	// exist only while the overlay is switched on.
 	shortcuts := func(s overlay.Settings) [][2]any {
@@ -366,6 +399,9 @@ func Run(opt Options) {
 		}
 		if s.ExpeditionResetHotkey != "" {
 			list = append(list, [2]any{s.ExpeditionResetHotkey, func() { svc.ResetExpeditionMap() }})
+		}
+		if s.InventoryScan != overlay.ScanOff && s.InventoryScanHotkey != "" {
+			list = append(list, [2]any{s.InventoryScanHotkey, func() { go svc.captureInventory() }})
 		}
 		return list
 	}

@@ -12,6 +12,9 @@ import * as filter$0 from "../filter/models.js";
 import * as filtereval$0 from "../filtereval/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as lootlog$0 from "../lootlog/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as platform$0 from "../platform/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -248,6 +251,39 @@ export interface ExpeditionView {
 }
 
 /**
+ * FarmBest is the session's map that brought the most.
+ */
+export interface FarmBest {
+    "name": string;
+    "valueEx": number;
+}
+
+/**
+ * FarmView is the loot session's figures. Times are in seconds, as they
+ * stood at At (Unix ms); while Live is a map or a counted stay at home,
+ * the clocks run on from there (a stay at most RestLeft more). Since (Unix
+ * ms) is when that map trip or stay began. Timed tells the game's log was
+ * read. LastMap is the latest map left, LastSecs its time. Top is what the
+ * session's maps brought, most worth first.
+ */
+export interface FarmView {
+    "at": number;
+    "timed": boolean;
+    "live": string;
+    "since": number;
+    "restLeft": number;
+    "active": number;
+    "inMaps": number;
+    "inRest": number;
+    "breaks": number;
+    "maps": number;
+    "lastMap": string;
+    "lastSecs": number;
+    "best": FarmBest | null;
+    "top": lootlog$0.Item[] | null;
+}
+
+/**
  * FilterExplanation is what the written filter does with an item and why.
  */
 export interface FilterExplanation {
@@ -308,6 +344,73 @@ export interface HideResult {
 }
 
 /**
+ * InvScanMap is the map a read closed a run of, as the worth card shows it:
+ * what this run brought and all the map's runs so far.
+ */
+export interface InvScanMap {
+    "name": string;
+    "runEx": number;
+    "mapEx": number;
+    "runs": number;
+    "fresh": boolean;
+    "noBase": boolean;
+    "unsure": number;
+}
+
+/**
+ * InvScanRow is one item of the inventory as the worth card lists it: how
+ * many there are in all its stacks, one's worth and theirs (Exalted), and
+ * the loot filter's colours for that worth (as in the Expedition labels).
+ */
+export interface InvScanRow {
+    "name": string;
+    "count": number;
+    "eachEx": number;
+    "totalEx": number;
+    "bg": string;
+    "color": string;
+    "border": string;
+}
+
+/**
+ * InvScanView is what the worth card shows. Right and Top place it in the
+ * game's client area (physical pixels): its right edge left of the
+ * inventory panel. Off is the filled cells holding items not on the price
+ * list's exchange (gear, tablets, waystones); Unsure the cells whose item
+ * or count could not be told for sure (left out of the total, or counted
+ * as read); Unpriced the listed items the price list has no worth for.
+ * Message is "loading" (icons still downloading), "closed" (no inventory
+ * on the screen), "button" (a mouse button held), "error", or "".
+ */
+export interface InvScanView {
+    "rows": InvScanRow[] | null;
+    "totalEx": number;
+    "divineEx": number;
+    "off": number;
+    "unsure": number;
+
+    /**
+     * Doubts are the cells counted in Unsure, where they are and why.
+     */
+    "doubts": lootlog$0.Doubt[] | null;
+    "unpriced": number;
+    "message": string;
+
+    /**
+     * Map is the map this read closed a run of (nil: none); Base tells the
+     * read was kept as the next map's base (made in a hideout or town);
+     * InMap that it was made in a map, and kept for nothing.
+     */
+    "map": InvScanMap | null;
+    "base": boolean;
+    "inMap": boolean;
+    "right": number;
+    "top": number;
+    "scale": number;
+    "seq": number;
+}
+
+/**
  * LanguageOption is one entry of the language picker.
  */
 export interface LanguageOption {
@@ -320,6 +423,80 @@ export interface LanguageOption {
      */
     "auto": boolean;
     "resolved"?: string;
+}
+
+/**
+ * LootLogView is what the tracker window's loot tab shows. Waiting names
+ * the map whose run waits for a read in the hideout ("" when none). The
+ * totals count like the Expedition tab's, but the session from the player's
+ * restart of it when later than the game's start (Restarted), with its
+ * figures (Farm). Box tells the
+ * loot box is on, Placing that it is being dragged.
+ */
+export interface LootLogView {
+    "league": string;
+    "mode": string;
+    "maps": LootMap[] | null;
+    "waiting": string;
+    "sessionStart": number;
+    "session": lootlog$0.Total;
+    "today": lootlog$0.Total;
+    "leagueTotal": lootlog$0.Total;
+    "divineEx": number;
+    "restarted": boolean;
+    "farm": FarmView;
+    "box": boolean;
+    "placing": boolean;
+}
+
+/**
+ * LootMap is one map as the tracker window shows it; Name is its name made
+ * readable from its id.
+ */
+export interface LootMap {
+    "at": string;
+    "area": string;
+    "level": number;
+    "seed"?: string;
+    "runs": lootlog$0.Run[] | null;
+    "valueEx": number;
+
+    /**
+     * Secs is the time spent in it, from the game's log (0: not known).
+     */
+    "secs"?: number;
+    "map": string;
+}
+
+/**
+ * LootStatusView is what the loot box shows. InvEx is the worth of the
+ * inventory last read in a hideout or town (in a map: the read the map
+ * began from, at BaseAt, Unix ms; 0 when none); Fresh tells it was read on
+ * this visit to the hideout. Map names the map the player is in or came
+ * back from (Entered: when they went in). ReadingUntil (Unix ms) is when
+ * the reads back from the map stop counting; Hotkey is the scan's shortcut
+ * (the manual rule reads only with it). LastRun is the latest map
+ * run filed, at LastRunAt.
+ */
+export interface LootStatusView {
+    "mode": string;
+    "hotkey": string;
+    "placing": boolean;
+    "phase": string;
+    "invEx": number;
+    "baseAt": number;
+    "fresh": boolean;
+    "unsure": number;
+    "map": string;
+    "entered": number;
+    "readingUntil": number;
+    "lastRun": InvScanMap | null;
+    "lastRunAt": number;
+    "session": lootlog$0.Total;
+    "sessionStart": number;
+    "farm": FarmView;
+    "fields": string[] | null;
+    "divineEx": number;
 }
 
 /**

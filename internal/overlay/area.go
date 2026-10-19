@@ -55,31 +55,46 @@ func LastArea(path string) (int, string) {
 
 // LastMap is LastArea with the area's seed.
 func LastMap(path string) Area {
+	return lastArea(logTail(path), false)
+}
+
+// CurrentArea is the area the player is in now, hideouts and towns
+// included: the last one the current game session built (ok false when
+// the log names none).
+func CurrentArea(path string) (Area, bool) {
+	a := lastArea(logTail(path), true)
+	return a, a.ID != ""
+}
+
+// logTail is the end of the game's log (areaWindow bytes).
+func logTail(path string) string {
 	f, err := os.Open(path)
 	if err != nil {
-		return Area{}
+		return ""
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil {
-		return Area{}
+		return ""
 	}
 	start := max(0, info.Size()-areaWindow)
 	buf := make([]byte, info.Size()-start)
 	if _, err := f.ReadAt(buf, start); err != nil && err != io.EOF {
-		return Area{}
+		return ""
 	}
-	return lastArea(string(buf))
+	return string(buf)
 }
 
-func lastArea(log string) Area {
+// lastArea is the last area the log's current session built; rest also
+// takes hideouts and towns.
+func lastArea(log string, rest bool) Area {
 	var last Area
 	for _, line := range strings.Split(log, "\n") {
 		if strings.Contains(line, sessionStart) {
 			last = Area{}
 			continue
 		}
-		if a, ok := ParseArea(line); ok && !a.Rest() {
+		if a, ok := ParseArea(line); ok && (rest || !a.Rest()) {
 			last = a
 		}
 	}

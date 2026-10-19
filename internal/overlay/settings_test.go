@@ -3,6 +3,7 @@ package overlay
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -114,5 +115,48 @@ func TestTrackerHotkeyDefault(t *testing.T) {
 	s.TrackerHotkey = s.Hotkey
 	if s.DistinctHotkeys() == nil {
 		t.Fatal("tracker shortcut equal to the price check was accepted")
+	}
+}
+
+// The inventory scan comes off, with Alt+I ready for when it is turned on;
+// a player who already gave Alt+I to something else keeps it, and an
+// unknown mode reads as off.
+func TestInventoryScanDefaults(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "overlay.json")
+	if err := os.WriteFile(path, []byte(`{"enabled":true,"hotkey":"Alt+E"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if s := LoadSettings(path); s.InventoryScan != ScanOff || s.InventoryScanHotkey != "Alt+I" {
+		t.Fatalf("old file: %q %q", s.InventoryScan, s.InventoryScanHotkey)
+	}
+	if s := LoadSettings(path); s.LootBoxHidden || s.LootCorner != EarningsCustom || s.LootX != defaultLootX || s.LootY != defaultLootY {
+		t.Fatalf("old file's loot box: %v %q %v %v", s.LootBoxHidden, s.LootCorner, s.LootX, s.LootY)
+	}
+	if s := LoadSettings(path); !slices.Equal(s.LootBoxFields, DefaultLootBoxFields) {
+		t.Fatalf("old file's box lines: %v", s.LootBoxFields)
+	}
+	if err := os.WriteFile(path, []byte(`{"loot_box_fields":["perMap","nonsense","status"]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if s := LoadSettings(path); !slices.Equal(s.LootBoxFields, []string{"status", "perMap"}) {
+		t.Fatalf("picked box lines: %v", s.LootBoxFields)
+	}
+	if err := os.WriteFile(path, []byte(`{"loot_box_fields":[]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if s := LoadSettings(path); s.LootBoxFields == nil || len(s.LootBoxFields) != 0 {
+		t.Fatalf("no box lines picked: %v", s.LootBoxFields)
+	}
+	if err := os.WriteFile(path, []byte(`{"enabled":true,"inventory_scan":"sometimes","chat_commands":[{"hotkey":"Alt+I","text":"/hideout"}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if s := LoadSettings(path); s.InventoryScan != ScanOff || s.InventoryScanHotkey != "" || s.DistinctHotkeys() != nil {
+		t.Fatalf("taken Alt+I: %q %q %v", s.InventoryScan, s.InventoryScanHotkey, s.DistinctHotkeys())
+	}
+	s := DefaultSettings()
+	s.InventoryScan, s.InventoryScanHotkey = ScanManual, s.MarketHotkey
+	if s.DistinctHotkeys() == nil {
+		t.Fatal("scan shortcut equal to the market's was accepted")
 	}
 }

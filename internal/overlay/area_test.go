@@ -13,10 +13,14 @@ func TestLastArea(t *testing.T) {
 2026/10/03 22:45:09 1 a [DEBUG Client 2] Generating level 65 area "HideoutShrine" with seed 1
 2026/10/03 22:45:30 1 a [DEBUG Client 2] Generating level 15 area "G1_town" with seed 1
 `
-	if a := lastArea(log); a != (Area{79, "MapWaywardIsle", "817132385"}) {
+	if a := lastArea(log, false); a != (Area{79, "MapWaywardIsle", "817132385"}) {
 		t.Errorf("got %+v", a)
 	}
-	if a := lastArea("2026/10/03 22:00:00 1 a [INFO Client 2] ***** LOG FILE OPENING *****\n"); a.Level != 0 {
+	// Where the player is now: the town, hideouts and towns included.
+	if a := lastArea(log, true); a != (Area{15, "G1_town", "1"}) {
+		t.Errorf("current area %+v", a)
+	}
+	if a := lastArea("2026/10/03 22:00:00 1 a [INFO Client 2] ***** LOG FILE OPENING *****\n", true); a.Level != 0 {
 		t.Errorf("fresh session %+v", a)
 	}
 }
