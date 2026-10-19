@@ -213,6 +213,15 @@ cd frontend && npm run check   # types, translations, encoding
 
 To add a language to the app, copy `frontend/src/lib/locales/en.ts` and `internal/i18n/en.go` and translate them; the checks report missing keys. The game-language tables in `internal/overlay/data/locale/` are rebuilt with `python build/locale/build_locale.py <lang>`; copied items from each language are tested in `internal/overlay/testdata/locale/`.
 
+## Thanks
+
+MrW Overlay wouldn't be what it is without these players:
+
+- [umtgvn](https://github.com/umtgvn): the idea behind the app.
+- [erdem23052](https://github.com/erdem23052): tries every new feature in real maps.
+- [Gabbany](https://github.com/Gabbany) ([Kick](https://kick.com/gabbany)): streamer, and a supporter from early on.
+- [omrozkan](https://github.com/omrozkan): lends a hand wherever it's needed.
+
 ## License
 
 MIT, see [LICENSE](LICENSE). Exceptions are listed in [NOTICE](NOTICE). The 26 alert sounds in `internal/gamesounds/files/` belong to Grinding Gear Games. The crafting data from poe2db.tw is under CC BY-NC-SA 3.0. NeverSink's filter is MIT licensed too, and the app downloads it at runtime. The game-language tables are built from [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2)'s data (MIT).

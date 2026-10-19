@@ -213,6 +213,15 @@ cd frontend && npm run check   # tipler, çeviriler, kodlama
 
 Uygulamaya yeni bir dil eklemek için `frontend/src/lib/locales/en.ts` ve `internal/i18n/en.go` dosyalarını kopyalayıp çevir; denetimler eksik anahtarları bildirir. `internal/overlay/data/locale/` altındaki oyun dili tabloları `python build/locale/build_locale.py <dil>` ile yeniden üretilir; her dilden kopyalanan eşyalar `internal/overlay/testdata/locale/` altında test edilir.
 
+## Teşekkürler
+
+MrW Overlay bu oyuncular olmadan bu hâlde olmazdı:
+
+- [umtgvn](https://github.com/umtgvn): uygulamanın fikir babası.
+- [erdem23052](https://github.com/erdem23052): her yeni özelliği gerçek map'lerde deniyor.
+- [Gabbany](https://github.com/Gabbany) ([Kick](https://kick.com/gabbany)): yayıncı, ilk günlerden beri destekçi.
+- [omrozkan](https://github.com/omrozkan): nerede gerekirse elini taşın altına koyuyor.
+
 ## Lisans
 
 MIT, bkz. [LICENSE](LICENSE). İstisnalar [NOTICE](NOTICE) dosyasında. `internal/gamesounds/files/` altındaki 26 uyarı sesi Grinding Gear Games'e aittir. poe2db.tw'den gelen craft verisi CC BY-NC-SA 3.0 lisanslıdır. NeverSink'in filtresi de MIT lisanslıdır; uygulama onu çalışırken indirir. Oyun dili tabloları [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2)'nin verisinden üretilir (MIT).
