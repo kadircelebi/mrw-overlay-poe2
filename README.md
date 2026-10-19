@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/logo.png" alt="MrW Overlay for POE 2" width="520"></p>
 
 <p align="center"><b>A loot filter that knows today's prices, and every tool you'd otherwise go hunting for, in one app.</b><br>
-Price check, trade, live search, a crafting sim, Expedition prices. It sits quietly in the tray while you map.</p>
+Price check, trade, live search, a crafting sim, Expedition prices, map loot tracking. It sits quietly in the tray while you map.</p>
 
 <p align="center">
   <a href="https://apps.microsoft.com/detail/9PM376D3LFBG"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" height="48"></a>
@@ -23,7 +23,7 @@ Price check, trade, live search, a crafting sim, Expedition prices. It sits quie
 
 ## Why MrW Overlay?
 
-- **One app instead of five.** Loot filter, price check, trade and live search, crafting sim, Expedition prices, sales tracker, game hotkeys. No more alt-tabbing between a dozen tools and websites.
+- **One app instead of five.** Loot filter, price check, trade and live search, crafting sim, Expedition prices, sales and map loot tracking, game hotkeys. No more alt-tabbing between a dozen tools and websites.
 - **Your filter follows the market.** You set a value, say 50 ex. Drops worth more get a strong highlight, cheap ones get hidden or dimmed. As prices move, the filter keeps up, and you never edit a list by hand mid-league.
 - **Plays in your game's language.** English, Deutsch, Français, Español, Português, Русский, 日本語, 한국어 or 繁體中文: the price check, trade and Expedition prices read items the way your game writes them, show them in that language, and bring listings back in it. Every language the game offers works except Thai, which is not supported.
 - **Approved everywhere it ships.** Microsoft Store, Chrome Web Store, Edge Add-ons and Firefox Add-ons have all reviewed and approved it.
@@ -61,7 +61,7 @@ A crafting sim built to behave like the game's own crafting: real bases, real mo
 <p align="center"><img src="docs/craft.png" alt="Theoretical Craft" width="900"></p>
 
 ### Expedition prices, Alt+Q
-Open the Runeshape Combinations panel and press Alt+Q. Every reward gets a price label, coloured by your value groups. One key press is one read: the app never watches your screen.
+Open the Runeshape Combinations panel and press Alt+Q. Every reward gets a price label, coloured by your value groups. One key press is one read: Alt+Q never watches your screen.
 
 <p align="center"><img src="docs/expedition.jpg" alt="Expedition reward prices" width="800"></p>
 
@@ -75,6 +75,26 @@ Open the Runeshape Combinations panel and press Alt+Q. Every reward gets a price
 Your merchant (Ange) sales, day by day, with totals for this game session, today and the league at today's rates, and a search over everything you sold. The app reads your own sales history from pathofexile.com through the browser link, shortly after Ange speaks in game, and keeps it on your PC, so the history keeps growing past the trade site's last 100 sales. An optional small strip over the game shows this session's and the league's earnings: clicks go through to the game, and you can drag it anywhere on the screen. Both stay off until you turn them on.
 
 <p align="center"><img src="docs/tracker.png" alt="Sales tracker" width="480"> <img src="docs/earnings.png" alt="Earnings strip over the game" width="400"></p>
+
+### Map loot, Alt+I
+See what each map really brought. The app reads the currency in your inventory off the screen before a map and again after it; what the inventory gained, at the loot filter's prices, is that map's loot. The Tracker's Map loot tab adds it up with your times from the game's log: session time, time in maps and in the hideout, loot per map and per hour, average and last map time, the best map and what came in most. A small box over the game, in maps too, shows the figures you pick, and **Start a new session** lets you compare one farm with the next without deleting anything. If GGG allows it, the experience you gain will be added to these figures too.
+
+Pick how it reads in **Settings → Price check → Inventory scan**. It stays **Off** until you choose:
+
+- **Automatic:** in your hideout or town, whenever the inventory is open, the app reads it about once a second. Nothing is read in a map. Opening a map from the atlas opens the inventory anyway (the waystone goes into the device), so the last read before you leave is where the map starts, and the box shows **Base read** with its time. When you come back, open the inventory before you put anything in the stash: the first seconds it is open tell what the map brought, and the box counts down while it reads. Stashing after that changes nothing.
+- **Manual:** nothing is read on its own. Press **Alt+I** with the inventory open in your hideout before the map, and again when you are back, before stashing anything. Alt+I also shows what your inventory is worth at any time, in either rule.
+
+<p align="center"><img src="docs/map-loot-box.png" alt="Map loot box over the game" width="330"> <img src="docs/map-loot-box-full.png" alt="The box with every figure picked" width="330"></p>
+
+> **What counts:** only items traded on Ange's Currency Exchange: currency, omens, essences, splinters, fragments, catalysts, uncut gems, flux and the like. Uniques, rares, gear, waystones and anything else whose worth depends on its mods are left out, because the screen doesn't tell what they are.
+>
+> **Good to know:**
+> - What goes into the stash before the read after a map is not counted. In Automatic, things bought or traded in the first seconds back count as loot.
+> - When a cell is not read for sure (a missing digit, a gem level), the card and the Tracker name it, such as "row 2, column 7", and that map's figure may be off.
+> - Hideout time leaves out AFK time and anything past 10 minutes of one stay there, so a break doesn't spoil your per-hour figure.
+> - To read without a tooltip in the way, Alt+I moves the mouse pointer off the items for a moment and puts it back. It never clicks.
+
+<p align="center"><img src="docs/map-loot-tracker.png" alt="Map loot in the Tracker" width="560"> <img src="docs/inventory-scan-settings.png" alt="Inventory scan settings" width="300"></p>
 
 ### Public filter profiles
 Keep separate setups for league start, Expedition farming or a strict endgame filter, and switch with one click. Publish a profile so other players can follow it, or browse what others shared, most followed first. A profile you follow updates itself when its author changes it.
@@ -95,16 +115,16 @@ The app's own look is up to you: pick MrW Default, Dark or Light, or copy one an
 
 A feature doesn't ship until it really works in game and plays by the rules.
 
-- **No memory reading, no input automation.** The app never touches the game's memory and never presses keys for you. One hotkey is one action.
+- **No memory reading, no input automation.** The app never touches the game's memory and never presses keys or clicks for you. One hotkey is one action. The only thing it moves is the mouse pointer, for a moment, when Alt+I reads the inventory.
 - **Gentle with the trade site.** Every request follows the rate limits the trade site announces. Exceptional bases are scanned on MrW Overlay's own servers, so your trade quota stays yours.
-- **Screen reading only when you ask.** Expedition and gem reading capture the screen once per key press and read it on your PC with Windows' built-in OCR, in your game's language. Nothing is uploaded.
+- **Screen reading only when you ask.** Expedition and gem reading capture the screen once per key press and read it on your PC with Windows' built-in OCR, in your game's language. The inventory scan is off until you pick Manual or Automatic. Nothing is uploaded.
 - **Your session stays on your PC.** If you connect your pathofexile.com account, the session is encrypted with Windows DPAPI and only ever sent to pathofexile.com.
 - **Weak data never hides loot.** A unique with a single listing, or an exceptional with only a few, is never a reason to hide it.
 - **Built in the open.** Every GitHub release exe is built from this repository by [GitHub Actions](.github/workflows/release.yml), never on a developer's machine, so what you download is the code you can read here.
 - **Safe updates.** The GitHub build checks every update against its SHA-256 and rolls back if the new version won't start. The Store build is updated by the Store.
 - **Light in the tray.** Measured idle: about 0.2% of one CPU core.
 - **Tested by real players, all the time.** A group of active players uses the app every day and tries each new feature in their own maps.
-- **Automated tests.** Around 290 of them cover the filter rules, the trade client, the item parser and the crafting engine, and every release passes them.
+- **Automated tests.** Around 360 of them cover the filter rules, the trade client, the item parser and the crafting engine, and every release passes them.
 - **Keeps up on its own.** Prices and NeverSink's filter refresh by themselves, with no app update needed. App updates follow the game's patches.
 
 ## Install
@@ -134,7 +154,7 @@ For live search, hideout travel, the sales tracker and bigger searches, the app 
 
 **The filter doesn't change in game.** Update in the app, then Options → Item Filter → **Reload** in game. No restart needed.
 
-**Can this get me banned?** The app reads no game memory and sends no input. It writes a text file, copies an item with the game's own copy command when you press the hotkey, and talks to the public trade API within its limits.
+**Can this get me banned?** The app reads no game memory, never presses keys and never clicks. It writes a text file, copies an item with the game's own copy command when you press the hotkey, reads the screen where you turned that on, and talks to the public trade API within its limits.
 
 **Too much / too little is hidden.** Change the value threshold first, then NeverSink's strictness. The strictness sets the base and the threshold sets your rules.
 
@@ -167,6 +187,7 @@ It reads public data: prices from MrW Overlay's shared price file on GitHub, or,
 - **Browser extension:** if you connect it, it sends your session and account name only to the app on the same PC. They are stored with Windows DPAPI, the session is sent only to `www.pathofexile.com` for trade actions you ask for, and **Settings → Account → Disconnect** deletes both.
 - **Sales tracker:** this is off by default. When on, the app reads your own merchant sales from `www.pathofexile.com` with the linked session and keeps them only on your PC. **Delete kept sales** in the Tracker window removes them.
 - **Public profiles:** these are optional. Only publishing or following talks to the MrW Overlay profile server (`profiles.mrwproject.com`). Publishing makes the profile's filter settings, its name, description and tags, and your account name (as the author) public. League, language, file paths, sound files, your session and price settings are never sent. Following stores a hash of a random install key, plus a salted hash of the IP (not the IP itself) to limit abuse. Unpublishing deletes the profile and its followers.
+- **Inventory scan:** this is off by default. When on, the app captures the inventory part of the game window (Manual: at each Alt+I; Automatic: about once a second while you are in a hideout or town with the inventory open) and reads it on your PC. The pictures are not kept, except small pictures of cells it could not read for sure, in `%APPDATA%\PoE2Filtre\debug\invscan` (the newest 60), for finding reading mistakes. The item images it compares against are downloaded once from GGG's image server (`web.poecdn.com`). Map loot and times stay on your PC.
 - **Price check:** this is off by default. When you press the hotkey, the app copies that item's text with the game's copy command and sends a search to the official trade API.
 
 Full policy: [poe2.mrwproject.com](https://poe2.mrwproject.com/privacy/).
