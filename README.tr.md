@@ -215,7 +215,7 @@ Uygulamaya yeni bir dil eklemek için `frontend/src/lib/locales/en.ts` ve `inter
 
 ## Teşekkürler
 
-MrW Overlay bu oyuncular olmadan bu hâlde olmazdı:
+MrW Overlay bu oyuncular olmadan bu kadar gelişemezdi:
 
 - [umtgvn](https://github.com/umtgvn): uygulamanın fikir babası.
 - [erdem23052](https://github.com/erdem23052): her yeni özelliği gerçek map'lerde deniyor.
