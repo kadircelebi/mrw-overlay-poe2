@@ -196,6 +196,7 @@ func (s *AppService) ExoticCandidates(raw string) ([]ExoticCandidate, error) {
 	if err != nil {
 		return nil, err
 	}
+	overlay.MarkPriced(&item, s.eng.Prices())
 	switch strings.ToLower(item.Rarity) {
 	case "normal", "magic", "rare":
 	default:

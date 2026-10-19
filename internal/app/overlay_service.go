@@ -600,6 +600,7 @@ func itemFromScreen(catalog overlay.Catalog) (text, shown string, ok bool) {
 }
 
 func (s *AppService) setOverlaySnapshot(snap overlay.Snapshot) {
+	overlay.MarkPriced(snap.Item, s.eng.Prices())
 	s.overlayMu.Lock()
 	s.overlaySnapshot = snap
 	s.overlayDraft = trade.EvaluateRequest{}

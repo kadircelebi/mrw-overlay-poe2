@@ -27,6 +27,30 @@ func TestQuoteCurrency(t *testing.T) {
 	}
 }
 
+func TestMarkPriced(t *testing.T) {
+	snap := &prices.Snapshot{Currency: []prices.CurrencyPrice{
+		{Name: "Raven's Reflection", Category: "fragments", ValueEx: 1214},
+		{Name: "Expedition Logbook", Category: "expedition", ValueEx: 3},
+	}}
+	raven := Item{Rarity: "normal", BaseType: "Raven's Reflection"}
+	MarkPriced(&raven, snap)
+	if raven.Exchange == "" {
+		t.Error("a priced normal item gets the worth card")
+	}
+	for _, it := range []Item{
+		{Rarity: "normal", BaseType: "Slipstrike Vest"},
+		{Rarity: "normal", BaseType: "Expedition Logbook"},
+		{Rarity: "rare", BaseType: "Raven's Reflection"},
+		{Rarity: "normal", BaseType: "Simulacrum", Exchange: "simulacrum"},
+	} {
+		want := it.Exchange
+		MarkPriced(&it, snap)
+		if it.Exchange != want {
+			t.Errorf("%s (%s): exchange %q, want %q", it.BaseType, it.Rarity, it.Exchange, want)
+		}
+	}
+}
+
 func TestStackSize(t *testing.T) {
 	for in, want := range map[string]int{" 808/5000": 808, " 1,234/5,000": 1234, " 3/10": 3, "": 0} {
 		if got := stackSize(in); got != want {

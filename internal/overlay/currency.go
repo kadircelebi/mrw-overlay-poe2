@@ -20,6 +20,27 @@ type CurrencyQuote struct {
 	GeneratedAt time.Time `json:"generatedAt"`
 }
 
+// MarkPriced treats a normal item the price list knows like the exchange's
+// items: some priced fragments (Raven's Reflection) neither stack nor appear
+// in the trade site's exchange data, and the item search finds none of them.
+// It gets the worth card alone. Logbooks keep their search: their modifiers
+// set the price.
+func MarkPriced(item *Item, snap *prices.Snapshot) {
+	if item == nil || item.Exchange != "" || item.Rarity != "normal" {
+		return
+	}
+	name := item.BaseType
+	if name == "" {
+		name = item.Name
+	}
+	if strings.EqualFold(name, "Expedition Logbook") {
+		return
+	}
+	if q := QuoteCurrency(snap, name); q.Found {
+		item.Exchange = "price:" + q.Name
+	}
+}
+
 // QuoteCurrency looks the name up in the snapshot. The three rate currencies
 // are answered from the rates even when the list does not carry them.
 func QuoteCurrency(snap *prices.Snapshot, name string) CurrencyQuote {
