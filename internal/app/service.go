@@ -167,6 +167,12 @@ type AppService struct {
 	// lootPlacing is set while it is being dragged.
 	lootBoxWindow application.Window
 	lootPlacing   atomic.Bool
+	// campaignBoxWindow says what to watch for in the campaign area
+	// campaignArea (the id the game logs); campaignPlacing is set while it
+	// is being dragged.
+	campaignBoxWindow application.Window
+	campaignArea      atomic.Value
+	campaignPlacing   atomic.Bool
 	// boxDrag follows a box being dragged (MoveBox); grips are the boxes'
 	// handles, by box name.
 	boxDrag boxDragState
@@ -246,6 +252,7 @@ func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOp
 		s.whispers.SetOnArea(func(a overlay.Area) {
 			s.expeditionAreaEntered(a)
 			s.lootAreaEntered(a)
+			s.campaignAreaEntered(a)
 		})
 		go s.tradeHistoryLoop()
 		go s.restoreLiveSearches(ctx)

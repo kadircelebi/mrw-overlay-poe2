@@ -77,10 +77,14 @@ func (s *AppService) setGameActive(active bool, hwnd uintptr) {
 	}
 	if s.gameActive.Swap(active) != active {
 		s.syncChatShortcuts()
+		if active {
+			s.placeCampaign()
+		}
 	}
 	s.syncEarningsOverlay()
 	s.syncExpeditionStrip()
 	s.syncLootBox()
+	s.syncCampaignBox()
 }
 
 // sendChatCommand types a line into the game's chat through the clipboard,

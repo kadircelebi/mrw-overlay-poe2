@@ -16,6 +16,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as appupdate$0 from "../appupdate/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as campaign$0 from "../campaign/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as engine$0 from "../engine/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -294,6 +297,14 @@ export function FetchOverlayListings(searchID: string, ids: string[] | null): $C
 }
 
 /**
+ * FinishCampaignBoxPlace ends placing; with save, the box keeps the place it
+ * was dragged to, as a share of the game's client area.
+ */
+export function FinishCampaignBoxPlace(save: boolean): $CancellablePromise<void> {
+    return $Call.ByID(4090221416, save);
+}
+
+/**
  * FinishEarningsPlace ends placing; with save, the overlay keeps the place
  * it was dragged to.
  */
@@ -341,6 +352,20 @@ export function FollowProfile(id: string): $CancellablePromise<filter$0.Config> 
  */
 export function GetAppUpdateState(): $CancellablePromise<appupdate$0.State> {
     return $Call.ByID(1207992012);
+}
+
+/**
+ * GetCampaignGuide returns the whole campaign, for the tracker.
+ */
+export function GetCampaignGuide(): $CancellablePromise<campaign$0.Guide> {
+    return $Call.ByID(2929095527);
+}
+
+/**
+ * GetCampaignStatus returns what the campaign box shows.
+ */
+export function GetCampaignStatus(): $CancellablePromise<$models.CampaignStatusView> {
+    return $Call.ByID(1669746955);
 }
 
 /**
@@ -651,6 +676,13 @@ export function ParseOverlayText(raw: string): $CancellablePromise<overlay$0.Sna
 }
 
 /**
+ * PlaceCampaignBox starts placing the campaign box over the game.
+ */
+export function PlaceCampaignBox(): $CancellablePromise<string> {
+    return $Call.ByID(1927521819);
+}
+
+/**
  * PlaceEarnings starts placing the earnings overlay over the game.
  */
 export function PlaceEarnings(): $CancellablePromise<string> {
@@ -852,6 +884,13 @@ export function SearchItems(query: string): $CancellablePromise<insights$0.Searc
 
 export function SelectUITheme(id: string): $CancellablePromise<uitheme$0.State> {
     return $Call.ByID(3676360300, id);
+}
+
+/**
+ * SetCampaignBox shows or hides the campaign box over the game.
+ */
+export function SetCampaignBox(on: boolean): $CancellablePromise<void> {
+    return $Call.ByID(4279630282, on);
 }
 
 /**

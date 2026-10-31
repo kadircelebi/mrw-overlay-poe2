@@ -95,6 +95,13 @@ type Settings struct {
 	// LootBoxFields are the lines the box shows (LootBoxFieldKeys), in
 	// that order whatever this one; nil means DefaultLootBoxFields.
 	LootBoxFields []string `json:"loot_box_fields"`
+	// CampaignBox shows what to watch for in the campaign area the player
+	// is in; it starts off. It shows at CampaignCorner, or where the player
+	// dragged it (CampaignX/Y as with the earnings overlay).
+	CampaignBox    bool    `json:"campaign_box,omitempty"`
+	CampaignCorner string  `json:"campaign_corner,omitempty"`
+	CampaignX      float64 `json:"campaign_x,omitempty"`
+	CampaignY      float64 `json:"campaign_y,omitempty"`
 }
 
 // The loot box's lines, in the order it shows them: the scan's state, the
@@ -136,6 +143,13 @@ const DefaultEarningsCorner = "top-center"
 const (
 	defaultLootX = 0.42
 	defaultLootY = 0.06
+)
+
+// The campaign box starts on the left, clear of the party frames and of the
+// minimap and quest list on the right.
+const (
+	defaultCampaignX = 0.01
+	defaultCampaignY = 0.22
 )
 
 // DefaultExpeditionCorner keeps the Expedition box apart from the earnings.
@@ -320,6 +334,11 @@ func (s *Settings) Normalize() {
 	}
 	s.LootX = min(max(s.LootX, 0), 1)
 	s.LootY = min(max(s.LootY, 0), 1)
+	if !slices.Contains(EarningsCorners, s.CampaignCorner) {
+		s.CampaignCorner, s.CampaignX, s.CampaignY = EarningsCustom, defaultCampaignX, defaultCampaignY
+	}
+	s.CampaignX = min(max(s.CampaignX, 0), 1)
+	s.CampaignY = min(max(s.CampaignY, 0), 1)
 	if s.LootBoxFields == nil {
 		s.LootBoxFields = slices.Clone(DefaultLootBoxFields)
 	} else {

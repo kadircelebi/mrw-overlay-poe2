@@ -55,6 +55,13 @@ internal/overlay/data/locale/*.json
     which is under the MIT licence: Copyright (c) 2020 Alexander Drozdov. The
     underlying game text belongs to Grinding Gear Games.
 
+internal/campaign/guide.json
+    The campaign notes are based on the zone and act notes of Path of Levelling
+    2 (https://github.com/Kami-Guru/path-of-levelling-2), which is under the
+    MIT licence: Copyright (c) 2025 Jared Andre Rabie; see
+    internal/campaign/LICENSE.path-of-levelling-2. Area ids and names are the
+    ones the game writes in its log.
+
     Path of Exile and Path of Exile 2 are trademarks of Grinding Gear Games.
     This project is not affiliated with, endorsed by, or sponsored by Grinding
     Gear Games. If Grinding Gear Games would rather these files were not

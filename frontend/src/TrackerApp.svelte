@@ -5,7 +5,8 @@
   import { onDestroy, onMount } from 'svelte'
   import { Events, Window } from '@wailsio/runtime'
   import { AppService } from '../bindings/poe2filter/internal/app'
-  import type { ExpeditionEntry, ExpeditionHistoryView, LootLogView, LootMap, LootSessionView, TradeHistoryView, TradeSale } from '../bindings/poe2filter/internal/app/models'
+  import type { CampaignStatusView, ExpeditionEntry, ExpeditionHistoryView, LootLogView, LootMap, LootSessionView, TradeHistoryView, TradeSale } from '../bindings/poe2filter/internal/app/models'
+  import type { Guide } from '../bindings/poe2filter/internal/campaign/models'
   import type { Run } from '../bindings/poe2filter/internal/lootlog/models'
   import type { Settings } from '../bindings/poe2filter/internal/overlay/models'
   import type { Total } from '../bindings/poe2filter/internal/tradehistory/models'
@@ -15,12 +16,15 @@
   import { currencyInfo } from './lib/currencies.svelte'
   import Toggle from './lib/Toggle.svelte'
   import { BOX_ONLY, FIGURES, doubtText, duration, fieldLabel, fieldValue, liveTimes, type FarmData } from './lib/farm'
+  import { noteMark, say } from './lib/campaign'
 
-  type Tab = 'sales' | 'expedition' | 'loot'
+  type Tab = 'sales' | 'expedition' | 'loot' | 'campaign'
   let tab = $state<Tab>('sales')
   let view = $state<TradeHistoryView | null>(null)
   let exp = $state<ExpeditionHistoryView | null>(null)
   let loot = $state<LootLogView | null>(null)
+  let guide = $state<Guide | null>(null)
+  let campaign = $state<CampaignStatusView | null>(null)
   // When the view arrived, for the quota countdown.
   let viewAt = $state(Date.now())
   let now = $state(Date.now())
@@ -39,6 +43,9 @@
     AppService.GetExpeditionHistory().then((v) => (exp = v)).catch(() => {})
     AppService.GetLootLog().then((v) => (loot = v)).catch(() => {})
     AppService.GetOverlaySettings().then((s) => (settings = s)).catch(() => {})
+    AppService.GetCampaignGuide().then((g) => (guide = g)).catch(() => {})
+    AppService.GetCampaignStatus().then((v) => (campaign = v)).catch(() => {})
+    const offCampaign = Events.On('campaign-status', (event) => (campaign = event.data as CampaignStatusView))
     const off = Events.On('trade-history', (event) => accept(event.data as TradeHistoryView))
     const offExp = Events.On('expedition-history', (event) => (exp = event.data as ExpeditionHistoryView))
     const offLoot = Events.On('loot-log', (event) => (loot = event.data as LootLogView))
@@ -48,6 +55,7 @@
       off()
       offExp()
       offLoot()
+      offCampaign()
       offLang()
     }
   })
@@ -284,6 +292,19 @@
     unfolded[g.key] = !isUnfolded(g)
   }
 
+  // The campaign tab: the act picked, or the one the player is in.
+  let actPicked = $state<string | null>(null)
+  const actShown = $derived(guide?.acts?.find((a) => a.id === (actPicked ?? campaign?.actId)) ?? guide?.acts?.[0] ?? null)
+  let campaignPlaceError = $state('')
+  async function placeCampaign() {
+    campaignPlaceError = (await AppService.PlaceCampaignBox()) ?? ''
+  }
+  async function setCampaignBox(on: boolean) {
+    await AppService.SetCampaignBox(on)
+    settings = await AppService.GetOverlaySettings()
+    campaign = await AppService.GetCampaignStatus()
+  }
+
   // Placing the overlay over the game: "" or "noGame" from the last try.
   let placeError = $state('')
   async function place() {
@@ -374,10 +395,55 @@
     <button class:on={tab === 'sales'} onclick={() => (tab = 'sales')}>{t('tracker.tab.sales')}</button>
     <button class:on={tab === 'expedition'} onclick={() => (tab = 'expedition')}>{t('tracker.tab.expedition')}</button>
     <button class:on={tab === 'loot'} onclick={() => (tab = 'loot')}>{t('tracker.tab.loot')}</button>
+    <button class:on={tab === 'campaign'} onclick={() => (tab = 'campaign')}>{t('tracker.tab.campaign')}</button>
   </nav>
 
   <section class="body">
-    {#if tab === 'loot'}
+    {#if tab === 'campaign'}
+      {#if settings && !settings.enabled}
+        <div class="card warn">
+          <p>{t('campaign.needOverlay')}</p>
+          <button onclick={() => AppService.ShowSettings('')}>{t('header.settings')}</button>
+        </div>
+      {/if}
+      <div class="card overlay-row">
+        <p class="muted small">{t('campaign.intro')}</p>
+        <Toggle checked={!!settings?.campaign_box} label={t('campaign.box')} hint={t('campaign.boxHint')} onchange={(v) => setCampaignBox(v)} />
+        {#if settings?.campaign_box}
+          <div class="place">
+            {#if campaign?.placing}
+              <span class="muted small">{t('tracker.placeHint')}</span>
+              <button class="primary" onclick={() => AppService.FinishCampaignBoxPlace(true)}>{t('tracker.placeSave')}</button>
+              <button onclick={() => AppService.FinishCampaignBoxPlace(false)}>{t('tracker.placeCancel')}</button>
+            {:else}
+              <button onclick={placeCampaign}>{t('tracker.place')}</button>
+              {#if campaignPlaceError === 'noGame'}<span class="muted small">{t('tracker.placeNoGame')}</span>{/if}
+            {/if}
+          </div>
+        {/if}
+      </div>
+      {#if guide}
+        <div class="act-picker">
+          {#each guide.acts ?? [] as act (act.id)}
+            <button class:on={actShown?.id === act.id} onclick={() => (actPicked = act.id)}>{say(act)}</button>
+          {/each}
+        </div>
+        {#each actShown?.areas ?? [] as area (area.id)}
+          <div class="card campaign-area" class:here={campaign?.area?.id === area.id}>
+            <h3><span lang="en">{area.name}</span>{#if campaign?.area?.id === area.id}<span class="here-tag">{t('campaign.here')}</span>{/if}</h3>
+            <ul>
+              {#each area.notes ?? [] as note, i (i)}
+                <li class={note.kind}><span class="mark">{noteMark(note.kind)}</span><span>{say(note)}</span></li>
+              {/each}
+            </ul>
+          </div>
+        {/each}
+        <details class="campaign-credit muted small">
+          <summary>{t('campaign.credit')}</summary>
+          <pre>{guide.credit}</pre>
+        </details>
+      {/if}
+    {:else if tab === 'loot'}
       {#if !loot}
         <p class="muted">…</p>
       {:else}
@@ -1103,6 +1169,62 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
+  }
+  .act-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 12px 0 10px;
+  }
+  .act-picker button.on {
+    border-color: var(--gold);
+    color: var(--gold-bright);
+  }
+  .campaign-area {
+    margin-bottom: 8px;
+  }
+  .campaign-area.here {
+    border-color: var(--gold);
+  }
+  .campaign-area h3 {
+    margin: 0 0 6px;
+    font-size: 13.5px;
+    color: var(--gold-bright);
+  }
+  .here-tag {
+    margin-left: 8px;
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .campaign-area ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .campaign-area li {
+    display: flex;
+    gap: 6px;
+    line-height: 1.5;
+  }
+  .campaign-area .mark {
+    flex: none;
+    width: 14px;
+    text-align: center;
+  }
+  .campaign-area li.must {
+    color: var(--gold-bright);
+    font-weight: 600;
+  }
+  .campaign-area li.next {
+    color: var(--muted);
+  }
+  .campaign-credit {
+    margin-top: 12px;
+  }
+  .campaign-credit pre {
+    white-space: pre-wrap;
+    font-size: 11px;
   }
   .end {
     display: flex;

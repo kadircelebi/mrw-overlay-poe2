@@ -11,7 +11,7 @@ import (
 	"poe2filter/internal/overlay"
 )
 
-// The boxes over the game ("loot", "expedition", "earnings") let clicks
+// The boxes over the game ("loot", "expedition", "earnings", "campaign") let clicks
 // through to it, except for each one's grip: a small window just outside
 // its top-right corner. Dragging the grip moves the box, and letting go
 // keeps the box there. While a box is being placed from the tracker window
@@ -24,7 +24,7 @@ import (
 // first to arrive takes the box's place as the drag's start, and a move
 // older than one already made is dropped.
 
-var boxNames = []string{"loot", "expedition", "earnings"}
+var boxNames = []string{"loot", "expedition", "earnings", "campaign"}
 
 // The grip's size and its gap to the box, in window pixels.
 const (
@@ -71,6 +71,8 @@ func (s *AppService) boxWindow(box string) (application.Window, bool) {
 		return s.expeditionStripWindow, s.expeditionPlacing.Load()
 	case "earnings":
 		return s.earningsWindow, s.earningsPlacing.Load()
+	case "campaign":
+		return s.campaignBoxWindow, s.campaignPlacing.Load()
 	}
 	return nil, false
 }
@@ -121,6 +123,8 @@ func (s *AppService) EndBoxMove(box string, drag, seq, dx, dy int) {
 		next.ExpeditionCorner, next.ExpeditionX, next.ExpeditionY = overlay.EarningsCustom, fx, fy
 	case "earnings":
 		next.EarningsCorner, next.EarningsX, next.EarningsY = overlay.EarningsCustom, fx, fy
+	case "campaign":
+		next.CampaignCorner, next.CampaignX, next.CampaignY = overlay.EarningsCustom, fx, fy
 	}
 	if _, err := s.SaveOverlaySettings(next); err != nil {
 		log.Printf("%s box: save place: %v", box, err)

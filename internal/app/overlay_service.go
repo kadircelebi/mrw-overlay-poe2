@@ -75,6 +75,10 @@ func (s *AppService) SaveOverlaySettings(next overlay.Settings) (overlay.Setting
 	if old.Enabled != next.Enabled || old.InventoryScan != next.InventoryScan || old.LootBoxHidden != next.LootBoxHidden || !slices.Equal(old.LootBoxFields, next.LootBoxFields) {
 		s.lootChanged()
 	}
+	if old.Enabled != next.Enabled || old.CampaignBox != next.CampaignBox {
+		s.placeCampaign()
+		s.campaignChanged()
+	}
 	return next, nil
 }
 

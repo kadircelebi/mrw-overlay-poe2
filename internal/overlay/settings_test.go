@@ -133,6 +133,9 @@ func TestInventoryScanDefaults(t *testing.T) {
 	if s := LoadSettings(path); s.LootBoxHidden || s.LootCorner != EarningsCustom || s.LootX != defaultLootX || s.LootY != defaultLootY {
 		t.Fatalf("old file's loot box: %v %q %v %v", s.LootBoxHidden, s.LootCorner, s.LootX, s.LootY)
 	}
+	if s := LoadSettings(path); s.CampaignBox || s.CampaignCorner != EarningsCustom || s.CampaignX != defaultCampaignX || s.CampaignY != defaultCampaignY {
+		t.Fatalf("old file's campaign box: %v %q %v %v", s.CampaignBox, s.CampaignCorner, s.CampaignX, s.CampaignY)
+	}
 	if s := LoadSettings(path); !slices.Equal(s.LootBoxFields, DefaultLootBoxFields) {
 		t.Fatalf("old file's box lines: %v", s.LootBoxFields)
 	}

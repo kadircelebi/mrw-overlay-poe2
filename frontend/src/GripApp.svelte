@@ -1,6 +1,6 @@
 <script lang="ts">
   // A box's grip: the small "::" by the top-right corner of a box over the
-  // game (?box=loot|expedition|earnings). The box lets clicks through to
+  // game (?box=loot|expedition|earnings|campaign). The box lets clicks through to
   // the game; the grip takes them, and dragging it moves the box, which
   // stays where it is let go.
   import { onMount } from 'svelte'

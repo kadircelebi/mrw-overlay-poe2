@@ -236,7 +236,7 @@ func (s *AppService) FinishLootBoxPlace(save bool) {
 // boxWindows are the boxes that lie over the game.
 func (s *AppService) boxWindows() []application.Window {
 	var out []application.Window
-	for _, w := range []application.Window{s.earningsWindow, s.expeditionStripWindow, s.lootBoxWindow} {
+	for _, w := range []application.Window{s.earningsWindow, s.expeditionStripWindow, s.lootBoxWindow, s.campaignBoxWindow} {
 		if w != nil {
 			out = append(out, w)
 		}
@@ -274,4 +274,5 @@ func (s *AppService) syncBoxes() {
 	s.syncEarningsOverlay()
 	s.syncExpeditionStrip()
 	s.syncLootBox()
+	s.syncCampaignBox()
 }

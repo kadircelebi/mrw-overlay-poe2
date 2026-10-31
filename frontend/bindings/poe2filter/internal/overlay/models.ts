@@ -380,6 +380,16 @@ export interface Settings {
      * that order whatever this one; nil means DefaultLootBoxFields.
      */
     "loot_box_fields": string[] | null;
+
+    /**
+     * CampaignBox shows what to watch for in the campaign area the player
+     * is in; it starts off. It shows at CampaignCorner, or where the player
+     * dragged it (CampaignX/Y as with the earnings overlay).
+     */
+    "campaign_box"?: boolean;
+    "campaign_corner"?: string;
+    "campaign_x"?: number;
+    "campaign_y"?: number;
 }
 
 /**

@@ -3,6 +3,9 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as campaign$0 from "../campaign/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as expeditionhistory$0 from "../expeditionhistory/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -58,6 +61,19 @@ export interface BrowserLinkStatus {
      * browser needs "Reload" on its extensions page to pick it up.
      */
     "extensionOutdated"?: boolean;
+}
+
+/**
+ * CampaignStatusView is what the campaign box shows: the area the player is
+ * in, with its act (Area nil when it is not a campaign area).
+ */
+export interface CampaignStatusView {
+    "on": boolean;
+    "placing": boolean;
+    "area": campaign$0.Area | null;
+    "actId": string;
+    "actEn": string;
+    "actTr": string;
 }
 
 /**

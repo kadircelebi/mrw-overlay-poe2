@@ -8,6 +8,7 @@ export {
 
 export type {
     BrowserLinkStatus,
+    CampaignStatusView,
     ChromiumBrowser,
     CraftImport,
     CraftPrices,

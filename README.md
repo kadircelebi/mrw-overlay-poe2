@@ -96,6 +96,9 @@ Your merchant (Ange) sales, day by day, with totals for this game session, today
 
 <p align="center"><img src="docs/tracker.png" alt="Sales tracker" width="480"> <img src="docs/earnings.png" alt="Earnings strip over the game" width="400"></p>
 
+### Campaign box
+A small box over the game says what to watch for in the campaign area you are in: lasting rewards not to miss, optional stops, how to find the way and where to go next. It follows you by itself from the game's log and hides in maps and hideouts. All four acts and the interludes can also be read in the tracker's Campaign tab, where you turn the box on. The notes are in English and Turkish.
+
 ### Public filter profiles
 Keep separate setups for league start, Expedition farming or a strict endgame filter, and switch with one click. Publish a profile so other players can follow it, or browse what others shared, most followed first. A profile you follow updates itself when its author changes it.
 
@@ -224,6 +227,6 @@ MrW Overlay wouldn't be what it is without these players:
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Exceptions are listed in [NOTICE](NOTICE). The 26 alert sounds in `internal/gamesounds/files/` belong to Grinding Gear Games. The crafting data from poe2db.tw is under CC BY-NC-SA 3.0. NeverSink's filter is MIT licensed too, and the app downloads it at runtime. The game-language tables are built from [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2)'s data (MIT).
+MIT, see [LICENSE](LICENSE). Exceptions are listed in [NOTICE](NOTICE). The 26 alert sounds in `internal/gamesounds/files/` belong to Grinding Gear Games. The crafting data from poe2db.tw is under CC BY-NC-SA 3.0. NeverSink's filter is MIT licensed too, and the app downloads it at runtime. The game-language tables are built from [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2)'s data (MIT). The campaign notes are based on [Path of Levelling 2](https://github.com/Kami-Guru/path-of-levelling-2) (MIT).
 
 MrW Overlay is built by a player, for players. It is not an official Grinding Gear Games product, and they don't back it. Path of Exile 2 and everything in it belong to them.

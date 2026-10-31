@@ -96,6 +96,9 @@ Satıcının (Ange) yaptığı satışlar gün gün: bu oyun oturumu, bugün ve 
 
 <p align="center"><img src="docs/tracker.png" alt="Satış takibi" width="480"> <img src="docs/earnings.png" alt="Oyunun üstünde kazanç şeridi" width="400"></p>
 
+### Kampanya kutusu
+Oyunun üstünde küçük bir kutu, bulunduğun kampanya bölgesinde nelere dikkat edeceğini söyler: kaçırılmaması gereken kalıcı ödüller, isteğe bağlı duraklar, yol ipuçları ve sonraki adım. Oyunun log dosyasından seni kendiliğinden izler, map ve hideout'ta gizlenir. Dört perde ve ara perdeler Takip penceresinin Kampanya sekmesinde de okunabilir; kutu da oradan açılır. Notlar İngilizce ve Türkçedir.
+
 ### Paylaşılan filtre profilleri
 League start, Expedition farmı ya da sıkı bir endgame filtresi için ayrı ayarlar tut, tek tıkla aralarında geçiş yap. Profilini yayınla, başkaları takip etsin; ya da diğer oyuncuların paylaştıklarına göz at, en çok takip edilenler en üstte. Takip ettiğin profil, sahibi değiştirdikçe kendiliğinden güncellenir.
 
@@ -224,6 +227,6 @@ MrW Overlay bu oyuncular olmadan bu kadar gelişemezdi:
 
 ## Lisans
 
-MIT, bkz. [LICENSE](LICENSE). İstisnalar [NOTICE](NOTICE) dosyasında. `internal/gamesounds/files/` altındaki 26 uyarı sesi Grinding Gear Games'e aittir. poe2db.tw'den gelen craft verisi CC BY-NC-SA 3.0 lisanslıdır. NeverSink'in filtresi de MIT lisanslıdır; uygulama onu çalışırken indirir. Oyun dili tabloları [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2)'nin verisinden üretilir (MIT).
+MIT, bkz. [LICENSE](LICENSE). İstisnalar [NOTICE](NOTICE) dosyasında. `internal/gamesounds/files/` altındaki 26 uyarı sesi Grinding Gear Games'e aittir. poe2db.tw'den gelen craft verisi CC BY-NC-SA 3.0 lisanslıdır. NeverSink'in filtresi de MIT lisanslıdır; uygulama onu çalışırken indirir. Oyun dili tabloları [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2)'nin verisinden üretilir (MIT). Kampanya notları [Path of Levelling 2](https://github.com/Kami-Guru/path-of-levelling-2) projesine dayanır (MIT).
 
 MrW Overlay bir oyuncunun oyuncular için yaptığı bir araçtır. Grinding Gear Games'in resmî bir ürünü değildir ve onlar tarafından desteklenmez. Path of Exile 2 ve içindeki her şey onlara aittir.

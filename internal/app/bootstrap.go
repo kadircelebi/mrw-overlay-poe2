@@ -305,6 +305,21 @@ func Run(opt Options) {
 		e.Cancel()
 	})
 
+	// What to watch for in the campaign area the player is in.
+	campaignBoxWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name: "campaignbox", Title: "MrW Overlay · Campaign", Width: campaignBoxWidth, Height: campaignBoxHeight,
+		Frameless: true, AlwaysOnTop: true, Hidden: true, DisableResize: true,
+		BackgroundType:    application.BackgroundTypeTransparent,
+		BackgroundColour:  application.NewRGBA(0, 0, 0, 0),
+		IgnoreMouseEvents: true,
+		Windows:           application.WindowsWindow{HiddenOnTaskbar: true, ExStyle: expeditionExStyle},
+		URL:               "/?view=campaignbox",
+	})
+	campaignBoxWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		campaignBoxWindow.Hide()
+		e.Cancel()
+	})
+
 	// Each box's grip: a small window by its top-right corner that, unlike
 	// the box, takes the mouse (still never the focus), to drag it.
 	const gripExStyle = 0x08000000 | 0x80 | 0x8 // NOACTIVATE, TOOLWINDOW, TOPMOST
@@ -398,6 +413,7 @@ func Run(opt Options) {
 	svc.trackerWindow, svc.earningsWindow = trackerWindow, earningsWindow
 	svc.expeditionStripWindow = expeditionStripWindow
 	svc.invScanWindow, svc.lootBoxWindow = invScanWindow, lootBoxWindow
+	svc.campaignBoxWindow = campaignBoxWindow
 	svc.grips = grips
 	// Price check (Alt+E), market (Alt+M) and craft (Alt+F) shortcuts
 	// exist only while the overlay is switched on.

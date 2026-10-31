@@ -1,0 +1,850 @@
+{
+  "acts": [
+    {
+      "id": "act1",
+      "en": "Act 1",
+      "tr": "1. Perde",
+      "areas": [
+        {
+          "id": "G1_1",
+          "name": "The Riverbank",
+          "notes": [
+            {"kind": "next", "en": "Kill the boss at the end, then go on to the town.", "tr": "Sondaki boss'u öldür, sonra kasabaya geç."}
+          ]
+        },
+        {
+          "id": "G1_town",
+          "name": "Clearfell Encampment",
+          "notes": [
+            {"kind": "must", "en": "Clearfell: Beira, +10% Cold Res", "tr": "Clearfell: Beira, +%10 Cold Res"},
+            {"kind": "must", "en": "Hunting Grounds: Crowbell, 2 weapon set passive points", "tr": "Hunting Grounds: Crowbell, 2 silah seti pasif puanı"},
+            {"kind": "must", "en": "Freythorn: King in the Mists, +30 Spirit and a Lvl 4 Spirit gem", "tr": "Freythorn: King in the Mists, +30 Spirit ve Lvl 4 Spirit gem"},
+            {"kind": "must", "en": "Ogham Farmlands: Una's Lute, 2 passive points", "tr": "Ogham Farmlands: Una's Lute, 2 pasif puan"},
+            {"kind": "must", "en": "Ogham Manor: Candlemass, +20 max Life", "tr": "Ogham Manor: Candlemass, +20 max Life"},
+            {"kind": "tip", "en": "On level-ups check the vendor: boots with up to 10% movement speed, a new weapon, flasks.", "tr": "Seviye atlayınca satıcıya bak: %10'a kadar hızlı bot, yeni silah, flask."}
+          ]
+        },
+        {
+          "id": "G1_2",
+          "name": "Clearfell",
+          "notes": [
+            {"kind": "must", "en": "Beira of the Rotten Pack: +10% Cold Res", "tr": "Beira of the Rotten Pack: +%10 Cold Res"},
+            {"kind": "optional", "en": "Mud Burrow: its boss gives a Lvl 2 skill gem and a support gem.", "tr": "Mud Burrow: boss'u Lvl 2 skill gem ve support gem verir."},
+            {"kind": "tip", "en": "A greyish path on the minimap leads to Mud Burrow.", "tr": "Minimap'teki grimsi yol Mud Burrow'a gider."},
+            {"kind": "next", "en": "Exit to The Grelwood.", "tr": "Çıkış: The Grelwood."}
+          ]
+        },
+        {
+          "id": "G1_3",
+          "name": "Mud Burrow",
+          "notes": [
+            {"kind": "optional", "en": "This area can be skipped.", "tr": "Bu bölge atlanabilir."},
+            {"kind": "tip", "en": "The boss is straight left, right, up or down from the entrance.", "tr": "Boss girişin tam solunda, sağında, üstünde ya da altındadır."}
+          ]
+        },
+        {
+          "id": "G1_4",
+          "name": "The Grelwood",
+          "notes": [
+            {"kind": "tip", "en": "Four spots in a diamond: The Grim Tangle, Tree of Souls with the waypoint, Brambleghast, Areagne's Hut.", "tr": "Baklava şeklinde dört nokta: The Grim Tangle, waypoint'li Tree of Souls, Brambleghast, Areagne's Hut."},
+            {"kind": "tip", "en": "Found The Grim Tangle or The Red Vale? Step in, take the waypoint, come back.", "tr": "The Grim Tangle ya da The Red Vale'i buldun mu? Gir, waypoint'i al, dön."},
+            {"kind": "optional", "en": "Brambleghast and Areagne drop gems.", "tr": "Brambleghast ve Areagne gem düşürür."},
+            {"kind": "next", "en": "Exit to The Red Vale, usually in the same corner as Brambleghast.", "tr": "Çıkış: The Red Vale, genelde Brambleghast'la aynı köşede."}
+          ]
+        },
+        {
+          "id": "G1_5",
+          "name": "The Red Vale",
+          "notes": [
+            {"kind": "tip", "en": "Usually a spiral: keep the wall just off screen and follow it.", "tr": "Genelde spiral: duvarı ekranın hemen dışında tutup takip et."},
+            {"kind": "tip", "en": "Music plays near an altar; one may sit in the middle of the zone.", "tr": "Altar yakınında müzik çalar; biri bölgenin ortasında olabilir."},
+            {"kind": "next", "en": "After the boss: portal to town, then waypoint to The Grim Tangle.", "tr": "Boss'tan sonra: portalla kasabaya, oradan waypoint ile The Grim Tangle'a."}
+          ]
+        },
+        {
+          "id": "G1_6",
+          "name": "The Grim Tangle",
+          "notes": [
+            {"kind": "tip", "en": "Go roughly up and left. The layout can be flipped: if you start north, go south.", "tr": "Kabaca sol yukarı git. Harita ters olabilir: kuzeyden başladıysan güneye git."},
+            {"kind": "optional", "en": "The Rotten Druid drops a Lvl 1 support gem.", "tr": "The Rotten Druid Lvl 1 support gem düşürür."},
+            {"kind": "next", "en": "Exit to Cemetery of the Eternals.", "tr": "Çıkış: Cemetery of the Eternals."}
+          ]
+        },
+        {
+          "id": "G1_7",
+          "name": "Cemetery of the Eternals",
+          "notes": [
+            {"kind": "tip", "en": "Follow the wall and take both checkpoints first. The exits are usually on opposite sides.", "tr": "Duvarı takip et, önce iki checkpoint'i de al. Çıkışlar genelde karşılıklıdır."},
+            {"kind": "optional", "en": "A grave on the edge of the zone may hold an Iron Ring.", "tr": "Bölge kenarındaki bir mezardan Iron Ring çıkabilir."},
+            {"kind": "next", "en": "First Mausoleum of the Praetor, on the second visit Tomb of the Consort.", "tr": "Önce Mausoleum of the Praetor, ikinci gelişte Tomb of the Consort."}
+          ]
+        },
+        {
+          "id": "G1_8",
+          "name": "Mausoleum of the Praetor",
+          "notes": [
+            {"kind": "tip", "en": "Draw a line from the exit through the middle tile: the boss is usually that way.", "tr": "Çıkıştan ortadaki parçaya bir çizgi çek: boss genelde o yöndedir."},
+            {"kind": "next", "en": "After the boss: exit to the Cemetery, checkpoint to the Tomb of the Consort.", "tr": "Boss'tan sonra: Cemetery'ye çık, checkpoint ile Tomb of the Consort'a."}
+          ]
+        },
+        {
+          "id": "G1_9",
+          "name": "Tomb of the Consort",
+          "notes": [
+            {"kind": "tip", "en": "The boss is usually in the north corner or the middle; follow the corridors through the centre.", "tr": "Boss genelde kuzey köşede ya da ortadadır; merkezden geçen koridorları izle."},
+            {"kind": "next", "en": "Portal to town, then waypoint to the Cemetery for its boss.", "tr": "Portalla kasabaya, oradan waypoint ile Cemetery'deki boss'a."}
+          ]
+        },
+        {
+          "id": "G1_11",
+          "name": "Hunting Grounds",
+          "notes": [
+            {"kind": "must", "en": "The Crowbell: 2 weapon set passive points", "tr": "The Crowbell: 2 silah seti pasif puanı"},
+            {"kind": "tip", "en": "Follow the edge clockwise. A giant pit means the boss is close.", "tr": "Kenarı saat yönünde izle. Dev çukur görürsen boss yakındır."},
+            {"kind": "tip", "en": "Found Ogham Farmlands or Freythorn? Step in, take the waypoint, come back.", "tr": "Ogham Farmlands ya da Freythorn'u buldun mu? Gir, waypoint'i al, dön."},
+            {"kind": "next", "en": "Freythorn first, then Ogham Farmlands.", "tr": "Önce Freythorn, sonra Ogham Farmlands."}
+          ]
+        },
+        {
+          "id": "G1_12",
+          "name": "Freythorn",
+          "notes": [
+            {"kind": "must", "en": "The King in the Mists: +30 Spirit and a Lvl 4 Spirit gem", "tr": "The King in the Mists: +30 Spirit ve Lvl 4 Spirit gem"},
+            {"kind": "tip", "en": "Found the final ritual without the other three? Its wisps point towards the rest.", "tr": "Son ritüeli diğer üçü olmadan buldun mu? Işıklar kalanların yönünü gösterir."},
+            {"kind": "next", "en": "Portal to town, waypoint to Hunting Grounds, exit to Ogham Farmlands.", "tr": "Portalla kasabaya, waypoint ile Hunting Grounds'a, çıkış Ogham Farmlands."}
+          ]
+        },
+        {
+          "id": "G1_13_1",
+          "name": "Ogham Farmlands",
+          "notes": [
+            {"kind": "must", "en": "Una's Lute, past the broken caravans: 2 passive points", "tr": "Una's Lute, bozuk kervanların ötesinde: 2 pasif puan"},
+            {"kind": "tip", "en": "Usually down and left; the exit is on the wall opposite the entrance.", "tr": "Genelde sol aşağı; çıkış girişin karşı duvarındadır."},
+            {"kind": "next", "en": "Exit to Ogham Village.", "tr": "Çıkış: Ogham Village."}
+          ]
+        },
+        {
+          "id": "G1_13_2",
+          "name": "Ogham Village",
+          "notes": [
+            {"kind": "tip", "en": "Follow the edge north. Boss before Renly's Tools? Checkpoint to the entrance and follow the wall south.", "tr": "Kenardan kuzeye git. Renly's Tools'tan önce boss'u bulduysan checkpoint ile girişe dön, duvardan güneye git."},
+            {"kind": "next", "en": "Kill The Executioner, exit to The Manor Ramparts.", "tr": "The Executioner'ı öldür, çıkış The Manor Ramparts."}
+          ]
+        },
+        {
+          "id": "G1_14",
+          "name": "The Manor Ramparts",
+          "notes": [
+            {"kind": "tip", "en": "Usually clockwise; the layout can be flipped vertically.", "tr": "Genelde saat yönünde; harita dikey ters olabilir."},
+            {"kind": "optional", "en": "Gallows on the north wall (south if flipped): a Lvl 1 support gem.", "tr": "Kuzey duvardaki darağacı (ters haritada güney): Lvl 1 support gem."}
+          ]
+        },
+        {
+          "id": "G1_15",
+          "name": "Ogham Manor",
+          "notes": [
+            {"kind": "must", "en": "Candlemass: +20 max Life", "tr": "Candlemass: +20 max Life"},
+            {"kind": "tip", "en": "Each floor has a bridge near the middle: find it first. First floor up-right, then the opposite way of the floor before.", "tr": "Her katta ortaya yakın bir köprü var, önce onu bul. İlk kat sağ yukarı, sonrakiler bir önceki katın tersi."},
+            {"kind": "next", "en": "Count Geonor, then Act 2.", "tr": "Count Geonor, ardından 2. Perde."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "act2",
+      "en": "Act 2",
+      "tr": "2. Perde",
+      "areas": [
+        {
+          "id": "G2_1",
+          "name": "Vastiri Outskirts",
+          "notes": [
+            {"kind": "tip", "en": "The boss is down-left or down-right, in a rough Z. Stay on the tip of his cliff to avoid the spears.", "tr": "Boss sol ya da sağ aşağıda, kabaca Z şeklinde. Mızraklardan kaçmak için uçurumun ucunda dur."},
+            {"kind": "next", "en": "Rathbreaker, then town. Caravan to The Halani Gates and back, then Mawdun Quarry.", "tr": "Rathbreaker, sonra kasaba. Kervanla The Halani Gates'e gidip dön, sonra Mawdun Quarry."}
+          ]
+        },
+        {
+          "id": "G2_town",
+          "name": "The Ardura Caravan",
+          "notes": [
+            {"kind": "must", "en": "Traitor's Passage: Balbala unlocks your first ascendancy trial", "tr": "Traitor's Passage: Balbala ilk ascendancy denemesini açar"},
+            {"kind": "must", "en": "Keth: Kabala, 2 weapon set passive points", "tr": "Keth: Kabala, 2 silah seti pasif puanı"},
+            {"kind": "must", "en": "Valley of the Titans: Ancient Vows, pick a bonus", "tr": "Valley of the Titans: Ancient Vows, bir bonus seç"},
+            {"kind": "must", "en": "Deshar: Final Letter, 2 passive points", "tr": "Deshar: Final Letter, 2 pasif puan"},
+            {"kind": "must", "en": "Spires of Deshar: Sisters of Garukhan, +10% Lightning Res", "tr": "Spires of Deshar: Sisters of Garukhan, +%10 Lightning Res"},
+            {"kind": "tip", "en": "On level-ups check the vendor: boots with up to 15% movement speed, a new weapon, flasks.", "tr": "Seviye atlayınca satıcıya bak: %15'e kadar hızlı bot, yeni silah, flask."}
+          ]
+        },
+        {
+          "id": "G2_10_1",
+          "name": "Mawdun Quarry",
+          "notes": [
+            {"kind": "tip", "en": "Roughly a Z. When in doubt, follow a wall.", "tr": "Kabaca Z şeklinde. Emin değilsen duvarı izle."},
+            {"kind": "next", "en": "Exit to Mawdun Mine.", "tr": "Çıkış: Mawdun Mine."}
+          ]
+        },
+        {
+          "id": "G2_10_2",
+          "name": "Mawdun Mine",
+          "notes": [
+            {"kind": "tip", "en": "The boss hits hard: bring Fire Res and watch for mines. Usually straight north of the entrance.", "tr": "Boss sert vurur: Fire Res al, mayınlara dikkat et. Genelde girişin tam kuzeyinde."},
+            {"kind": "next", "en": "Exit to Traitor's Passage.", "tr": "Çıkış: Traitor's Passage."}
+          ]
+        },
+        {
+          "id": "G2_2",
+          "name": "Traitor's Passage",
+          "notes": [
+            {"kind": "must", "en": "Balbala: unlocks the Trial of the Sekhemas (ascendancy)", "tr": "Balbala: Trial of the Sekhemas'ı açar (ascendancy)"},
+            {"kind": "tip", "en": "Decree of Imprisonment on the wall: its pages lead to Balbala, the other way is the exit.", "tr": "Duvardaki Decree of Imprisonment: sayfalar Balbala'ya götürür, öteki yön çıkıştır."},
+            {"kind": "tip", "en": "Six Sisters statues mean you are going the right way.", "tr": "Six Sisters heykelleri doğru yolda olduğunu gösterir."},
+            {"kind": "next", "en": "Exit to The Halani Gates.", "tr": "Çıkış: The Halani Gates."}
+          ]
+        },
+        {
+          "id": "G2_13",
+          "name": "Trial of the Sekhemas",
+          "notes": [
+            {"kind": "must", "en": "Your first ascendancy points are here.", "tr": "İlk ascendancy puanların burada."}
+          ]
+        },
+        {
+          "id": "G2_3",
+          "also": ["G2_3a"],
+          "name": "The Halani Gates",
+          "notes": [
+            {"kind": "tip", "en": "Head to the corner opposite the entrance.", "tr": "Girişin karşı köşesine git."},
+            {"kind": "tip", "en": "Lightning Res and a Topaz Charm help here.", "tr": "Lightning Res ve Topaz Charm işe yarar."},
+            {"kind": "next", "en": "Town, then caravan to Keth.", "tr": "Kasaba, sonra kervanla Keth."}
+          ]
+        },
+        {
+          "id": "G2_4_1",
+          "name": "Keth",
+          "notes": [
+            {"kind": "must", "en": "Kabala: 2 weapon set passive points", "tr": "Kabala: 2 silah seti pasif puanı"},
+            {"kind": "tip", "en": "Follow the wall clockwise. Exit before the boss? Checkpoint to the entrance and go the other way.", "tr": "Duvarı saat yönünde izle. Boss'tan önce çıkışı bulduysan checkpoint ile girişe dön, ters yönden git."},
+            {"kind": "tip", "en": "A head-shaped tile, like a round buried building, stands near the boss. Great XP here.", "tr": "Boss yakınında kafa şeklinde, gömülü yuvarlak bir yapı var. XP burada çok iyi."},
+            {"kind": "next", "en": "Exit to The Lost City.", "tr": "Çıkış: The Lost City."}
+          ]
+        },
+        {
+          "id": "G2_4_2",
+          "name": "The Lost City",
+          "notes": [
+            {"kind": "tip", "en": "A diamond with bridges at its corners. The first bridge is far left or far right.", "tr": "Köşelerinde köprü olan bir baklava. İlk köprü en solda ya da en sağda."},
+            {"kind": "optional", "en": "A sarcophagus holds a Lvl 6-7 skill gem.", "tr": "Bir lahitte Lvl 6-7 skill gem var."},
+            {"kind": "next", "en": "Exit to Buried Shrines.", "tr": "Çıkış: Buried Shrines."}
+          ]
+        },
+        {
+          "id": "G2_4_3",
+          "name": "Buried Shrines",
+          "notes": [
+            {"kind": "tip", "en": "Two rectangles joined by bridges. A south-north bridge: boss straight up. A north-south one: boss straight left.", "tr": "Köprüyle bağlı iki dikdörtgen. Köprü güneyden kuzeye ise boss tam yukarıda, kuzeyden güneye ise tam solda."},
+            {"kind": "optional", "en": "The Elemental Offering gives a magic resistance ring.", "tr": "Elemental Offering büyülü resist yüzüğü verir."},
+            {"kind": "next", "en": "After the boss: town, caravan to Mastodon Badlands.", "tr": "Boss'tan sonra: kasaba, kervanla Mastodon Badlands."}
+          ]
+        },
+        {
+          "id": "G2_5_1",
+          "name": "Mastodon Badlands",
+          "notes": [
+            {"kind": "tip", "en": "Follow the wall opposite the waypoint.", "tr": "Waypoint'in karşısındaki duvarı izle."},
+            {"kind": "optional", "en": "The Abyss here drops Jawbone; the Effigy drops a Lvl 1 support gem.", "tr": "Buradaki Abyss Jawbone, Effigy Lvl 1 support gem düşürür."},
+            {"kind": "next", "en": "First Lightless Passage, on the second visit The Bone Pits.", "tr": "Önce Lightless Passage, ikinci gelişte The Bone Pits."}
+          ]
+        },
+        {
+          "id": "Abyss_Intro",
+          "name": "Lightless Passage",
+          "notes": [
+            {"kind": "tip", "en": "The Well of Souls is always top-left.", "tr": "Well of Souls hep sol üsttedir."},
+            {"kind": "next", "en": "Exit to the Well of Souls, then waypoint to Mastodon Badlands.", "tr": "Çıkış Well of Souls, sonra waypoint ile Mastodon Badlands."}
+          ]
+        },
+        {
+          "id": "G2_5_2",
+          "name": "The Bone Pits",
+          "notes": [
+            {"kind": "tip", "en": "The bone arch near the entrance points straight at the boss.", "tr": "Girişe yakın kemik kemer boss'u gösterir."},
+            {"kind": "next", "en": "After the boss: town, caravan to Valley of the Titans.", "tr": "Boss'tan sonra: kasaba, kervanla Valley of the Titans."}
+          ]
+        },
+        {
+          "id": "G2_6",
+          "name": "Valley of the Titans",
+          "notes": [
+            {"kind": "must", "en": "Ancient Vows: pick one lasting bonus at the seals", "tr": "Ancient Vows: mühürlerde kalıcı bir bonus seç"},
+            {"kind": "tip", "en": "Follow a wall to the seals; the third may be in the middle.", "tr": "Mühürlere duvardan git; üçüncüsü ortada olabilir."},
+            {"kind": "next", "en": "Exit to The Titan Grotto.", "tr": "Çıkış: The Titan Grotto."}
+          ]
+        },
+        {
+          "id": "G2_7",
+          "name": "The Titan Grotto",
+          "notes": [
+            {"kind": "tip", "en": "A rectangle: follow the entrance bridge's direction to the far side. The boss is on a long straight bridge.", "tr": "Dikdörtgen: giriş köprüsünün yönünden karşıya git. Boss uzun, düz bir köprüde."},
+            {"kind": "next", "en": "After the boss: town, use the horn at the caravan's north tip, then Deshar.", "tr": "Boss'tan sonra: kasaba, kervanın kuzey ucundaki boruyu çal, sonra Deshar."}
+          ]
+        },
+        {
+          "id": "G2_8",
+          "name": "Deshar",
+          "notes": [
+            {"kind": "must", "en": "Final Letter, outside one of the buildings: 2 passive points", "tr": "Final Letter, binalardan birinin dışında: 2 pasif puan"},
+            {"kind": "tip", "en": "The exit is on the far edge of the second group of buildings.", "tr": "Çıkış ikinci bina grubunun uzak kenarında."},
+            {"kind": "next", "en": "Exit to Path of Mourning.", "tr": "Çıkış: Path of Mourning."}
+          ]
+        },
+        {
+          "id": "G2_9_1",
+          "name": "Path of Mourning",
+          "notes": [
+            {"kind": "tip", "en": "Unpredictable. Try the corner opposite the entrance, or three bridges right, three up-right, three down-right.", "tr": "Önceden kestirilmez. Girişin karşı köşesini dene ya da üç köprü sağa, üç sağ yukarı, üç sağ aşağı."},
+            {"kind": "next", "en": "Exit to The Spires of Deshar.", "tr": "Çıkış: The Spires of Deshar."}
+          ]
+        },
+        {
+          "id": "G2_9_2",
+          "name": "The Spires of Deshar",
+          "notes": [
+            {"kind": "must", "en": "Sisters of Garukhan: +10% Lightning Res", "tr": "Sisters of Garukhan: +%10 Lightning Res"},
+            {"kind": "tip", "en": "The Sisters are usually in a G-shaped tile.", "tr": "Sisters genelde G şeklindeki parçadadır."},
+            {"kind": "next", "en": "Kill Tor Gul, town, caravan to The Dreadnought.", "tr": "Tor Gul'u öldür, kasaba, kervanla The Dreadnought."}
+          ]
+        },
+        {
+          "id": "G2_12",
+          "also": ["G2_12_1", "G2_12_2"],
+          "name": "The Dreadnought",
+          "notes": [
+            {"kind": "tip", "en": "Take it slowly: enemies jump behind you and swarm you. Go roughly up-left.", "tr": "Yavaş ilerle: düşmanlar arkana atlayıp sarar. Kabaca sol yukarı git."},
+            {"kind": "tip", "en": "Lightning Res helps here.", "tr": "Lightning Res işe yarar."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "act3",
+      "en": "Act 3",
+      "tr": "3. Perde",
+      "areas": [
+        {
+          "id": "G3_1",
+          "name": "Sandswept Marsh",
+          "notes": [
+            {"kind": "optional", "en": "Rootdredge, usually mid-swamp: a Lvl 9 skill gem.", "tr": "Rootdredge, genelde bataklığın ortasında: Lvl 9 skill gem."},
+            {"kind": "optional", "en": "The campfire in the grass area: a Lesser Jeweller's Orb.", "tr": "Çimenlik alandaki kamp ateşi: Lesser Jeweller's Orb."},
+            {"kind": "next", "en": "Town, then exit to Jungle Ruins.", "tr": "Kasaba, sonra çıkış Jungle Ruins."}
+          ]
+        },
+        {
+          "id": "G3_town",
+          "name": "Ziggurat Encampment",
+          "notes": [
+            {"kind": "must", "en": "Jungle Ruins: Mighty Silverfist, 2 weapon set passive points", "tr": "Jungle Ruins: Mighty Silverfist, 2 silah seti pasif puanı"},
+            {"kind": "must", "en": "Venom Crypts: Venom Draught, pick a bonus", "tr": "Venom Crypts: Venom Draught, bir bonus seç"},
+            {"kind": "must", "en": "Azak Bog: Ignagduk, +30 Spirit and a Lvl 10 Spirit gem", "tr": "Azak Bog: Ignagduk, +30 Spirit ve Lvl 10 Spirit gem"},
+            {"kind": "must", "en": "Jiquani's Machinarium: Blackjaw, +10% Fire Res", "tr": "Jiquani's Machinarium: Blackjaw, +%10 Fire Res"},
+            {"kind": "must", "en": "Aggorat: sacrificial heart, 2 weapon set passive points", "tr": "Aggorat: kurban kalbi, 2 silah seti pasif puanı"},
+            {"kind": "tip", "en": "On level-ups check the vendor: boots with up to 20% movement speed, a new weapon, flasks.", "tr": "Seviye atlayınca satıcıya bak: %20'ye kadar hızlı bot, yeni silah, flask."}
+          ]
+        },
+        {
+          "id": "G3_3",
+          "name": "Jungle Ruins",
+          "notes": [
+            {"kind": "must", "en": "Mighty Silverfist, usually in the top third: 2 weapon set passive points", "tr": "Mighty Silverfist, genelde üst üçte birde: 2 silah seti pasif puanı"},
+            {"kind": "tip", "en": "Infested Barrens is on the wall opposite the entrance; The Venom Crypts in one of nine grid spots.", "tr": "Infested Barrens girişin karşı duvarında, The Venom Crypts dokuzlu ızgaranın bir noktasında."},
+            {"kind": "tip", "en": "Found The Venom Crypts? Step in, take the waypoint, come back.", "tr": "The Venom Crypts'i buldun mu? Gir, waypoint'i al, dön."},
+            {"kind": "optional", "en": "A jungle grave holds a belt; the Troubled Camp has a vendor.", "tr": "Orman mezarından kemer çıkar; Troubled Camp'te satıcı var."},
+            {"kind": "next", "en": "Exit to Infested Barrens.", "tr": "Çıkış: Infested Barrens."}
+          ]
+        },
+        {
+          "id": "G3_2_1",
+          "name": "Infested Barrens",
+          "notes": [
+            {"kind": "tip", "en": "Everything is on the edges: follow the wall for the checkpoints and the Matlan Waterways waypoint.", "tr": "Her şey kenarlarda: checkpoint'ler ve Matlan Waterways waypoint'i için duvarı izle."},
+            {"kind": "next", "en": "First The Azak Bog, second time Chimeral Wetlands, third time The Matlan Waterways.", "tr": "Önce The Azak Bog, ikinci gelişte Chimeral Wetlands, üçüncüde The Matlan Waterways."}
+          ]
+        },
+        {
+          "id": "G3_7",
+          "name": "The Azak Bog",
+          "notes": [
+            {"kind": "must", "en": "Ignagduk: +30 Spirit and a Lvl 10 Spirit gem", "tr": "Ignagduk: +30 Spirit ve Lvl 10 Spirit gem"},
+            {"kind": "tip", "en": "The boss is generally in the upper-right quarter.", "tr": "Boss genelde sağ üst çeyrekte."},
+            {"kind": "next", "en": "Portal to town, waypoint to Infested Barrens, checkpoint to Chimeral Wetlands.", "tr": "Portalla kasabaya, waypoint ile Infested Barrens, checkpoint ile Chimeral Wetlands."}
+          ]
+        },
+        {
+          "id": "G3_4",
+          "name": "The Venom Crypts",
+          "notes": [
+            {"kind": "must", "en": "Venom Draught: pick one lasting bonus", "tr": "Venom Draught: kalıcı bir bonus seç"},
+            {"kind": "tip", "en": "Spawned on the edge? The corpse is in the middle: follow the wall opposite the entrance. Otherwise it can be in any corner.", "tr": "Kenarda başladıysan ceset ortadadır: girişin karşı duvarını izle. Yoksa herhangi bir köşede olabilir."}
+          ]
+        },
+        {
+          "id": "G3_5",
+          "name": "Chimeral Wetlands",
+          "notes": [
+            {"kind": "tip", "en": "Follow the wall to the right. Jiquani's Machinarium is on the right wall, the Temple of Chaos on the top wall.", "tr": "Duvardan sağa git. Jiquani's Machinarium sağ duvarda, Temple of Chaos üst duvarda."},
+            {"kind": "next", "en": "Take both waypoints, then exit to Jiquani's Machinarium.", "tr": "İki waypoint'i de al, sonra çıkış Jiquani's Machinarium."}
+          ]
+        },
+        {
+          "id": "G3_10_Airlock",
+          "name": "The Temple of Chaos",
+          "notes": [
+            {"kind": "must", "en": "The Trial of Chaos is another way to ascendancy points.", "tr": "Trial of Chaos, ascendancy puanının diğer yolu."}
+          ]
+        },
+        {
+          "id": "G3_10",
+          "name": "The Trial of Chaos",
+          "notes": [
+            {"kind": "must", "en": "Another way to ascendancy points.", "tr": "Ascendancy puanının diğer yolu."}
+          ]
+        },
+        {
+          "id": "G3_6_1",
+          "name": "Jiquani's Machinarium",
+          "notes": [
+            {"kind": "must", "en": "Blackjaw, far left or far right: +10% Fire Res", "tr": "Blackjaw, en solda ya da en sağda: +%10 Fire Res"},
+            {"kind": "tip", "en": "The quest item makes a filter sound before you can see it.", "tr": "Görev eşyası sen görmeden filtre sesi çıkarır."},
+            {"kind": "next", "en": "Exit to Jiquani's Sanctum.", "tr": "Çıkış: Jiquani's Sanctum."}
+          ]
+        },
+        {
+          "id": "G3_6_2",
+          "name": "Jiquani's Sanctum",
+          "notes": [
+            {"kind": "tip", "en": "For the second generator: respawn at a checkpoint, walk off a bit and repeat until a soul core spawns nearby.", "tr": "İkinci jeneratör için: checkpoint'te doğ, biraz uzaklaş, yakında soul core çıkana kadar tekrarla."},
+            {"kind": "next", "en": "Checkpoint to the start for the boss. Then town, waypoint to Infested Barrens, exit to The Matlan Waterways.", "tr": "Boss için checkpoint ile başa dön. Sonra kasaba, waypoint ile Infested Barrens, çıkış The Matlan Waterways."}
+          ]
+        },
+        {
+          "id": "G3_2_2",
+          "name": "The Matlan Waterways",
+          "notes": [
+            {"kind": "tip", "en": "Fire Res and patience help here.", "tr": "Fire Res ve sabır işe yarar."},
+            {"kind": "next", "en": "Find the lever, portal to town, exit to The Drowned City.", "tr": "Kolu bul, portalla kasabaya, çıkış The Drowned City."}
+          ]
+        },
+        {
+          "id": "G3_8",
+          "name": "The Drowned City",
+          "notes": [
+            {"kind": "must", "en": "Take the waypoint at the start.", "tr": "Başlangıçtaki waypoint'i al."},
+            {"kind": "tip", "en": "Up-right to a wall, then down-right to a large area with a checkpoint: an ambush. After it down-right, then up-right to the exit.", "tr": "Sağ yukarı duvara kadar, sonra sağ aşağı checkpoint'li geniş alana: pusu var. Sonra sağ aşağı, ardından sağ yukarı çıkışa."},
+            {"kind": "optional", "en": "The Molten Vault: take its waypoint, leave the zone for after the campaign.", "tr": "The Molten Vault: waypoint'ini al, bölgeyi kampanya sonrasına bırak."},
+            {"kind": "next", "en": "Exit to Apex of Filth.", "tr": "Çıkış: Apex of Filth."}
+          ]
+        },
+        {
+          "id": "G3_9",
+          "name": "The Molten Vault",
+          "notes": [
+            {"kind": "optional", "en": "Faster to clear after the campaign. Mektul gives a Lvl 10 skill gem.", "tr": "Kampanyadan sonra yapmak daha hızlı. Mektul Lvl 10 skill gem verir."},
+            {"kind": "tip", "en": "Up-left to the lever over the lava, then up-right over bridges and doors, then down-right to the boss.", "tr": "Sol yukarı lavın üstündeki kola, sonra sağ yukarı köprü ve kapılardan, sonra sağ aşağı boss'a."}
+          ]
+        },
+        {
+          "id": "G3_11",
+          "name": "Apex of Filth",
+          "notes": [
+            {"kind": "tip", "en": "Roughly up-right or up-left. After a big arch halfway turn left, then right, and go to the end.", "tr": "Kabaca sağ ya da sol yukarı. Yarı yoldaki büyük kemerden sonra sola, sonra sağa dön, sona git."},
+            {"kind": "optional", "en": "The Cauldron Keeper gives Life and Mana flask rewards.", "tr": "Cauldron Keeper Life ve Mana flask ödülleri verir."},
+            {"kind": "next", "en": "Kill the boss, town, down the big stairs to Temple of Kopec.", "tr": "Boss'u öldür, kasaba, büyük merdivenden Temple of Kopec'e."}
+          ]
+        },
+        {
+          "id": "G3_12",
+          "name": "Temple of Kopec",
+          "notes": [
+            {"kind": "tip", "en": "Each floor is a triangle with the exit in a corner; the door shows on the minimap only up close.", "tr": "Her kat üçgen, çıkış köşede; kapı minimap'te ancak yakından görünür."},
+            {"kind": "tip", "en": "The second floor has a hole you cannot cross; the boss room is on its far side.", "tr": "İkinci katta geçilmez bir çukur var; boss odası karşı tarafında."}
+          ]
+        },
+        {
+          "id": "G3_14",
+          "name": "Utzaal",
+          "notes": [
+            {"kind": "tip", "en": "Same layout as The Drowned City: the boss stands where the ambush was. Follow the big tiles.", "tr": "The Drowned City ile aynı harita: boss pusunun olduğu yerde. Büyük taşları izle."},
+            {"kind": "next", "en": "After the boss down-right, then up-right: exit to Aggorat.", "tr": "Boss'tan sonra sağ aşağı, sonra sağ yukarı: çıkış Aggorat."}
+          ]
+        },
+        {
+          "id": "G3_16",
+          "name": "Aggorat",
+          "notes": [
+            {"kind": "must", "en": "Sacrificial heart in the zone's second half: 2 weapon set passive points", "tr": "Bölgenin ikinci yarısındaki kurban kalbi: 2 silah seti pasif puanı"},
+            {"kind": "tip", "en": "Find the huge altar area with praying enemies; the arch there leads to the second half.", "tr": "Dua eden düşmanlı dev altar alanını bul; oradaki kemer ikinci yarıya açılır."},
+            {"kind": "next", "en": "The exit to The Black Chambers is diagonal from the altar area.", "tr": "The Black Chambers çıkışı altar alanının çaprazında."}
+          ]
+        },
+        {
+          "id": "G3_17",
+          "name": "The Black Chambers",
+          "notes": [
+            {"kind": "tip", "en": "Go left or right over the first bridge, keep that direction to a checkpoint and a second bridge, then follow the bridges rising from the water.", "tr": "Sol ya da sağdan ilk köprüyü geç, aynı yönde checkpoint ve ikinci köprüye git, sonra sudan çıkan köprüleri izle."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "act4",
+      "en": "Act 4",
+      "tr": "4. Perde",
+      "areas": [
+        {
+          "id": "G4_town",
+          "name": "Kingsmarch",
+          "notes": [
+            {"kind": "must", "en": "Journey's End: 2 weapon set passive points", "tr": "Journey's End: 2 silah seti pasif puanı"},
+            {"kind": "must", "en": "Halls of the Dead: tattoos (+5 attribute or +5% res), Yama 2 weapon set passive points", "tr": "Halls of the Dead: dövmeler (+5 özellik ya da +%5 res), Yama 2 silah seti pasif puanı"},
+            {"kind": "must", "en": "Eye of Hinekora: +5% max Mana", "tr": "Eye of Hinekora: +%5 max Mana"},
+            {"kind": "must", "en": "Trial of the Ancestors: 2 weapon set passive points", "tr": "Trial of the Ancestors: 2 silah seti pasif puanı"},
+            {"kind": "must", "en": "Abandoned Prison: Life or Mana flask recovery", "tr": "Abandoned Prison: Life ya da Mana flask iyileşmesi"},
+            {"kind": "must", "en": "Arastas: Evening Bell, 3 Exalted Orbs", "tr": "Arastas: Evening Bell, 3 Exalted Orb"},
+            {"kind": "tip", "en": "Route: Kedge Bay, Whakapanu, Prison, Arastas, Ngakanu; Eye of Hinekora once Matiki is free.", "tr": "Rota: Kedge Bay, Whakapanu, Prison, Arastas, Ngakanu; Matiki kurtulunca Eye of Hinekora."}
+          ]
+        },
+        {
+          "id": "G4_2_1",
+          "name": "Kedge Bay",
+          "notes": [
+            {"kind": "next", "en": "Follow the zone to its end, exit to Journey's End.", "tr": "Bölgeyi sonuna kadar izle, çıkış Journey's End."}
+          ]
+        },
+        {
+          "id": "G4_2_2",
+          "name": "Journey's End",
+          "notes": [
+            {"kind": "must", "en": "2 weapon set passive points and a Lvl 13 skill gem", "tr": "2 silah seti pasif puanı ve Lvl 13 skill gem"},
+            {"kind": "tip", "en": "Winding: keep following the zone to its end.", "tr": "Kıvrımlı: bölgeyi sonuna kadar izle."},
+            {"kind": "next", "en": "Checkpoint to the start for Omniphobia, then town and sail to Whakapanu.", "tr": "Omniphobia için checkpoint ile başa dön, sonra kasaba ve Whakapanu'ya yelken."}
+          ]
+        },
+        {
+          "id": "G4_3_1",
+          "name": "Whakapanu Island",
+          "notes": [
+            {"kind": "optional", "en": "The Great White One's fin: turn it in at Ngakanu for a skill, Spirit or support gem.", "tr": "Great White One'ın yüzgeci: Ngakanu'da skill, Spirit ya da support gem'e çevir."},
+            {"kind": "tip", "en": "Great XP here.", "tr": "XP burada çok iyi."},
+            {"kind": "next", "en": "Exit to Singing Caverns.", "tr": "Çıkış: Singing Caverns."}
+          ]
+        },
+        {
+          "id": "G4_3_2",
+          "name": "Singing Caverns",
+          "notes": [
+            {"kind": "optional", "en": "The Beckoning Clam's quest item becomes a Pearlescent Amulet at Rog: usually worth finding.", "tr": "Beckoning Clam'in görev eşyası Rog'da Pearlescent Amulet olur: genelde aramaya değer."},
+            {"kind": "next", "en": "Kill the boss, town, sail to the Abandoned Prison.", "tr": "Boss'u öldür, kasaba, Abandoned Prison'a yelken."}
+          ]
+        },
+        {
+          "id": "G4_5_1",
+          "name": "Abandoned Prison",
+          "notes": [
+            {"kind": "must", "en": "Goddess of Justice: pick Life or Mana flask recovery", "tr": "Goddess of Justice: Life ya da Mana flask iyileşmesini seç"},
+            {"kind": "next", "en": "Exit to Solitary Confinement.", "tr": "Çıkış: Solitary Confinement."}
+          ]
+        },
+        {
+          "id": "G4_5_2",
+          "name": "Solitary Confinement",
+          "notes": [
+            {"kind": "tip", "en": "Follow the wall the waves are hitting.", "tr": "Dalgaların vurduğu duvarı izle."},
+            {"kind": "next", "en": "Kill the boss, town, then the optional islands for Matiki and the weapon.", "tr": "Boss'u öldür, kasaba, sonra Matiki ve silah için isteğe bağlı adalar."}
+          ]
+        },
+        {
+          "id": "G4_1_1",
+          "name": "Isle of Kin",
+          "notes": [
+            {"kind": "tip", "en": "Head away from the dock; when you hit a wall, follow it.", "tr": "İskeleden uzaklaş; duvara gelince onu izle."},
+            {"kind": "next", "en": "Exit to Volcanic Warrens.", "tr": "Çıkış: Volcanic Warrens."}
+          ]
+        },
+        {
+          "id": "G4_1_2",
+          "name": "Volcanic Warrens",
+          "notes": [
+            {"kind": "tip", "en": "Long and winding: the boss is at the very end.", "tr": "Uzun ve kıvrımlı: boss en sonda."},
+            {"kind": "next", "en": "Kill the boss, town, then sail on.", "tr": "Boss'u öldür, kasaba, sonra yelken aç."}
+          ]
+        },
+        {
+          "id": "G4_7",
+          "name": "Shrike Island",
+          "notes": [
+            {"kind": "tip", "en": "Very linear: keep moving forward.", "tr": "Çok düz: ilerlemeye devam et."},
+            {"kind": "next", "en": "Kill the boss, town, then the next optional island.", "tr": "Boss'u öldür, kasaba, sonra sıradaki isteğe bağlı ada."}
+          ]
+        },
+        {
+          "id": "G4_4_1",
+          "name": "Eye of Hinekora",
+          "notes": [
+            {"kind": "must", "en": "Silent Hall: +5% max Mana", "tr": "Silent Hall: +%5 max Mana"},
+            {"kind": "next", "en": "Exit to Halls of the Dead.", "tr": "Çıkış: Halls of the Dead."}
+          ]
+        },
+        {
+          "id": "G4_4_2",
+          "name": "Halls of the Dead",
+          "notes": [
+            {"kind": "must", "en": "All three tattoos: +5 attribute or +5% res each", "tr": "Üç dövmenin hepsi: her biri +5 özellik ya da +%5 res"},
+            {"kind": "must", "en": "Yama the White: 2 weapon set passive points", "tr": "Yama the White: 2 silah seti pasif puanı"},
+            {"kind": "tip", "en": "Fairly linear.", "tr": "Oldukça düz."},
+            {"kind": "next", "en": "Exit to Trial of the Ancestors.", "tr": "Çıkış: Trial of the Ancestors."}
+          ]
+        },
+        {
+          "id": "G4_4_3",
+          "name": "Trial of the Ancestors",
+          "notes": [
+            {"kind": "must", "en": "Navali: 2 weapon set passive points", "tr": "Navali: 2 silah seti pasif puanı"},
+            {"kind": "next", "en": "Portal to town and sail to the next island.", "tr": "Portalla kasabaya, sıradaki adaya yelken."}
+          ]
+        },
+        {
+          "id": "G4_8b",
+          "name": "Arastas",
+          "notes": [
+            {"kind": "must", "en": "Evening Bell, along the top wall: 3 Exalted Orbs", "tr": "Evening Bell, üst duvar boyunca: 3 Exalted Orb"},
+            {"kind": "optional", "en": "Morning Bell, on the other side of the Coastal Ridge: 3 Regal Orbs", "tr": "Morning Bell, Coastal Ridge'in öteki yanında: 3 Regal Orb"},
+            {"kind": "next", "en": "Along the ridge and through town to the boss, then exit to The Excavation.", "tr": "Sırt boyunca, kasabadan geçip boss'a, sonra çıkış The Excavation."}
+          ]
+        },
+        {
+          "id": "G4_10",
+          "name": "The Excavation",
+          "notes": [
+            {"kind": "tip", "en": "Pick a wall and follow it all the way to the boss.", "tr": "Bir duvar seç, boss'a kadar izle."},
+            {"kind": "next", "en": "Kill the boss, town, sail to Ngakanu.", "tr": "Boss'u öldür, kasaba, Ngakanu'ya yelken."}
+          ]
+        },
+        {
+          "id": "G4_11_1b",
+          "also": ["G4_11_1a"],
+          "name": "Ngakanu",
+          "notes": [
+            {"kind": "next", "en": "Leave the main building and follow the wall to Heart of the Tribe.", "tr": "Ana binadan çık, duvarı izleyip Heart of the Tribe'a git."}
+          ]
+        },
+        {
+          "id": "G4_11_2",
+          "name": "Heart of the Tribe",
+          "notes": [
+            {"kind": "tip", "en": "Keep heading north. A checkpoint usually means a wrong turn: go back to the fork.", "tr": "Kuzeye gitmeye devam et. Checkpoint genelde yanlış yol demektir: çatala dön."},
+            {"kind": "next", "en": "Tavakai ends the act.", "tr": "Tavakai perdeyi bitirir."}
+          ]
+        },
+        {
+          "id": "G4_13",
+          "name": "Plunder's Point",
+          "notes": [
+            {"kind": "optional", "en": "An optional area: do the Expedition, then go on with the act.", "tr": "İsteğe bağlı bölge: Expedition'ı yap, sonra perdeye devam et."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interlude1",
+      "en": "Interlude: The Curse of Holten",
+      "tr": "Ara perde: The Curse of Holten",
+      "areas": [
+        {
+          "id": "P1_Town",
+          "name": "The Refuge",
+          "notes": [
+            {"kind": "must", "en": "Wolvenhold: Oswin, 2 weapon set passive points", "tr": "Wolvenhold: Oswin, 2 silah seti pasif puanı"},
+            {"kind": "must", "en": "Holten: The Ferryman, cheap Greater Runes", "tr": "Holten: The Ferryman, ucuz Greater Rune"},
+            {"kind": "optional", "en": "Runesmithing: Stones of Serle gives Exalted, Holten Estate Artificer's Orbs.", "tr": "Runesmithing: Stones of Serle Exalted, Holten Estate Artificer's Orb verir."},
+            {"kind": "tip", "en": "Finishing all interludes gives 2 more passive points. Boots with up to 25% movement speed now.", "tr": "Tüm ara perdeler 2 pasif puan daha verir. Hızlı bot artık %25'e kadar."}
+          ]
+        },
+        {
+          "id": "P1_1",
+          "name": "Scorched Farmlands",
+          "notes": [
+            {"kind": "tip", "en": "Bosses: Heldra and Isolde.", "tr": "Boss'lar: Heldra ve Isolde."}
+          ]
+        },
+        {
+          "id": "P1_2",
+          "name": "Stones of Serle",
+          "notes": [
+            {"kind": "optional", "en": "Runesmithing here gives Exalted Orbs.", "tr": "Buradaki Runesmithing Exalted Orb verir."},
+            {"kind": "tip", "en": "Boss: Siora.", "tr": "Boss: Siora."}
+          ]
+        },
+        {
+          "id": "P1_3",
+          "name": "The Blackwood",
+          "notes": [
+            {"kind": "tip", "en": "Look out for the Dark Omens.", "tr": "Dark Omens'e dikkat et."}
+          ]
+        },
+        {
+          "id": "P1_4",
+          "name": "Holten",
+          "notes": [
+            {"kind": "must", "en": "The Ferryman's camp: cheap Greater Runes", "tr": "The Ferryman kampı: ucuz Greater Rune"},
+            {"kind": "tip", "en": "Bosses: Sigbert and Godwin.", "tr": "Boss'lar: Sigbert ve Godwin."}
+          ]
+        },
+        {
+          "id": "P1_5",
+          "name": "Wolvenhold",
+          "notes": [
+            {"kind": "must", "en": "Oswin, the Dread Warden: 2 weapon set passive points", "tr": "Oswin, the Dread Warden: 2 silah seti pasif puanı"}
+          ]
+        },
+        {
+          "id": "P1_6",
+          "name": "Holten Estate",
+          "notes": [
+            {"kind": "optional", "en": "Runesmithing here gives Artificer's Orbs.", "tr": "Buradaki Runesmithing Artificer's Orb verir."},
+            {"kind": "tip", "en": "Bosses: Thane Wulfric and Lady Elswyth.", "tr": "Boss'lar: Thane Wulfric ve Lady Elswyth."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interlude2",
+      "en": "Interlude: The Stolen Barya",
+      "tr": "Ara perde: The Stolen Barya",
+      "areas": [
+        {
+          "id": "P2_Town",
+          "name": "The Khari Bazaar",
+          "notes": [
+            {"kind": "must", "en": "The Khari Crossing: Skullmaw Stairway +5% max Life; Worm and Scorpion 2 weapon set passive points", "tr": "The Khari Crossing: Skullmaw Stairway +%5 max Life; Worm and Scorpion 2 silah seti pasif puanı"},
+            {"kind": "must", "en": "Qimah: choose one of the seven pillars' effects", "tr": "Qimah: yedi sütunun etkisinden birini seç"},
+            {"kind": "optional", "en": "Runesmithing: Pools of Khatal gives Alchemy, Qimah Exalted Orbs.", "tr": "Runesmithing: Pools of Khatal Alchemy, Qimah Exalted Orb verir."}
+          ]
+        },
+        {
+          "id": "P2_1",
+          "name": "The Khari Crossing",
+          "notes": [
+            {"kind": "must", "en": "Skullmaw Stairway, Molten Shrine: +5% max Life", "tr": "Skullmaw Stairway, Molten Shrine: +%5 max Life"},
+            {"kind": "must", "en": "Worm and Scorpion (Akthi and Anundr): 2 weapon set passive points", "tr": "Worm and Scorpion (Akthi ve Anundr): 2 silah seti pasif puanı"},
+            {"kind": "optional", "en": "A Travelling Merchant may be here.", "tr": "Burada bir Travelling Merchant olabilir."}
+          ]
+        },
+        {
+          "id": "P2_2",
+          "name": "Pools of Khatal",
+          "notes": [
+            {"kind": "optional", "en": "Runesmithing here gives Orbs of Alchemy.", "tr": "Buradaki Runesmithing Orb of Alchemy verir."}
+          ]
+        },
+        {
+          "id": "P2_3",
+          "name": "Sel Khari Sanctuary",
+          "notes": [
+            {"kind": "tip", "en": "Boss: Elzarah. Look out for Two Wishes.", "tr": "Boss: Elzarah. Two Wishes'a dikkat et."}
+          ]
+        },
+        {
+          "id": "P2_5",
+          "name": "The Galai Gates",
+          "notes": [
+            {"kind": "tip", "en": "Boss: Vornas.", "tr": "Boss: Vornas."}
+          ]
+        },
+        {
+          "id": "P2_6",
+          "name": "Qimah",
+          "notes": [
+            {"kind": "must", "en": "The Seven Pillars: pick one effect; you can change it later. Alima's Pillar brings penalties.", "tr": "The Seven Pillars: bir etki seç, sonra değiştirebilirsin. Alima's Pillar ceza verir."},
+            {"kind": "optional", "en": "Runesmithing here gives Exalted Orbs.", "tr": "Buradaki Runesmithing Exalted Orb verir."}
+          ]
+        },
+        {
+          "id": "P2_7",
+          "name": "Qimah Reservoir",
+          "notes": [
+            {"kind": "tip", "en": "Boss: Azmadi. Look out for the Sacred Well.", "tr": "Boss: Azmadi. Sacred Well'e dikkat et."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interlude3",
+      "en": "Interlude: Doryani's Contingency",
+      "tr": "Ara perde: Doryani's Contingency",
+      "areas": [
+        {
+          "id": "P3_Town",
+          "name": "The Glade",
+          "notes": [
+            {"kind": "must", "en": "Kriar Village: +40 max Spirit", "tr": "Kriar Village: +40 max Spirit"},
+            {"kind": "must", "en": "Howling Caves: Abominable Yeti, 2 weapon set passive points", "tr": "Howling Caves: Abominable Yeti, 2 silah seti pasif puanı"},
+            {"kind": "optional", "en": "Kriar Peaks: Elder Madox, a unique item.", "tr": "Kriar Peaks: Elder Madox, unique eşya."},
+            {"kind": "optional", "en": "Runesmithing: Howling Caves gives Chaos, Etched Ravine Exalted Orbs.", "tr": "Runesmithing: Howling Caves Chaos, Etched Ravine Exalted Orb verir."}
+          ]
+        },
+        {
+          "id": "P3_1",
+          "name": "Ashen Forest",
+          "notes": [
+            {"kind": "tip", "en": "Look out for the Ancient Monument.", "tr": "Ancient Monument'e dikkat et."}
+          ]
+        },
+        {
+          "id": "P3_2",
+          "name": "Kriar Village",
+          "notes": [
+            {"kind": "must", "en": "+40 max Spirit", "tr": "+40 max Spirit"},
+            {"kind": "tip", "en": "Boss: Lythara.", "tr": "Boss: Lythara."}
+          ]
+        },
+        {
+          "id": "P3_3",
+          "name": "Glacial Tarn",
+          "notes": [
+            {"kind": "tip", "en": "Boss: Rakkar.", "tr": "Boss: Rakkar."}
+          ]
+        },
+        {
+          "id": "P3_4",
+          "name": "Howling Caves",
+          "notes": [
+            {"kind": "must", "en": "The Abominable Yeti: 2 weapon set passive points", "tr": "The Abominable Yeti: 2 silah seti pasif puanı"},
+            {"kind": "optional", "en": "Runesmithing here gives Chaos Orbs.", "tr": "Buradaki Runesmithing Chaos Orb verir."}
+          ]
+        },
+        {
+          "id": "P3_5",
+          "name": "Kriar Peaks",
+          "notes": [
+            {"kind": "optional", "en": "Elder Madox gives a unique item.", "tr": "Elder Madox unique eşya verir."}
+          ]
+        },
+        {
+          "id": "P3_6",
+          "name": "Etched Ravine",
+          "notes": [
+            {"kind": "optional", "en": "Runesmithing here gives Exalted Orbs.", "tr": "Buradaki Runesmithing Exalted Orb verir."},
+            {"kind": "tip", "en": "Boss: Stormgore.", "tr": "Boss: Stormgore."}
+          ]
+        },
+        {
+          "id": "P3_7",
+          "name": "The Cuachic Vault",
+          "notes": [
+            {"kind": "tip", "en": "Bosses: Zolin and Zelina. Look out for the Ancient Treasures.", "tr": "Boss'lar: Zolin ve Zelina. Ancient Treasures'a dikkat et."}
+          ]
+        }
+      ]
+    }
+  ]
+}
