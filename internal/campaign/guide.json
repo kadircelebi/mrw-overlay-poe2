@@ -3,7 +3,7 @@
     {
       "id": "act1",
       "en": "Act 1",
-      "tr": "1. Perde",
+      "tr": "Act 1",
       "areas": [
         {
           "id": "G1_1",
@@ -145,7 +145,7 @@
           "notes": [
             {"kind": "must", "en": "Candlemass: +20 max Life", "tr": "Candlemass: +20 max Life"},
             {"kind": "tip", "en": "Each floor has a bridge near the middle: find it first. First floor up-right, then the opposite way of the floor before.", "tr": "Her katta ortaya yakın bir köprü var, önce onu bul. İlk kat sağ yukarı, sonrakiler bir önceki katın tersi."},
-            {"kind": "next", "en": "Count Geonor, then Act 2.", "tr": "Count Geonor, ardından 2. Perde."}
+            {"kind": "next", "en": "Count Geonor, then Act 2.", "tr": "Count Geonor, ardından Act 2."}
           ]
         }
       ]
@@ -153,7 +153,7 @@
     {
       "id": "act2",
       "en": "Act 2",
-      "tr": "2. Perde",
+      "tr": "Act 2",
       "areas": [
         {
           "id": "G2_1",
@@ -328,7 +328,7 @@
     {
       "id": "act3",
       "en": "Act 3",
-      "tr": "3. Perde",
+      "tr": "Act 3",
       "areas": [
         {
           "id": "G3_1",
@@ -440,7 +440,7 @@
           "notes": [
             {"kind": "must", "en": "Take the waypoint at the start.", "tr": "Başlangıçtaki waypoint'i al."},
             {"kind": "tip", "en": "Up-right to a wall, then down-right to a large area with a checkpoint: an ambush. After it down-right, then up-right to the exit.", "tr": "Sağ yukarı duvara kadar, sonra sağ aşağı checkpoint'li geniş alana: pusu var. Sonra sağ aşağı, ardından sağ yukarı çıkışa."},
-            {"kind": "optional", "en": "The Molten Vault: take its waypoint, leave the zone for after the campaign.", "tr": "The Molten Vault: waypoint'ini al, bölgeyi kampanya sonrasına bırak."},
+            {"kind": "optional", "en": "The Molten Vault: take its waypoint, leave the zone for after the campaign.", "tr": "The Molten Vault: waypoint'ini al, bölgeyi Campaign sonrasına bırak."},
             {"kind": "next", "en": "Exit to Apex of Filth.", "tr": "Çıkış: Apex of Filth."}
           ]
         },
@@ -448,7 +448,7 @@
           "id": "G3_9",
           "name": "The Molten Vault",
           "notes": [
-            {"kind": "optional", "en": "Faster to clear after the campaign. Mektul gives a Lvl 10 skill gem.", "tr": "Kampanyadan sonra yapmak daha hızlı. Mektul Lvl 10 skill gem verir."},
+            {"kind": "optional", "en": "Faster to clear after the campaign. Mektul gives a Lvl 10 skill gem.", "tr": "Campaign'den sonra yapmak daha hızlı. Mektul Lvl 10 skill gem verir."},
             {"kind": "tip", "en": "Up-left to the lever over the lava, then up-right over bridges and doors, then down-right to the boss.", "tr": "Sol yukarı lavın üstündeki kola, sonra sağ yukarı köprü ve kapılardan, sonra sağ aşağı boss'a."}
           ]
         },
@@ -498,7 +498,7 @@
     {
       "id": "act4",
       "en": "Act 4",
-      "tr": "4. Perde",
+      "tr": "Act 4",
       "areas": [
         {
           "id": "G4_town",
@@ -642,14 +642,14 @@
           "name": "Heart of the Tribe",
           "notes": [
             {"kind": "tip", "en": "Keep heading north. A checkpoint usually means a wrong turn: go back to the fork.", "tr": "Kuzeye gitmeye devam et. Checkpoint genelde yanlış yol demektir: çatala dön."},
-            {"kind": "next", "en": "Tavakai ends the act.", "tr": "Tavakai perdeyi bitirir."}
+            {"kind": "next", "en": "Tavakai ends the act.", "tr": "Tavakai Act'i bitirir."}
           ]
         },
         {
           "id": "G4_13",
           "name": "Plunder's Point",
           "notes": [
-            {"kind": "optional", "en": "An optional area: do the Expedition, then go on with the act.", "tr": "İsteğe bağlı bölge: Expedition'ı yap, sonra perdeye devam et."}
+            {"kind": "optional", "en": "An optional area: do the Expedition, then go on with the act.", "tr": "İsteğe bağlı bölge: Expedition'ı yap, sonra Act'e devam et."}
           ]
         }
       ]
@@ -657,7 +657,7 @@
     {
       "id": "interlude1",
       "en": "Interlude: The Curse of Holten",
-      "tr": "Ara perde: The Curse of Holten",
+      "tr": "Interlude: The Curse of Holten",
       "areas": [
         {
           "id": "P1_Town",
@@ -666,7 +666,7 @@
             {"kind": "must", "en": "Wolvenhold: Oswin, 2 weapon set passive points", "tr": "Wolvenhold: Oswin, 2 silah seti pasif puanı"},
             {"kind": "must", "en": "Holten: The Ferryman, cheap Greater Runes", "tr": "Holten: The Ferryman, ucuz Greater Rune"},
             {"kind": "optional", "en": "Runesmithing: Stones of Serle gives Exalted, Holten Estate Artificer's Orbs.", "tr": "Runesmithing: Stones of Serle Exalted, Holten Estate Artificer's Orb verir."},
-            {"kind": "tip", "en": "Finishing all interludes gives 2 more passive points. Boots with up to 25% movement speed now.", "tr": "Tüm ara perdeler 2 pasif puan daha verir. Hızlı bot artık %25'e kadar."}
+            {"kind": "tip", "en": "Finishing all interludes gives 2 more passive points. Boots with up to 25% movement speed now.", "tr": "Tüm Interlude'lar 2 pasif puan daha verir. Hızlı bot artık %25'e kadar."}
           ]
         },
         {
@@ -719,7 +719,7 @@
     {
       "id": "interlude2",
       "en": "Interlude: The Stolen Barya",
-      "tr": "Ara perde: The Stolen Barya",
+      "tr": "Interlude: The Stolen Barya",
       "areas": [
         {
           "id": "P2_Town",
@@ -780,7 +780,7 @@
     {
       "id": "interlude3",
       "en": "Interlude: Doryani's Contingency",
-      "tr": "Ara perde: Doryani's Contingency",
+      "tr": "Interlude: Doryani's Contingency",
       "areas": [
         {
           "id": "P3_Town",
