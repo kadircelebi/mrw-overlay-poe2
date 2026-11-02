@@ -15,7 +15,7 @@
   import { clock, money, relative, until } from './lib/format'
   import { currencyInfo } from './lib/currencies.svelte'
   import Toggle from './lib/Toggle.svelte'
-  import { BOX_ONLY, FIGURES, doubtText, duration, fieldLabel, fieldValue, liveTimes, type FarmData } from './lib/farm'
+  import { BOX_ONLY, FIGURES, doubtText, duration, fieldKnown, fieldLabel, fieldValue, liveTimes, signedShort, type FarmData } from './lib/farm'
   import { noteMark, say } from './lib/campaign'
 
   type Tab = 'sales' | 'expedition' | 'loot' | 'campaign'
@@ -207,8 +207,8 @@
   function sessionData(ss: LootSessionView): FarmData {
     const m = ss.maps?.[0]
     const r = m?.runs?.[m.runs.length - 1]
-    const lastRun = m && r ? { name: m.map, runEx: r.valueEx, mapEx: m.valueEx, runs: m.runs?.length ?? 1, fresh: r.fresh, noBase: !!(r.noBase || r.unread), unsure: r.unsure ?? 0 } : null
-    return { farm: ss.farm, session: ss.total, divineEx: loot?.divineEx ?? 0, lastRun, costEx: ss.costEx }
+    const lastRun = m && r ? { name: m.map, runEx: r.valueEx, mapEx: m.valueEx, runs: m.runs?.length ?? 1, fresh: r.fresh, noBase: !!(r.noBase || r.unread), unsure: r.unsure ?? 0, exp: r.exp ?? null, gold: r.gold ?? null } : null
+    return { farm: ss.farm, session: ss.total, divineEx: loot?.divineEx ?? 0, lastRun, costEx: ss.costEx, expLeft: ss.open ? (loot?.expLeft ?? null) : null }
   }
   // Which sessions are folded open: the open one unless closed, the others
   // only when opened (earlier maps: -1).
@@ -485,7 +485,7 @@
             {#if !ss.farm.timed}<p class="muted small">{t('farm.noLog')}</p>{/if}
             <div class="farm-grid">
               {#each FIGURES as key (key)}
-                {#if key !== 'sessionNet' || ss.costEx > 0}
+                {#if (key !== 'sessionNet' || ss.costEx > 0) && fieldKnown(key, ss.total)}
                   <div class="farm-cell">
                     <span class="label" title={fieldLabel(key, data)}>{fieldLabel(key, data)}</span>
                     <span class="value num">{fieldValue(key, data, now)}</span>
@@ -535,7 +535,7 @@
                       <span class="chev">{lootOpen[String(m.at)] ? '▾' : '▸'}</span>
                       <span class="time num">{clock(new Date(m.at).getTime())}</span>
                       <span class="map" title={m.area}>{m.map}{#if m.level}&nbsp;<span class="muted">({m.level})</span>{/if}</span>
-                      <span class="count muted">{#if m.secs}{duration(m.secs)}&nbsp;·&nbsp;{/if}{t('loot.runs', (m.runs ?? []).length)}{#if mapWarned(m)}&nbsp;·&nbsp;<span class="warn-text">⚠</span>{/if}</span>
+                      <span class="count muted">{#if m.exp != null}{t('loot.exp', signedShort(m.exp))}&nbsp;·&nbsp;{/if}{#if m.gold != null}{t('loot.gold', signedShort(m.gold))}&nbsp;·&nbsp;{/if}{#if m.secs}{duration(m.secs)}&nbsp;·&nbsp;{/if}{t('loot.runs', (m.runs ?? []).length)}{#if mapWarned(m)}&nbsp;·&nbsp;<span class="warn-text">⚠</span>{/if}</span>
                       <span class="worth num">{lootWorth(m.valueEx)}</span>
                     </button>
                     <button class="del" title={t('loot.delete')} aria-label={t('loot.delete')} onclick={() => deleteLoot(m)}>✕</button>
@@ -545,7 +545,7 @@
                       <div class="loot-run">
                         <div class="run-head">
                           <span class="time num">{clock(new Date(r.from).getTime())}–{clock(new Date(r.to).getTime())}</span>
-                          <span class="muted small">{(m.runs ?? []).length > 1 ? t('loot.trip', i + 1) : ''}</span>
+                          <span class="muted small">{(m.runs ?? []).length > 1 ? t('loot.trip', i + 1) : ''}{#if (m.runs ?? []).length > 1 && r.exp != null}&nbsp;·&nbsp;{t('loot.exp', signedShort(r.exp))}{/if}{#if (m.runs ?? []).length > 1 && r.gold != null}&nbsp;·&nbsp;{t('loot.gold', signedShort(r.gold))}{/if}</span>
                           <span class="worth num">{lootWorth(r.valueEx)}</span>
                         </div>
                         {#if runNote(r)}<p class="small warn-text run-note">{runNote(r)}</p>{/if}

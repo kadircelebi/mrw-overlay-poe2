@@ -365,6 +365,14 @@ export interface Settings {
     "inventory_scan_hotkey": string;
 
     /**
+     * LootExp and LootGold also keep what each map brought in experience
+     * (read off the experience bar's tooltip, moving the pointer onto it for
+     * a moment) and gold (the box under the inventory); both start off.
+     */
+    "loot_exp": boolean;
+    "loot_gold": boolean;
+
+    /**
      * LootBoxHidden keeps the inventory scan's box (what the next map
      * starts from, what the last one brought) off the game; it shows at
      * LootCorner, or where the player dragged it (LootX/Y as with the

@@ -84,6 +84,11 @@ type Settings struct {
 	// demand.
 	InventoryScan       string `json:"inventory_scan,omitempty"`
 	InventoryScanHotkey string `json:"inventory_scan_hotkey"`
+	// LootExp and LootGold also keep what each map brought in experience
+	// (read off the experience bar's tooltip, moving the pointer onto it for
+	// a moment) and gold (the box under the inventory); both start off.
+	LootExp  bool `json:"loot_exp"`
+	LootGold bool `json:"loot_gold"`
 	// LootBoxHidden keeps the inventory scan's box (what the next map
 	// starts from, what the last one brought) off the game; it shows at
 	// LootCorner, or where the player dragged it (LootX/Y as with the
@@ -111,6 +116,7 @@ var LootBoxFieldKeys = []string{
 	"status", "timer", "inventory", "lastGain", "lastTime",
 	"sessionTime", "sessionGain", "sessionNet", "maps", "perMap", "perHour", "perMapHour",
 	"avgTime", "mapTime", "restTime", "best",
+	"lastExp", "sessionExp", "expPerMap", "expPerHour", "mapsToLevel", "lastGold", "sessionGold", "goldPerMap",
 }
 
 // DefaultLootBoxFields are the box's lines until the player picks theirs.

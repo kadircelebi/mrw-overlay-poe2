@@ -44,6 +44,26 @@ func InventoryGuess(w, h int) Grid {
 	return Grid{X: float64(w) - invLeft*H, Y: invTop * H, Cell: invCell * H, Cols: InventoryCols, Rows: InventoryRows}
 }
 
+// GoldRect is where the gold figure stands: the box under the grid.
+func GoldRect(g Grid) image.Rectangle {
+	bottom := g.Y + float64(g.Rows)*g.Cell
+	return image.Rect(int(g.X), int(bottom+0.15*g.Cell), int(g.X+5*g.Cell), int(bottom+0.95*g.Cell))
+}
+
+// ExpPoint is a point on the experience bar in a game client area of w×h
+// pixels: the bar lies along the bottom edge, around the middle.
+func ExpPoint(w, h int) image.Point {
+	H := float64(h)
+	return image.Pt(w/2-int(0.1*H), h-int(0.009*H))
+}
+
+// ExpRect is the part of a client area of w×h pixels where the bar's tooltip
+// shows: the bottom edge, between the flasks and the skills.
+func ExpRect(w, h int) image.Rectangle {
+	H := float64(h)
+	return image.Rect(w/2-int(0.3*H), h-int(0.065*H), w/2+int(0.75*H), h)
+}
+
 // Align finds the grid near guess in pic: the lines between cells are
 // darker than the cells, so it looks for the cell size and offset (within a
 // few percent and a quarter cell of the guess) whose lines are darkest on

@@ -42,7 +42,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
 <p align="center"><img src="docs/groups.png" alt="Eşya grupları" width="440"> <img src="docs/look.png" alt="Görünüm düzenleyici" width="440"></p>
 
 ### Map kazancı, Alt+I
-Her map'in gerçekte ne getirdiğini gör. Uygulama envanterindeki currency'yi map'ten önce ve sonra ekrandan okur; envanterin artışı, loot filtresinin fiyatlarıyla, o map'in kazancıdır. Takip penceresindeki Map kazancı sekmesi bunu oyunun logundaki sürelerle birlikte toplar: oturum süresi, map'te ve hideout'ta geçen süre, map başına ve saatte kazanç, ortalama ve son map süresi, en iyi map ve en çok gelenler. Oyunun üstündeki küçük kutu, map'te de, seçtiğin değerleri gösterir; **Yeni oturum başlat** ile hiçbir şeyi silmeden bir farmı diğeriyle karşılaştırabilirsin. GGG izin verirse kazanılan experience de bu değerlere eklenecek.
+Her map'in gerçekte ne getirdiğini gör. Uygulama envanterindeki currency'yi map'ten önce ve sonra ekrandan okur; envanterin artışı, loot filtresinin fiyatlarıyla, o map'in kazancıdır. Takip penceresindeki Map kazancı sekmesi bunu oyunun logundaki sürelerle birlikte toplar: oturum süresi, map'te ve hideout'ta geçen süre, map başına ve saatte kazanç, ortalama ve son map süresi, en iyi map ve en çok gelenler. Oyunun üstündeki küçük kutu, map'te de, seçtiğin değerleri gösterir; **Yeni oturum başlat** ile hiçbir şeyi silmeden bir farmı diğeriyle karşılaştırabilirsin. İki anahtar daha her map'in XP'sini ve gold'unu ekler; map başına ve saatte XP ile sonraki level için tahmini map sayısı da gelir.
 
 Nasıl okuyacağını **Ayarlar → Price check → Envanter taraması**'ndan seçersin. Sen seçene kadar **Kapalı** kalır:
 
@@ -58,6 +58,7 @@ Nasıl okuyacağını **Ayarlar → Price check → Envanter taraması**'ndan se
 > - Bir hücre kesin okunamazsa (eksik bir rakam, bir gem seviyesi) kart ve Takip onu "2. satır, 7. sütun" gibi adıyla gösterir; o map'in değeri yanlış olabilir.
 > - Hideout süresine AFK süresi ve tek kalışta 10 dakikayı aşan kısım girmez; mola, saatlik kazancını bozmaz.
 > - Tooltip okumayı engellemesin diye Alt+I fare imlecini bir anlığına eşyaların üstünden çeker ve geri koyar. Asla tıklamaz.
+> - **XP ve gold** aynı ayarlarda iki ayrı anahtardır, sen açana kadar kapalı kalır. Gold envanterin altından okunur, bunun için imleç oynamaz. XP, XP çubuğunun tooltip'inden okunur; bu yüzden imleç bir anlığına aşağı, çubuğun üstüne iner ve geri döner: Alt+I'de hideout ya da kasabada her basışta, Otomatik'te tuşa basmadan, map'ten sonra envanter ilk açıldığında bir kez, fare tuşu basılıyken asla. Map'in değeri sonraki okuma eksi önceki okumadır; ölümde kaybedilen XP ve iki okuma arasında harcanan gold bundan düşer. Okumalardan biri eksikse o map "—" gösterir.
 
 <p align="center"><img src="docs/map-loot-tracker.png" alt="Takip penceresinde map kazancı" width="560"> <img src="docs/inventory-scan-settings.png" alt="Envanter taraması ayarları" width="300"></p>
 
@@ -122,7 +123,7 @@ Uygulamanın görünümü de sana kalmış: MrW Default, Dark ya da Light'tan bi
 
 Bir özellik, oyunda gerçekten çalışana ve kurallara uyana kadar yayınlanmaz.
 
-- **Bellek okuma yok, otomatik tuş basma yok.** Uygulama oyunun belleğine dokunmaz, senin yerine tuşa basmaz, tıklamaz. Bir kısayol bir işlem demektir. Hareket ettirdiği tek şey, Alt+I envanteri okurken bir anlığına fare imlecidir.
+- **Bellek okuma yok, otomatik tuş basma yok.** Uygulama oyunun belleğine dokunmaz, senin yerine tuşa basmaz, tıklamaz. Bir kısayol bir işlem demektir. Hareket ettirdiği tek şey bir anlığına fare imlecidir: Alt+I envanteri okurken ve Otomatik'te XP okumayı açtıysan her map'ten sonra bir kez.
 - **Trade sitesine nazik.** Her istek, trade sitesinin bildirdiği hız sınırlarına uyar. Exceptional tabanlar MrW Overlay'in kendi sunucularında taranır; senin trade kotan sana kalır.
 - **Ekran yalnız sen isteyince okunur.** Expedition ve gem okuma, her tuşa basışta ekranı bir kez yakalar ve Windows'un kendi OCR'ıyla, oyununun dilinde, senin bilgisayarında okur. Envanter taraması sen Manuel ya da Otomatik seçene kadar kapalıdır. Hiçbir şey yüklenmez.
 - **Oturumun bilgisayarında kalır.** pathofexile.com hesabını bağlarsan oturum Windows DPAPI ile şifrelenir ve yalnız pathofexile.com'a gider.
@@ -194,7 +195,7 @@ Herkese açık veriyi okur: fiyatları MrW Overlay'in GitHub'daki ortak fiyat do
 - **Tarayıcı eklentisi:** bağlarsan oturumu ve hesap adını yalnız aynı bilgisayardaki uygulamaya verir. İkisi de Windows DPAPI ile saklanır. Oturum yalnız senin istediğin trade işlemleri için `www.pathofexile.com`'a gider. **Ayarlar → Hesap → Bağlantıyı kes** ikisini de siler.
 - **Satış takibi:** varsayılan olarak kapalıdır. Açınca uygulama bağlı oturumla kendi satıcı satışlarını `www.pathofexile.com`'dan okur ve yalnız senin bilgisayarında saklar. Takip penceresindeki **Saklanan satışları sil** onları siler.
 - **Herkese açık profiller:** isteğe bağlıdır. Yalnız yayınlarken ya da takip ederken MrW Overlay profil sunucusuyla (`profiles.mrwproject.com`) konuşulur. Yayınlarsan profilin filtre ayarları, adı, açıklaması ve etiketleri herkese açık olur; hesap adın da yazar olarak görünür. Lig, dil, dosya yolları, ses dosyaları, oturumun ve fiyat ayarların asla gönderilmez. Takip ettiğinde rastgele bir kurulum anahtarının özeti saklanır. Kötüye kullanımı sınırlamak için IP'nin kendisi değil, tuzlanmış özeti tutulur. Yayından kaldırınca profil ve takipçileri silinir.
-- **Envanter taraması:** varsayılan olarak kapalıdır. Açıksa uygulama oyun penceresinin envanter bölümünü yakalar (Manuel: her Alt+I'de; Otomatik: hideout ya da kasabada envanter açıkken saniyede bir kadar) ve bilgisayarında okur. Görüntüler saklanmaz; yalnız kesin okunamayan hücrelerin küçük görüntüleri okuma hatalarını bulmak için `%APPDATA%\PoE2Filtre\debug\invscan` altında tutulur (en yeni 60). Karşılaştırdığı eşya görselleri GGG'nin görsel sunucusundan (`web.poecdn.com`) bir kez indirilir. Map kazancı ve süreler bilgisayarında kalır.
+- **Envanter taraması:** varsayılan olarak kapalıdır. Açıksa uygulama oyun penceresinin envanter bölümünü yakalar (Manuel: her Alt+I'de; Otomatik: hideout ya da kasabada envanter açıkken saniyede bir kadar) ve bilgisayarında okur. Anahtarları açıksa envanterin altındaki gold'u ve XP çubuğunun tooltip'ini de aynı şekilde okur. Görüntüler saklanmaz; yalnız kesin okunamayan hücrelerin küçük görüntüleri okuma hatalarını bulmak için `%APPDATA%\PoE2Filtre\debug\invscan` altında tutulur (en yeni 60). Karşılaştırdığı eşya görselleri GGG'nin görsel sunucusundan (`web.poecdn.com`) bir kez indirilir. Map kazancı ve süreler bilgisayarında kalır.
 - **Fiyat sorgulama:** varsayılan olarak kapalıdır. Kısayola bastığında uygulama eşyanın metnini oyunun kopyalama komutuyla alır ve resmi trade API'sine bir arama gönderir.
 
 Gizlilik politikasının tamamı: [poe2.mrwproject.com](https://poe2.mrwproject.com/tr/).

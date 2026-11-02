@@ -202,7 +202,10 @@ func (s *AppService) captureInventory() {
 		return
 	}
 
-	img, err := s.grabInventory(client)
+	readExp, readGold := s.readoutsOn()
+	s.placeLoot()
+	readExp = readExp && s.lootLog.InRest()
+	img, err := s.grabInventory(client, readExp)
 	if err != nil {
 		log.Printf("inventory scan: screen: %v", err)
 		view.Message = "error"
@@ -223,19 +226,65 @@ func (s *AppService) captureInventory() {
 	}
 	s.priceInventory(&view, m.ReadGrid(pic, g))
 	s.keepDoubtPictures(pic, g, view.Doubts)
-	s.recordInventory(&view)
+	var read readout
+	if readExp {
+		read = expOf(img, client.Dx(), client.Dy())
+	}
+	if readGold {
+		read.gold = goldOf(img, invscan.GoldRect(g), client.Dy())
+	}
+	s.recordInventory(&view, read)
 	s.showInvScan(view, client)
 }
 
-// grabInventory reads the game's client area with the pointer moved to the
-// inventory's title (no item there, so no tooltip), and the boxes the app
-// lays over the game hidden for that moment.
-func (s *AppService) grabInventory(client image.Rectangle) (*image.RGBA, error) {
+// readout is experience (with the total the next level takes) and gold read
+// with the inventory (nil: not read).
+type readout struct {
+	exp, next, gold *int64
+}
+
+// readoutsOn tells whether experience and gold are read.
+func (s *AppService) readoutsOn() (exp, gold bool) {
+	s.overlayMu.RLock()
+	defer s.overlayMu.RUnlock()
+	return s.overlaySettings.LootExp, s.overlaySettings.LootGold
+}
+
+// expOf reads the experience off a picture of the game's client area, w×h
+// pixels, with the bar's tooltip showing.
+func expOf(img *image.RGBA, w, h int) readout {
+	if e, ok := overlay.ReadExperience(img, invscan.ExpRect(w, h), h); ok {
+		return readout{exp: &e.Current, next: &e.Next}
+	}
+	log.Print("inventory scan: experience not read")
+	return readout{}
+}
+
+// goldOf reads the gold off the part r of a picture, from a game client
+// height pixels high.
+func goldOf(img *image.RGBA, r image.Rectangle, height int) *int64 {
+	if gold, ok := overlay.ReadGold(img, r, height); ok {
+		return &gold
+	}
+	log.Print("inventory scan: gold not read")
+	return nil
+}
+
+// grabInventory reads the game's client area with the pointer moved off the
+// items (no tooltip then) and the boxes the app lays over the game hidden for
+// that moment: to the inventory's title, or with onBar to the experience bar,
+// whose tooltip is read from the same picture.
+func (s *AppService) grabInventory(client image.Rectangle, onBar bool) (*image.RGBA, error) {
 	x, y, ok := overlay.CursorPosition()
 	hidden := s.hideBoxesForRead()
 	if ok {
 		h := float64(client.Dy())
-		overlay.MoveCursor(client.Max.X-int(0.32*h), client.Min.Y+int(0.065*h))
+		if onBar {
+			p := invscan.ExpPoint(client.Dx(), client.Dy()).Add(client.Min)
+			overlay.MoveCursor(p.X, p.Y)
+		} else {
+			overlay.MoveCursor(client.Max.X-int(0.32*h), client.Min.Y+int(0.065*h))
+		}
 	}
 	time.Sleep(invScanSettle)
 	img, _, err := overlay.CaptureGameClient()

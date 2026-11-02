@@ -371,6 +371,12 @@ export interface InvScanMap {
     "fresh": boolean;
     "noBase": boolean;
     "unsure": number;
+
+    /**
+     * Exp and Gold are what this run brought of them (nil: not known).
+     */
+    "exp": number | null;
+    "gold": number | null;
 }
 
 /**
@@ -460,6 +466,11 @@ export interface LootLogView {
     "divineEx": number;
     "box": boolean;
     "placing": boolean;
+
+    /**
+     * ExpLeft is the experience the next level still takes (nil: not known).
+     */
+    "expLeft": number | null;
 }
 
 /**
@@ -473,6 +484,12 @@ export interface LootMap {
     "seed"?: string;
     "runs": lootlog$0.Run[] | null;
     "valueEx": number;
+
+    /**
+     * Exp and Gold add up its runs' (nil: no run has one).
+     */
+    "exp"?: number | null;
+    "gold"?: number | null;
 
     /**
      * Secs is the time spent in it, from the game's log (0: not known).
@@ -531,6 +548,11 @@ export interface LootStatusView {
     "farm": FarmView;
     "fields": string[] | null;
     "divineEx": number;
+
+    /**
+     * ExpLeft is the experience the next level still takes (nil: not known).
+     */
+    "expLeft": number | null;
 }
 
 /**

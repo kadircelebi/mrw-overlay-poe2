@@ -194,3 +194,115 @@ func TestARunKeepsTheDoubtsOfBothReads(t *testing.T) {
 		t.Fatalf("run %+v", r)
 	}
 }
+
+func i64(n int64) *int64 { return &n }
+
+func TestRunKeepsExperienceAndGold(t *testing.T) {
+	s := New(t.TempDir())
+	const lg = "L"
+	now := time.Now()
+	worth := func(string) float64 { return 0 }
+	hideout := Area{ID: "Hideout", Rest: true}
+	mapA := Area{ID: "MapA", Seed: "1"}
+	mapB := Area{ID: "MapB", Seed: "2"}
+	scan := func(exp, gold *int64) (*Run, *Map) {
+		m, r, err := s.Scanned(lg, Scan{At: now, Items: map[string]int{}, Exp: exp, Gold: gold}, worth)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r, m
+	}
+	if err := s.Entered(lg, hideout, now); err != nil {
+		t.Fatal(err)
+	}
+	if !s.NeedExp(lg) {
+		t.Fatal("no read yet: experience is needed")
+	}
+	scan(i64(1000), i64(500))
+	if s.NeedExp(lg) {
+		t.Fatal("experience known: no need to read it again")
+	}
+	// A later read without them keeps them for the next map.
+	scan(nil, nil)
+
+	s.Entered(lg, mapA, now)
+	s.Entered(lg, hideout, now)
+	if !s.NeedExp(lg) {
+		t.Fatal("back from a map: experience is needed")
+	}
+	r, m := scan(i64(1600), i64(450))
+	if r.Exp == nil || *r.Exp != 600 || r.Gold == nil || *r.Gold != -50 {
+		t.Fatalf("run: %v %v", r.Exp, r.Gold)
+	}
+	if *m.Exp != 600 || *m.Gold != -50 {
+		t.Fatalf("map: %v %v", m.Exp, m.Gold)
+	}
+
+	// Back into the same map: its second run adds up.
+	s.Entered(lg, mapA, now)
+	s.Entered(lg, hideout, now)
+	r, m = scan(i64(1700), i64(460))
+	if *r.Exp != 100 || *m.Exp != 700 || *m.Gold != -40 {
+		t.Fatalf("second run: %v, map %v %v", *r.Exp, *m.Exp, *m.Gold)
+	}
+
+	// Home and out again without a read: the next difference would span two
+	// maps, so neither is known.
+	s.Entered(lg, mapB, now)
+	s.Entered(lg, hideout, now)
+	s.Entered(lg, Area{ID: "MapC", Seed: "3"}, now)
+	s.Entered(lg, hideout, now)
+	if r, _ := scan(i64(2500), i64(600)); r.Exp != nil || r.Gold != nil {
+		t.Fatalf("across an unread map: %v %v", r.Exp, r.Gold)
+	}
+	total := Sum(s.Maps(lg), time.Time{})
+	if total.Exp != 700 || total.ExpMaps != 1 || total.Gold != -40 || total.GoldMaps != 1 {
+		t.Fatalf("total: %+v", total)
+	}
+}
+
+func TestExperienceFromBeforeTheAppStartedIsNotABase(t *testing.T) {
+	dir := t.TempDir()
+	const lg = "L"
+	now := time.Now()
+	worth := func(string) float64 { return 0 }
+	hideout := Area{ID: "Hideout", Rest: true}
+	s := New(dir)
+	s.Entered(lg, hideout, now)
+	s.Scanned(lg, Scan{At: now, Items: map[string]int{}, Exp: i64(1000), Gold: i64(5)}, worth)
+
+	// The app starts again: maps may have been played meanwhile.
+	s = New(dir)
+	s.Place(hideout)
+	if !s.NeedExp(lg) {
+		t.Fatal("the saved experience may be old")
+	}
+	s.Entered(lg, Area{ID: "MapA", Seed: "1"}, now)
+	s.Entered(lg, hideout, now)
+	_, r, err := s.Scanned(lg, Scan{At: now, Items: map[string]int{}, Exp: i64(9000), Gold: i64(50)}, worth)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Exp != nil || r.Gold != nil {
+		t.Fatalf("run from an old base: %v %v", r.Exp, r.Gold)
+	}
+
+	// Read again on arrival, the same saved read does serve.
+	s = New(dir)
+	s.Place(hideout)
+	if err := s.SetReadout(lg, i64(9500), i64(12000), nil); err != nil {
+		t.Fatal(err)
+	}
+	if s.NeedExp(lg) {
+		t.Fatal("experience read since the app started")
+	}
+	if left := s.ExpLeft(lg); left == nil || *left != 2500 {
+		t.Fatalf("left to the next level: %v", left)
+	}
+	s.Entered(lg, Area{ID: "MapB", Seed: "2"}, now)
+	s.Entered(lg, hideout, now)
+	_, r, _ = s.Scanned(lg, Scan{At: now, Items: map[string]int{}, Exp: i64(9700)}, worth)
+	if r.Exp == nil || *r.Exp != 200 {
+		t.Fatalf("run from a read on arrival: %v", r.Exp)
+	}
+}

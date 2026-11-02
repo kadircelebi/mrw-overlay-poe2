@@ -1719,6 +1719,8 @@
                         {#if overlaySettings.inventory_scan && overlaySettings.inventory_scan !== 'off'}
                           <label class="field stack"><span>{t('invscan.hotkey')}</span><HotkeyInput label={t('invscan.hotkey')} bind:value={overlaySettings.inventory_scan_hotkey} onchange={queueOverlaySave} /></label>
                           <p class="desc hint">{t('invscan.hotkeyHint')}</p>
+                          <Toggle bind:checked={overlaySettings.loot_exp} label={t('invscan.readExp')} hint={t('invscan.readExpHint')} onchange={queueOverlaySave} />
+                          <Toggle bind:checked={overlaySettings.loot_gold} label={t('invscan.readGold')} hint={t('invscan.readGoldHint')} onchange={queueOverlaySave} />
                         {/if}
                       </section>
                     </div>

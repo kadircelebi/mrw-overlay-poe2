@@ -9,7 +9,7 @@
   import { t } from './lib/i18n.svelte'
   import { followAppLanguage } from './lib/windowLang'
   import { money } from './lib/format'
-  import { doubtText } from './lib/farm'
+  import { doubtText, signedShort } from './lib/farm'
 
   let view = $state<InvScanView | null>(null)
   let dpr = $state(window.devicePixelRatio || 1)
@@ -61,6 +61,7 @@
       {#if view.map}
         <div class="map">
           <p>{t('invscan.mapRun', view.map.name)} <b>+{money(view.map.runEx, view.divineEx)}</b></p>
+          {#if view.map.exp != null || view.map.gold != null}<p class="note">{#if view.map.exp != null}{t('loot.exp', signedShort(view.map.exp))}{/if}{#if view.map.exp != null && view.map.gold != null}&nbsp;·&nbsp;{/if}{#if view.map.gold != null}{t('loot.gold', signedShort(view.map.gold))}{/if}</p>{/if}
           {#if view.map.runs > 1}<p class="note">{t('invscan.mapTotal', view.map.runs, money(view.map.mapEx, view.divineEx))}</p>{/if}
           {#if view.map.noBase}<p class="note warn">{t('loot.noBase')}</p>{:else if !view.map.fresh}<p class="note warn">{t('loot.stale')}</p>{/if}
         </div>

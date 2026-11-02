@@ -302,6 +302,23 @@ func recognize(pixels []byte, w, h int) ([]OcrLine, error) {
 	return lines, nil
 }
 
+// recognizeRGBA reads text off a picture.
+func recognizeRGBA(img *image.RGBA) ([]OcrLine, error) {
+	b := img.Bounds()
+	if b.Empty() {
+		return nil, nil
+	}
+	pixels := make([]byte, b.Dx()*b.Dy()*4)
+	for y := 0; y < b.Dy(); y++ {
+		row := img.Pix[y*img.Stride : y*img.Stride+b.Dx()*4]
+		out := pixels[y*b.Dx()*4:]
+		for i := 0; i+3 < len(row); i += 4 {
+			out[i], out[i+1], out[i+2], out[i+3] = row[i+2], row[i+1], row[i], 255
+		}
+	}
+	return recognizeLines(pixels, b.Dx(), b.Dy())
+}
+
 // textAngle is the slant the recognizer found in the text and straightened
 // before reading, in degrees clockwise; 0 when none.
 func textAngle(result *comObject) float64 {

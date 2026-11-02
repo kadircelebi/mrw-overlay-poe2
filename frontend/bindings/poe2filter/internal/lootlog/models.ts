@@ -45,6 +45,14 @@ export interface Run {
     "unread"?: boolean;
     "unsure"?: number;
     "doubts"?: Doubt[] | null;
+
+    /**
+     * Exp and Gold are the experience and gold after the run less before it,
+     * when both reads have them. A death's experience loss and gold spent
+     * between the reads count against them, so either may be negative.
+     */
+    "exp"?: number | null;
+    "gold"?: number | null;
 }
 
 /**
@@ -53,4 +61,13 @@ export interface Run {
 export interface Total {
     "maps": number;
     "valueEx": number;
+
+    /**
+     * Exp and Gold add up the maps that have them; ExpMaps and GoldMaps count
+     * those maps (for an average that leaves out the unread ones).
+     */
+    "exp"?: number;
+    "gold"?: number;
+    "expMaps"?: number;
+    "goldMaps"?: number;
 }

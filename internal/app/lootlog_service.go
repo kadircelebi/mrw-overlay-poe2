@@ -36,6 +36,8 @@ type LootLogView struct {
 	DivineEx    float64           `json:"divineEx"`
 	Box         bool              `json:"box"`
 	Placing     bool              `json:"placing"`
+	// ExpLeft is the experience the next level still takes (nil: not known).
+	ExpLeft *int64 `json:"expLeft"`
 }
 
 // LootSessionView is one session as the tracker shows it: N is its number
@@ -65,6 +67,9 @@ type InvScanMap struct {
 	Fresh  bool    `json:"fresh"`
 	NoBase bool    `json:"noBase"`
 	Unsure int     `json:"unsure"`
+	// Exp and Gold are what this run brought of them (nil: not known).
+	Exp  *int64 `json:"exp"`
+	Gold *int64 `json:"gold"`
 }
 
 func lootArea(a overlay.Area) lootlog.Area {
@@ -81,6 +86,7 @@ func (s *AppService) lootAreaEntered(a overlay.Area) {
 		// Reads still being gathered back from the last map count before
 		// the next one begins.
 		s.closeAfterIfDue(true)
+		s.autoScan.expTries.Store(0)
 	}
 	if err := s.lootLog.Entered(s.overlayClient.League(), lootArea(a), time.Now()); err != nil {
 		log.Printf("loot log: %v", err)
@@ -102,12 +108,13 @@ func (s *AppService) placeLoot() {
 }
 
 // keepRead files a read of the inventory (items by name, cells not read
-// for sure) in the loot log: in a hideout or town it is the next map's
-// base, and the first one after a map closes that map's run, returned.
-func (s *AppService) keepRead(items map[string]int, unsure int, doubts []lootlog.Doubt) *InvScanMap {
+// for sure, experience and gold) in the loot log: in a hideout or town it is
+// the next map's base, and the first one after a map closes that map's run,
+// returned.
+func (s *AppService) keepRead(items map[string]int, unsure int, doubts []lootlog.Doubt, read readout) *InvScanMap {
 	snap := s.eng.Prices()
 	worth := func(name string) float64 { return overlay.QuoteCurrency(snap, name).ValueEx }
-	m, r, err := s.lootLog.Scanned(s.overlayClient.League(), lootlog.Scan{At: time.Now(), Items: items, Unsure: unsure, Doubts: doubts}, worth)
+	m, r, err := s.lootLog.Scanned(s.overlayClient.League(), lootlog.Scan{At: time.Now(), Items: items, Unsure: unsure, Doubts: doubts, Exp: read.exp, Next: read.next, Gold: read.gold}, worth)
 	if err != nil {
 		log.Printf("loot log: %v", err)
 	}
@@ -115,7 +122,7 @@ func (s *AppService) keepRead(items map[string]int, unsure int, doubts []lootlog
 	if m == nil || r == nil {
 		return nil
 	}
-	return &InvScanMap{Name: mapName(m.AreaID), RunEx: r.ValueEx, MapEx: m.ValueEx, Runs: len(m.Runs), Fresh: r.Fresh, NoBase: r.NoBase, Unsure: r.Unsure}
+	return &InvScanMap{Name: mapName(m.AreaID), RunEx: r.ValueEx, MapEx: m.ValueEx, Runs: len(m.Runs), Fresh: r.Fresh, NoBase: r.NoBase, Unsure: r.Unsure, Exp: r.Exp, Gold: r.Gold}
 }
 
 // readItems are the card's items by name.
@@ -129,14 +136,14 @@ func readItems(view *InvScanView) map[string]int {
 
 // recordInventory files a read made with the shortcut: kept in a hideout
 // or town (shown on the card), kept for nothing in a map.
-func (s *AppService) recordInventory(view *InvScanView) {
+func (s *AppService) recordInventory(view *InvScanView, read readout) {
 	s.placeLoot()
 	if !s.lootLog.InRest() {
 		view.InMap = s.lootLog.Known()
 		return
 	}
 	view.Base = true
-	view.Map = s.keepRead(readItems(view), view.Unsure, view.Doubts)
+	view.Map = s.keepRead(readItems(view), view.Unsure, view.Doubts, read)
 }
 
 // lootSessions are league's sessions (oldest first) with their maps, the
@@ -175,7 +182,7 @@ func (s *AppService) GetLootLog() LootLogView {
 	league := s.overlayClient.League()
 	sessions, by, before, list := s.lootSessions(league)
 	mode, _ := s.invScanMode()
-	v := LootLogView{League: league, Mode: mode, Before: lootMaps(before), BeforeTotal: lootlog.Sum(before, time.Time{}), Box: s.lootBoxOn(), Placing: s.lootPlacing.Load()}
+	v := LootLogView{League: league, Mode: mode, Before: lootMaps(before), BeforeTotal: lootlog.Sum(before, time.Time{}), Box: s.lootBoxOn(), Placing: s.lootPlacing.Load(), ExpLeft: s.lootLog.ExpLeft(league)}
 	now, running := s.farmNow()
 	for i := len(sessions) - 1; i >= 0; i-- {
 		v.Sessions = append(v.Sessions, s.sessionView(league, i+1, sessions[i], by[i], now, running))

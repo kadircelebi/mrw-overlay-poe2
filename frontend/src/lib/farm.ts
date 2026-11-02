@@ -14,12 +14,38 @@ export type FarmData = {
   lastRun: InvScanMap | null
   // What went into the session (0: not told).
   costEx: number
+  // The experience the next level still takes (null: not known).
+  expLeft: number | null
 }
 
 // Lines only the box shows (the scan's state, the live clock, the
 // inventory); the rest are the tracker's figures too.
 export const BOX_ONLY = ['status', 'timer', 'inventory']
-export const FIGURES = ['sessionTime', 'sessionGain', 'sessionNet', 'maps', 'perMap', 'perHour', 'perMapHour', 'avgTime', 'mapTime', 'restTime', 'lastTime', 'lastGain', 'best']
+export const FIGURES = ['sessionTime', 'sessionGain', 'sessionNet', 'maps', 'perMap', 'perHour', 'perMapHour', 'avgTime', 'mapTime', 'restTime', 'lastTime', 'lastGain', 'best', 'lastExp', 'sessionExp', 'expPerMap', 'expPerHour', 'mapsToLevel', 'lastGold', 'sessionGold', 'goldPerMap']
+
+// Whether a figure has anything to show: experience and gold only once a map
+// has them.
+export function fieldKnown(key: string, session: Total): boolean {
+  if (key === 'mapsToLevel' || key.toLowerCase().includes('exp')) return (session.expMaps ?? 0) > 0
+  if (key.toLowerCase().includes('gold')) return (session.goldMaps ?? 0) > 0
+  return true
+}
+
+/** A big number made short: 1.23B, 45.6M, 7.8K. */
+export function shortNumber(n: number): string {
+  const a = Math.abs(n)
+  const cut = (v: number) => String(Number(v.toFixed(v < 100 ? 2 : 1)))
+  if (a >= 1e9) return `${cut(n / 1e9)}B`
+  if (a >= 1e6) return `${cut(n / 1e6)}M`
+  if (a >= 1e3) return `${cut(n / 1e3)}K`
+  return String(Math.round(n))
+}
+
+/** A gain with its sign; '—' when not known. */
+export function signedShort(n: number | null | undefined): string {
+  if (n === null || n === undefined) return '—'
+  return n > 0 ? `+${shortNumber(n)}` : shortNumber(n)
+}
 
 /** h:mm:ss, or m:ss under an hour. */
 export function duration(secs: number): string {
@@ -90,6 +116,25 @@ export function fieldValue(key: string, d: FarmData, now: number): string {
       return d.lastRun.noBase ? '?' : `+${worth(d.lastRun.runEx)}`
     case 'best':
       return f.best ? worth(f.best.valueEx) : '—'
+    case 'lastExp':
+      return signedShort(d.lastRun?.exp)
+    case 'lastGold':
+      return signedShort(d.lastRun?.gold)
+    case 'sessionExp':
+      return d.session.expMaps ? signedShort(d.session.exp) : '—'
+    case 'sessionGold':
+      return d.session.goldMaps ? signedShort(d.session.gold) : '—'
+    case 'expPerMap':
+      return d.session.expMaps ? signedShort((d.session.exp ?? 0) / d.session.expMaps) : '—'
+    case 'goldPerMap':
+      return d.session.goldMaps ? signedShort((d.session.gold ?? 0) / d.session.goldMaps) : '—'
+    case 'expPerHour':
+      return d.session.expMaps && f.timed && times.active >= 60 ? signedShort((d.session.exp ?? 0) / hours(times.active)) : '—'
+    case 'mapsToLevel': {
+      // What the next level still takes, at the session's experience per map.
+      const perMap = d.session.expMaps ? (d.session.exp ?? 0) / d.session.expMaps : 0
+      return perMap > 0 && d.expLeft !== null ? `≈ ${shortNumber(Math.ceil(d.expLeft / perMap))}` : '—'
+    }
   }
   return ''
 }

@@ -28,9 +28,17 @@ type Scan struct {
 	Items  map[string]int `json:"items"`
 	Unsure int            `json:"unsure,omitempty"`
 	Doubts []Doubt        `json:"doubts,omitempty"`
+	// Exp is the character's total experience, Next the total the next level
+	// takes and Gold the gold under the inventory, when read.
+	Exp  *int64 `json:"exp,omitempty"`
+	Next *int64 `json:"next,omitempty"`
+	Gold *int64 `json:"gold,omitempty"`
 	// visit is the hideout or town visit the read was made in (in memory
 	// only: a read before the app started is from another visit).
 	visit int
+	// live tells the read's experience and gold are from since the app
+	// started (in memory only: maps may have been played before that).
+	live bool
 }
 
 // Doubt is a cell a read did not read for sure: its row and column (from
@@ -71,6 +79,11 @@ type Run struct {
 	Unread  bool      `json:"unread,omitempty"`
 	Unsure  int       `json:"unsure,omitempty"`
 	Doubts  []Doubt   `json:"doubts,omitempty"`
+	// Exp and Gold are the experience and gold after the run less before it,
+	// when both reads have them. A death's experience loss and gold spent
+	// between the reads count against them, so either may be negative.
+	Exp  *int64 `json:"exp,omitempty"`
+	Gold *int64 `json:"gold,omitempty"`
 }
 
 // Map is one map instance and its runs, newest last.
@@ -81,6 +94,9 @@ type Map struct {
 	Seed    string    `json:"seed,omitempty"`
 	Runs    []Run     `json:"runs"`
 	ValueEx float64   `json:"valueEx"`
+	// Exp and Gold add up its runs' (nil: no run has one).
+	Exp  *int64 `json:"exp,omitempty"`
+	Gold *int64 `json:"gold,omitempty"`
 	// Secs is the time spent in it, from the game's log (0: not known).
 	Secs int `json:"secs,omitempty"`
 }
@@ -214,12 +230,19 @@ func (s *Store) Entered(leagueName string, a Area, now time.Time) error {
 		return nil // an area entered from the map: part of it
 	}
 	if l.Trip != nil && l.Trip.Back {
-		// Home and out again without a read: that run is not known.
+		// Home and out again without a read: that run is not known, and the
+		// last read's experience and gold are from before it.
 		s.closeRun(l, nil, now)
+		if l.Last != nil {
+			l.Last.Exp, l.Last.Next, l.Last.Gold = nil, nil, nil
+		}
 	}
 	t := &trip{AreaID: a.ID, Level: a.Level, Seed: a.Seed, Entered: now}
 	if l.Last != nil {
 		base := *l.Last
+		if !base.live {
+			base.Exp, base.Next, base.Gold = nil, nil, nil
+		}
 		t.Base = &base
 		t.Fresh = l.Last.visit == s.visit && s.visit > 0
 	}
@@ -241,13 +264,100 @@ func (s *Store) Scanned(leagueName string, sc Scan, worth func(string) float64) 
 	sc.visit = s.visit
 	var m *Map
 	var r *Run
+	keep := sc
 	if l.Trip != nil && l.Trip.Back {
 		m, r = s.closeRun(l, &sc, sc.At, worth)
+	} else if l.Last != nil && l.Last.live {
+		// No map since the last read: experience has not moved, and a read
+		// that could not tell the gold keeps the last one.
+		if keep.Exp == nil {
+			keep.Exp, keep.Next = l.Last.Exp, l.Last.Next
+		}
+		if keep.Gold == nil {
+			keep.Gold = l.Last.Gold
+		}
 	}
-	keep := sc
+	keep.live = true
 	keep.Items = maps(sc.Items)
 	l.Last = &keep
 	return m, r, s.save()
+}
+
+// NeedExp tells whether the character's experience should be read now: back
+// from a map, or no read in a hideout or town since the app started has it.
+// Experience moves only in a map, so once known it is not read again.
+func (s *Store) NeedExp(leagueName string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	l := s.load().Leagues[leagueName]
+	if l == nil || l.Last == nil || (l.Trip != nil && l.Trip.Back) {
+		return true
+	}
+	return l.Last.Exp == nil || !l.Last.live
+}
+
+// ExpLeft is the experience the next level still takes, from the latest read
+// that has it.
+func (s *Store) ExpLeft(leagueName string) *int64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	l := s.load().Leagues[leagueName]
+	if l == nil || l.Last == nil || l.Last.Exp == nil || l.Last.Next == nil {
+		return nil
+	}
+	return difference(l.Last.Exp, l.Last.Next)
+}
+
+// SetReadout keeps experience (with the total the next level takes) and gold
+// read in a hideout or town outside a read of the inventory (nil: not read)
+// on the latest read, for the next map to begin from.
+func (s *Store) SetReadout(leagueName string, exp, next, gold *int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.known || !s.inRest {
+		return nil
+	}
+	l := s.load().Leagues[leagueName]
+	if l == nil || l.Last == nil || (l.Trip != nil && l.Trip.Back) {
+		return nil
+	}
+	changed := false
+	if !l.Last.live && (exp != nil || gold != nil) {
+		l.Last.Exp, l.Last.Next, l.Last.Gold, l.Last.live = nil, nil, nil, true
+		changed = true
+	}
+	if exp != nil && (l.Last.Exp == nil || *l.Last.Exp != *exp) {
+		l.Last.Exp, l.Last.Next, changed = exp, next, true
+	}
+	if gold != nil && (l.Last.Gold == nil || *l.Last.Gold != *gold) {
+		l.Last.Gold, changed = gold, true
+	}
+	if !changed {
+		return nil
+	}
+	return s.save()
+}
+
+// difference is after less before, when both are known.
+func difference(before, after *int64) *int64 {
+	if before == nil || after == nil {
+		return nil
+	}
+	d := *after - *before
+	return &d
+}
+
+// addKnown adds a known b to a, either maybe unknown.
+func addKnown(a, b *int64) *int64 {
+	switch {
+	case b == nil:
+		return a
+	case a == nil:
+		n := *b
+		return &n
+	}
+	n := *a + *b
+	return &n
 }
 
 // closeRun ends the trip's run with read after (nil: none was made) and
@@ -267,6 +377,7 @@ func (s *Store) closeRun(l *league, after *Scan, at time.Time, worth ...func(str
 		r.From = t.Base.At
 		r.Unsure = t.Base.Unsure + after.Unsure
 		r.Doubts = append(append([]Doubt(nil), t.Base.Doubts...), afterDoubts(after.Doubts)...)
+		r.Exp, r.Gold = difference(t.Base.Exp, after.Exp), difference(t.Base.Gold, after.Gold)
 		r.Items = Gain(t.Base.Items, after.Items)
 		for i := range r.Items {
 			if len(worth) > 0 && worth[0] != nil {
@@ -281,8 +392,9 @@ func (s *Store) closeRun(l *league, after *Scan, at time.Time, worth ...func(str
 	if len(l.Maps) > 0 && l.Maps[0].AreaID == t.AreaID && l.Maps[0].Seed == t.Seed {
 		l.Maps[0].Runs = append(l.Maps[0].Runs, r)
 		l.Maps[0].ValueEx += r.ValueEx
+		l.Maps[0].Exp, l.Maps[0].Gold = addKnown(l.Maps[0].Exp, r.Exp), addKnown(l.Maps[0].Gold, r.Gold)
 	} else {
-		l.Maps = append([]Map{{At: t.Entered, AreaID: t.AreaID, Level: t.Level, Seed: t.Seed, Runs: []Run{r}, ValueEx: r.ValueEx}}, l.Maps...)
+		l.Maps = append([]Map{{At: t.Entered, AreaID: t.AreaID, Level: t.Level, Seed: t.Seed, Runs: []Run{r}, ValueEx: r.ValueEx, Exp: addKnown(nil, r.Exp), Gold: addKnown(nil, r.Gold)}}, l.Maps...)
 	}
 	m := l.Maps[0]
 	return &m, &r
@@ -456,6 +568,12 @@ func (s *Store) save() error {
 type Total struct {
 	Maps    int     `json:"maps"`
 	ValueEx float64 `json:"valueEx"`
+	// Exp and Gold add up the maps that have them; ExpMaps and GoldMaps count
+	// those maps (for an average that leaves out the unread ones).
+	Exp      int64 `json:"exp,omitempty"`
+	Gold     int64 `json:"gold,omitempty"`
+	ExpMaps  int   `json:"expMaps,omitempty"`
+	GoldMaps int   `json:"goldMaps,omitempty"`
 }
 
 // Sum adds up the maps first entered at or after since (zero: all).
@@ -467,6 +585,14 @@ func Sum(list []Map, since time.Time) Total {
 		}
 		t.Maps++
 		t.ValueEx += m.ValueEx
+		if m.Exp != nil {
+			t.Exp += *m.Exp
+			t.ExpMaps++
+		}
+		if m.Gold != nil {
+			t.Gold += *m.Gold
+			t.GoldMaps++
+		}
 	}
 	return t
 }

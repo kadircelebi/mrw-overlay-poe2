@@ -22,6 +22,9 @@ func MouseButtonDown() bool    { return false }
 func ReadGameText() ([]OcrLine, int, int, error) {
 	return nil, 0, 0, errors.New("screen text reading is only supported on Windows")
 }
+func recognizeRGBA(*image.RGBA) ([]OcrLine, error) {
+	return nil, errors.New("screen text reading is only supported on Windows")
+}
 func PasteChatLine() {}
 func ReadRunePanel([]string) ([]RuneRow, image.Rectangle, error) {
 	return nil, image.Rectangle{}, errors.New("screen text reading is only supported on Windows")

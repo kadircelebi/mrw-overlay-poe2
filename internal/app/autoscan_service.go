@@ -30,6 +30,11 @@ import (
 //     saw, since putting things in the stash only lowers the counts and a
 //     tooltip only hides cells.
 //
+// Gold (when on) is read with the inventory, every few seconds. Experience
+// (when on) takes the pointer on the bar for a moment, so it is read only
+// when it can have moved: once back from each map, or when no read has it
+// yet, and not while a mouse button is down.
+//
 // Nothing is read in a map.
 
 const (
@@ -44,6 +49,13 @@ const (
 	// afterWindow is how long after the inventory first shows on the way
 	// back its reads count towards what the map brought.
 	afterWindow = 15 * time.Second
+	// goldEvery is how often gold is read with the inventory open at home.
+	goldEvery = 2 * time.Second
+	// expReadFor is how long the pointer stays on the experience bar at most,
+	// waiting for its tooltip; expMaxTries how many times it goes there
+	// between one map and the next.
+	expReadFor  = 300 * time.Millisecond
+	expMaxTries = 3
 )
 
 type autoScanState struct {
@@ -61,6 +73,14 @@ type autoScanState struct {
 	// (afterUnsure; −1 before the first).
 	afterDoubts []lootlog.Doubt
 	afterUntil  time.Time
+	// afterRead is the experience and gold read back from a map.
+	afterRead readout
+	// gold is the gold last read at home, at goldAt.
+	gold   *int64
+	goldAt time.Time
+	// expTries counts the pointer's trips to the experience bar since the
+	// last map was entered.
+	expTries atomic.Int32
 	// readingUntil is afterUntil in Unix ms, for the loot box (read
 	// without the lock).
 	readingUntil atomic.Int64
@@ -170,11 +190,17 @@ func (s *AppService) autoScanTick() time.Duration {
 	s.priceInventory(&view, m.ReadGridCached(pic, g, &st.cache))
 	s.keepDoubtPictures(pic, g, view.Doubts)
 	items := readItems(&view)
+	readExp, readGold := s.readoutsOn()
+	// The grid in screen pixels, for the gold box under it.
+	onScreen := g
+	onScreen.X += float64(area.Min.X)
+	onScreen.Y += float64(area.Min.Y)
 
 	if waiting || !st.afterUntil.IsZero() {
 		// Back from a map: the most of each item seen in the first seconds.
 		if st.afterUntil.IsZero() {
 			st.after, st.afterUnsure, st.afterDoubts = map[string]int{}, -1, nil
+			st.afterRead = readout{}
 			st.afterUntil = time.Now().Add(afterWindow)
 			st.readingUntil.Store(st.afterUntil.UnixMilli())
 			go s.emitLootStatus()
@@ -185,14 +211,91 @@ func (s *AppService) autoScanTick() time.Duration {
 		if st.afterUnsure < 0 || view.Unsure < st.afterUnsure {
 			st.afterUnsure, st.afterDoubts = view.Unsure, view.Doubts
 		}
+		// The gold of the first read, before any of it is spent.
+		if readGold && st.afterRead.gold == nil {
+			st.afterRead.gold = s.readGoldBox(onScreen, client.Dy())
+		}
+		if readExp && st.afterRead.exp == nil {
+			e := s.readExpBar(client)
+			st.afterRead.exp, st.afterRead.next = e.exp, e.next
+		}
 		s.closeAfterLocked(false)
 		return wait
 	}
 
-	if st.newBase(items, view.Unsure, overPanel, s.lootLog.State(s.overlayClient.League()).Last != nil) {
-		s.keepRead(items, view.Unsure, view.Doubts)
+	league := s.overlayClient.League()
+	if readGold && time.Since(st.goldAt) >= goldEvery {
+		st.goldAt = time.Now()
+		if gold := s.readGoldBox(onScreen, client.Dy()); gold != nil {
+			st.gold = gold
+		}
+	}
+	have := s.lootLog.State(league).Last != nil
+	if st.newBase(items, view.Unsure, overPanel, have) {
+		s.keepRead(items, view.Unsure, view.Doubts, readout{gold: st.gold})
+		have = true
+	}
+	var e readout
+	if readExp && have && s.lootLog.NeedExp(league) {
+		e = s.readExpBar(client)
+	}
+	if e.exp != nil || st.gold != nil {
+		if err := s.lootLog.SetReadout(league, e.exp, e.next, st.gold); err != nil {
+			log.Printf("loot log: %v", err)
+		}
 	}
 	return wait
+}
+
+// readGoldBox reads the gold under grid g (screen pixels), from a game client
+// height pixels high.
+func (s *AppService) readGoldBox(g invscan.Grid, height int) *int64 {
+	r := invscan.GoldRect(g)
+	hidden := s.hideBoxesOver(r)
+	img, err := overlay.CaptureScreenRect(r)
+	if hidden {
+		go s.syncBoxes()
+	}
+	if err != nil {
+		return nil
+	}
+	return goldOf(img, img.Bounds(), height)
+}
+
+// readExpBar moves the pointer onto the experience bar until its tooltip
+// reads or expReadFor is over, and puts it back; it does nothing while a
+// mouse button is down or once expMaxTries is spent. The game sees the
+// pointer move as when the player moves the mouse: no click, no key.
+func (s *AppService) readExpBar(client image.Rectangle) readout {
+	st := &s.autoScan
+	x, y, ok := overlay.CursorPosition()
+	if !ok || overlay.MouseButtonDown() || st.expTries.Load() >= expMaxTries {
+		return readout{}
+	}
+	st.expTries.Add(1)
+	w, h := client.Dx(), client.Dy()
+	r := invscan.ExpRect(w, h).Add(client.Min)
+	hidden := s.hideBoxesOver(r)
+	p := invscan.ExpPoint(w, h).Add(client.Min)
+	overlay.MoveCursor(p.X, p.Y)
+	defer func() {
+		overlay.MoveCursor(x, y)
+		if hidden {
+			go s.syncBoxes()
+		}
+	}()
+	for start := time.Now(); time.Since(start) < expReadFor; {
+		img, err := overlay.CaptureScreenRect(r)
+		if err != nil {
+			return readout{}
+		}
+		if e, ok := overlay.ReadExperience(img, img.Bounds(), h); ok {
+			st.expTries.Store(0)
+			return readout{exp: &e.Current, next: &e.Next}
+		}
+	}
+	log.Print("inventory scan: experience not read")
+	return readout{}
 }
 
 // newBase takes a read in a hideout or town and tells whether it is the
@@ -214,6 +317,7 @@ func (st *autoScanState) reset() {
 	st.cache, st.cell = invscan.GridCache{}, 0
 	st.last, st.kept, st.after = nil, nil, nil
 	st.lastUnsure, st.afterUnsure, st.afterUntil = 0, 0, time.Time{}
+	st.afterRead, st.gold, st.goldAt = readout{}, nil, time.Time{}
 	st.gridSeen = false
 	st.readingUntil.Store(0)
 }
@@ -232,11 +336,12 @@ func (s *AppService) closeAfterLocked(now bool) {
 	if st.afterUntil.IsZero() || (!now && time.Now().Before(st.afterUntil)) {
 		return
 	}
-	items, unsure, doubts := st.after, max(0, st.afterUnsure), st.afterDoubts
-	st.after, st.afterUntil, st.afterDoubts = nil, time.Time{}, nil
+	items, unsure, doubts, read := st.after, max(0, st.afterUnsure), st.afterDoubts, st.afterRead
+	st.after, st.afterUntil, st.afterDoubts, st.afterRead = nil, time.Time{}, nil, readout{}
 	st.readingUntil.Store(0)
 	st.last, st.kept = nil, items
-	if m := s.keepRead(items, unsure, doubts); m != nil {
+	st.gold = read.gold
+	if m := s.keepRead(items, unsure, doubts, read); m != nil {
 		log.Printf("loot log: %s brought %.1f ex", m.Name, m.RunEx)
 	}
 }

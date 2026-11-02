@@ -57,6 +57,8 @@ type LootStatusView struct {
 	Farm         FarmView      `json:"farm"`
 	Fields       []string      `json:"fields"`
 	DivineEx     float64       `json:"divineEx"`
+	// ExpLeft is the experience the next level still takes (nil: not known).
+	ExpLeft *int64 `json:"expLeft"`
 }
 
 // The loot box's size in window pixels: its width, and per line shown
@@ -82,7 +84,7 @@ func (s *AppService) GetLootStatus() LootStatusView {
 	hotkey := s.overlaySettings.InventoryScanHotkey
 	fields := slices.Clone(s.overlaySettings.LootBoxFields)
 	s.overlayMu.RUnlock()
-	v := LootStatusView{Mode: mode, Hotkey: hotkey, Fields: fields, Placing: s.lootPlacing.Load(), Phase: LootUnknown}
+	v := LootStatusView{Mode: mode, Hotkey: hotkey, Fields: fields, Placing: s.lootPlacing.Load(), Phase: LootUnknown, ExpLeft: s.lootLog.ExpLeft(league)}
 	snap := s.eng.Prices()
 	worth := func(sc *lootlog.Scan) float64 {
 		var sum float64
@@ -126,7 +128,7 @@ func (s *AppService) GetLootStatus() LootStatusView {
 	if len(list) > 0 && len(list[0].Runs) > 0 {
 		m := list[0]
 		r := m.Runs[len(m.Runs)-1]
-		v.LastRun = &InvScanMap{Name: mapName(m.AreaID), RunEx: r.ValueEx, MapEx: m.ValueEx, Runs: len(m.Runs), Fresh: r.Fresh, NoBase: r.NoBase || r.Unread, Unsure: r.Unsure}
+		v.LastRun = &InvScanMap{Name: mapName(m.AreaID), RunEx: r.ValueEx, MapEx: m.ValueEx, Runs: len(m.Runs), Fresh: r.Fresh, NoBase: r.NoBase || r.Unread, Unsure: r.Unsure, Exp: r.Exp, Gold: r.Gold}
 		v.LastRunAt = r.To.UnixMilli()
 	}
 	return v
