@@ -99,6 +99,10 @@ Satıcının (Ange) yaptığı satışlar gün gün: bu oyun oturumu, bugün ve 
 ### Campaign kutusu
 Oyunun üstünde küçük bir kutu, bulunduğun Campaign bölgesinde nelere dikkat edeceğini söyler: kaçırılmaması gereken kalıcı ödüller, isteğe bağlı duraklar, yol ipuçları ve sonraki adım. Oyunun log dosyasından seni kendiliğinden izler, map ve hideout'ta gizlenir. Dört Act ve Interlude'lar Takip penceresinin Campaign sekmesinde de okunabilir; kutu da oradan açılır. Notlar İngilizce ve Türkçedir.
 
+<p align="center"><img src="docs/campaign-box-act3.png" alt="Oyunun üstünde Campaign kutusu, Act 3" width="400"> <img src="docs/campaign-box-act4.png" alt="Oyunun üstünde Campaign kutusu, Act 4" width="400"></p>
+
+<p align="center"><img src="docs/campaign-tracker.png" alt="Takip penceresinde Campaign sekmesi" width="640"></p>
+
 ### Paylaşılan filtre profilleri
 League start, Expedition farmı ya da sıkı bir endgame filtresi için ayrı ayarlar tut, tek tıkla aralarında geçiş yap. Profilini yayınla, başkaları takip etsin; ya da diğer oyuncuların paylaştıklarına göz at, en çok takip edilenler en üstte. Takip ettiğin profil, sahibi değiştirdikçe kendiliğinden güncellenir.
 

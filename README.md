@@ -99,6 +99,10 @@ Your merchant (Ange) sales, day by day, with totals for this game session, today
 ### Campaign box
 A small box over the game says what to watch for in the campaign area you are in: lasting rewards not to miss, optional stops, how to find the way and where to go next. It follows you by itself from the game's log and hides in maps and hideouts. All four acts and the interludes can also be read in the tracker's Campaign tab, where you turn the box on. The notes are in English and Turkish.
 
+<p align="center"><img src="docs/campaign-box-act3.png" alt="Campaign box over the game in Act 3" width="400"> <img src="docs/campaign-box-act4.png" alt="Campaign box over the game in Act 4" width="400"></p>
+
+<p align="center"><img src="docs/campaign-tracker.png" alt="Campaign tab in the tracker" width="640"></p>
+
 ### Public filter profiles
 Keep separate setups for league start, Expedition farming or a strict endgame filter, and switch with one click. Publish a profile so other players can follow it, or browse what others shared, most followed first. A profile you follow updates itself when its author changes it.
 
