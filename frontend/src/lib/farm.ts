@@ -23,14 +23,6 @@ export type FarmData = {
 export const BOX_ONLY = ['status', 'timer', 'inventory']
 export const FIGURES = ['sessionTime', 'sessionGain', 'sessionNet', 'maps', 'perMap', 'perHour', 'perMapHour', 'avgTime', 'mapTime', 'restTime', 'lastTime', 'lastGain', 'best', 'lastExp', 'sessionExp', 'expPerMap', 'expPerHour', 'mapsToLevel', 'lastGold', 'sessionGold', 'goldPerMap']
 
-// Whether a figure has anything to show: experience and gold only once a map
-// has them.
-export function fieldKnown(key: string, session: Total): boolean {
-  if (key === 'mapsToLevel' || key.toLowerCase().includes('exp')) return (session.expMaps ?? 0) > 0
-  if (key.toLowerCase().includes('gold')) return (session.goldMaps ?? 0) > 0
-  return true
-}
-
 /** A big number made short: 1.23B, 45.6M, 7.8K. */
 export function shortNumber(n: number): string {
   const a = Math.abs(n)

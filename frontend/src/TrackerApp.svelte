@@ -15,7 +15,7 @@
   import { clock, money, relative, until } from './lib/format'
   import { currencyInfo } from './lib/currencies.svelte'
   import Toggle from './lib/Toggle.svelte'
-  import { BOX_ONLY, FIGURES, doubtText, duration, fieldKnown, fieldLabel, fieldValue, liveTimes, signedShort, type FarmData } from './lib/farm'
+  import { BOX_ONLY, FIGURES, doubtText, duration, fieldLabel, fieldValue, liveTimes, signedShort, type FarmData } from './lib/farm'
   import { noteMark, say } from './lib/campaign'
 
   type Tab = 'sales' | 'expedition' | 'loot' | 'campaign'
@@ -485,7 +485,7 @@
             {#if !ss.farm.timed}<p class="muted small">{t('farm.noLog')}</p>{/if}
             <div class="farm-grid">
               {#each FIGURES as key (key)}
-                {#if (key !== 'sessionNet' || ss.costEx > 0) && fieldKnown(key, ss.total)}
+                {#if key !== 'sessionNet' || ss.costEx > 0}
                   <div class="farm-cell">
                     <span class="label" title={fieldLabel(key, data)}>{fieldLabel(key, data)}</span>
                     <span class="value num">{fieldValue(key, data, now)}</span>
