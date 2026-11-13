@@ -92,6 +92,7 @@ func TestConfigPendingFollowsTheWrittenFilter(t *testing.T) {
 	appOnly := written
 	appOnly.Language = "tr"
 	appOnly.AutoUpdateHours = written.AutoUpdateHours + 2
+	appOnly.ReloadInGame = !written.ReloadInGame
 	if _, err := e.SetConfig(appOnly); err != nil {
 		t.Fatal(err)
 	}

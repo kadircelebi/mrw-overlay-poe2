@@ -285,8 +285,8 @@ func TestLegacyConfigMigration(t *testing.T) {
 	if !c.HideExalt || len(c.ItemGroups) != 1 || len(c.ItemGroups[0].Items) != 2 || c.AutoUpdateEnabled {
 		t.Errorf("user choices not kept: %+v", c)
 	}
-	if c.AutoUpdateHours != 1 || c.T5RareTier != MaxRareTier || !c.ExceptionalScan {
-		t.Errorf("new defaults: hours=%d t5=%d scan=%v", c.AutoUpdateHours, c.T5RareTier, c.ExceptionalScan)
+	if c.AutoUpdateHours != 1 || c.T5RareTier != MaxRareTier || !c.ExceptionalScan || !c.ReloadInGame {
+		t.Errorf("new defaults: hours=%d t5=%d scan=%v reload=%v", c.AutoUpdateHours, c.T5RareTier, c.ExceptionalScan, c.ReloadInGame)
 	}
 	if err := c.Save(p); err != nil {
 		t.Fatal(err)

@@ -1054,7 +1054,7 @@
             {:else if !cfg.auto_update_enabled}
               <span>{t('meta.autoOff')}</span>
             {/if}
-            <span class="reload">{t('meta.reload')}</span>
+            <span class="reload">{t(cfg.reload_in_game ? 'meta.reloadAuto' : 'meta.reload')}</span>
           </div>
           {#if actionError}<p class="error">{actionError}</p>{/if}
         </section>
@@ -1823,6 +1823,7 @@
                       />
                     {/if}
                     <Toggle bind:checked={cfg.notify_enabled} label={t('auto.notify')} onchange={() => queueSave(false)} />
+                    <Toggle bind:checked={cfg.reload_in_game} label={t('auto.reload')} hint={t('auto.reloadHint')} onchange={() => queueSave(false)} />
                   </section>
 
                   {#if appUpdate?.status !== 'disabled'}

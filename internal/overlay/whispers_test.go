@@ -141,3 +141,29 @@ func TestSessionBeganFarBack(t *testing.T) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
+
+// The end of a loading screen is reported once per screen, and a line of
+// chat that quotes it is not.
+func TestWhispersLoadingScreen(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Client.txt")
+	if err := os.WriteFile(path, []byte("2026/11/12 02:29:00 ***** LOG FILE OPENING *****\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var w Whispers
+	loaded := 0
+	w.SetOnLoaded(func() { loaded++ })
+	off := w.read(path, -1)
+	more := "2026/11/12 02:29:06 54955750 2caa22f9 [DEBUG Client 63020] Generating level 79 area \"MapVaalFactory\" with seed 3170330689\n" +
+		"2026/11/12 02:29:08 54957703 4cba6a95 [INFO Client 63020] [LOADING SCREEN] (The Assembly) Duration = 2.10932 seconds\n" +
+		"2026/11/12 02:29:20 54957703 3ef23348 [INFO Client 63020] #Somebody: ] [LOADING SCREEN] is slow\n"
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.WriteString(more)
+	f.Close()
+	w.read(path, off)
+	if loaded != 1 {
+		t.Fatalf("loading screens %d, want 1", loaded)
+	}
+}

@@ -32,7 +32,7 @@ Fiyat sorgulama, trade, canlı arama, craft simülatörü, Expedition fiyatları
 ## Özellikler
 
 ### Canlı fiyatlı loot filtresi
-[NeverSink'in filtresinin](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2) üstüne kurulur: NeverSink'in bütün emeği yerinde kalır, senin fiyat kuralların en üste eklenir. Unique fiyatları poe.ninja'dan, currency ve yığınlanan eşyalar oyun içi Currency Exchange'te gerçekleşen takaslardan (orada az takas görenleri poe2scout ve poe.ninja tamamlar), exceptional tabanlar (fazla soketli ya da %21+ kaliteli) resmi trade sitesinden gelir. Bu fiyatları MrW Overlay'in kendi sunucuları hesaplar ve tabanları günün her saati tarar; fiyatlar sana hazır gelir. Filtre varsayılan olarak 4 saatte bir kendini günceller.
+[NeverSink'in filtresinin](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2) üstüne kurulur: NeverSink'in bütün emeği yerinde kalır, senin fiyat kuralların en üste eklenir. Unique fiyatları poe.ninja'dan, currency ve yığınlanan eşyalar oyun içi Currency Exchange'te gerçekleşen takaslardan (orada az takas görenleri poe2scout ve poe.ninja tamamlar), exceptional tabanlar (fazla soketli ya da %21+ kaliteli) resmi trade sitesinden gelir. Bu fiyatları MrW Overlay'in kendi sunucuları hesaplar ve tabanları günün her saati tarar; fiyatlar sana hazır gelir. Filtre varsayılan olarak 4 saatte bir kendini günceller, oyun da yenisini bir sonraki yükleme ekranından sonra yükler.
 
 <p align="center"><img src="docs/filter-ground.jpg" alt="Yerde filtrelenmiş drop'lar" width="800"></p>
 
@@ -144,7 +144,7 @@ Sonra:
 
 1. Uygulama sistem tepsisine yerleşir. Panel için simgeye tıkla, menü için sağ tıkla.
 2. Oyunda: **Options → Item Filter → auto_updated**.
-3. Her güncellemeden sonra filtrenin yanındaki **Reload**'a bas. Oyun filtreyi kendiliğinden yeniden okumaz.
+3. Her güncellemeden sonra uygulama, bir sonraki yükleme ekranı bitince sohbete `/reloaditemfilter` yazar ve oyun yeni filtreyi yükler. Bunu kapatırsan (**Ayarlar → Güncellemeler**) filtrenin yanındaki **Reload**'a kendin bas.
 
 Windows 10/11 ve WebView2 gerekir (Windows 11'de hazır gelir). Ayarlar `%APPDATA%\PoE2Filtre` altında durur, iki sürüm de aynı klasörü kullanır.
 
@@ -160,9 +160,9 @@ Canlı arama, hideout'a gitme, satış takibi ve daha büyük aramalar için uyg
 
 ## SSS
 
-**Filtre oyunda değişmiyor.** Uygulamada güncelle, sonra oyunda Options → Item Filter → **Reload**. Oyunu yeniden başlatmaya gerek yok.
+**Filtre oyunda değişmiyor.** Uygulama filtreyi, oyun öndeyken bir sonraki yükleme ekranından sonra yeniden yükler. Hemen yüklemek istersen sohbete `/reloaditemfilter` yaz ya da Options → Item Filter → **Reload**. Oyunu yeniden başlatmaya gerek yok.
 
-**Ban yer miyim?** Uygulama oyun belleğini okumaz, oyuna tuş göndermez ve tıklamaz. Bir metin dosyası yazar, kısayola bastığında eşyayı oyunun kendi kopyalama komutuyla kopyalar, açtığın yerlerde ekranı okur ve herkese açık trade API'sini sınırları içinde kullanır.
+**Ban yer miyim?** Uygulama oyun belleğini okumaz ve tıklamaz. Bir metin dosyası yazar, kısayola bastığında eşyayı oyunun kendi kopyalama komutuyla kopyalar, sohbete senin yazacağın gibi satırlar yazar (oyun komutların ve filtre güncellenince `/reloaditemfilter`), açtığın yerlerde ekranı okur ve herkese açık trade API'sini sınırları içinde kullanır.
 
 **Çok fazla / çok az şey gizleniyor.** Önce değer eşiğini, sonra NeverSink sıkılığını ayarla. Sıkılık temeli belirler, eşik ise senin kurallarını.
 

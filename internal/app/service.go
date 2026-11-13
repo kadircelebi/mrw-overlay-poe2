@@ -128,6 +128,9 @@ type AppService struct {
 	chatKeys   []string
 	gameActive atomic.Bool
 	whispers   overlay.Whispers
+	// reloadDue is when a filter the game has not reloaded yet was written
+	// (Unix nanoseconds; 0: none), see filter_reload.go.
+	reloadDue atomic.Int64
 
 	// The pathofexile.com session from the browser extension (encrypted on
 	// disk) and the state of an ongoing "connect browser" request.
@@ -249,6 +252,7 @@ func (s *AppService) ServiceStartup(ctx context.Context, _ application.ServiceOp
 		go s.autoScanLoop(ctx)
 		go s.farmLoop(ctx)
 		s.whispers.SetOnMerchant(s.merchantSpoke)
+		s.whispers.SetOnLoaded(s.loadingScreenOver)
 		s.whispers.SetOnArea(func(a overlay.Area) {
 			s.expeditionAreaEntered(a)
 			s.lootAreaEntered(a)

@@ -202,6 +202,7 @@ export const en: Record<string, string> = {
   'meta.next': 'Next: {0}',
   'meta.autoOff': 'Automatic update is off',
   'meta.reload': 'In game: Item Filter → Reload',
+  'meta.reloadAuto': 'In game: reloads after a loading screen',
 
   // Threshold
   'threshold.title': 'Value threshold',
@@ -381,6 +382,8 @@ export const en: Record<string, string> = {
   'auto.enable': 'Update on start and at a regular interval',
   'auto.hours': '{0} h',
   'auto.notify': 'Show a notification after each update',
+  'auto.reload': 'Reload the filter in game after each update',
+  'auto.reloadHint': 'After the next loading screen, /reloaditemfilter is typed into the game chat, the same way as the game commands. Only while the game is in front.',
 
   'appUpdate.title': 'Application updates',
   'appUpdate.desc': 'Checks stable GitHub Releases once a day. Downloads are verified with SHA-256 before installation.',

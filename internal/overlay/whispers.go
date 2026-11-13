@@ -31,10 +31,18 @@ func WhisperFrom(line string) (string, bool) {
 // price; it only tells that the sales history may have changed.
 const merchantLine = "] Ange: "
 
+// loadingDoneRE is how the game logs the end of a loading screen:
+//
+//	2026/11/12 02:29:08 54957703 4cba6a95 [INFO Client 63020] [LOADING SCREEN] (The Assembly) Duration = 2.10932 seconds
+//
+// Right after the client tag, where a chat line has its sender.
+var loadingDoneRE = regexp.MustCompile(` Client \d+\] \[LOADING SCREEN\] `)
+
 // Whispers follows the end of the game's Client.txt for the player who
-// whispered last, the time the game started, whether the merchant spoke and
-// which area the game built. Only that is kept, in memory; nothing else of
-// the chat log is read into the app or stored.
+// whispered last, the time the game started, whether the merchant spoke,
+// which area the game built and when a loading screen ended. Only that is
+// kept, in memory; nothing else of the chat log is read into the app or
+// stored.
 type Whispers struct {
 	mu     sync.Mutex
 	path   string
@@ -45,6 +53,24 @@ type Whispers struct {
 	onMerchant func()
 	// onArea, when set, is called for every area the game builds.
 	onArea func(Area)
+	// onLoaded, when set, is called when a loading screen ends.
+	onLoaded func()
+}
+
+// SetOnLoaded sets what to call when a loading screen ends (nil: nothing).
+func (w *Whispers) SetOnLoaded(f func()) {
+	w.mu.Lock()
+	w.onLoaded = f
+	w.mu.Unlock()
+}
+
+func (w *Whispers) loaded() {
+	w.mu.Lock()
+	on := w.onLoaded
+	w.mu.Unlock()
+	if on != nil {
+		on()
+	}
 }
 
 // SetOnMerchant sets what to call when the merchant speaks (nil: nothing).
@@ -259,6 +285,8 @@ func (w *Whispers) read(path string, offset int64) int64 {
 			}
 		} else if strings.Contains(line, merchantLine) {
 			w.merchant()
+		} else if loadingDoneRE.MatchString(line) {
+			w.loaded()
 		} else if a, ok := ParseArea(line); ok {
 			w.area(a)
 		}

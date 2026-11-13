@@ -68,8 +68,9 @@ func (s *AppService) setGameActive(active bool, hwnd uintptr) {
 		s.overlayMu.RLock()
 		// The trade history also reads it (when the game started, whether
 		// the merchant spoke), and so does the Expedition history behind the
-		// price check (which map the player is in).
-		on := s.overlaySettings.ChatEnabled || s.overlaySettings.TradeHistory || s.overlaySettings.Enabled
+		// price check (which map the player is in), and a filter waiting to
+		// be reloaded (when a loading screen ends).
+		on := s.overlaySettings.ChatEnabled || s.overlaySettings.TradeHistory || s.overlaySettings.Enabled || s.reloadDue.Load() != 0
 		s.overlayMu.RUnlock()
 		if on && path != "" {
 			s.whispers.Follow(path)

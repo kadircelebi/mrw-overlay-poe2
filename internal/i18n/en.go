@@ -43,6 +43,7 @@ var en = map[string]string{
 	// Notification
 	"notify.title":           "Filter updated",
 	"notify.body":            "%s.filter is ready. Use Item Filter → Reload in game.",
+	"notify.bodyReload":      "%s.filter is ready. The game reloads it after the next loading screen.",
 	"notify.leagueTitle":     "Now following %s",
 	"notify.leagueGoneTitle": "League no longer listed",
 	"notify.leagueGoneBody":  "%s is not on the trade site's league list. Pick the current league in Settings → General, or choose Automatic.",
@@ -184,6 +185,7 @@ var en = map[string]string{
 	"err.profileServer":    "profile server: %s",
 	"notify.followedTitle": "Followed profile updated",
 	"notify.followedBody":  "%s was updated by its author. Use Item Filter → Reload in game.",
+	"notify.followedAuto":  "%s was updated by its author. The game reloads it after the next loading screen.",
 	"filter.sec.hidden":    "hidden",
 
 	"overlay.err.tooBroad":            "The search is too broad for GGG; add a base type, a rarity or a few affix filters",

@@ -195,6 +195,9 @@ type Config struct {
 	AutoUpdateEnabled bool `json:"auto_update_enabled"`
 	AutoUpdateHours   int  `json:"auto_update_hours"`
 	NotifyEnabled     bool `json:"notify_enabled"`
+	// ReloadInGame has the game reload a newly written filter by itself
+	// (the /reloaditemfilter chat line, after the next loading screen).
+	ReloadInGame bool `json:"reload_in_game"`
 
 	// Legacy fields, read once for migration and never written back.
 	LegacyT5Rares          *bool    `json:"t5_rares,omitempty"`
@@ -243,6 +246,7 @@ func DefaultConfig() Config {
 		AutoUpdateEnabled: true,
 		AutoUpdateHours:   4,
 		NotifyEnabled:     true,
+		ReloadInGame:      true,
 	}
 }
 
@@ -374,10 +378,11 @@ func (c Config) Save(path string) error {
 
 // FilterKey identifies the settings the written filter depends on. Two
 // configs with the same key write the same rules; the app-only settings
-// (language, schedule, notifications, scan budget and source) are left out,
-// matching what the panel treats as not needing a rewrite.
+// (language, schedule, notifications, reloading in game, scan budget and
+// source) are left out, matching what the panel treats as not needing a
+// rewrite.
 func (c Config) FilterKey() string {
-	c.Language, c.AutoUpdateEnabled, c.AutoUpdateHours, c.NotifyEnabled = "", false, 0, false
+	c.Language, c.AutoUpdateEnabled, c.AutoUpdateHours, c.NotifyEnabled, c.ReloadInGame = "", false, 0, false, false
 	c.ScanBudgetPct, c.ExceptionalScan, c.LeagueAuto = 0, false, false
 	raw, err := json.Marshal(c)
 	if err != nil {

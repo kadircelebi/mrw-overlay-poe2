@@ -36,6 +36,9 @@ type Options struct {
 	// OnConfig is called when the engine changes the settings by itself (the
 	// automatic league), so open windows can drop their copy. May be nil.
 	OnConfig func(filter.Config)
+	// Written is called after each filter write, with the settings it was
+	// written with. May be nil.
+	Written func(filter.Config)
 }
 
 // RunResult summarises the last successful filter write.
@@ -724,11 +727,18 @@ func (e *Engine) run(ctx context.Context) (err error) {
 	switched := e.leagueSwitched
 	e.leagueSwitched = ""
 	e.leagueMu.Unlock()
+	if e.opt.Written != nil {
+		e.opt.Written(cfg)
+	}
 	if cfg.NotifyEnabled && e.opt.Notify != nil {
+		body := i18n.T("notify.body", cfg.FilterName)
+		if cfg.ReloadInGame {
+			body = i18n.T("notify.bodyReload", cfg.FilterName)
+		}
 		if switched != "" {
-			e.opt.Notify(i18n.T("notify.leagueTitle", switched), i18n.T("notify.body", cfg.FilterName))
+			e.opt.Notify(i18n.T("notify.leagueTitle", switched), body)
 		} else {
-			e.opt.Notify(i18n.T("notify.title"), i18n.T("notify.body", cfg.FilterName))
+			e.opt.Notify(i18n.T("notify.title"), body)
 		}
 	}
 	return nil

@@ -197,6 +197,7 @@ export const zh: Record<string, string> = {
   'meta.next': '下次：{0}',
   'meta.autoOff': '自動更新已關閉',
   'meta.reload': '遊戲中：Item Filter → Reload',
+  'meta.reloadAuto': '遊戲中：讀取畫面後自動載入',
 
   'threshold.title': '價值門檻',
   'threshold.hide': '低於此價值的物品會被隱藏。',
@@ -361,6 +362,8 @@ export const zh: Record<string, string> = {
   'auto.enable': '啟動時與固定間隔更新',
   'auto.hours': '{0} 小時',
   'auto.notify': '更新後顯示通知',
+  'auto.reload': '更新後在遊戲中重新載入過濾器',
+  'auto.reloadHint': '下一次讀取畫面結束後，會以與遊戲指令相同的方式在遊戲聊天輸入 /reloaditemfilter。僅在遊戲位於前景時。',
 
   'appUpdate.title': '應用程式更新',
   'appUpdate.desc': '每天檢查一次穩定版 GitHub Release。安裝前會以 SHA-256 驗證下載檔案。',

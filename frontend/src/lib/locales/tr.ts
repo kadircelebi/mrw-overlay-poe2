@@ -198,6 +198,7 @@ export const tr: Record<string, string> = {
   'meta.next': 'Sonraki: {0}',
   'meta.autoOff': 'Otomatik güncelleme kapalı',
   'meta.reload': 'Oyunda: Item Filter → Reload',
+  'meta.reloadAuto': 'Oyunda: yükleme ekranından sonra yüklenir',
 
   'threshold.title': 'Değer eşiği',
   'threshold.hide': 'Bu değerin altındaki eşyalar gizlenir.',
@@ -367,6 +368,8 @@ export const tr: Record<string, string> = {
   'auto.enable': 'Açılışta ve düzenli aralıkla güncelle',
   'auto.hours': '{0} sa',
   'auto.notify': 'Güncellenince bildirim göster',
+  'auto.reload': 'Güncellenince filtreyi oyunda yeniden yükle',
+  'auto.reloadHint': 'Bir sonraki yükleme ekranından sonra oyun sohbetine /reloaditemfilter yazılır, oyun komutlarıyla aynı yolla. Yalnız oyun öndeyken.',
 
   'appUpdate.title': 'Uygulama güncellemeleri',
   'appUpdate.desc': 'Kararlı GitHub sürümlerini günde bir kez denetler. İndirilen dosya kurulmadan önce SHA-256 ile doğrulanır.',

@@ -169,6 +169,12 @@ export interface Config {
     "notify_enabled": boolean;
 
     /**
+     * ReloadInGame has the game reload a newly written filter by itself
+     * (the /reloaditemfilter chat line, after the next loading screen).
+     */
+    "reload_in_game": boolean;
+
+    /**
      * Legacy fields, read once for migration and never written back.
      */
     "t5_rares"?: boolean | null;

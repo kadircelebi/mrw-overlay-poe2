@@ -492,6 +492,7 @@ func Run(opt Options) {
 		OutPath:  opt.OutPath,
 		OnChange: svc.changed,
 		OnConfig: svc.configChanged,
+		Written:  svc.filterWritten,
 		Notify: func(title, body string) {
 			toasts.Push(notifications.NotificationOptions{
 				ID: "filter-updated", Title: title, Body: body,

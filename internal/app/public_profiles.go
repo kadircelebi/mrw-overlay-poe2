@@ -238,7 +238,11 @@ func (s *AppService) checkFollowed(ctx context.Context) {
 			s.configChanged(saved)
 			_ = s.eng.UpdateNow()
 			if s.notify != nil {
-				s.notify("followed-"+id, i18n.T("notify.followedTitle"), i18n.T("notify.followedBody", name))
+				body := "notify.followedBody"
+				if saved.ReloadInGame {
+					body = "notify.followedAuto"
+				}
+				s.notify("followed-"+id, i18n.T("notify.followedTitle"), i18n.T(body, name))
 			}
 		}
 	}

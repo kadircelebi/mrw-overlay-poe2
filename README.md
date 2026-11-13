@@ -32,7 +32,7 @@ Price check, trade, live search, a crafting sim, Expedition prices, map loot tra
 ## Features
 
 ### Live-price loot filter
-Built on top of [NeverSink's filter](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2): all of NeverSink's work stays, and your price rules go on top. Uniques are priced from poe.ninja, currency and stackables from the trades completed on the in-game Currency Exchange (poe2scout and poe.ninja fill in what rarely trades there), and exceptional bases (extra sockets, 21%+ quality) from the official trade site. MrW Overlay's own servers work out these prices and scan those bases around the clock, so you get the prices ready-made. The filter updates itself every 4 hours by default.
+Built on top of [NeverSink's filter](https://github.com/NeverSinkDev/NeverSink-Filter-for-PoE2): all of NeverSink's work stays, and your price rules go on top. Uniques are priced from poe.ninja, currency and stackables from the trades completed on the in-game Currency Exchange (poe2scout and poe.ninja fill in what rarely trades there), and exceptional bases (extra sockets, 21%+ quality) from the official trade site. MrW Overlay's own servers work out these prices and scan those bases around the clock, so you get the prices ready-made. The filter updates itself every 4 hours by default, and the game loads the new one after your next loading screen.
 
 <p align="center"><img src="docs/filter-ground.jpg" alt="Filtered drops on the ground" width="800"></p>
 
@@ -144,7 +144,7 @@ Then:
 
 1. Find the app in the system tray. Click the icon for the panel, right-click for the menu.
 2. In game: **Options → Item Filter → auto_updated**.
-3. After each update press **Reload** next to the filter. The game doesn't reload filters on its own.
+3. After each update the app types `/reloaditemfilter` into the chat once your next loading screen is over, and the game loads the new filter. If you turn that off (**Settings → Updates**), press **Reload** next to the filter yourself.
 
 Windows 10/11 with WebView2 (built into Windows 11). Settings live in `%APPDATA%\PoE2Filtre`, shared by both builds.
 
@@ -160,9 +160,9 @@ For live search, hideout travel, the sales tracker and bigger searches, the app 
 
 ## FAQ
 
-**The filter doesn't change in game.** Update in the app, then Options → Item Filter → **Reload** in game. No restart needed.
+**The filter doesn't change in game.** The app reloads it after the next loading screen, while the game is in front. To load it right away, type `/reloaditemfilter` in chat or use Options → Item Filter → **Reload**. No restart needed.
 
-**Can this get me banned?** The app reads no game memory, never presses keys and never clicks. It writes a text file, copies an item with the game's own copy command when you press the hotkey, reads the screen where you turned that on, and talks to the public trade API within its limits.
+**Can this get me banned?** The app reads no game memory and never clicks. It writes a text file, copies an item with the game's own copy command when you press the hotkey, types chat lines the way you would (your game commands, and `/reloaditemfilter` after a filter update), reads the screen where you turned that on, and talks to the public trade API within its limits.
 
 **Too much / too little is hidden.** Change the value threshold first, then NeverSink's strictness. The strictness sets the base and the threshold sets your rules.
 

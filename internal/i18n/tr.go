@@ -34,6 +34,7 @@ var tr = map[string]string{
 
 	"notify.title":           "Filtre güncellendi",
 	"notify.body":            "%s.filter hazır. Oyunda Item Filter → Reload yap.",
+	"notify.bodyReload":      "%s.filter hazır. Bir sonraki yükleme ekranından sonra oyunda kendiliğinden yüklenecek.",
 	"notify.leagueTitle":     "Yeni lig: %s",
 	"notify.leagueGoneTitle": "Lig artık listede yok",
 	"notify.leagueGoneBody":  "%s trade sitesinin lig listesinde yok. Ayarlar → Genel'den güncel ligi ya da Otomatik'i seç.",
@@ -168,6 +169,7 @@ var tr = map[string]string{
 	"err.profileServer":    "profil sunucusu: %s",
 	"notify.followedTitle": "Takip edilen profil güncellendi",
 	"notify.followedBody":  "%s yazarı tarafından güncellendi. Oyunda Item Filter → Reload yap.",
+	"notify.followedAuto":  "%s yazarı tarafından güncellendi. Bir sonraki yükleme ekranından sonra oyunda kendiliğinden yüklenecek.",
 	"filter.sec.hidden":    "gizli",
 
 	"overlay.err.tooBroad":            "Arama GGG için fazla geniş; base type, rarity veya birkaç affix filtresi ekleyin",

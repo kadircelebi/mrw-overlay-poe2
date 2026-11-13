@@ -37,6 +37,7 @@ var zh = map[string]string{
 
 	"notify.title":           "過濾器已更新",
 	"notify.body":            "%s.filter 已就緒。請在遊戲中執行 Item Filter → Reload。",
+	"notify.bodyReload":      "%s.filter 已就緒。下一次讀取畫面結束後，遊戲會自動重新載入。",
 	"notify.leagueTitle":     "已切換至新聯盟：%s",
 	"notify.leagueGoneTitle": "聯盟已不在列表中",
 	"notify.leagueGoneBody":  "%s 已不在交易網站的聯盟列表中。請在 設定 → 一般 選擇目前的聯盟，或選擇「自動」。",
@@ -171,6 +172,7 @@ var zh = map[string]string{
 	"err.profileServer":    "設定檔伺服器：%s",
 	"notify.followedTitle": "追蹤的設定檔已更新",
 	"notify.followedBody":  "%s 已由作者更新。請在遊戲中執行 Item Filter → Reload。",
+	"notify.followedAuto":  "%s 已由作者更新。下一次讀取畫面結束後，遊戲會自動重新載入。",
 	"filter.sec.hidden":    "隱藏",
 
 	"overlay.err.tooBroad":            "搜尋範圍對 GGG 來說太廣；請加入基底類型、稀有度或幾個詞綴篩選",
