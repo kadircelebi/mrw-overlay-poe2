@@ -27,6 +27,12 @@ const expeditionShowFor = 30 * time.Second
 // expeditionNoticeFor is how long "no panel found" stays up.
 const expeditionNoticeFor = 2 * time.Second
 
+// expeditionClearFor is how long the emptied label window stays up before it
+// is hidden. A hidden window keeps the last frame it drew and shows it again
+// for an instant when it comes back, so the labels are cleared first and the
+// window hidden once that has been drawn.
+const expeditionClearFor = 80 * time.Millisecond
+
 // ExpeditionPrice is one reward of the Runeshape panel as the labels show
 // it. Y and H are the reward text's line in the game's client area, in
 // physical pixels. ValueEx is the reward's worth (the unit's when the count
@@ -66,8 +72,11 @@ type ExpeditionView struct {
 }
 
 type expeditionState struct {
-	mu    sync.Mutex
-	view  ExpeditionView
+	mu   sync.Mutex
+	view ExpeditionView
+	// up is set while the labels of view are meant to be on screen. Hiding
+	// clears it at once; the window itself goes a moment later.
+	up    bool
 	timer *time.Timer
 	// gems are poe2scout's uncut gem prices by name (the shared price list
 	// has none), fetched at gemsAt and reused a while.
@@ -84,12 +93,24 @@ type expeditionState struct {
 // uncutGemsFor is how long poe2scout's uncut gem prices are reused.
 const uncutGemsFor = 30 * time.Minute
 
-// GetExpeditionView returns the labels last read, for a window that opens
-// after the read.
+// GetExpeditionView returns the labels on screen, for a window that opens
+// after the read; once they are hidden it returns no rows.
 func (s *AppService) GetExpeditionView() ExpeditionView {
 	s.expedition.mu.Lock()
 	defer s.expedition.mu.Unlock()
+	if !s.expedition.up {
+		return ExpeditionView{Seq: s.expedition.view.Seq}
+	}
 	return s.expedition.view
+}
+
+// expeditionShowing reports whether the labels are up: not cleared, and their
+// window on screen.
+func (s *AppService) expeditionShowing() bool {
+	s.expedition.mu.Lock()
+	up := s.expedition.up
+	s.expedition.mu.Unlock()
+	return up && s.expeditionWindow != nil && s.expeditionWindow.IsVisible()
 }
 
 // captureExpedition reads the Runeshape panel once and lays the prices over
@@ -101,7 +122,7 @@ func (s *AppService) captureExpedition() {
 	if !enabled || s.expeditionWindow == nil {
 		return
 	}
-	if s.expeditionWindow.IsVisible() {
+	if s.expeditionShowing() {
 		s.hideExpedition()
 		return
 	}
@@ -113,6 +134,7 @@ func (s *AppService) captureExpedition() {
 	s.expedition.mu.Lock()
 	view.Seq = s.expedition.view.Seq + 1
 	s.expedition.view = view
+	s.expedition.up = true
 	s.expedition.client, s.expedition.area = client, area
 	if s.expedition.timer != nil {
 		s.expedition.timer.Stop()
@@ -149,7 +171,7 @@ func (s *AppService) hideExpeditionOnClick(seq int) {
 		s.expedition.mu.Lock()
 		current := s.expedition.view.Seq == seq
 		s.expedition.mu.Unlock()
-		visible := s.expeditionWindow.IsVisible()
+		visible := s.expeditionShowing()
 		shown = shown || visible
 		// Showing the window may take a moment; once shown, hidden is done.
 		if !current || !visible && (shown || time.Since(start) > time.Second) {
@@ -169,10 +191,29 @@ func (s *AppService) hideExpeditionOnClick(seq int) {
 	}
 }
 
+// hideExpedition takes the labels off the screen: the page drops them at
+// once, and the window is hidden after expeditionClearFor unless a newer read
+// has come up by then.
 func (s *AppService) hideExpedition() {
-	if s.expeditionWindow != nil && s.expeditionWindow.IsVisible() {
-		s.expeditionWindow.Hide()
+	s.expedition.mu.Lock()
+	if !s.expedition.up {
+		s.expedition.mu.Unlock()
+		return
 	}
+	s.expedition.up = false
+	seq := s.expedition.view.Seq
+	s.expedition.mu.Unlock()
+	if s.app != nil {
+		s.app.Event.Emit("expedition-clear", seq)
+	}
+	time.AfterFunc(expeditionClearFor, func() {
+		s.expedition.mu.Lock()
+		superseded := s.expedition.up
+		s.expedition.mu.Unlock()
+		if !superseded && s.expeditionWindow != nil && s.expeditionWindow.IsVisible() {
+			s.expeditionWindow.Hide()
+		}
+	})
 }
 
 // readExpedition reads the panel and prices its rewards; client is the
@@ -311,8 +352,11 @@ func (s *AppService) priceExpeditionGems(seq int, gems map[int]string) {
 	}
 	view := s.expedition.view
 	view.Rows = slices.Clone(view.Rows)
+	up := s.expedition.up
 	s.expedition.mu.Unlock()
-	s.app.Event.Emit("expedition-view", view)
+	if up {
+		s.app.Event.Emit("expedition-view", view)
+	}
 }
 
 // expeditionStyler colours a priced label as the loot filter would show an

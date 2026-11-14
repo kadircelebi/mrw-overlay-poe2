@@ -387,8 +387,8 @@ export function GetExpeditionHistory(): $CancellablePromise<$models.ExpeditionHi
 }
 
 /**
- * GetExpeditionView returns the labels last read, for a window that opens
- * after the read.
+ * GetExpeditionView returns the labels on screen, for a window that opens
+ * after the read; once they are hidden it returns no rows.
  */
 export function GetExpeditionView(): $CancellablePromise<$models.ExpeditionView> {
     return $Call.ByID(325550741);

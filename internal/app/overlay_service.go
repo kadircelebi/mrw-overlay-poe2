@@ -699,6 +699,10 @@ func (s *AppService) watchGameFocus() {
 			if w == s.earningsWindow && s.earningsPlacing.Load() {
 				continue // being dragged into place from the tracker
 			}
+			if w == s.expeditionWindow {
+				s.hideExpedition() // drops the labels before the window goes
+				continue
+			}
 			if w != nil && w.IsVisible() {
 				w.Hide()
 			}

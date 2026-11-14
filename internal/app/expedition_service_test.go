@@ -7,6 +7,24 @@ import (
 	"poe2filter/internal/prices"
 )
 
+// Hidden labels must not be handed to a page that loads later: it would draw
+// them into a hidden window, which shows its last frame when it comes back.
+func TestExpeditionViewIsEmptyOnceHidden(t *testing.T) {
+	s := &AppService{}
+	s.expedition.view = ExpeditionView{Seq: 4, Rows: []ExpeditionPrice{{Name: "Chaos Orb", ValueEx: 61}}}
+	s.expedition.up = true
+	if got := s.GetExpeditionView(); got.Seq != 4 || len(got.Rows) != 1 {
+		t.Fatalf("while up: got seq %d with %d rows, want seq 4 with 1 row", got.Seq, len(got.Rows))
+	}
+	s.hideExpedition()
+	if got := s.GetExpeditionView(); got.Seq != 4 || len(got.Rows) != 0 {
+		t.Fatalf("once hidden: got seq %d with %d rows, want seq 4 with none", got.Seq, len(got.Rows))
+	}
+	if s.expeditionShowing() {
+		t.Fatal("labels still count as showing after hiding")
+	}
+}
+
 func TestValueStyleTakesTheHighestTierReached(t *testing.T) {
 	cfg := filter.Config{
 		ItemGroups: []filter.ItemGroup{

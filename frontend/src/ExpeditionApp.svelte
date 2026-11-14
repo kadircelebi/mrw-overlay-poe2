@@ -12,11 +12,20 @@
 
   let view = $state<ExpeditionView | null>(null)
   let dpr = $state(window.devicePixelRatio || 1)
+  // Reads up to this one were hidden. Their labels are dropped before the
+  // window goes, and must not come back: a hidden window keeps its last frame
+  // and would flash them under the next read.
+  let cleared = -1
 
   function accept(next: ExpeditionView) {
-    if (view && next.seq < view.seq) return
+    if (next.seq <= cleared || (view && next.seq < view.seq)) return
     view = next
     dpr = window.devicePixelRatio || 1
+  }
+
+  function clear(seq: number) {
+    cleared = Math.max(cleared, seq)
+    if (view && view.seq <= cleared) view = null
   }
 
   onMount(() => {
@@ -30,9 +39,11 @@
     }
     AppService.GetExpeditionView().then(accept).catch(() => {})
     const off = Events.On('expedition-view', (event) => accept(event.data as ExpeditionView))
+    const offClear = Events.On('expedition-clear', (event) => clear(Number(event.data)))
     const offLang = followAppLanguage()
     return () => {
       off()
+      offClear()
       offLang()
     }
   })
