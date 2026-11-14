@@ -20,6 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/release-notes
+
       - name: Post to Discord
         env:
           WEBHOOK: ${{ secrets.DISCORD_STORE_WEBHOOK }}
@@ -31,13 +35,23 @@ jobs:
           if [ -z "$WEBHOOK" ]; then echo "DISCORD_STORE_WEBHOOK is not set" >&2; exit 1; fi
           text="The Store version updates by itself; open the Store to get it now.
           Store sürümü kendiliğinden güncellenir; hemen almak için Store'u aç."
-          jq -n --arg v "$VERSION" --arg repo "$REPO" --arg text "$text" '{
+          # What changed, from the version's release notes: the sections above
+          # "Updating", their headings in bold and their list items. Without a
+          # notes file the announcement goes out as before.
+          NOTES=".github/release-notes/v$VERSION.md"
+          touch "$NOTES"
+          awk '/^## Updating/{exit} /^## /{print "**" substr($0,4) "**"; next} /^- /||/^$/{print}' "$NOTES" \
+            | cat -s | sed -e '1{/^$/d}' -e '${/^$/d}' | head -c 3000 | iconv -c -f utf-8 -t utf-8 > store-notes.md
+          jq -n --arg v "$VERSION" --arg repo "$REPO" --arg text "$text" --rawfile notes store-notes.md '
+          ($notes | rtrimstr("\n")) as $changes | {
             username: "MrW Overlay",
             embeds: [{
               title: ("MrW Overlay v" + $v + " is on the Microsoft Store"),
               url: "https://apps.microsoft.com/detail/9PM376D3LFBG",
               color: 13150830,
-              description: ($text + "\n\n[Release notes](https://github.com/" + $repo + "/releases/tag/v" + $v + ")"),
+              description: ($text
+                + (if ($changes | length) > 0 then "\n\n" + $changes else "" end)
+                + "\n\n[Release notes](https://github.com/" + $repo + "/releases/tag/v" + $v + ")"),
               thumbnail: { url: ("https://raw.githubusercontent.com/" + $repo + "/main/docs/logo.png") }
             }]
           }' > payload.json
