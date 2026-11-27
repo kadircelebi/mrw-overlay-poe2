@@ -199,6 +199,9 @@ a { color: var(--gold); white-space: nowrap; }
 .workbench.sim-running .item-settings, .workbench.sim-running .item-tools, .workbench.sim-running .currency-section,
 .workbench.sim-running .mod-section, .workbench.sim-running .next-step, .workbench.sim-running #base { pointer-events: none; opacity: .55; }
 @media(min-width: 960px) { .workbench { grid-template-columns: 330px minmax(0,1fr); } .item-column { position: sticky; top: var(--space-md); } }
+/* One column: the item, then the currency and affixes, and the cost, steps
+   and saved crafts last, rather than all of the item column first. */
+@media(max-width: 959.98px) { .item-column, .craft-column { display: contents; } .item-column > .history { order: 2; } }
 @media(min-width: 1200px) { .affix-columns { grid-template-columns: repeat(2,minmax(0,1fr)); } .affix-columns > section:nth-child(2) { border-left: 1px solid var(--steel); } }
 @media(max-width: 420px) { .masthead, .workbench { padding: var(--space-md); } .apply-row { align-items: start; flex-direction: column; } .section-head { flex-direction: column; } .currency { min-width: 76px; } }
 @media(pointer: coarse) { button, select, input { min-height: 44px; } }
