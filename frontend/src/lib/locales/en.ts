@@ -878,6 +878,7 @@ export const en: Record<string, string> = {
   'invscan.mode.manual': 'Manual',
   'invscan.mode.auto': 'Automatic',
   'invscan.autoHint': 'Automatic: in your hideout or town, whenever the inventory is open, it is read about once a second (only there, never in a map), so each map\'s loot is worked out without pressing anything; the box over the game shows where the scan stands and what the last map brought. The shortcut still reads it at any time.',
+  'invscan.autoWarn': 'Automatic mode reads the screen without a key press. Grinding Gear Games\' rules for third-party tools allow one screen read per manual key press, so this mode goes beyond them and is used at your own risk. Manual is recommended.',
   'invscan.modeHint': 'Reads your inventory off the screen and adds up the currency in it at the loot filter\'s prices. Manual: only when you press the shortcut. Pictures are used at once and not kept, except small ones of cells not read for sure (for finding reading mistakes, on this PC only).',
   'invscan.hotkey': 'Inventory scan shortcut',
   'invscan.hotkeyHint': 'Default Alt+I. With the inventory open, moves the mouse pointer off the items for a moment (so no tooltip hides them), reads the inventory and puts the pointer back. A click, Escape or another press hides the result.',

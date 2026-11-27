@@ -848,6 +848,7 @@ export const tr: Record<string, string> = {
   'invscan.mode.manual': 'Manuel',
   'invscan.mode.auto': 'Otomatik',
   'invscan.autoHint': 'Otomatik: hideout ya da kasabada envanter her açık olduğunda saniyede bir kadar okunur (yalnız orada, map\'te asla), böylece her map\'in kazancı hiçbir şeye basmadan hesaplanır; oyun üstündeki kutu taramanın durumunu ve son map\'in ne getirdiğini gösterir. Kısayol yine istediğin an okur.',
+  'invscan.autoWarn': 'Otomatik mod ekranı tuşa basılmadan okur. Grinding Gear Games\'in üçüncü taraf araç kuralları her elle tuş basışında yalnız bir ekran okumasına izin veriyor; bu mod bunun dışında kalıyor, kullanmak senin sorumluluğunda. Manuel önerilir.',
   'invscan.modeHint': 'Envanterini ekrandan okur ve içindeki currency\'yi loot filtresinin fiyatlarıyla toplar. Manuel: yalnız kısayola bastığında. Görüntü hemen kullanılır ve saklanmaz; yalnız kesin okunamayan hücrelerin küçük görüntüleri okuma hatalarını bulmak için bu bilgisayarda tutulur.',
   'invscan.hotkey': 'Envanter taraması kısayolu',
   'invscan.hotkeyHint': 'Varsayılan Alt+I. Envanter açıkken fare imlecini bir anlığına eşyaların üstünden çeker (tooltip onları kapatmasın diye), envanteri okur ve imleci geri koyar. Bir tıklama, Escape ya da yeniden basmak sonucu kapatır.',

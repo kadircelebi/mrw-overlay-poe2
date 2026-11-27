@@ -1715,7 +1715,7 @@
                           />
                         </div>
                         <p class="desc hint">{t('invscan.modeHint')}</p>
-                        {#if overlaySettings.inventory_scan === 'auto'}<p class="desc hint">{t('invscan.autoHint')}</p>{/if}
+                        {#if overlaySettings.inventory_scan === 'auto'}<p class="desc hint">{t('invscan.autoHint')}</p><p class="desc warn">{t('invscan.autoWarn')}</p>{/if}
                         {#if overlaySettings.inventory_scan && overlaySettings.inventory_scan !== 'off'}
                           <label class="field stack"><span>{t('invscan.hotkey')}</span><HotkeyInput label={t('invscan.hotkey')} bind:value={overlaySettings.inventory_scan_hotkey} onchange={queueOverlaySave} /></label>
                           <p class="desc hint">{t('invscan.hotkeyHint')}</p>
