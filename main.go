@@ -8,7 +8,7 @@ import (
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
-var version = "2.22.3"
+var version = "2.22.4"
 
 //go:embed all:frontend/dist
 var frontend embed.FS
