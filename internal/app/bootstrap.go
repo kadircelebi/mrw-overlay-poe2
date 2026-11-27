@@ -325,8 +325,11 @@ func Run(opt Options) {
 	const gripExStyle = 0x08000000 | 0x80 | 0x8 // NOACTIVATE, TOOLWINDOW, TOPMOST
 	grips := map[string]application.Window{}
 	for _, box := range boxNames {
+		// Made off the screen: a grip not shown yet still drew its blank
+		// page in the middle of the screen, over every window.
 		grip := app.Window.NewWithOptions(application.WebviewWindowOptions{
 			Name: "grip-" + box, Title: "MrW Overlay · Grip", Width: gripWidth, Height: gripHeight,
+			InitialPosition: application.WindowXY, X: -20000, Y: -20000,
 			Frameless: true, AlwaysOnTop: true, Hidden: true, DisableResize: true,
 			BackgroundType:   application.BackgroundTypeTransparent,
 			BackgroundColour: application.NewRGBA(0, 0, 0, 0),

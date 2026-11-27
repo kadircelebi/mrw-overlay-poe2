@@ -109,8 +109,7 @@ func (s *AppService) syncCampaignBox() {
 	if !ok {
 		return
 	}
-	showBox(w)
-	overlay.ShowOver(uintptr(w.NativeWindow()), s.campaignBoxRect(client))
+	showOver(w, s.campaignBoxRect(client))
 	giveFocusBack(w)
 }
 
@@ -138,8 +137,7 @@ func (s *AppService) PlaceCampaignBox() string {
 	}
 	s.campaignPlacing.Store(true)
 	w.SetIgnoreMouseEvents(false)
-	w.Show()
-	overlay.ShowOver(uintptr(w.NativeWindow()), s.campaignBoxRect(client))
+	showOver(w, s.campaignBoxRect(client))
 	s.campaignChanged()
 	return PlaceOK
 }

@@ -397,8 +397,7 @@ func (s *AppService) showInvScan(view InvScanView, client image.Rectangle) {
 	s.invScan.timer = time.AfterFunc(showFor, func() { s.hideInvScan(seq) })
 	s.invScan.mu.Unlock()
 	s.app.Event.Emit("invscan-view", view)
-	s.invScanWindow.Show()
-	overlay.ShowOver(uintptr(s.invScanWindow.NativeWindow()), client)
+	showOver(s.invScanWindow, client)
 	giveFocusBack(s.invScanWindow)
 	go s.hideInvScanOnClick(seq)
 }

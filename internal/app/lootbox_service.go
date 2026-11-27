@@ -174,8 +174,7 @@ func (s *AppService) syncLootBox() {
 	if !ok {
 		return
 	}
-	showBox(w)
-	overlay.ShowOver(uintptr(w.NativeWindow()), s.lootBoxRect(client))
+	showOver(w, s.lootBoxRect(client))
 	giveFocusBack(w)
 }
 
@@ -203,8 +202,7 @@ func (s *AppService) PlaceLootBox() string {
 	}
 	s.lootPlacing.Store(true)
 	w.SetIgnoreMouseEvents(false)
-	w.Show()
-	overlay.ShowOver(uintptr(w.NativeWindow()), s.lootBoxRect(client))
+	showOver(w, s.lootBoxRect(client))
 	s.lootChanged()
 	return PlaceOK
 }
@@ -246,12 +244,13 @@ func (s *AppService) boxWindows() []application.Window {
 	return out
 }
 
-// boxesOutOfRead keeps the boxes and their grips out of a read of screen
-// area r (the whole screen when r is empty), which would take them for part
-// of the game, and returns what puts them back once the read is made. They
-// stay on the screen: Windows leaves them out of the read. Where it cannot
-// (before Windows 10 2004) those over r are hidden for the read and shown
-// again afterwards, as their settings say.
+// boxesOutOfRead keeps the boxes and their grips shown over the game out of
+// a read of screen area r (the whole screen when r is empty), which would
+// take them for part of the game, and returns what puts them back once the
+// read is made. They stay on the screen: Windows leaves them out of the
+// read. Where it cannot (before Windows 10 2004) those over r are hidden
+// for the read and shown again afterwards, as their settings say. Windows
+// not showing are left alone.
 func (s *AppService) boxesOutOfRead(r image.Rectangle) (back func()) {
 	var out []uintptr
 	hidden := false
@@ -260,17 +259,23 @@ func (s *AppService) boxesOutOfRead(r image.Rectangle) (back func()) {
 		return r.Empty() || ok && at.Overlaps(r)
 	}
 	for _, w := range s.boxWindows() {
+		if !w.IsVisible() {
+			continue
+		}
 		hwnd := uintptr(w.NativeWindow())
 		if overlay.ExcludeFromCapture(hwnd, true) {
 			out = append(out, hwnd)
-		} else if w.IsVisible() && over(hwnd) {
+		} else if over(hwnd) {
 			w.Hide()
 			hidden = true
 		}
 	}
 	for _, box := range boxNames {
 		g := s.grips[box]
-		if g == nil {
+		s.boxDrag.mu.Lock()
+		on := s.boxDrag.gripOn[box]
+		s.boxDrag.mu.Unlock()
+		if g == nil || !on {
 			continue
 		}
 		hwnd := uintptr(g.NativeWindow())

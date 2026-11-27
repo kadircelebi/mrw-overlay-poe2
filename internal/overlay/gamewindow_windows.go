@@ -428,6 +428,16 @@ func Popup(hwnd uintptr) {
 	procSetWindowPos.Call(hwnd, 0, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoZOrder|swpNoActivate|swpFrameChange)
 }
 
+// MoveTo puts hwnd at the screen rectangle r (physical pixels) without
+// showing it or changing its order: a hidden window moved so before it is
+// shown never shows where it stood.
+func MoveTo(hwnd uintptr, r image.Rectangle) {
+	if hwnd == 0 || r.Empty() {
+		return
+	}
+	procSetWindowPos.Call(hwnd, 0, uintptr(r.Min.X), uintptr(r.Min.Y), uintptr(r.Dx()), uintptr(r.Dy()), swpNoActivate|swpNoZOrder)
+}
+
 // ShowOver lays hwnd over the screen rectangle r (physical pixels), above
 // other windows, and shows it without taking keyboard focus from the game.
 func ShowOver(hwnd uintptr, r image.Rectangle) {

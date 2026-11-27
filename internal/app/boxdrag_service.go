@@ -209,13 +209,16 @@ func (s *AppService) placeGrip(box string, client, r image.Rectangle) {
 	first := !st.gripReady[box]
 	st.gripReady[box], st.gripOn[box] = true, true
 	st.mu.Unlock()
+	at := gripRect(client, r, dpi)
 	if first {
+		// In place before Wails shows it, not in the middle of the screen.
 		overlay.Popup(hwnd)
+		overlay.MoveTo(hwnd, at)
 		g.Show()
 	}
 	// Again after Wails' first showing, which may set the frame back.
 	overlay.Popup(hwnd)
-	overlay.ShowOver(hwnd, gripRect(client, r, dpi))
+	overlay.ShowOver(hwnd, at)
 	if overlay.ForegroundWindow() == hwnd {
 		overlay.FocusGame()
 	}

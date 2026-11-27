@@ -193,17 +193,22 @@ func (s *AppService) syncExpeditionStrip() {
 	if !ok {
 		return
 	}
-	showBox(w)
-	overlay.ShowOver(uintptr(w.NativeWindow()), s.expeditionStripRect(client))
+	showOver(w, s.expeditionStripRect(client))
 	giveFocusBack(w)
 }
 
-// showBox shows a box over the game only when it is hidden: Wails shows a
-// window activating it, which a visible one need not risk again.
-func showBox(box application.Window) {
-	if !box.IsVisible() {
-		box.Show()
+// showOver lays window w over the screen rectangle r (physical pixels). A
+// hidden one is first moved there and then shown by Wails: shown as it
+// stands it would show for a moment where it was made, the middle of the
+// screen, a blank square before its page draws. A visible one is not shown
+// again, as Wails shows a window activating it.
+func showOver(w application.Window, r image.Rectangle) {
+	hwnd := uintptr(w.NativeWindow())
+	if !w.IsVisible() {
+		overlay.MoveTo(hwnd, r)
+		w.Show()
 	}
+	overlay.ShowOver(hwnd, r)
 }
 
 // giveFocusBack returns the focus to the game should Windows have given it
@@ -244,8 +249,7 @@ func (s *AppService) PlaceExpeditionStrip() string {
 	}
 	s.expeditionPlacing.Store(true)
 	w.SetIgnoreMouseEvents(false)
-	w.Show()
-	overlay.ShowOver(uintptr(w.NativeWindow()), s.expeditionStripRect(client))
+	showOver(w, s.expeditionStripRect(client))
 	s.expeditionChanged()
 	return PlaceOK
 }

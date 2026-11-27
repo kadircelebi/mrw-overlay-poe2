@@ -153,8 +153,7 @@ func (s *AppService) captureExpedition() {
 	if client.Empty() {
 		return
 	}
-	s.expeditionWindow.Show()
-	overlay.ShowOver(uintptr(s.expeditionWindow.NativeWindow()), client)
+	showOver(s.expeditionWindow, client)
 	giveFocusBack(s.expeditionWindow)
 	go s.hideExpeditionOnClick(view.Seq)
 }

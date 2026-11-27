@@ -347,8 +347,7 @@ func (s *AppService) PlaceEarnings() string {
 	}
 	s.earningsPlacing.Store(true)
 	w.SetIgnoreMouseEvents(false)
-	w.Show()
-	overlay.ShowOver(uintptr(w.NativeWindow()), s.earningsRectNow(client))
+	showOver(w, s.earningsRectNow(client))
 	s.syncGrip("earnings")
 	s.emitTradeHistory(s.GetTradeHistory())
 	return PlaceOK
@@ -411,8 +410,7 @@ func (s *AppService) syncEarningsOverlay() {
 	if !ok {
 		return
 	}
-	showBox(w)
-	overlay.ShowOver(uintptr(w.NativeWindow()), s.earningsRectNow(client))
+	showOver(w, s.earningsRectNow(client))
 	giveFocusBack(w)
 }
 
