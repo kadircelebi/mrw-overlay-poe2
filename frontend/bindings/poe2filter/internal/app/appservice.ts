@@ -214,11 +214,13 @@ export function DownloadAppUpdate(): $CancellablePromise<appupdate$0.State> {
 }
 
 /**
- * EndBoxMove makes the last move of a grip's drag and keeps the box's new
- * place, as a share of the game's client area.
+ * DragBox moves box with the pointer, kept inside the game's client area,
+ * until the mouse button is let go: while it is being placed, or by its
+ * grip while it shows. Let go of by its grip, the box keeps its new place.
+ * A drag asked for while another one runs does nothing.
  */
-export function EndBoxMove(box: string, drag: number, seq: number, dx: number, dy: number): $CancellablePromise<void> {
-    return $Call.ByID(1589298350, box, drag, seq, dx, dy);
+export function DragBox(box: string): $CancellablePromise<void> {
+    return $Call.ByID(2896778180, box);
 }
 
 /**
@@ -564,15 +566,6 @@ export function LiveSearches(): $CancellablePromise<trade$0.LiveState[] | null> 
  */
 export function MergeLootSession(id: number): $CancellablePromise<$models.LootLogView> {
     return $Call.ByID(2176183971, id);
-}
-
-/**
- * MoveBox moves box by dx, dy physical pixels from where it was when drag
- * began (move seq of that drag), kept inside the game's client area: while
- * it is being placed, or by its grip while it shows.
- */
-export function MoveBox(box: string, drag: number, seq: number, dx: number, dy: number): $CancellablePromise<void> {
-    return $Call.ByID(2136333629, box, drag, seq, dx, dy);
 }
 
 /**

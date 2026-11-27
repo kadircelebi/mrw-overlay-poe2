@@ -18,7 +18,7 @@
   })
 </script>
 
-<div class="grip" use:boxDrag={{ box, keep: true }}>::</div>
+<div class="grip" use:boxDrag={{ box }}>::</div>
 
 <style>
   /* Solid: a window that takes the mouse shows no see-through ground. */

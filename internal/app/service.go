@@ -176,7 +176,7 @@ type AppService struct {
 	campaignBoxWindow application.Window
 	campaignArea      atomic.Value
 	campaignPlacing   atomic.Bool
-	// boxDrag follows a box being dragged (MoveBox); grips are the boxes'
+	// boxDrag follows a box being dragged (DragBox); grips are the boxes'
 	// handles, by box name.
 	boxDrag boxDragState
 	grips   map[string]application.Window

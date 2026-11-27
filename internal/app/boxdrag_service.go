@@ -17,12 +17,14 @@ import (
 // keeps the box there. While a box is being placed from the tracker window
 // the box itself takes the mouse and is dragged the same way.
 //
-// Dragging is done by the pages, not Windows' move loop: the boxes never
-// take the focus, so the game stays in front, and a move asked for after
-// the button is already up would leave Windows moving the box with every
-// click going to it. The page sends each drag's moves numbered from 1; the
-// first to arrive takes the box's place as the drag's start, and a move
-// older than one already made is dropped.
+// Dragging is done by the app, neither by Windows' move loop nor by the
+// pages: the boxes never take the focus, so the game stays in front, and a
+// window not in front gets the mouse only while the pointer is over it,
+// even one that captured it. A grip is small: the pointer left it as soon
+// as it moved faster than the grip followed, and the button was let go over
+// the game, so the page never saw the drag end. The page only says that a
+// drag begins (DragBox); the app then follows the pointer and the buttons
+// itself until the button is let go.
 
 var boxNames = []string{"loot", "expedition", "earnings", "campaign"}
 
@@ -33,21 +35,12 @@ const (
 	gripGap    = 2
 )
 
+// boxDragPace is how often a drag looks at the pointer.
+const boxDragPace = 10 * time.Millisecond
+
 type boxDragState struct {
-	// moving keeps one move's windows from being laid between another's
-	// (mu, taken inside it, guards the state below and the grips').
-	moving sync.Mutex
-	mu     sync.Mutex
-	box    string // the box a grip is moving ("" when none)
-	drag   int
-	seq    int
-	start  image.Rectangle
-	// ended is the last drag let go of: its moves still on their way (they
-	// arrive one by one, in any order) move nothing. movedAt is when box
-	// last moved: a drag whose end never came stops counting after
-	// boxDragIdle.
-	ended   int
-	movedAt time.Time
+	mu  sync.Mutex // guards the state below
+	box string     // the box being dragged ("" when none)
 	// grips that Wails has shown once (later shown and put away without
 	// it), and those showing now.
 	gripReady map[string]bool
@@ -77,38 +70,87 @@ func (s *AppService) boxWindow(box string) (application.Window, bool) {
 	return nil, false
 }
 
-// boxDragIdle is how long a grip's drag counts without a move.
-const boxDragIdle = 2 * time.Second
-
-// boxMoving tells whether box's grip is being dragged: its place then is
-// the drag's, not the settings'.
+// boxMoving tells whether box is being dragged: its place then is the
+// drag's, not the settings'.
 func (s *AppService) boxMoving(box string) bool {
 	s.boxDrag.mu.Lock()
 	defer s.boxDrag.mu.Unlock()
-	return s.boxDrag.box == box && time.Since(s.boxDrag.movedAt) < boxDragIdle
+	return s.boxDrag.box == box
 }
 
-// MoveBox moves box by dx, dy physical pixels from where it was when drag
-// began (move seq of that drag), kept inside the game's client area: while
-// it is being placed, or by its grip while it shows.
-func (s *AppService) MoveBox(box string, drag, seq, dx, dy int) {
-	s.moveBox(box, drag, seq, dx, dy)
-}
-
-// EndBoxMove makes the last move of a grip's drag and keeps the box's new
-// place, as a share of the game's client area.
-func (s *AppService) EndBoxMove(box string, drag, seq, dx, dy int) {
-	w, placing := s.moveBox(box, drag, seq, dx, dy)
-	s.boxDrag.mu.Lock()
-	s.boxDrag.ended = drag
-	if s.boxDrag.box == box {
-		s.boxDrag.box = ""
-	}
-	s.boxDrag.mu.Unlock()
-	if w == nil || placing {
+// DragBox moves box with the pointer, kept inside the game's client area,
+// until the mouse button is let go: while it is being placed, or by its
+// grip while it shows. Let go of by its grip, the box keeps its new place.
+// A drag asked for while another one runs does nothing.
+func (s *AppService) DragBox(box string) {
+	w, placing := s.boxWindow(box)
+	if w == nil || !placing && !w.IsVisible() {
 		return
 	}
-	r, okWin := overlay.WindowRect(uintptr(w.NativeWindow()))
+	hwnd := uintptr(w.NativeWindow())
+	start, okWin := overlay.WindowRect(hwnd)
+	x, y, okCur := overlay.CursorPosition()
+	if !okWin || !okCur {
+		return
+	}
+	st := &s.boxDrag
+	st.mu.Lock()
+	if st.box != "" {
+		st.mu.Unlock()
+		return
+	}
+	st.box = box
+	st.mu.Unlock()
+	go s.followPointer(box, w, placing, start, image.Pt(x, y))
+}
+
+// followPointer moves box (window w, at start when the pointer was at from)
+// by as far as the pointer goes until no mouse button is down, then ends
+// the drag.
+func (s *AppService) followPointer(box string, w application.Window, placing bool, start image.Rectangle, from image.Point) {
+	hwnd := uintptr(w.NativeWindow())
+	last := from
+	for {
+		down := overlay.MouseButtonDown()
+		if x, y, ok := overlay.CursorPosition(); ok && (x != last.X || y != last.Y) {
+			last = image.Pt(x, y)
+			s.placeBox(box, w, placing, start.Add(last.Sub(from)))
+		}
+		if !down {
+			break
+		}
+		time.Sleep(boxDragPace)
+	}
+	s.boxDrag.mu.Lock()
+	s.boxDrag.box = ""
+	s.boxDrag.mu.Unlock()
+	if !placing {
+		s.keepBoxPlace(box, hwnd)
+	}
+}
+
+// placeBox lays box at r, kept inside the game's client area, and its grip
+// by it. A box hidden meanwhile (to read the screen under it) stays hidden
+// until the drag ends.
+func (s *AppService) placeBox(box string, w application.Window, placing bool, r image.Rectangle) {
+	if !placing && !w.IsVisible() {
+		return
+	}
+	client, ok := overlay.GameClient()
+	if ok {
+		r = r.Add(image.Pt(max(0, client.Min.X-r.Min.X), max(0, client.Min.Y-r.Min.Y)))
+		r = r.Sub(image.Pt(max(0, r.Max.X-client.Max.X), max(0, r.Max.Y-client.Max.Y)))
+	}
+	overlay.ShowOver(uintptr(w.NativeWindow()), r)
+	if !placing && ok {
+		s.placeGrip(box, client, r)
+	}
+}
+
+// keepBoxPlace keeps box's place (window hwnd) as a share of the game's
+// client area, and puts the boxes back as the settings now say.
+func (s *AppService) keepBoxPlace(box string, hwnd uintptr) {
+	r, okWin := overlay.WindowRect(hwnd)
 	client, okGame := overlay.GameClient()
 	if !okWin || !okGame || client.Dx() <= 0 || client.Dy() <= 0 {
 		return
@@ -130,57 +172,6 @@ func (s *AppService) EndBoxMove(box string, drag, seq, dx, dy int) {
 		log.Printf("%s box: save place: %v", box, err)
 	}
 	s.syncBoxes()
-}
-
-func (s *AppService) moveBox(box string, drag, seq, dx, dy int) (application.Window, bool) {
-	w, placing := s.boxWindow(box)
-	if w == nil || !placing && !w.IsVisible() {
-		return nil, placing
-	}
-	hwnd := uintptr(w.NativeWindow())
-	st := &s.boxDrag
-	st.moving.Lock()
-	defer st.moving.Unlock()
-	start, ok := st.moveFrom(box, drag, seq, placing, hwnd)
-	if !ok {
-		return w, placing
-	}
-	r := start.Add(image.Pt(dx, dy))
-	client, ok := overlay.GameClient()
-	if ok {
-		r = r.Add(image.Pt(max(0, client.Min.X-r.Min.X), max(0, client.Min.Y-r.Min.Y)))
-		r = r.Sub(image.Pt(max(0, r.Max.X-client.Max.X), max(0, r.Max.Y-client.Max.Y)))
-	}
-	overlay.ShowOver(hwnd, r)
-	if !placing && ok {
-		s.placeGrip(box, client, r)
-	}
-	return w, placing
-}
-
-// moveFrom takes move seq of drag and returns where the box stood when the
-// drag began; ok is false for a move to drop (late, or of an ended drag).
-func (st *boxDragState) moveFrom(box string, drag, seq int, placing bool, hwnd uintptr) (image.Rectangle, bool) {
-	st.mu.Lock()
-	defer st.mu.Unlock()
-	if drag == st.ended {
-		return image.Rectangle{}, false
-	}
-	if drag != st.drag {
-		r, ok := overlay.WindowRect(hwnd)
-		if !ok {
-			return image.Rectangle{}, false
-		}
-		st.drag, st.seq, st.start = drag, 0, r
-	}
-	if seq <= st.seq {
-		return image.Rectangle{}, false
-	}
-	st.seq, st.movedAt = seq, time.Now()
-	if !placing {
-		st.box = box
-	}
-	return st.start, true
 }
 
 // gripRect is where box's grip goes for the box at r: just above its
