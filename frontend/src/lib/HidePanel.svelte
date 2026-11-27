@@ -34,7 +34,8 @@
     error = ''
   })
 
-  const worthEx = $derived(quote ? quote.valueEx * Math.max(1, item.stackSize || 1) : 0)
+  // One item's worth, as the filter's threshold counts it (see OverlayApp).
+  const worthEx = $derived(quote ? quote.valueEx : 0)
   const valuable = $derived(!!explain && explain.thresholdEx > 0 && quote !== null && quote.valueEx >= explain.thresholdEx)
   // NeverSink's exotic rule wins over hiding (the player keeps it by leaving
   // that rule on), so hiding such an item would do nothing.

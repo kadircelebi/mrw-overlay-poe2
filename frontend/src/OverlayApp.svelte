@@ -35,10 +35,13 @@
   let mode = $state('')
 
   // The item's worth for the filter's "hidden but valuable" warning: the
-  // price list's figure, else the median of the cheapest listings found.
+  // price list's figure for one item, else the median of the cheapest
+  // listings found. One item, not the stack: the filter's threshold is a
+  // single drop's, and a stack that drops as one is judged by the stack
+  // rules, which the verdict already counts.
   const worthEx = $derived.by(() => {
     if (!item) return 0
-    if (quote) return quote.valueEx * Math.max(1, item.stackSize || 1)
+    if (quote) return quote.valueEx
     const e = explain
     if (!e || !result?.listings?.length) return 0
     const rate = (c: string) => (c === 'exalted' ? 1 : c === 'divine' ? e.divineEx : c === 'chaos' ? e.chaosEx : 0)
