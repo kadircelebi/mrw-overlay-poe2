@@ -827,7 +827,7 @@ export const en: Record<string, string> = {
   'mk.regexEmpty': 'Select a property or an item first.',
   'mk.regexLong': 'The regex exceeds 250 characters. Select fewer properties.',
   'mk.regexOmitted': 'Not included in the regex:',
-  'mk.regexAffixBounds': 'Affix min/max values are not applied.',
+  'mk.regexAffixBounds': 'Affix minimums are applied; maximums, and affixes with several numbers, match by presence only.',
   'tracker.title': 'Tracker',
   'tracker.tab.sales': 'Sales',
   'tracker.off.title': 'Sales history is off',

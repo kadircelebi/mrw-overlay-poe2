@@ -788,7 +788,7 @@ export const zh: Record<string, string> = {
   'mk.regexEmpty': '請先選取屬性或物品。',
   'mk.regexLong': '正規表示式超過 250 個字元，請減少選取的屬性。',
   'mk.regexOmitted': '未包含在正規表示式中：',
-  'mk.regexAffixBounds': '不套用詞綴的最小／最大數值。',
+  'mk.regexAffixBounds': '會套用詞綴的最小值；最大值與含多個數值的詞綴只比對是否存在。',
   'tracker.title': '追蹤',
   'tracker.tab.sales': '銷售',
   'tracker.off.title': '銷售紀錄已關閉',

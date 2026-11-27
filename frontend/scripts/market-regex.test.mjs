@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildMarketRegex, integerRange, modifierPattern } from '../src/lib/marketRegex.ts'
+import { boundedModifierPattern, buildMarketRegex, integerRange, modifierPattern } from '../src/lib/marketRegex.ts'
 
 const texts = ['#% increased Pack Size in Map', '#% increased chance for Desecrated Currency from Abysses in Map',
   'Monsters have #% increased Effectiveness', 'Map has #% increased number of Rare Monsters', 'Map contains an additional Abyss']
@@ -30,13 +30,36 @@ test('tablet all requires every selected modifier; any accepts each one independ
   for (const other of rivals) assert.ok(!matches(any.text, [other.replaceAll('#', '5')]))
 })
 
-test('numbers are ignored for affix presence; unchecked and removed rows stay out', () => {
-  const result = buildMarketRegex({ ...input, choices: [{ ...choices[0], min: 25 }, { ...choices[1], selected: false },
-    { ...choices[2], mod: { ...choices[2].mod, key: 'removed' } }], mode: 'all' })
-  assert.ok(matches(result.text, ['1% increased Pack Size in Map']))
-  assert.equal(result.omitted.length, 0)
-  assert.equal(result.ignoredAffixBounds, true)
-  assert.equal([...result.text.matchAll(/"/g)].length, 2)
+test('affix minimum applies in all and any; unchecked and removed rows stay out', () => {
+  for (const mode of ['all', 'any']) {
+    const result = buildMarketRegex({ ...input, choices: [{ ...choices[0], min: 25 }, { ...choices[1], selected: false },
+      { ...choices[2], mod: { ...choices[2].mod, key: 'removed' } }], mode })
+    for (const n of [25, 26, 40, 99, 100, 125]) assert.ok(matches(result.text, [`${n}% increased Pack Size in Map`]), `${mode} ${n}`)
+    for (const n of [1, 9, 19, 24]) assert.ok(!matches(result.text, [`${n}% increased Pack Size in Map`]), `${mode} ${n}`)
+    assert.ok(!matches(result.text, ['30% reduced Pack Size in Map']))
+    assert.equal(result.omitted.length, 0)
+    assert.equal(result.ignoredAffixBounds, false)
+    assert.equal([...result.text.matchAll(/"/g)].length, 2)
+  }
+})
+
+test('affix minimum: each modifier keeps its own threshold in any mode', () => {
+  const lifeCatalogue = ['+# to maximum Life', '+# to maximum Energy Shield', '#% increased Armour', '#% increased Armour and Evasion',
+    'Breaches have #% increased Armour', 'Adds # to # Fire Damage']
+  const mods = lifeCatalogue.slice(0, 3).map((text, i) => ({ selected: true, min: [85, 40, 30][i], mod: { text, key: 'm' + i, statId: 's' + i, type: 'explicit' } }))
+  const base = { choices: mods, groups: [{ type: 'and', choiceKeys: mods.map(m => m.mod.key) }], filters: [], catalogue: lifeCatalogue }
+  const any = buildMarketRegex({ ...base, mode: 'any' }), all = buildMarketRegex({ ...base, mode: 'all' })
+  assert.equal(any.ignoredAffixBounds, false)
+  for (const line of ['+85 to maximum Life', '+120 to maximum Life', '+40 to maximum Energy Shield', '30% increased Armour', '45% increased Armour'])
+    assert.ok(matches(any.text, [line]), line)
+  for (const line of ['+84 to maximum Life', '+39 to maximum Energy Shield', '29% increased Armour', '50% increased Armour and Evasion', 'Breaches have 50% increased Armour'])
+    assert.ok(!matches(any.text, [line]), line)
+  assert.ok(matches(all.text, ['+90 to maximum Life', '+41 to maximum Energy Shield', '31% increased Armour']))
+  assert.ok(!matches(all.text, ['+80 to maximum Life', '+41 to maximum Energy Shield', '31% increased Armour']))
+  const two = { selected: true, min: 10, mod: { text: 'Adds # to # Fire Damage', key: 'f', statId: 'f', type: 'explicit' } }
+  const presence = buildMarketRegex({ ...base, choices: [two], groups: [{ type: 'and', choiceKeys: ['f'] }], mode: 'all' })
+  assert.equal(presence.ignoredAffixBounds, true)
+  assert.ok(matches(presence.text, ['Adds 1 to 2 Fire Damage']))
 })
 
 test('Area wording matches Map wording and regex metacharacters are escaped', () => {
@@ -100,4 +123,23 @@ test('uses copied with an actual number keeps its threshold and has no omitted-a
   assert.deepEqual(result.omitted, [])
   assert.ok(matches(result.text, ['10 uses remaining']))
   assert.ok(!matches(result.text, ['6 uses remaining']))
+})
+
+test('bounded modifier minimum is exact for every value, with or without a range in brackets', () => {
+  const cat = ['+# to maximum Life', 'Minions have +# to maximum Life', '+# to Level of all Projectile Skills', '+# to Level of all Spell Skills']
+  for (const text of ['+# to maximum Life', '+# to Level of all Projectile Skills']) {
+    for (const min of [0, 1, 5, 9, 10, 25, 85, 99, 100, 150]) {
+      const re = new RegExp(boundedModifierPattern(text, cat, min), 'i')
+      for (let n = 0; n <= 1200; n++) {
+        const line = text.replace('#', String(n))
+        assert.equal(re.test(line), n >= min, `${text} min ${min}: ${n}`)
+        assert.equal(re.test(text.replace('#', `${n}(${n}-${n + 9})`)), n >= min, `${text} min ${min}: ${n} bracket`)
+      }
+      assert.ok(!re.test('Minions have +900 to maximum Life') || !text.includes('Life'))
+      assert.ok(!re.test('+9 to Level of all Spell Skills'))
+    }
+  }
+  assert.equal(boundedModifierPattern('Adds # to # Fire Damage', [], 5), null)
+  assert.equal(boundedModifierPattern('+# to maximum Life', [], -5), null)
+  assert.equal(boundedModifierPattern('+# to maximum Life', [], 1.5), null)
 })

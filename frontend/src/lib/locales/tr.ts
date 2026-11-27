@@ -801,7 +801,7 @@ export const tr: Record<string, string> = {
   'mk.regexEmpty': 'Önce bir özellik veya eşya seçin.',
   'mk.regexLong': 'Regex 250 karakteri aşıyor. Daha az özellik seçin.',
   'mk.regexOmitted': 'Regex’e dahil edilmeyenler:',
-  'mk.regexAffixBounds': 'Affix min/max değerleri uygulanmaz.',
+  'mk.regexAffixBounds': "Affix min değerleri uygulanır; max değerleri ve birden çok sayı taşıyan affix'ler yalnız varlığına göre eşleşir.",
   'tracker.title': 'Takip',
   'tracker.tab.sales': 'Satışlar',
   'tracker.off.title': 'Satış geçmişi kapalı',

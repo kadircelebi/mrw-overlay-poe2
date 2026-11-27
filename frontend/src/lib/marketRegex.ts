@@ -70,13 +70,40 @@ export function integerRange(min = 0, max = 9999): string | null {
   return parts.length === 1 ? parts[0] : `(${parts.join('|')})`
 }
 
+// A modifier with one number and a minimum: the number range joined to the
+// shortest following text that no other catalogue line has after a number.
+export function boundedModifierPattern(text: string, catalogue: string[], min: number): string | null {
+  const template = regexTemplate(text)
+  const parts = template.split('#')
+  if (parts.length !== 2 || !Number.isInteger(min) || min < 0) return null
+  const range = filterRange(min)
+  if (range === null) return null
+  const [before, rest] = parts
+  // Digits after a matched minimum only make the number larger, and \S* also
+  // takes a range in brackets ("85(80-89)").
+  const number = `${range.replace(/\\d\{(\d+),\}/, (_, n) => n === '1' ? '\\d' : n === '2' ? '\\d\\d' : `\\d{${n}}`)}\\S*`
+  const others = [...new Set(catalogue.map(regexTemplate))].filter((s) => s !== template)
+  const word = (s: string) => escape(s).replace(/\bmap\b/g, '(map|area)')
+  // Anchored at the line start, so bracketed range digits never count and only
+  // lines that begin the same way can collide.
+  const head = '^' + word(before) + '\\+?' + number
+  const same = others.filter((s) => s.startsWith(before + '#'))
+  for (let size = 1; size < rest.length; size++) {
+    const part = rest.slice(0, size)
+    if (!/[a-z]/.test(part) || part !== part.trimEnd()) continue
+    if (!same.some((s) => s.startsWith(before + '#' + part))) return head + word(part)
+  }
+  return head + word(rest) + '$'
+}
+
 function filterRange(min?: number, max?: number): string | null {
   if (max !== undefined) return integerRange(min ?? 0, max)
   const lo = min ?? 0
   const length = String(lo).length
   const bounded = integerRange(lo, 10 ** length - 1)
   if (bounded === null) return null
-  return `(${bounded}|[1-9]\\d{${length},})`
+  const inner = bounded.startsWith('(') ? bounded.slice(1, -1) : bounded
+  return `(${inner}|[1-9]\\d{${length},})`
 }
 
 const numericProperties: Record<string, string> = {
@@ -110,8 +137,11 @@ export function buildMarketRegex(input: {
       if (range === null) { omitted.push(choice.mod.text); continue }
       pattern = `^${range}(\\([^)]*\\))? uses remaining`
     } else if (min !== undefined || max !== undefined) {
-      // Affix numbers were deliberately excluded from this feature's scope.
-      ignoredAffixBounds = true
+      // The minimum is applied to single-number modifiers; maximums, and
+      // modifiers with several or fractional numbers, stay presence-only.
+      const bounded = min !== undefined ? boundedModifierPattern(choice.mod.text, input.catalogue, min) : null
+      if (bounded) pattern = bounded
+      if (!bounded || max !== undefined) ignoredAffixBounds = true
     }
     // Remaining uses is an item condition, independent of affix all/any.
     if (uses) required.push(quote((groups.every((g) => g.type === 'not') ? '!' : '') + pattern))
