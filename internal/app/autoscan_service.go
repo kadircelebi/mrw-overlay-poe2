@@ -158,11 +158,9 @@ func (s *AppService) autoScanTick() time.Duration {
 		// Base reads keep to a panel without tooltips.
 		return wait
 	}
-	hidden := s.hideBoxesOver(area)
+	back := s.boxesOutOfRead(area)
 	img, err := overlay.CaptureScreenRect(area)
-	if hidden {
-		go s.syncBoxes()
-	}
+	back()
 	if err != nil {
 		return wait
 	}
@@ -251,11 +249,9 @@ func (s *AppService) autoScanTick() time.Duration {
 // height pixels high.
 func (s *AppService) readGoldBox(g invscan.Grid, height int) *int64 {
 	r := invscan.GoldRect(g)
-	hidden := s.hideBoxesOver(r)
+	back := s.boxesOutOfRead(r)
 	img, err := overlay.CaptureScreenRect(r)
-	if hidden {
-		go s.syncBoxes()
-	}
+	back()
 	if err != nil {
 		return nil
 	}
@@ -275,14 +271,12 @@ func (s *AppService) readExpBar(client image.Rectangle) readout {
 	st.expTries.Add(1)
 	w, h := client.Dx(), client.Dy()
 	r := invscan.ExpRect(w, h).Add(client.Min)
-	hidden := s.hideBoxesOver(r)
+	back := s.boxesOutOfRead(r)
 	p := invscan.ExpPoint(w, h).Add(client.Min)
 	overlay.MoveCursor(p.X, p.Y)
 	defer func() {
 		overlay.MoveCursor(x, y)
-		if hidden {
-			go s.syncBoxes()
-		}
+		back()
 	}()
 	for start := time.Now(); time.Since(start) < expReadFor; {
 		img, err := overlay.CaptureScreenRect(r)

@@ -7,7 +7,31 @@ import (
 	"image"
 )
 
-var procSetCursorPos = user32.NewProc("SetCursorPos")
+var (
+	procSetCursorPos             = user32.NewProc("SetCursorPos")
+	procSetWindowDisplayAffinity = user32.NewProc("SetWindowDisplayAffinity")
+)
+
+const (
+	wdaNone               = 0x00
+	wdaExcludeFromCapture = 0x11
+)
+
+// ExcludeFromCapture takes window hwnd out of screen reads (on) or puts it
+// back: out of them, it stays on the screen while a read of the area under
+// it shows what is behind it. It reports whether Windows did so (Windows 10
+// 2004 or later).
+func ExcludeFromCapture(hwnd uintptr, on bool) bool {
+	if hwnd == 0 {
+		return false
+	}
+	mode := uintptr(wdaNone)
+	if on {
+		mode = wdaExcludeFromCapture
+	}
+	r, _, _ := procSetWindowDisplayAffinity.Call(hwnd, mode)
+	return r != 0
+}
 
 // CaptureGameClient copies the game's client area off the screen, and
 // tells where it is (physical pixels).

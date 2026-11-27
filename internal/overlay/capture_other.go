@@ -17,8 +17,9 @@ func CaptureGameClient() (*image.RGBA, image.Rectangle, error) {
 func CaptureScreenRect(image.Rectangle) (*image.RGBA, error) {
 	return nil, errors.New("screen reading is only supported on Windows")
 }
-func MoveCursor(int, int) bool { return false }
-func MouseButtonDown() bool    { return false }
+func MoveCursor(int, int) bool              { return false }
+func MouseButtonDown() bool                 { return false }
+func ExcludeFromCapture(uintptr, bool) bool { return false }
 func ReadGameText() ([]OcrLine, int, int, error) {
 	return nil, 0, 0, errors.New("screen text reading is only supported on Windows")
 }

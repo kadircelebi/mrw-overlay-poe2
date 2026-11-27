@@ -271,12 +271,12 @@ func goldOf(img *image.RGBA, r image.Rectangle, height int) *int64 {
 }
 
 // grabInventory reads the game's client area with the pointer moved off the
-// items (no tooltip then) and the boxes the app lays over the game hidden for
-// that moment: to the inventory's title, or with onBar to the experience bar,
-// whose tooltip is read from the same picture.
+// items (no tooltip then) and the boxes the app lays over the game kept out
+// of the read: to the inventory's title, or with onBar to the experience
+// bar, whose tooltip is read from the same picture.
 func (s *AppService) grabInventory(client image.Rectangle, onBar bool) (*image.RGBA, error) {
 	x, y, ok := overlay.CursorPosition()
-	hidden := s.hideBoxesForRead()
+	back := s.boxesOutOfRead(image.Rectangle{})
 	if ok {
 		h := float64(client.Dy())
 		if onBar {
@@ -291,26 +291,8 @@ func (s *AppService) grabInventory(client image.Rectangle, onBar bool) (*image.R
 	if ok {
 		overlay.MoveCursor(x, y)
 	}
-	if hidden {
-		go s.syncBoxes()
-	}
+	back()
 	return img, err
-}
-
-// hideBoxesForRead hides the boxes the app lays over the game, which
-// would be read with it; it reports whether one was shown.
-func (s *AppService) hideBoxesForRead() bool {
-	hidden := false
-	for _, w := range s.boxWindows() {
-		if w.IsVisible() {
-			w.Hide()
-			hidden = true
-		}
-	}
-	for _, box := range boxNames {
-		s.putGripAway(box)
-	}
-	return hidden
 }
 
 // priceInventory adds up the read cells by item: an icon shared by several

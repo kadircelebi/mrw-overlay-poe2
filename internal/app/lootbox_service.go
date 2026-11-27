@@ -246,29 +246,49 @@ func (s *AppService) boxWindows() []application.Window {
 	return out
 }
 
-// hideBoxesOver hides the boxes (and grips) shown over screen area r,
-// which a read of it would take for part of the game; it reports whether
-// it hid one.
-func (s *AppService) hideBoxesOver(r image.Rectangle) bool {
+// boxesOutOfRead keeps the boxes and their grips out of a read of screen
+// area r (the whole screen when r is empty), which would take them for part
+// of the game, and returns what puts them back once the read is made. They
+// stay on the screen: Windows leaves them out of the read. Where it cannot
+// (before Windows 10 2004) those over r are hidden for the read and shown
+// again afterwards, as their settings say.
+func (s *AppService) boxesOutOfRead(r image.Rectangle) (back func()) {
+	var out []uintptr
 	hidden := false
+	over := func(hwnd uintptr) bool {
+		at, ok := overlay.WindowRect(hwnd)
+		return r.Empty() || ok && at.Overlaps(r)
+	}
 	for _, w := range s.boxWindows() {
-		if !w.IsVisible() {
-			continue
-		}
-		if box, ok := overlay.WindowRect(uintptr(w.NativeWindow())); ok && box.Overlaps(r) {
+		hwnd := uintptr(w.NativeWindow())
+		if overlay.ExcludeFromCapture(hwnd, true) {
+			out = append(out, hwnd)
+		} else if w.IsVisible() && over(hwnd) {
 			w.Hide()
 			hidden = true
 		}
 	}
 	for _, box := range boxNames {
-		if g := s.grips[box]; g != nil {
-			if gr, ok := overlay.WindowRect(uintptr(g.NativeWindow())); ok && gr.Overlaps(r) {
-				s.putGripAway(box)
-				hidden = true
-			}
+		g := s.grips[box]
+		if g == nil {
+			continue
+		}
+		hwnd := uintptr(g.NativeWindow())
+		if overlay.ExcludeFromCapture(hwnd, true) {
+			out = append(out, hwnd)
+		} else if over(hwnd) {
+			s.putGripAway(box)
+			hidden = true
 		}
 	}
-	return hidden
+	return func() {
+		for _, hwnd := range out {
+			overlay.ExcludeFromCapture(hwnd, false)
+		}
+		if hidden {
+			go s.syncBoxes()
+		}
+	}
 }
 
 // syncBoxes puts the boxes back as their settings say.
