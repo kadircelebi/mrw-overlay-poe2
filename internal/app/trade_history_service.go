@@ -400,7 +400,7 @@ func (s *AppService) syncEarningsOverlay() {
 		return
 	}
 	_, on, _ := s.tradeHistoryOn()
-	if !on || !s.gameActive.Load() {
+	if !on || !s.boxesShown.Load() {
 		if w.IsVisible() {
 			w.Hide()
 		}

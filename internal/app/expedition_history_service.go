@@ -183,7 +183,7 @@ func (s *AppService) syncExpeditionStrip() {
 		return
 	}
 	any := len(s.expeditionLog.Entries(s.overlayClient.League())) > 0
-	if !any || !s.expeditionStripOn() || !s.gameActive.Load() {
+	if !any || !s.expeditionStripOn() || !s.boxesShown.Load() {
 		if w.IsVisible() {
 			w.Hide()
 		}
@@ -200,14 +200,18 @@ func (s *AppService) syncExpeditionStrip() {
 // showOver lays window w over the screen rectangle r (physical pixels). A
 // hidden one is first moved there and then shown by Wails: shown as it
 // stands it would show for a moment where it was made, the middle of the
-// screen, a blank square before its page draws. A visible one is not shown
-// again, as Wails shows a window activating it.
+// screen, a blank square before its page draws; it is then laid above the
+// other windows. A visible one is only moved: shown again, Wails would
+// activate it, and raised again, a box updated every second would cover
+// the price check opened over it.
 func showOver(w application.Window, r image.Rectangle) {
 	hwnd := uintptr(w.NativeWindow())
-	if !w.IsVisible() {
+	if w.IsVisible() {
 		overlay.MoveTo(hwnd, r)
-		w.Show()
+		return
 	}
+	overlay.MoveTo(hwnd, r)
+	w.Show()
 	overlay.ShowOver(hwnd, r)
 }
 

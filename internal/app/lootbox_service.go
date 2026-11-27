@@ -164,7 +164,7 @@ func (s *AppService) syncLootBox() {
 	if w == nil || s.lootPlacing.Load() || s.boxMoving("loot") {
 		return
 	}
-	if !s.lootBoxOn() || !s.gameActive.Load() {
+	if !s.lootBoxOn() || !s.boxesShown.Load() {
 		if w.IsVisible() {
 			w.Hide()
 		}

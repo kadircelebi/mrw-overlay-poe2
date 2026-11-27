@@ -206,10 +206,16 @@ func (s *AppService) placeGrip(box string, client, r image.Rectangle) {
 	if st.gripReady == nil {
 		st.gripReady, st.gripOn = map[string]bool{}, map[string]bool{}
 	}
-	first := !st.gripReady[box]
+	first, wasOn := !st.gripReady[box], st.gripOn[box]
 	st.gripReady[box], st.gripOn[box] = true, true
 	st.mu.Unlock()
 	at := gripRect(client, r, dpi)
+	if wasOn {
+		// Only moved: raised again it would cover a price check opened over
+		// it, and take its clicks.
+		overlay.MoveTo(hwnd, at)
+		return
+	}
 	if first {
 		// In place before Wails shows it, not in the middle of the screen.
 		overlay.Popup(hwnd)

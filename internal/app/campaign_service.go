@@ -99,7 +99,7 @@ func (s *AppService) syncCampaignBox() {
 	}
 	id, _ := s.campaignArea.Load().(string)
 	_, _, known := campaign.Find(id)
-	if !known || !s.campaignBoxOn() || !s.gameActive.Load() {
+	if !known || !s.campaignBoxOn() || !s.boxesShown.Load() {
 		if w.IsVisible() {
 			w.Hide()
 		}

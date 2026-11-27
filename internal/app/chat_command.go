@@ -82,10 +82,35 @@ func (s *AppService) setGameActive(active bool, hwnd uintptr) {
 			s.placeCampaign()
 		}
 	}
+	// The boxes stay while one of the app's own windows over the game is in
+	// front: hidden for the price check and shown again as the game came
+	// back, a box shown at the moment the next price check opened took the
+	// focus from it, which closed it.
+	s.boxesShown.Store(active || s.overGame(hwnd))
 	s.syncEarningsOverlay()
 	s.syncExpeditionStrip()
 	s.syncLootBox()
 	s.syncCampaignBox()
+}
+
+// overGame tells whether hwnd is one of the app's small windows over the
+// game: the price check, the Expedition labels, the inventory card, a box
+// or a grip. The market and the craft window are not: the boxes, laid
+// above every other window, would cover them.
+func (s *AppService) overGame(hwnd uintptr) bool {
+	if hwnd == 0 {
+		return false
+	}
+	wins := append([]application.Window{s.overlayWindow, s.expeditionWindow, s.invScanWindow}, s.boxWindows()...)
+	for _, g := range s.grips {
+		wins = append(wins, g)
+	}
+	for _, w := range wins {
+		if w != nil && uintptr(w.NativeWindow()) == hwnd {
+			return true
+		}
+	}
+	return false
 }
 
 // sendChatCommand types a line into the game's chat through the clipboard,

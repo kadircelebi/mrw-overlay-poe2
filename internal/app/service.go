@@ -127,6 +127,9 @@ type AppService struct {
 	chatMu     sync.Mutex
 	chatKeys   []string
 	gameActive atomic.Bool
+	// boxesShown is set while the boxes lie over the game: the game or one
+	// of the app's small windows over it is the active window (overGame).
+	boxesShown atomic.Bool
 	whispers   overlay.Whispers
 	// reloadDue is when a filter the game has not reloaded yet was written
 	// (Unix nanoseconds; 0: none), see filter_reload.go.
